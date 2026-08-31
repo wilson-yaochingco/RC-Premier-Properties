@@ -6,6 +6,10 @@ For how the project is put together, see the
 [architecture overview](../architecture/overview.md). For the conventions you are
 expected to follow once running, see [`AGENTS.md`](../../AGENTS.md).
 
+**Before you make your first change, read [`git-workflow.md`](git-workflow.md).** The
+project uses a protected-main workflow: you create a branch _before_ editing, and every
+change reaches `main` through a pull request.
+
 ---
 
 ## 1. Install the prerequisites
@@ -276,6 +280,8 @@ Run these from the **repository root** — they fan out across all three workspa
 
 Before pushing, run `npm run format:check`, `npm run lint` and `npm run typecheck`.
 CI runs exactly these on every pull request, so a green local run means a green PR.
+
+Push to a branch, never to `main` — see [`git-workflow.md`](git-workflow.md).
 
 To run a script inside one workspace only, use `npm run <script> --workspace backend`.
 

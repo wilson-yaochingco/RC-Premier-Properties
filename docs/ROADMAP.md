@@ -161,16 +161,18 @@ development begins.
 
 ### Repository and workflow
 
-Preferred branching model:
+Branching model — **protected main**:
 
 ```text
-feature/*  ──►  dev  ──►  main
+feature/*  ──►  Pull Request  ──►  main
 ```
 
-`main` is stable, release-ready code. `dev` is the integration branch. Feature work
-branches from `dev` and returns through a pull request. Keep this lightweight while the
-team is small — it is the preferred workflow, not an enterprise process to enforce
-rigidly.
+`main` is stable, release-ready code and is never developed on directly. Every change —
+features, fixes, refactors and documentation alike — is made on a branch created _before_
+the work starts, and reaches `main` through a reviewed pull request.
+
+Full workflow, branch naming and commit conventions:
+[`development/git-workflow.md`](development/git-workflow.md).
 
 `.gitignore` must keep `.env`, `.env.local`, `node_modules`, build output and generated
 types out of the repository. Only `.env.example` is committed.
@@ -234,7 +236,8 @@ without listening specifically so integration tests can be added without restruc
       no Atlas string configured
 - [ ] **Backend starts successfully** — currently blocked by the item above, since
       `MONGODB_URI` is required
-- [ ] `dev` branch created and the pull request workflow in use
+- [ ] Branch protection enabled on `main` (currently unprotected) and the pull request
+      workflow in use
 - [ ] Pull request template added
 - [ ] Frontend API client foundation implemented — `src/services/` is currently empty
 
