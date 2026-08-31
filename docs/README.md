@@ -11,6 +11,13 @@ automatically.
 Working conventions for AI agents and new contributors are in the root
 [`AGENTS.md`](../AGENTS.md).
 
+## Start here
+
+[`ROADMAP.md`](ROADMAP.md) is the master implementation map: what the product is
+becoming, which phase it is in, what to build next, and what must **not** be built yet.
+Read it before starting any feature. A roadmap entry means _planned_ — not _implement
+now_.
+
 ## Where things go
 
 | Directory                        | Put this here                                                       |

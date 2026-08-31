@@ -21,6 +21,21 @@ Build only what was asked. Prefer the smallest change that does the job.
 
 ---
 
+## Check the roadmap before building
+
+[`docs/ROADMAP.md`](docs/ROADMAP.md) states which phase the project is in, what belongs
+in the current phase, and what is deliberately deferred.
+
+**A roadmap entry means "this is planned." It does not mean "implement this now."** Do
+not build a later phase early because it is documented there. Confirm the dependencies of
+an item are actually finished before starting it, and work only on the phase or feature
+currently requested.
+
+A phase with unchecked Definition of Done items is not finished, however much of it
+appears to work.
+
+---
+
 ## Where code belongs
 
 | What you're writing                              | Where it goes                                    |
@@ -145,6 +160,7 @@ Two things worth knowing about verification:
 
 ## Further reading
 
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — phases, MVP boundary, deferred decisions
 - [`docs/README.md`](docs/README.md) — documentation conventions
 - [`docs/architecture/overview.md`](docs/architecture/overview.md) — why the repo is shaped this way
 - [`docs/api/conventions.md`](docs/api/conventions.md) — endpoint, error and versioning rules

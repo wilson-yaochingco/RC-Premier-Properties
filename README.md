@@ -94,13 +94,14 @@ the templates — **never put real credentials in the repository.**
 
 **[`/docs`](docs/README.md) is the single source of truth** for project documentation.
 
-| Where                                      | What                                       |
-| ------------------------------------------ | ------------------------------------------ |
-| [`docs/architecture/`](docs/architecture/) | System design and the decisions behind it  |
-| [`docs/api/`](docs/api/)                   | Endpoint, error and versioning conventions |
-| [`docs/database/`](docs/database/)         | Data models and schema decisions           |
-| [`docs/development/`](docs/development/)   | Setup, workflow, deployment                |
-| [`docs/features/`](docs/features/)         | Feature specifications                     |
+| Where                                      | What                                        |
+| ------------------------------------------ | ------------------------------------------- |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md)       | Phases, MVP boundary, what not to build yet |
+| [`docs/architecture/`](docs/architecture/) | System design and the decisions behind it   |
+| [`docs/api/`](docs/api/)                   | Endpoint, error and versioning conventions  |
+| [`docs/database/`](docs/database/)         | Data models and schema decisions            |
+| [`docs/development/`](docs/development/)   | Setup, workflow, deployment                 |
+| [`docs/features/`](docs/features/)         | Feature specifications                      |
 
 Contributors and AI agents should read [`AGENTS.md`](AGENTS.md) before writing code.
 
