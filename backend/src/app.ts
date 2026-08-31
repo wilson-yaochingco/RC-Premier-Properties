@@ -1,7 +1,10 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import { API_PREFIX } from "@rc/shared";
 import { env } from "./config/env.js";
-import routes from "./routes/index.js";
+import routes from "./routes.js";
+import { apiRateLimit } from "./middleware/rateLimit.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -12,16 +15,22 @@ import { errorHandler } from "./middleware/errorHandler.js";
 export function createApp(): Express {
   const app = express();
 
+  // Behind a reverse proxy in production, so rate limiting sees real client IPs.
+  if (env.IS_PRODUCTION) {
+    app.set("trust proxy", 1);
+  }
+
+  app.use(helmet());
   app.use(
     cors({
       origin: env.CORS_ORIGIN,
       credentials: true,
     }),
   );
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-  app.use("/api", routes);
+  app.use(API_PREFIX, apiRateLimit, routes);
 
   // Must stay last, and in this order.
   app.use(notFound);

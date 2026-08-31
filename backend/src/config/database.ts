@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import type { DatabaseStatus } from "@rc/shared";
 import { env } from "./env.js";
 
 /**
@@ -35,7 +36,7 @@ export async function disconnectDatabase(): Promise<void> {
   await mongoose.connection.close();
 }
 
-const READY_STATE_LABELS: Record<number, string> = {
+const READY_STATE_LABELS: Record<number, DatabaseStatus["status"]> = {
   0: "disconnected",
   1: "connected",
   2: "connecting",
@@ -43,7 +44,7 @@ const READY_STATE_LABELS: Record<number, string> = {
 };
 
 /** Human-readable connection state, used by the health endpoint. */
-export function getDatabaseStatus(): { status: string; readyState: number } {
+export function getDatabaseStatus(): DatabaseStatus {
   const readyState = mongoose.connection.readyState;
   return {
     status: READY_STATE_LABELS[readyState] ?? "unknown",

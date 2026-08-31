@@ -6,12 +6,12 @@ A step-by-step guide for new team members. Start to finish, expect about 10 minu
 
 ## 1. Install the prerequisites
 
-| Tool | Version | Where |
-| --- | --- | --- |
-| Node.js | **20 or newer** (22 LTS recommended) | https://nodejs.org |
-| Git | any recent version | https://git-scm.com/downloads |
-| VS Code | latest | https://code.visualstudio.com |
-| MongoDB | 6 or newer — **or** a free Atlas cluster | see step 5 |
+| Tool    | Version                                  | Where                         |
+| ------- | ---------------------------------------- | ----------------------------- |
+| Node.js | **20 or newer** (22 LTS recommended)     | https://nodejs.org            |
+| Git     | any recent version                       | https://git-scm.com/downloads |
+| VS Code | latest                                   | https://code.visualstudio.com |
+| MongoDB | 6 or newer — **or** a free Atlas cluster | see step 5                    |
 
 Check that Node and Git are on your PATH:
 
@@ -50,14 +50,14 @@ type `@recommended`.
 
 The recommended extensions are:
 
-| Extension | Why |
-| --- | --- |
-| ESLint (`dbaeumer.vscode-eslint`) | Shows lint errors inline and auto-fixes on save |
-| Prettier (`esbenp.prettier-vscode`) | Consistent formatting on save |
-| Tailwind CSS IntelliSense (`bradlc.vscode-tailwindcss`) | Class autocomplete in the frontend |
-| MongoDB for VS Code (`mongodb.mongodb-vscode`) | Browse the database without leaving the editor |
-| Path IntelliSense | Autocompletes import paths |
-| GitLens | Inline blame and history |
+| Extension                                               | Why                                             |
+| ------------------------------------------------------- | ----------------------------------------------- |
+| ESLint (`dbaeumer.vscode-eslint`)                       | Shows lint errors inline and auto-fixes on save |
+| Prettier (`esbenp.prettier-vscode`)                     | Consistent formatting on save                   |
+| Tailwind CSS IntelliSense (`bradlc.vscode-tailwindcss`) | Class autocomplete in the frontend              |
+| MongoDB for VS Code (`mongodb.mongodb-vscode`)          | Browse the database without leaving the editor  |
+| Path IntelliSense                                       | Autocompletes import paths                      |
+| GitLens                                                 | Inline blame and history                        |
 
 ### Use the workspace TypeScript version
 
@@ -69,19 +69,19 @@ you only need to accept it once.
 
 ## 4. Install dependencies
 
-The frontend and backend are **separate apps with separate dependencies**. Install both.
-Open a VS Code terminal with `Ctrl+backtick`:
+This is an **npm workspaces monorepo**: one install at the repository root covers all
+three packages (`shared`, `backend`, `frontend`). Open a VS Code terminal with
+`Ctrl+backtick` and run it from the root:
 
 ```bash
-cd backend
-npm install
-
-cd ../frontend
 npm install
 ```
 
-This takes a few minutes the first time and creates `node_modules/` in each app.
-Those folders are git-ignored — never commit them.
+Do **not** run `npm install` inside `frontend/` or `backend/` — that creates a stray
+lockfile and breaks the workspace links.
+
+This takes a few minutes the first time. It also runs a `postinstall` step that compiles
+`shared/` into `shared/dist/`, which the other two packages import as `@rc/shared`.
 
 ---
 
@@ -152,13 +152,13 @@ NEXT_PUBLIC_API_URL=http://localhost:5000
 ## 7. Run both apps
 
 You need **two terminals** running at the same time. In VS Code, click the **split
-terminal** icon, or press `Ctrl+Shift+5`.
+terminal** icon, or press `Ctrl+Shift+5`. Both commands run from the **repository
+root**, and each rebuilds `shared/` first so your types are never stale.
 
 **Terminal 1 — backend:**
 
 ```bash
-cd backend
-npm run dev
+npm run dev:backend
 ```
 
 Expected output:
@@ -166,14 +166,13 @@ Expected output:
 ```
 [db] connected to rc_premier
 [server] rc-premier-backend listening on http://localhost:5000 (development)
-[server] health check: http://localhost:5000/api/health
+[server] health check: http://localhost:5000/api/v1/health
 ```
 
 **Terminal 2 — frontend:**
 
 ```bash
-cd frontend
-npm run dev
+npm run dev:frontend
 ```
 
 Expected output:
@@ -194,7 +193,7 @@ green dot and **"Backend reachable — database: connected"**.
 You can also check the API directly:
 
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:5000/api/v1/health
 ```
 
 ```json
@@ -237,6 +236,15 @@ update `NEXT_PUBLIC_API_URL` in `frontend/.env.local` to match.
 Re-check the username and password in the connection string, and confirm your current IP
 is allowed under **Network Access**. Home and office IPs differ — you may need to add both.
 
+**TypeScript says `Cannot find module '@rc/shared'`, or your types look out of date.**
+`shared/dist` is missing or stale. Rebuild it from the repository root with
+`npm run build --workspace shared`, or just `npm install` again. If you are actively
+editing `shared/src/`, run `npm run dev:shared` in a third terminal to rebuild on save.
+
+**`npm install` created a lockfile inside `frontend/` or `backend/`.**
+You ran it in the wrong directory. Delete that `package-lock.json` and the local
+`node_modules/`, then run `npm install` from the repository root.
+
 **ESLint isn't highlighting anything.**
 You probably opened `frontend/` or `backend/` directly instead of the repository root.
 Reopen the root folder, then run **Developer: Reload Window** from the command palette.
@@ -249,17 +257,23 @@ your commands in Git Bash instead.
 
 ## Everyday commands
 
-Run these from inside `frontend/` or `backend/`.
+Run these from the **repository root** — they fan out across all three workspaces.
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start in watch mode |
-| `npm run lint` | Check code style |
-| `npm run typecheck` | Check types without building |
-| `npm run build` | Production build |
-| `npm run start` | Run the production build |
+| Command                | What it does                                     |
+| ---------------------- | ------------------------------------------------ |
+| `npm run dev:backend`  | Start the API in watch mode                      |
+| `npm run dev:frontend` | Start the web app in watch mode                  |
+| `npm run dev:shared`   | Rebuild the shared contract on save              |
+| `npm run lint`         | ESLint, backend + frontend                       |
+| `npm run typecheck`    | TypeScript across all three workspaces           |
+| `npm run build`        | Build shared, then backend, then frontend        |
+| `npm run format`       | Apply Prettier to the whole repo                 |
+| `npm run format:check` | Verify formatting without writing (what CI runs) |
 
-Before pushing, run `npm run lint` and `npm run typecheck` in **both** apps.
+Before pushing, run `npm run format:check`, `npm run lint` and `npm run typecheck`.
+CI runs exactly these on every pull request, so a green local run means a green PR.
+
+To run a script inside one workspace only, use `npm run <script> --workspace backend`.
 
 ---
 
@@ -267,41 +281,68 @@ Before pushing, run `npm run lint` and `npm run typecheck` in **both** apps.
 
 ```
 RC-Premier-Properties/
-├── .vscode/         Shared editor settings (committed — please don't remove)
+├── package.json      npm workspaces root — all dev commands live here
+├── .vscode/          Shared editor settings (committed — please don't remove)
+├── .github/workflows CI: lint, typecheck, build on every PR
+│
+├── shared/           @rc/shared — the API contract both apps compile against
+│   └── src/api.ts    Request/response types + API_PREFIX. Change it here, once.
+│
 ├── frontend/
 │   └── src/
 │       ├── app/         Pages and layouts (App Router)
-│       ├── components/  Reusable UI
+│       ├── components/  Shared UI — colocate route-specific pieces under app/
 │       ├── hooks/       Custom React hooks
 │       ├── lib/         Helpers — env config lives here
 │       ├── services/    Functions that call the backend API
-│       └── types/       Shared TypeScript types
+│       └── types/       Frontend-only types (anything shared goes in shared/)
+│
 └── backend/
     └── src/
         ├── server.ts    Entry point
         ├── app.ts       Express app assembly
+        ├── routes.ts    Mounts each module under /api/v1
         ├── config/      env + database connection
-        ├── routes/      URL to controller mapping
-        ├── controllers/ Request/response handling
-        ├── services/    Business logic
-        ├── models/      Mongoose schemas
-        └── middleware/  404 + error handling
+        ├── middleware/  notFound, errorHandler, rateLimit
+        ├── lib/         Cross-domain helpers
+        └── modules/     One folder per feature
+            └── health/  health.routes.ts + health.controller.ts
 ```
 
+The backend is organized **feature-first**: everything for one domain lives in a single
+folder under `modules/`, rather than being scattered across `controllers/`, `services/`
+and `models/`. To add a resource:
+
+```
+backend/src/modules/properties/
+├── properties.routes.ts       URL → controller
+├── properties.controller.ts   request/response handling
+├── properties.service.ts      business logic
+└── properties.model.ts        mongoose schema
+```
+
+Then register it with one line in `backend/src/routes.ts`, and put any type the frontend
+also needs in `shared/src/api.ts`.
+
 **Note:** the project is currently a foundation only — the health endpoint is the sole
-route and there are no database models yet. `services/` and `models/` are intentionally
-empty, waiting for real features.
+route and there are no database models yet.
 
 ---
 
 ## Conventions
 
+- **Anything that crosses the network goes in `shared/src/api.ts`.** Never redeclare a
+  response shape in the frontend — import it from `@rc/shared` so a backend change shows
+  up as a compile error instead of a runtime surprise.
+- Build URLs from `API_PREFIX` (also from `@rc/shared`) rather than hardcoding
+  `/api/v1`, so the version can be bumped in one place.
 - The backend is an **ESM** project: relative imports must end in `.js`, even in
   TypeScript files, as in `import { env } from "./config/env.js"`. This is correct —
   do not remove the extension.
 - On the frontend, import `API_BASE_URL` or `apiUrl()` from `src/lib/env.ts`. Don't read
   `process.env` directly in components.
 - Only variables prefixed `NEXT_PUBLIC_` reach the browser. Never put a secret in one.
-- New backend resources follow this path: `models/X.ts` → `services/x.service.ts` →
-  `controllers/x.controller.ts` → `routes/x.routes.ts` → one `router.use()` line in
-  `routes/index.ts`.
+- Formatting is enforced by Prettier and checked in CI. Let format-on-save handle it, or
+  run `npm run format` before committing.
+- The repository stores all text files with LF line endings (`.gitattributes`). Don't
+  change your editor to CRLF.

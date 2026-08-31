@@ -12,10 +12,7 @@
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 /** Base URL of the backend API, without a trailing slash. */
-export const API_BASE_URL = (rawApiUrl ?? "http://localhost:5000").replace(
-  /\/+$/,
-  "",
-);
+export const API_BASE_URL = (rawApiUrl ?? "http://localhost:5000").replace(/\/+$/, "");
 
 /** Build a fully-qualified API URL from a path such as `/api/health`. */
 export function apiUrl(path: string): string {

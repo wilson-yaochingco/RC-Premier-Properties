@@ -1,3 +1,4 @@
+import { API_PREFIX } from "@rc/shared";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
@@ -16,7 +17,7 @@ async function start(): Promise<void> {
     console.warn(
       `[db] connection failed: ${message}\n` +
         `[db] continuing without MongoDB (NODE_ENV=${env.NODE_ENV}). ` +
-        `/api/health will report the database as disconnected.`,
+        `${API_PREFIX}/health will report the database as disconnected.`,
     );
   }
 
@@ -25,7 +26,9 @@ async function start(): Promise<void> {
     console.log(
       `[server] rc-premier-backend listening on http://localhost:${env.PORT} (${env.NODE_ENV})`,
     );
-    console.log(`[server] health check: http://localhost:${env.PORT}/api/health`);
+    console.log(
+      `[server] health check: http://localhost:${env.PORT}${API_PREFIX}/health`,
+    );
   });
 
   const shutdown = (signal: string): void => {

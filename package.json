@@ -1,0 +1,28 @@
+{
+  "name": "rc-premier-properties",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RC Premier Properties - full-stack real estate web application",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "postinstall": "npm run build --workspace shared",
+    "dev:backend": "npm run build --workspace shared && npm run dev --workspace backend",
+    "dev:frontend": "npm run build --workspace shared && npm run dev --workspace frontend",
+    "dev:shared": "npm run dev --workspace shared",
+    "build": "npm run build --workspace shared && npm run build --workspace backend && npm run build --workspace frontend",
+    "lint": "npm run lint --workspace backend && npm run lint --workspace frontend",
+    "typecheck": "npm run typecheck --workspaces",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}

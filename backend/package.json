@@ -11,9 +11,12 @@
   },
   "description": "RC Premier Properties API server",
   "dependencies": {
+    "@rc/shared": "*",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
     "mongoose": "^9.9.4"
   },
   "devDependencies": {

@@ -1,5 +1,7 @@
 # RC Premier Properties
 
+[![CI](https://github.com/wilson-yaochingco/RC-Premier-Properties/actions/workflows/ci.yml/badge.svg)](https://github.com/wilson-yaochingco/RC-Premier-Properties/actions/workflows/ci.yml)
+
 Full-stack real estate web application.
 
 > **Status: foundation only.** No product features are implemented yet — no listings,
@@ -8,23 +10,25 @@ Full-stack real estate web application.
 
 ## Stack
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 |
-| Backend | Node.js, Express 5, TypeScript (ESM), Mongoose 9 |
-| Database | MongoDB |
-| Tooling | ESLint (flat config) on both apps, `tsx` for backend dev |
+| Layer    | Technology                                                            |
+| -------- | --------------------------------------------------------------------- |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4        |
+| Backend  | Node.js, Express 5, TypeScript (ESM), Mongoose 9                      |
+| Database | MongoDB                                                               |
+| Shared   | `@rc/shared` — API types both apps compile against                    |
+| Tooling  | npm workspaces, ESLint (flat config), Prettier, `tsx`, GitHub Actions |
 
 ## Layout
 
 ```
-RC-Premier/
+RC-Premier-Properties/
+├── shared/      @rc/shared — the API contract
 ├── frontend/    Next.js app  → http://localhost:3000
-└── backend/     Express API  → http://localhost:5000
+└── backend/     Express API  → http://localhost:5000/api/v1
 ```
 
-The two apps are installed and run independently; there is no root `package.json`
-and no workspace tooling. A single git repository covers both.
+One npm workspaces monorepo: a single `npm install` at the root covers all three
+packages, and all day-to-day commands are root-level scripts.
 
 ## Getting started
 
@@ -35,17 +39,13 @@ The short version, for anyone already set up. Requires Node.js 20+ and a MongoDB
 instance (local or Atlas).
 
 ```bash
-# Backend
-cd backend
-npm install
-cp .env.example .env          # edit MONGODB_URI if needed
-npm run dev                   # http://localhost:5000
+npm install                        # once, at the root — builds @rc/shared too
 
-# Frontend (second terminal)
-cd frontend
-npm install
-cp .env.example .env.local
-npm run dev                   # http://localhost:3000
+cd backend  && cp .env.example .env       && cd ..
+cd frontend && cp .env.example .env.local && cd ..
+
+npm run dev:backend    # terminal 1 → http://localhost:5000
+npm run dev:frontend   # terminal 2 → http://localhost:3000
 ```
 
 Then open http://localhost:3000 — the page reports whether the backend is reachable.
@@ -53,46 +53,68 @@ Then open http://localhost:3000 — the page reports whether the backend is reac
 Check the API directly:
 
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:5000/api/v1/health
 ```
 
 ```json
 {
   "status": "ok",
   "service": "rc-premier-backend",
-  "timestamp": "2026-08-31T01:52:53.458Z",
-  "uptime": 17.51,
+  "timestamp": "2026-08-31T02:27:48.959Z",
+  "uptime": 20.73,
   "environment": "development",
   "database": { "status": "connected", "readyState": 1 }
 }
 ```
+
+## Commands
+
+All run from the repository root.
+
+| Command                | What it does                           |
+| ---------------------- | -------------------------------------- |
+| `npm run dev:backend`  | API in watch mode                      |
+| `npm run dev:frontend` | Web app in watch mode                  |
+| `npm run dev:shared`   | Rebuild the shared contract on save    |
+| `npm run lint`         | ESLint across backend + frontend       |
+| `npm run typecheck`    | TypeScript across all three workspaces |
+| `npm run build`        | Build shared → backend → frontend      |
+| `npm run format`       | Apply Prettier                         |
+| `npm run format:check` | Verify formatting (what CI runs)       |
 
 ## Environment variables
 
 Real `.env` / `.env.local` files are git-ignored. The committed `.env.example` files
 are the templates — **never put real credentials in the repository.**
 
-| App | Variable | Purpose |
-| --- | --- | --- |
-| frontend | `NEXT_PUBLIC_API_URL` | Base URL of the backend API |
-| backend | `PORT` | Port the API listens on (default `5000`) |
-| backend | `NODE_ENV` | `development` / `test` / `production` |
-| backend | `MONGODB_URI` | MongoDB connection string (**required**) |
-| backend | `CORS_ORIGIN` | Origin allowed to call the API |
+| App      | Variable              | Purpose                                  |
+| -------- | --------------------- | ---------------------------------------- |
+| frontend | `NEXT_PUBLIC_API_URL` | Base URL of the backend API              |
+| backend  | `PORT`                | Port the API listens on (default `5000`) |
+| backend  | `NODE_ENV`            | `development` / `test` / `production`    |
+| backend  | `MONGODB_URI`         | MongoDB connection string (**required**) |
+| backend  | `CORS_ORIGIN`         | Origin allowed to call the API           |
 
-## How the apps communicate
+## Architecture
 
-The frontend calls the backend directly over HTTP at `NEXT_PUBLIC_API_URL`; it does
-not proxy through Next.js API routes. All backend routes live under `/api`, and CORS
-is restricted to `CORS_ORIGIN` — never `*`.
+**The API contract lives in one place.** `shared/src/api.ts` defines every
+request/response type plus `API_PREFIX`. Both apps import it, so renaming a field there
+fails the build on whichever side wasn't updated — drift is caught by the compiler, not
+in production.
 
-On the frontend, import `API_BASE_URL` / `apiUrl()` from `src/lib/env.ts` rather than
-reading `process.env` directly.
+**The backend is feature-first.** Each domain owns one folder under
+`backend/src/modules/`, containing its routes, controller, service and model. Adding a
+feature touches one directory and adds one line to `backend/src/routes.ts`.
+
+**The frontend calls the backend directly** over HTTP at `NEXT_PUBLIC_API_URL` — it does
+not proxy through Next.js API routes. All routes are served under `/api/v1`, CORS is
+pinned to `CORS_ORIGIN` (never `*`), and responses carry helmet's security headers with
+rate limiting applied to everything except the health check.
 
 ## MongoDB behaviour
 
 In `development`, a failed MongoDB connection logs a warning and the HTTP server still
-starts, so the API is workable before Mongo is installed; `/api/health` then reports
+starts, so the API is workable before Mongo is installed; `/api/v1/health` then reports
 `database.status: "disconnected"`. In any other environment a failed connection exits
 with code 1.
 
@@ -104,5 +126,6 @@ with code 1.
 
 ## Contributing
 
-Run `npm run lint` and `npm run typecheck` in both apps before pushing. Real `.env`
-files stay local — only `.env.example` is committed.
+Run `npm run format:check`, `npm run lint` and `npm run typecheck` before pushing — CI
+runs exactly these on every pull request. Real `.env` files stay local; only
+`.env.example` is committed.

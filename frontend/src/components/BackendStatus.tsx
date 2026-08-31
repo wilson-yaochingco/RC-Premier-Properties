@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_PREFIX, type HealthResponse } from "@rc/shared";
 import { apiUrl } from "@/lib/env";
 
 type Status = "checking" | "online" | "offline";
@@ -8,7 +9,8 @@ type Status = "checking" | "online" | "offline";
 /**
  * Scaffolding-only component: pings the backend health endpoint so the setup can be
  * verified end-to-end (frontend -> HTTP -> Express -> CORS). Safe to delete once real
- * pages exist.
+ * pages exist. The response is typed by the shared contract, so a backend change to
+ * `HealthResponse` breaks this file at compile time rather than at runtime.
  */
 export default function BackendStatus() {
   const [status, setStatus] = useState<Status>("checking");
@@ -17,16 +19,18 @@ export default function BackendStatus() {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch(apiUrl("/api/health"), { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-      .then((body: { database?: { status?: string } }) => {
+    fetch(apiUrl(`${API_PREFIX}/health`), { signal: controller.signal })
+      .then((res) =>
+        res.ok ? (res.json() as Promise<HealthResponse>) : Promise.reject(res.status),
+      )
+      .then((body) => {
         setStatus("online");
-        setDetail(`database: ${body.database?.status ?? "unknown"}`);
+        setDetail(`database: ${body.database.status}`);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setStatus("offline");
-        setDetail("could not reach /api/health");
+        setDetail("could not reach the health endpoint");
       });
 
     return () => controller.abort();

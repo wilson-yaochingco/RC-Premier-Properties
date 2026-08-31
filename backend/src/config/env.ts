@@ -1,4 +1,5 @@
 import "dotenv/config";
+import type { Environment } from "@rc/shared";
 
 /**
  * Typed, validated access to the process environment.
@@ -7,8 +8,6 @@ import "dotenv/config";
  * that every required variable is checked exactly once, at startup, with a clear
  * error instead of an `undefined` surfacing deep in a request handler.
  */
-
-type NodeEnv = "development" | "test" | "production";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -36,7 +35,7 @@ function port(name: string, fallback: number): number {
   return parsed;
 }
 
-const nodeEnv = optional("NODE_ENV", "development") as NodeEnv;
+const nodeEnv = optional("NODE_ENV", "development") as Environment;
 
 export const env = Object.freeze({
   NODE_ENV: nodeEnv,

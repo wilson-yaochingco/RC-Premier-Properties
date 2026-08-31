@@ -1,3 +1,4 @@
+import { API_PREFIX } from "@rc/shared";
 import BackendStatus from "@/components/BackendStatus";
 import { API_BASE_URL } from "@/lib/env";
 
@@ -9,7 +10,9 @@ export default function Home() {
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             RC Premier Properties
           </h1>
-          <p className="opacity-70">Project foundation — no features implemented yet.</p>
+          <p className="opacity-70">
+            Project foundation — no features implemented yet.
+          </p>
         </header>
 
         <dl className="divide-y divide-black/10 rounded-lg border border-black/10 text-sm dark:divide-white/15 dark:border-white/15">
@@ -19,7 +22,10 @@ export default function Home() {
           </div>
           <div className="flex items-center justify-between gap-4 p-4">
             <dt className="opacity-70">API base URL</dt>
-            <dd className="font-mono text-xs break-all">{API_BASE_URL}</dd>
+            <dd className="font-mono text-xs break-all">
+              {API_BASE_URL}
+              {API_PREFIX}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4 p-4">
             <dt className="opacity-70">Backend</dt>

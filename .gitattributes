@@ -1,0 +1,15 @@
+# Normalize every text file to LF in the repository, regardless of the OS it was
+# authored on. Without this, a mixed Windows/macOS team produces whole-file diffs.
+* text=auto eol=lf
+
+# Binary assets must never be normalized.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+
+# Generated -- collapse in diffs and reviews.
+package-lock.json linguist-generated=true -diff
