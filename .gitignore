@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# RC Premier Properties — root ignore rules (covers frontend/ and backend/)
+# ---------------------------------------------------------------------------
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Environment — never commit real credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# ...but always keep the templates
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing / coverage
+coverage/
+.nyc_output/
+
+# Caches
+.eslintcache
+*.tsbuildinfo
+next-env.d.ts
+
+# Editors
+# .vscode is committed on purpose -- shared team settings live there.
+# Ignore only the personal, machine-specific files inside it.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
