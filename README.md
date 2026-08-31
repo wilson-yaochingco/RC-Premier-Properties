@@ -10,36 +10,40 @@ Full-stack real estate web application.
 
 ## Stack
 
-| Layer    | Technology                                                            |
-| -------- | --------------------------------------------------------------------- |
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4        |
-| Backend  | Node.js, Express 5, TypeScript (ESM), Mongoose 9                      |
-| Database | MongoDB                                                               |
-| Shared   | `@rc/shared` — API types both apps compile against                    |
-| Tooling  | npm workspaces, ESLint (flat config), Prettier, `tsx`, GitHub Actions |
+| Layer    | Technology                                                     |
+| -------- | -------------------------------------------------------------- |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 |
+| Backend  | Node.js, Express 5, TypeScript (ESM), Mongoose 9               |
+| Database | MongoDB                                                        |
+| Shared   | `@rc/shared` — API types both apps compile against             |
+| Tooling  | npm workspaces, ESLint, Prettier, `tsx`, GitHub Actions        |
 
-## Layout
+## Structure
 
-```
+```text
 RC-Premier-Properties/
-├── shared/      @rc/shared — the API contract
-├── frontend/    Next.js app  → http://localhost:3000
-└── backend/     Express API  → http://localhost:5000/api/v1
+├── docs/         All persistent project documentation
+├── shared/       @rc/shared — types and constants that cross the network
+├── backend/      Express API      → http://localhost:5000/api/v1
+├── frontend/     Next.js web app  → http://localhost:3000
+├── AGENTS.md     Working conventions for contributors and AI agents
+└── package.json  npm workspaces root — run all commands from here
 ```
 
-One npm workspaces monorepo: a single `npm install` at the root covers all three
-packages, and all day-to-day commands are root-level scripts.
+`frontend/` and `backend/` are **independent applications** with their own
+dependencies, builds and deployment targets. npm workspaces only unifies installation
+and lets both depend on `shared/`.
+
+The backend is organized by business domain under `backend/src/modules/`; the frontend
+keeps domain code under `frontend/src/features/`. Feature code stays with its feature
+rather than accumulating in global directories.
 
 ## Getting started
 
-**New to the project? Follow [SETUP.md](SETUP.md)** — a step-by-step VS Code guide
-with prerequisites, MongoDB options, and troubleshooting.
-
-The short version, for anyone already set up. Requires Node.js 20+ and a MongoDB
-instance (local or Atlas).
+Requires Node.js 20+ and a MongoDB instance (local or Atlas).
 
 ```bash
-npm install                        # once, at the root — builds @rc/shared too
+npm install                        # once, at the root — also builds @rc/shared
 
 cd backend  && cp .env.example .env       && cd ..
 cd frontend && cp .env.example .env.local && cd ..
@@ -48,24 +52,15 @@ npm run dev:backend    # terminal 1 → http://localhost:5000
 npm run dev:frontend   # terminal 2 → http://localhost:3000
 ```
 
-Then open http://localhost:3000 — the page reports whether the backend is reachable.
-
-Check the API directly:
+Open http://localhost:3000 — the page reports whether the backend is reachable. Or check
+the API directly:
 
 ```bash
 curl http://localhost:5000/api/v1/health
 ```
 
-```json
-{
-  "status": "ok",
-  "service": "rc-premier-backend",
-  "timestamp": "2026-08-31T02:27:48.959Z",
-  "uptime": 20.73,
-  "environment": "development",
-  "database": { "status": "connected", "readyState": 1 }
-}
-```
+**New to the project?** [`docs/development/setup.md`](docs/development/setup.md) is a
+step-by-step VS Code guide with prerequisites, MongoDB options and troubleshooting.
 
 ## Commands
 
@@ -84,8 +79,8 @@ All run from the repository root.
 
 ## Environment variables
 
-Real `.env` / `.env.local` files are git-ignored. The committed `.env.example` files
-are the templates — **never put real credentials in the repository.**
+Real `.env` / `.env.local` files are git-ignored. The committed `.env.example` files are
+the templates — **never put real credentials in the repository.**
 
 | App      | Variable              | Purpose                                  |
 | -------- | --------------------- | ---------------------------------------- |
@@ -95,34 +90,19 @@ are the templates — **never put real credentials in the repository.**
 | backend  | `MONGODB_URI`         | MongoDB connection string (**required**) |
 | backend  | `CORS_ORIGIN`         | Origin allowed to call the API           |
 
-## Architecture
-
-**The API contract lives in one place.** `shared/src/api.ts` defines every
-request/response type plus `API_PREFIX`. Both apps import it, so renaming a field there
-fails the build on whichever side wasn't updated — drift is caught by the compiler, not
-in production.
-
-**The backend is feature-first.** Each domain owns one folder under
-`backend/src/modules/`, containing its routes, controller, service and model. Adding a
-feature touches one directory and adds one line to `backend/src/routes.ts`.
-
-**The frontend calls the backend directly** over HTTP at `NEXT_PUBLIC_API_URL` — it does
-not proxy through Next.js API routes. All routes are served under `/api/v1`, CORS is
-pinned to `CORS_ORIGIN` (never `*`), and responses carry helmet's security headers with
-rate limiting applied to everything except the health check.
-
-## MongoDB behaviour
-
-In `development`, a failed MongoDB connection logs a warning and the HTTP server still
-starts, so the API is workable before Mongo is installed; `/api/v1/health` then reports
-`database.status: "disconnected"`. In any other environment a failed connection exits
-with code 1.
-
 ## Documentation
 
-- [`SETUP.md`](SETUP.md) — full VS Code setup guide for new team members
-- [`frontend/README.md`](frontend/README.md)
-- [`backend/README.md`](backend/README.md)
+**[`/docs`](docs/README.md) is the single source of truth** for project documentation.
+
+| Where                                      | What                                       |
+| ------------------------------------------ | ------------------------------------------ |
+| [`docs/architecture/`](docs/architecture/) | System design and the decisions behind it  |
+| [`docs/api/`](docs/api/)                   | Endpoint, error and versioning conventions |
+| [`docs/database/`](docs/database/)         | Data models and schema decisions           |
+| [`docs/development/`](docs/development/)   | Setup, workflow, deployment                |
+| [`docs/features/`](docs/features/)         | Feature specifications                     |
+
+Contributors and AI agents should read [`AGENTS.md`](AGENTS.md) before writing code.
 
 ## Contributing
 

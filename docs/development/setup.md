@@ -2,6 +2,10 @@
 
 A step-by-step guide for new team members. Start to finish, expect about 10 minutes.
 
+For how the project is put together, see the
+[architecture overview](../architecture/overview.md). For the conventions you are
+expected to follow once running, see [`AGENTS.md`](../../AGENTS.md).
+
 ---
 
 ## 1. Install the prerequisites
@@ -282,6 +286,8 @@ To run a script inside one workspace only, use `npm run <script> --workspace bac
 ```
 RC-Premier-Properties/
 ├── package.json      npm workspaces root — all dev commands live here
+├── AGENTS.md         Working conventions (read this)
+├── docs/             All persistent documentation
 ├── .vscode/          Shared editor settings (committed — please don't remove)
 ├── .github/workflows CI: lint, typecheck, build on every PR
 │
@@ -290,12 +296,15 @@ RC-Premier-Properties/
 │
 ├── frontend/
 │   └── src/
-│       ├── app/         Pages and layouts (App Router)
-│       ├── components/  Shared UI — colocate route-specific pieces under app/
-│       ├── hooks/       Custom React hooks
+│       ├── app/         Routes, layouts, loading and error boundaries
+│       ├── components/
+│       │   ├── ui/      Generic primitives — Button, Input, Modal
+│       │   └── layout/  Header, Footer, Navbar, page containers
+│       ├── features/    Domain code, one folder per feature
+│       ├── hooks/       Globally reusable hooks only
 │       ├── lib/         Helpers — env config lives here
-│       ├── services/    Functions that call the backend API
-│       └── types/       Frontend-only types (anything shared goes in shared/)
+│       ├── services/    API infrastructure spanning features
+│       └── types/       Genuinely global types
 │
 └── backend/
     └── src/

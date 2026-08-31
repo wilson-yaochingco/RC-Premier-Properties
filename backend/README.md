@@ -1,23 +1,28 @@
 # RC Premier Properties — Backend
 
-Node.js + Express 5 + TypeScript (ESM) + Mongoose (MongoDB).
+Node.js + Express 5 + TypeScript (ESM) + Mongoose.
 
-Part of an npm workspaces monorepo — install and run from the **repository root**, not
-from this folder.
+> Architecture and API conventions live in [`/docs`](../docs/README.md), not here.
+> See [architecture overview](../docs/architecture/overview.md) and
+> [API conventions](../docs/api/conventions.md).
 
-## Setup
+## Run it
+
+This is an npm workspaces monorepo — install and run from the **repository root**.
 
 ```bash
 npm install                  # at the repo root
-cp .env.example .env         # then edit MONGODB_URI if needed
+cp .env.example .env         # then set MONGODB_URI
 npm run dev:backend          # at the repo root → http://localhost:5000
 ```
 
 Verify: `curl http://localhost:5000/api/v1/health`
 
+Full setup instructions: [`docs/development/setup.md`](../docs/development/setup.md).
+
 ## Scripts
 
-Run with `npm run <script> --workspace backend`, or use the root shortcuts.
+Run via `npm run <script> --workspace backend`, or use the root shortcuts.
 
 | Script      | Purpose                       |
 | ----------- | ----------------------------- |
@@ -27,46 +32,27 @@ Run with `npm run <script> --workspace backend`, or use the root shortcuts.
 | `lint`      | ESLint                        |
 | `typecheck` | TypeScript, no emit           |
 
-## Structure
+## Layout
 
-Organized **feature-first**: a domain's routes, controller, service and model live
-together in one folder, rather than scattered across four sibling directories.
-
-```
+```text
 src/
-├── server.ts       Entry point: env, DB connect, listen, graceful shutdown
-├── app.ts          Express app assembly (exported without listening)
+├── server.ts       Bootstrap: env, DB connect, listen, shutdown
+├── app.ts          Express assembly — exported without listening
 ├── routes.ts       Mounts each module under API_PREFIX
-├── config/         env.ts (typed config), database.ts (mongoose lifecycle)
-├── middleware/     notFound, errorHandler, rateLimit
-├── lib/            Cross-domain helpers
-└── modules/
-    └── health/     health.routes.ts, health.controller.ts
+├── config/         env.ts, database.ts
+├── middleware/     errorHandler, notFound, rateLimit
+├── lib/            Infrastructure owned by no single domain
+└── modules/        One folder per business domain
+    └── health/
 ```
 
-## Adding a resource
+Organized by domain: a feature's routes, controller, service and model live together
+under `modules/<domain>/`. Create a module when its feature begins — not before.
 
-1. Create `src/modules/<name>/` with `<name>.routes.ts`, `<name>.controller.ts`,
-   `<name>.service.ts`, `<name>.model.ts`.
-2. Register it in `src/routes.ts` with one line: `router.use("/<name>", <name>Routes)`.
-3. Put any type the frontend also needs in `shared/src/api.ts` and import it from
-   `@rc/shared` on both sides — never redeclare a response shape.
+## Gotchas
 
-## Middleware order
-
-`app.ts` applies, in this order: `trust proxy` (production only), helmet, CORS, body
-parsers with a 1 MB limit, then the rate limiter and routes on `API_PREFIX`, then
-`notFound` and `errorHandler`. The last two must stay last, and in that order.
-
-The rate limiter allows 300 requests per 15 minutes and **skips the health endpoint**, so
-uptime monitors can't be throttled into reporting a false outage.
-
-## Notes
-
-- ESM project (`"type": "module"`): relative imports must end in `.js`.
-- Express 5 forwards rejected promises from async handlers to `errorHandler`
-  automatically — no `express-async-handler` wrapper is needed.
-- `createApp()` is exported without listening, so integration tests can import it.
-- In development a failed MongoDB connection logs a warning and the server still starts;
-  `/api/v1/health` reports `database.status: "disconnected"`. In production a failed
-  connection exits with code 1.
+- ESM project: relative imports must end in `.js`. This is correct.
+- `app.ts` must never call `listen()` — that is `server.ts`'s job.
+- Import network types from `@rc/shared`; never redeclare a response shape here.
+- In development a failed MongoDB connection logs a warning and the server still starts,
+  reporting `database.status: "disconnected"`. In production it exits 1.
