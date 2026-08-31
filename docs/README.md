@@ -77,7 +77,8 @@ Do not invent schemas for features that do not exist.
 How to work on the project: local setup, environment variables, git workflow, testing
 conventions, deployment instructions, coding conventions.
 
-Current: [`setup.md`](development/setup.md) — the full VS Code onboarding guide.
+Current: [`setup.md`](development/setup.md) — the full VS Code onboarding guide, and
+[`git-workflow.md`](development/git-workflow.md) — branching, commits and pull requests.
 
 ---
 

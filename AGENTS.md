@@ -125,6 +125,9 @@ and architecture — not what the code already makes obvious.
   them alone — deleting them just recreates them as uncommitted noise.
 - Real `.env` files are git-ignored and must never be committed. Only `.env.example`
   is tracked.
+- **Never commit or push work from `main`.** Create a branch before making changes, and
+  land it through a pull request — see
+  [`docs/development/git-workflow.md`](docs/development/git-workflow.md).
 
 ---
 
@@ -165,3 +168,4 @@ Two things worth knowing about verification:
 - [`docs/architecture/overview.md`](docs/architecture/overview.md) — why the repo is shaped this way
 - [`docs/api/conventions.md`](docs/api/conventions.md) — endpoint, error and versioning rules
 - [`docs/development/setup.md`](docs/development/setup.md) — local setup from scratch
+- [`docs/development/git-workflow.md`](docs/development/git-workflow.md) — branching, commits, pull requests
