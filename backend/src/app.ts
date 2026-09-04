@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { API_PREFIX } from "@rc/shared";
 import { env } from "./config/env.js";
-import routes from "./routes.js";
+import { createApiRouter, type ApiDependencies } from "./routes.js";
 import { apiRateLimit } from "./middleware/rateLimit.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -12,7 +12,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
  * Builds the configured Express application without starting a listener, so it can be
  * imported directly by future integration tests.
  */
-export function createApp(): Express {
+export function createApp(dependencies: ApiDependencies = {}): Express {
   const app = express();
 
   // Behind a reverse proxy in production, so rate limiting sees real client IPs.
@@ -28,9 +28,8 @@ export function createApp(): Express {
     }),
   );
   app.use(express.json({ limit: "1mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-  app.use(API_PREFIX, apiRateLimit, routes);
+  app.use(API_PREFIX, apiRateLimit, createApiRouter(dependencies));
 
   // Must stay last, and in this order.
   app.use(notFound);

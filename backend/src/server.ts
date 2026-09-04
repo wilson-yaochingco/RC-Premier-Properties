@@ -9,8 +9,10 @@ async function start(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    if (env.IS_PRODUCTION) {
-      console.error(`[db] connection failed, refusing to start: ${message}`);
+    if (env.NODE_ENV !== "development") {
+      console.error(
+        `[db] connection failed, refusing to start in ${env.NODE_ENV}: ${message}`,
+      );
       process.exit(1);
     }
 

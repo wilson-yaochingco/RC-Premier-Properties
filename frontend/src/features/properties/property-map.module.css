@@ -1,0 +1,299 @@
+.shell {
+  background: #f4f2ed;
+  border: 1px solid color-mix(in srgb, var(--color-ink, #3a424f) 14%, white);
+  color: var(--color-ink, #3a424f);
+  min-height: 34rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.mapHeading {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1.15rem;
+}
+
+.mapHeading span {
+  color: var(--brand-secondary-text, #806024);
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.mapHeading h3 {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.45rem, 2.5vw, 2.15rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.mapHeading p {
+  color: color-mix(in srgb, var(--color-ink, #3a424f) 76%, white);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 17rem;
+  text-align: right;
+}
+
+.consentPlaceholder,
+.loading,
+.failure {
+  align-content: center;
+  background:
+    linear-gradient(135deg, rgb(58 66 79 / 8%) 25%, transparent 25%) 0 0 / 2rem 2rem,
+    #edeae3;
+  min-height: 29rem;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  text-align: center;
+}
+
+.consentPlaceholder p,
+.failure p {
+  line-height: 1.65;
+  margin: 0 auto 1.25rem;
+  max-width: 30rem;
+}
+
+.consentPlaceholder button {
+  background: var(--color-ink, #3a424f);
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  min-height: 2.75rem;
+  padding: 0.8rem 1.1rem;
+  text-transform: uppercase;
+}
+
+.canvasFrame {
+  position: relative;
+}
+
+.regionPicker {
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 0.5rem 1.5rem rgb(24 30 38 / 16%);
+  display: grid;
+  gap: 0.3rem;
+  max-width: calc(100% - 5.5rem);
+  padding: 0.55rem 0.65rem;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  width: min(16rem, calc(100% - 5.5rem));
+  z-index: 600;
+}
+
+.regionPicker span {
+  color: #37404c;
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.regionPicker select {
+  background: #fff;
+  border: 1px solid rgb(58 66 79 / 38%);
+  border-radius: 0;
+  color: var(--color-ink, #3a424f);
+  font: inherit;
+  font-size: 0.78rem;
+  min-height: 2.75rem;
+  min-width: 0;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.mapCanvas {
+  background: #e8e5df;
+  height: clamp(29rem, 57vh, 45rem);
+  min-height: 29rem;
+  width: 100%;
+  z-index: 0;
+}
+
+.mapCanvas:global(.leaflet-container) {
+  font-family: var(--font-body, Arial, sans-serif);
+}
+
+.mapCanvas :global(.leaflet-control-attribution) {
+  background: rgb(255 255 255 / 90%);
+  color: #37404c;
+  font-size: 0.62rem;
+  max-width: calc(100% - 1rem);
+}
+
+.mapCanvas :global(.leaflet-control-attribution a) {
+  color: #5e471d;
+}
+
+.mapCanvas :global(.leaflet-control-zoom a) {
+  color: var(--color-ink, #3a424f);
+  line-height: 2.75rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+.mapCanvas :global(.leaflet-tooltip) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 0.8rem 2rem rgb(24 30 38 / 16%);
+  color: var(--color-ink, #3a424f);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mapCanvas :global(.leaflet-popup-content-wrapper),
+.mapCanvas :global(.leaflet-popup-tip) {
+  background: #fff;
+  border-radius: 0;
+  color: var(--color-ink, #3a424f);
+}
+
+.mapCanvas :global(.leaflet-popup-content-wrapper) {
+  box-shadow: 0 1.5rem 4rem rgb(24 30 38 / 22%);
+  padding: 0;
+}
+
+.mapCanvas :global(.leaflet-popup-content) {
+  margin: 0;
+  width: min(17rem, calc(100vw - 5rem)) !important;
+}
+
+.mapCanvas :global(.rc-map-popup) {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1.1rem;
+}
+
+.mapCanvas :global(.rc-map-popup > span) {
+  color: var(--brand-secondary-text, #806024);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mapCanvas :global(.rc-map-popup > strong) {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.mapCanvas :global(.rc-map-popup p) {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.mapCanvas :global(.rc-map-popup .rc-map-popup__price) {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.mapCanvas :global(.rc-map-popup a) {
+  align-items: center;
+  border-top: 1px solid rgb(58 66 79 / 14%);
+  color: var(--color-ink, #3a424f);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  margin-top: 0.35rem;
+  min-height: 2.75rem;
+  text-transform: uppercase;
+}
+
+.mapCanvas :global(.rc-map-marker-shell),
+.mapCanvas :global(.rc-map-cluster-shell) {
+  background: transparent;
+  border: 0;
+}
+
+.mapCanvas :global(.rc-map-marker) {
+  background: var(--color-gold, #b4893d);
+  border: 4px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 0.35rem 0.8rem rgb(24 30 38 / 30%);
+  display: block;
+  height: 1.5rem;
+  transform: rotate(-45deg);
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+  width: 1.5rem;
+}
+
+.mapCanvas :global(.rc-map-marker--active) {
+  background: var(--color-ink, #3a424f);
+  transform: rotate(-45deg) scale(1.25);
+}
+
+.mapCanvas :global(.rc-map-cluster) {
+  align-items: center;
+  background: var(--color-ink, #3a424f);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0.35rem 1rem rgb(24 30 38 / 30%);
+  color: #fff;
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  height: 2.6rem;
+  justify-content: center;
+  width: 2.6rem;
+}
+
+.mapStatus,
+.tileFailure,
+.mapDataFailure {
+  background: rgb(255 255 255 / 94%);
+  border-top: 1px solid rgb(58 66 79 / 14%);
+  color: #37404c;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  padding: 0.7rem 0.8rem;
+}
+
+.tileFailure,
+.mapDataFailure {
+  background: #fff3f2;
+  color: #702323;
+}
+
+@media (max-width: 47.99rem) {
+  .mapHeading {
+    display: grid;
+  }
+
+  .mapHeading p {
+    text-align: left;
+  }
+
+  .mapCanvas,
+  .consentPlaceholder,
+  .loading,
+  .failure {
+    height: min(65dvh, 36rem);
+    min-height: 24rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapCanvas :global(.rc-map-marker) {
+    transition: none;
+  }
+}

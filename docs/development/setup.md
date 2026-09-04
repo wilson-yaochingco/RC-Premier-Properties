@@ -7,19 +7,21 @@ For how the project is put together, see the
 expected to follow once running, see [`AGENTS.md`](../../AGENTS.md).
 
 **Before you make your first change, read [`git-workflow.md`](git-workflow.md).** The
-project uses a protected-main workflow: you create a branch _before_ editing, and every
-change reaches `main` through a pull request.
+project uses a pull-request workflow: you create a branch _before_ editing, and every
+change reaches `main` through a pull request. Platform branch protection still requires
+repository-admin configuration, so the convention matters even when GitHub does not yet
+enforce it.
 
 ---
 
 ## 1. Install the prerequisites
 
-| Tool    | Version                                  | Where                         |
-| ------- | ---------------------------------------- | ----------------------------- |
-| Node.js | **20 or newer** (22 LTS recommended)     | https://nodejs.org            |
-| Git     | any recent version                       | https://git-scm.com/downloads |
-| VS Code | latest                                   | https://code.visualstudio.com |
-| MongoDB | 6 or newer — **or** a free Atlas cluster | see step 5                    |
+| Tool    | Version                                   | Where                         |
+| ------- | ----------------------------------------- | ----------------------------- |
+| Node.js | **20.19.0 or newer** (22 LTS recommended) | https://nodejs.org            |
+| Git     | any recent version                        | https://git-scm.com/downloads |
+| VS Code | latest                                    | https://code.visualstudio.com |
+| MongoDB | 6 or newer — **or** a free Atlas cluster  | see step 5                    |
 
 Check that Node and Git are on your PATH:
 
@@ -153,6 +155,7 @@ CORS_ORIGIN=http://localhost:3000
 
 ```ini
 NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 ---
@@ -195,8 +198,10 @@ Expected output:
 
 ## 8. Confirm it works
 
-Open **http://localhost:3000**. You should see the RC Premier Properties page with a
-green dot and **"Backend reachable — database: connected"**.
+Open **http://localhost:3000**. You should see the RC Premier Properties public home page.
+Visit `/properties`, `/about`, `/contact`, `/sell` and `/book-viewing` to exercise the
+implemented routes. With no published records, the catalogue and featured section show
+intentional empty states; the repository contains no seed or sample inventory.
 
 You can also check the API directly:
 
@@ -215,17 +220,20 @@ curl http://localhost:5000/api/v1/health
 }
 ```
 
-If `database.status` says `"connected"`, your setup is complete.
+If `database.status` says `"connected"`, the process has reached MongoDB. This health
+check does not by itself prove property or inquiry persistence. A real create/read
+verification against the project database remains a separate integration gate.
 
 ---
 
 ## Troubleshooting
 
-**The dot is amber or red — "Backend unreachable."**
-The backend isn't running, or it's on a different port. Confirm terminal 1 shows the
-`listening on http://localhost:5000` line, and that `NEXT_PUBLIC_API_URL` in
-`frontend/.env.local` matches that port. Restart the frontend dev server after changing
-any `.env` file — Next.js only reads them at startup.
+**A property page says that the API is unavailable, or a form cannot submit.**
+The backend isn't running, MongoDB is unavailable, or the API is on a different port.
+Confirm terminal 1 shows the `listening on http://localhost:5000` line, check the health
+response, and confirm `NEXT_PUBLIC_API_URL` in `frontend/.env.local` matches that port.
+Restart the frontend dev server after changing any `.env` file — Next.js reads them at
+startup.
 
 **`database.status` is `"disconnected"` and the log says `ECONNREFUSED 127.0.0.1:27017`.**
 MongoDB isn't running. This is expected, and the server deliberately keeps running so you
@@ -274,12 +282,16 @@ Run these from the **repository root** — they fan out across all three workspa
 | `npm run dev:shared`   | Rebuild the shared contract on save              |
 | `npm run lint`         | ESLint, backend + frontend                       |
 | `npm run typecheck`    | TypeScript across all three workspaces           |
+| `npm test`             | Vitest unit and HTTP integration tests           |
+| `npm run test:watch`   | Vitest in watch mode                             |
+| `npm run test:e2e`     | Playwright desktop/mobile browser acceptance     |
 | `npm run build`        | Build shared, then backend, then frontend        |
 | `npm run format`       | Apply Prettier to the whole repo                 |
 | `npm run format:check` | Verify formatting without writing (what CI runs) |
 
-Before pushing, run `npm run format:check`, `npm run lint` and `npm run typecheck`.
-CI runs exactly these on every pull request, so a green local run means a green PR.
+Before pushing, run `npm run format:check`, `npm run lint`, `npm run typecheck`,
+`npm test` and `npm run build`. CI runs that gate on every pull request. Browser tests
+remain a separate local acceptance command; see [`testing.md`](testing.md).
 
 Push to a branch, never to `main` — see [`git-workflow.md`](git-workflow.md).
 
@@ -295,7 +307,7 @@ RC-Premier-Properties/
 ├── AGENTS.md         Working conventions (read this)
 ├── docs/             All persistent documentation
 ├── .vscode/          Shared editor settings (committed — please don't remove)
-├── .github/workflows CI: lint, typecheck, build on every PR
+├── .github/workflows CI: format, lint, typecheck, test and build on every PR
 │
 ├── shared/           @rc/shared — the API contract both apps compile against
 │   └── src/api.ts    Request/response types + API_PREFIX. Change it here, once.
@@ -321,7 +333,9 @@ RC-Premier-Properties/
         ├── middleware/  notFound, errorHandler, rateLimit
         ├── lib/         Cross-domain helpers
         └── modules/     One folder per feature
-            └── health/  health.routes.ts + health.controller.ts
+            ├── health/      health status
+            ├── properties/  published reads, filters and Mongoose model
+            └── inquiries/   create-only public workflow and Mongoose model
 ```
 
 The backend is organized **feature-first**: everything for one domain lives in a single
@@ -339,8 +353,10 @@ backend/src/modules/properties/
 Then register it with one line in `backend/src/routes.ts`, and put any type the frontend
 also needs in `shared/src/api.ts`.
 
-**Note:** the project is currently a foundation only — the health endpoint is the sole
-route and there are no database models yet.
+The public API currently provides health, published property list/facet/detail reads and
+inquiry creation. There are no public property writes or inquiry reads. Authentication,
+admin tools and confirmed appointments have not been implemented; a viewing submission
+is only a request for follow-up.
 
 ---
 
@@ -354,8 +370,8 @@ route and there are no database models yet.
 - The backend is an **ESM** project: relative imports must end in `.js`, even in
   TypeScript files, as in `import { env } from "./config/env.js"`. This is correct —
   do not remove the extension.
-- On the frontend, import `API_BASE_URL` or `apiUrl()` from `src/lib/env.ts`. Don't read
-  `process.env` directly in components.
+- On the frontend, import environment values from `src/lib/env.ts` and send HTTP through
+  `src/services/api-client.ts`. Don't read `process.env` directly in components.
 - Only variables prefixed `NEXT_PUBLIC_` reach the browser. Never put a secret in one.
 - Formatting is enforced by Prettier and checked in CI. Let format-on-save handle it, or
   run `npm run format` before committing.

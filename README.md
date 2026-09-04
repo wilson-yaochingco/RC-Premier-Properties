@@ -2,11 +2,18 @@
 
 [![CI](https://github.com/wilson-yaochingco/RC-Premier-Properties/actions/workflows/ci.yml/badge.svg)](https://github.com/wilson-yaochingco/RC-Premier-Properties/actions/workflows/ci.yml)
 
-Full-stack real estate web application.
+Full-stack real estate web application for Angeles City and the wider Pampanga market.
 
-> **Status: foundation only.** No product features are implemented yet — no listings,
-> search, filters, auth, messaging, favorites, bookings, admin, payments, or uploads.
-> The only endpoint is a health check, and there are no database models.
+> **Status: public MVP vertical slice implemented.** The site includes a responsive
+> public experience, published-property search and detail pages, and connected inquiry,
+> seller and viewing-request forms. Property and inquiry persistence are implemented with
+> Mongoose, but persistence has not yet been verified against a real project MongoDB
+> instance and no production inventory or seed data is supplied.
+
+Authentication, staff/admin tools, public inquiry reads, confirmed appointment booking,
+uploads, favorites, payments and notifications are not implemented. The current viewing
+flow records a request only. The approved logo, real media and public business contact
+details still need to be supplied.
 
 ## Stack
 
@@ -40,7 +47,8 @@ rather than accumulating in global directories.
 
 ## Getting started
 
-Requires Node.js 20+ and a MongoDB instance (local or Atlas).
+Requires Node.js 20.19.0 or newer (Node.js 22 LTS recommended) and a MongoDB
+instance (local or Atlas).
 
 ```bash
 npm install                        # once, at the root — also builds @rc/shared
@@ -52,8 +60,7 @@ npm run dev:backend    # terminal 1 → http://localhost:5000
 npm run dev:frontend   # terminal 2 → http://localhost:3000
 ```
 
-Open http://localhost:3000 — the page reports whether the backend is reachable. Or check
-the API directly:
+Open http://localhost:3000 to use the public site. Check the API directly with:
 
 ```bash
 curl http://localhost:5000/api/v1/health
@@ -73,6 +80,8 @@ All run from the repository root.
 | `npm run dev:shared`   | Rebuild the shared contract on save    |
 | `npm run lint`         | ESLint across backend + frontend       |
 | `npm run typecheck`    | TypeScript across all three workspaces |
+| `npm test`             | Vitest unit and API integration tests  |
+| `npm run test:e2e`     | Playwright browser acceptance tests    |
 | `npm run build`        | Build shared → backend → frontend      |
 | `npm run format`       | Apply Prettier                         |
 | `npm run format:check` | Verify formatting (what CI runs)       |
@@ -82,13 +91,14 @@ All run from the repository root.
 Real `.env` / `.env.local` files are git-ignored. The committed `.env.example` files are
 the templates — **never put real credentials in the repository.**
 
-| App      | Variable              | Purpose                                  |
-| -------- | --------------------- | ---------------------------------------- |
-| frontend | `NEXT_PUBLIC_API_URL` | Base URL of the backend API              |
-| backend  | `PORT`                | Port the API listens on (default `5000`) |
-| backend  | `NODE_ENV`            | `development` / `test` / `production`    |
-| backend  | `MONGODB_URI`         | MongoDB connection string (**required**) |
-| backend  | `CORS_ORIGIN`         | Origin allowed to call the API           |
+| App      | Variable               | Purpose                                  |
+| -------- | ---------------------- | ---------------------------------------- |
+| frontend | `NEXT_PUBLIC_API_URL`  | Base URL of the backend API              |
+| frontend | `NEXT_PUBLIC_SITE_URL` | Public frontend origin for metadata      |
+| backend  | `PORT`                 | Port the API listens on (default `5000`) |
+| backend  | `NODE_ENV`             | `development` / `test` / `production`    |
+| backend  | `MONGODB_URI`          | MongoDB connection string (**required**) |
+| backend  | `CORS_ORIGIN`          | Origin allowed to call the API           |
 
 ## Documentation
 
@@ -103,10 +113,16 @@ the templates — **never put real credentials in the repository.**
 | [`docs/development/`](docs/development/)   | Setup, workflow, deployment                 |
 | [`docs/features/`](docs/features/)         | Feature specifications                      |
 
+Useful implementation references include the
+[public API reference](docs/api/public-api.md), the
+[property feature contract](docs/features/properties.md), the
+[inquiry feature contract](docs/features/inquiries.md), and the
+[media replacement guide](docs/development/media-replacement.md).
+
 Contributors and AI agents should read [`AGENTS.md`](AGENTS.md) before writing code.
 
 ## Contributing
 
-Run `npm run format:check`, `npm run lint` and `npm run typecheck` before pushing — CI
-runs exactly these on every pull request. Real `.env` files stay local; only
-`.env.example` is committed.
+Run `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` and
+`npm run build` before pushing. CI runs the same completion gate on every pull request.
+Real `.env` files stay local; only `.env.example` is committed.

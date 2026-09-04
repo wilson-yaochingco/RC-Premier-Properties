@@ -4,3 +4,5 @@ dist
 package-lock.json
 *.ico
 *.svg
+# Generated, web-minified geographic assets; regenerate via scripts/ instead.
+frontend/public/geo/*.geojson

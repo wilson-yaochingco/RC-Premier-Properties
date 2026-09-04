@@ -1,32 +1,47 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { SITE_URL } from "@/lib/env";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "RC Premier Properties",
     template: "%s | RC Premier Properties",
   },
-  description: "RC Premier Properties — real estate platform.",
+  description:
+    "Explore property opportunities in Angeles City and Pampanga with RC Premier Properties.",
+  applicationName: "RC Premier Properties",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "RC Premier Properties",
+    description:
+      "A considered property discovery experience for Angeles City and Pampanga.",
+    type: "website",
+    siteName: "RC Premier Properties",
+    locale: "en_PH",
+    url: "/",
+  },
+  twitter: {
+    card: "summary",
+    title: "RC Premier Properties",
+    description:
+      "A considered property discovery experience for Angeles City and Pampanga.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+    <html lang="en" data-scroll-behavior="smooth">
+      <body>
+        <a className="skip-link" href="#main-content">
+          Skip to main content
+        </a>
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }
