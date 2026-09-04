@@ -1,6 +1,6 @@
 # Public Inquiries
 
-Status: implemented create-only workflow. Last reviewed 2026-09-02.
+Status: implemented create-only workflow. Last reviewed 2026-09-04.
 
 ## Entry points
 

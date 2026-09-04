@@ -1,6 +1,6 @@
 # Public API Reference
 
-Status: implemented public MVP contract. Last reviewed 2026-09-02.
+Status: implemented public MVP contract. Last reviewed 2026-09-04.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. Request
 and response types live in [`shared/src/api.ts`](../../shared/src/api.ts); this document

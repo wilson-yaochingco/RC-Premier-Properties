@@ -1,6 +1,6 @@
 # Property and Inquiry Models
 
-Status: implemented Mongoose schema and service contract. Last reviewed 2026-09-02.
+Status: implemented Mongoose schema and service contract. Last reviewed 2026-09-04.
 
 The repository includes the models, indexes, projections and service queries described
 here. It does not include real listings or seed data. Automated tests verify query

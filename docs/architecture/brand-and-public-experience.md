@@ -1,6 +1,7 @@
 # Brand and Public Experience
 
-Status: implemented design direction for the public MVP. Last reviewed 2026-09-01.
+Status: implemented design direction for the public MVP; approved logo and production
+media remain external inputs. Last reviewed 2026-09-04.
 
 This decision turns the supplied RC Premier Properties brief into durable rules for the
 public website. It intentionally records no claims about company history, awards,
@@ -146,6 +147,6 @@ future asset purpose; future images require property-specific alternative text.
 
 ## External decisions still open
 
-The production domain, real logo/media, company contact details, map provider, analytics
-and monitoring providers remain unselected or unsupplied. Their absence must be shown
-honestly and never filled with invented values.
+The production domain, real logo/media, company contact details, production map provider,
+analytics and monitoring providers remain unselected or unsupplied. Their absence must
+be shown honestly and never filled with invented values.

@@ -233,7 +233,8 @@ without requiring a test network port or pretending that an unavailable MongoDB 
 - [x] Frontend runs locally
 - [x] Health endpoint responds
 - [x] Environment files configured safely and git-ignored
-- [x] Lint, typecheck and build pass; CI green on every push
+- [x] Formatting, lint, typecheck, unit/API tests, build and browser acceptance pass
+      locally; the same gate is configured in CI
 - [x] Documentation structure exists with conventions written down
 - [x] Development workflow documented
 - [ ] **MongoDB connection verified working** — never yet achieved; no local server and
@@ -241,8 +242,8 @@ without requiring a test network port or pretending that an unavailable MongoDB 
 - [x] **Backend starts successfully** — verified in development; it reports MongoDB as
       disconnected and continues in an explicitly degraded state when the local service
       is unavailable
-- [ ] Branch protection enabled on `main` (currently unprotected) and the pull request
-      workflow in use
+- [x] Feature work has landed through the documented pull request workflow
+- [ ] Branch protection enabled on `main` (currently recorded as unprotected)
 - [x] Pull request template added
 - [x] Frontend API client foundation implemented with typed HTTP, transport and JSON
       error normalization
@@ -326,8 +327,9 @@ their implementation phase approaches.
 
 - [x] Decide which property fields are public, which are authenticated, which are
       internal-only — before any model is written
-- [x] Decide the location-privacy rule per listing type — general area only for every
-      public MVP listing; exact addresses and coordinates remain internal
+- [x] Decide the location-privacy contract — internal exact coordinates are never
+      serialized, and a map marker requires its own explicit `publicPrecision` and
+      separately approved `publicPoint`
 - [x] Identify what personal data each form will collect and why it is needed
 
 ### Testing requirements
@@ -345,8 +347,8 @@ their implementation phase approaches.
 
 ### Definition of Done
 
-- [ ] Brand identity documented: colors, typography, spacing, iconography and motion are
-      documented; the approved logo asset is still not present
+- [x] Public-MVP colors, typography, spacing, iconography and motion direction documented
+- [ ] Approved RC Premier Properties logo asset supplied and integrated
 - [x] Target audiences documented
 - [x] Property taxonomy agreed and justified for the public MVP
 - [x] Property data model planned field by field, including public/private classification
@@ -473,16 +475,20 @@ market, not an afterthought.
 - [x] All core public pages implemented and matching the Phase 1 designs
 - [ ] Property search, filtering, sorting and pagination are implemented and tested with
       isolated fixtures, but a real MongoDB and supplied inventory are unavailable
-- [ ] Filters reflected in the URL; browser navigation behaves correctly
+- [x] Filters reflected in the URL; browser back-navigation restores filters and results
 - [x] Empty, loading and error states implemented across the public routes and forms
 - [ ] Inquiry persistence is implemented; live persistence is unverified without MongoDB,
       and staff retrieval correctly waits for authenticated administration
 - [x] Unpublished listings verified unreachable publicly
-- [ ] Responsive on mobile, tablet and desktop
+- [ ] Automated overflow checks pass from 320px through 1920px, but the required manual
+      visual acceptance pass across mobile, tablet and desktop is still open
 - [x] SEO foundation in place: metadata, sitemap, robots, canonical URLs, structured data
-- [ ] Accessibility requirements met
+- [ ] Semantic structure, skip navigation, keyboard menu behaviour, focus restoration and
+      accessible form feedback are tested; a complete accessibility audit is still open
 - [x] Unit and HTTP integration tests pass; implemented security requirements are covered
-- [ ] Documentation updated
+- [x] Feature, API, database, architecture, testing and setup documentation updated
+- [ ] Remove the remaining convention drift: E2E API paths must derive from `API_PREFIX`,
+      and frontend environment reads must stay centralized in `frontend/src/lib/env.ts`
 
 ### Not in this phase
 
@@ -536,7 +542,8 @@ channels the business actually uses rather than adding all four.
 - [ ] Booking requests rate-limited and validated; treat as personal data
 - [ ] Anonymous favorites never leak one visitor's data to another
 - [ ] Calculators run on inputs the user supplies; no server-side financial decisions
-- [ ] Map integration does not expose precise coordinates for privacy-restricted listings
+- [ ] Any production or expanded map integration preserves the Phase 2A public/private
+      coordinate boundary
 
 ### Testing requirements
 
@@ -551,8 +558,10 @@ channels the business actually uses rather than adding all four.
 ### Definition of Done
 
 - [ ] Favorites work, with the anonymous/authenticated strategy documented
-- [ ] Viewing requests can be submitted and reviewed
-- [ ] Map integration live and respecting location privacy
+- [ ] Dedicated viewing scheduling requests can be submitted and reviewed; the existing
+      public form remains an inquiry request only
+- [ ] Production map provider selected and configured, with any expanded map capabilities
+      respecting location privacy
 - [ ] Mortgage calculator accurate and clearly labelled as an estimate
 - [ ] Cash-out calculator either defined and built, or explicitly deferred
 - [ ] Responsive and accessible
@@ -1095,7 +1104,10 @@ Open business questions:
 - **Property lifecycle statuses** — proposed, needs business validation.
 - **Inquiry lifecycle statuses** — proposed, needs business validation.
 - **Roles** (`admin`, `agent`, `client`) — proposed, needs validation.
-- **Location privacy per listing type** — must be decided in Phase 1.
+- **Production location disclosure per listing type** — the technical privacy boundary is
+  decided, but the business must approve which `publicPrecision` values staff may use.
+  Exact disclosure and future staff controls require explicit approval before they are
+  enabled.
 
 When a decision is made, record it in [`architecture/`](architecture/) with its reasoning
 and update the row above.
