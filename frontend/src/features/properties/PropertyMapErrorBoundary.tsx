@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { IS_PRODUCTION } from "@/lib/env";
 import styles from "./property-map.module.css";
 
 interface PropertyMapErrorBoundaryProps {
@@ -22,7 +23,7 @@ export class PropertyMapErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    if (process.env.NODE_ENV !== "production") {
+    if (!IS_PRODUCTION) {
       console.error("The property map failed to render.", error, info);
     }
   }

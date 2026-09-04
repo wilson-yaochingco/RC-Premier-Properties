@@ -487,8 +487,8 @@ market, not an afterthought.
       accessible form feedback are tested; a complete accessibility audit is still open
 - [x] Unit and HTTP integration tests pass; implemented security requirements are covered
 - [x] Feature, API, database, architecture, testing and setup documentation updated
-- [ ] Remove the remaining convention drift: E2E API paths must derive from `API_PREFIX`,
-      and frontend environment reads must stay centralized in `frontend/src/lib/env.ts`
+- [x] E2E API paths derive from `API_PREFIX`, and frontend environment reads stay
+      centralized in `frontend/src/lib/env.ts`
 
 ### Not in this phase
 

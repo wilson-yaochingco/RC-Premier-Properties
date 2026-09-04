@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { API_PREFIX } from "@rc/shared";
 
-const MAP_API_PATH = "/api/v1/properties/map";
+const MAP_API_PATH = `${API_PREFIX}/properties/map`;
 const BOUNDARY_PATH = "/geo/pampanga-admin3.geojson";
 
 function mapRequests(page: Page): string[] {

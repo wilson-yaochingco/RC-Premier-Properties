@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { API_PREFIX } from "@rc/shared";
 
 const FIXTURE_API_ORIGIN = "http://127.0.0.1:5051";
 
@@ -180,7 +181,7 @@ test("contact form sends its typed payload and displays API success feedback", a
   const [apiResponse] = await Promise.all([
     page.waitForResponse(
       (response) =>
-        response.url() === `${FIXTURE_API_ORIGIN}/api/v1/inquiries` &&
+        response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
         response.request().method() === "POST",
     ),
     page.getByRole("button", { name: "Send inquiry" }).click(),
