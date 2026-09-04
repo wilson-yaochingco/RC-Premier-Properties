@@ -12,6 +12,10 @@
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 const rawMapTileUrl = process.env.NEXT_PUBLIC_MAP_TILE_URL;
+const rawNodeEnv = process.env.NODE_ENV;
+
+/** Whether the frontend is running as an optimized production build. */
+export const IS_PRODUCTION = rawNodeEnv === "production";
 
 /** Base URL of the backend API, without a trailing slash. */
 export const API_BASE_URL = (rawApiUrl ?? "http://localhost:5000").replace(/\/+$/, "");
