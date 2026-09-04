@@ -24,8 +24,8 @@ Architecture is documented separately in
 | Phase | Name                                  | Status | In MVP?     |
 | ----- | ------------------------------------- | ------ | ----------- |
 | 0     | Project Foundation                    | 🟦     | Yes         |
-| 1     | Product Planning, Brand & UX          | ⬜     | Yes         |
-| 2A    | Core Public Website MVP               | ⬜     | Yes         |
+| 1     | Product Planning, Brand & UX          | 🟦     | Yes         |
+| 2A    | Core Public Website MVP               | 🟦     | Yes         |
 | 2B    | Enhanced Property Experience          | ⬜     | No          |
 | 3A    | Secure Property Administration        | ⬜     | Partly      |
 | 3B    | CRM & Advanced Administration         | ⬜     | No          |
@@ -34,8 +34,12 @@ Architecture is documented separately in
 | 6     | Production Hardening & Launch         | ⬜     | Launch gate |
 | 7     | Post-Launch Growth                    | ⬜     | No          |
 
-**Phase 0 is In Progress, not Complete.** See its Definition of Done for the open items.
-A directory existing is not evidence that a capability works.
+**Phases 0, 1 and 2A are In Progress, not Complete.** Phase 0 still needs a verified
+MongoDB connection and repository-admin branch protection. Phase 1 still needs the
+approved logo asset and business validation of lifecycle vocabulary. Phase 2A is built
+and tested around those dependencies but cannot pass its persistence and real-inventory
+gates without MongoDB and supplied listings. A directory existing is not evidence that a
+capability works.
 
 ---
 
@@ -216,9 +220,9 @@ The `/docs` structure and its rules — see [`docs/README.md`](README.md).
 
 ### Testing requirements
 
-None yet — no product logic exists. **Test tooling is selected and configured in
-Phase 1**, before any feature code. `createApp()` is already exported from `app.ts`
-without listening specifically so integration tests can be added without restructuring.
+The foundation now supports the Phase 1/2A test harness. `createApp()` accepts injectable
+services and never listens, so HTTP integration tests exercise the real Express stack
+without requiring a test network port or pretending that an unavailable MongoDB works.
 
 ### Documentation to update
 
@@ -234,12 +238,14 @@ without listening specifically so integration tests can be added without restruc
 - [x] Development workflow documented
 - [ ] **MongoDB connection verified working** — never yet achieved; no local server and
       no Atlas string configured
-- [ ] **Backend starts successfully** — currently blocked by the item above, since
-      `MONGODB_URI` is required
+- [x] **Backend starts successfully** — verified in development; it reports MongoDB as
+      disconnected and continues in an explicitly degraded state when the local service
+      is unavailable
 - [ ] Branch protection enabled on `main` (currently unprotected) and the pull request
       workflow in use
-- [ ] Pull request template added
-- [ ] Frontend API client foundation implemented — `src/services/` is currently empty
+- [x] Pull request template added
+- [x] Frontend API client foundation implemented with typed HTTP, transport and JSON
+      error normalization
 
 ### Not in this phase
 
@@ -247,7 +253,7 @@ Any product UI, any Mongoose model, any business endpoint.
 
 ---
 
-# Phase 1 — Product Planning, Brand & UX ⬜
+# Phase 1 — Product Planning, Brand & UX 🟦
 
 **Goal:** decide what RC Premier Properties looks like, how people navigate it, and what
 data it needs — before writing the public website.
@@ -294,11 +300,16 @@ Plan fields, do not create schemas.
 whether an exact address and coordinates may be public, or whether only a general area
 should be shown until a viewing is booked. Owner information is never public.
 
-Lifecycle statuses to validate during implementation:
+The implementation separates editorial publication from market availability so one
+cannot accidentally grant the other:
 
 ```text
-draft → pending → published → reserved → sold / rented → archived
+publicationStatus: draft → pending → published → archived
+availability:      available → reserved → sold / rented
 ```
+
+This is the safest technical baseline; the business must validate the vocabulary before
+Phase 3A exposes lifecycle controls to staff.
 
 ### Information architecture
 
@@ -313,17 +324,18 @@ their implementation phase approaches.
 
 ### Security requirements
 
-- [ ] Decide which property fields are public, which are authenticated, which are
+- [x] Decide which property fields are public, which are authenticated, which are
       internal-only — before any model is written
-- [ ] Decide the location-privacy rule per listing type
-- [ ] Identify what personal data each form will collect and why it is needed
+- [x] Decide the location-privacy rule per listing type — general area only for every
+      public MVP listing; exact addresses and coordinates remain internal
+- [x] Identify what personal data each form will collect and why it is needed
 
 ### Testing requirements
 
-- [ ] **Select and configure a test runner** — the enabling deliverable for every later
-      phase
-- [ ] One integration test proving the harness runs in CI
-- [ ] Agree what "tested" means per layer, so Phase 2A can ship tests from its first commit
+- [x] **Select and configure a test runner** — Vitest for unit/HTTP integration tests and
+      Playwright for browser acceptance
+- [x] One integration test proving the harness runs in CI
+- [x] Agree what "tested" means per layer, so Phase 2A can ship tests from its first commit
 
 ### Documentation to update
 
@@ -333,16 +345,19 @@ their implementation phase approaches.
 
 ### Definition of Done
 
-- [ ] Brand identity documented: colors, typography, spacing, iconography, motion
-- [ ] Target audiences documented
-- [ ] Property taxonomy agreed and justified
-- [ ] Property data model planned field by field, including public/private classification
-- [ ] Location-privacy rule decided
-- [ ] Lifecycle statuses agreed
-- [ ] Information architecture and navigation agreed
-- [ ] Designs exist for the seven core pages at three breakpoints
-- [ ] Test runner configured and running in CI
-- [ ] Relevant documentation updated
+- [ ] Brand identity documented: colors, typography, spacing, iconography and motion are
+      documented; the approved logo asset is still not present
+- [x] Target audiences documented
+- [x] Property taxonomy agreed and justified for the public MVP
+- [x] Property data model planned field by field, including public/private classification
+- [x] Location-privacy rule decided
+- [ ] Lifecycle statuses implemented as separate publication and availability states,
+      pending business validation before administration work
+- [x] Information architecture and navigation agreed
+- [x] Designs exist as implemented, clickable pages for all seven core routes at mobile,
+      tablet and desktop breakpoints
+- [x] Test runner configured and running in CI
+- [x] Relevant documentation updated
 
 ### Not in this phase
 
@@ -350,7 +365,7 @@ Building pages, creating Mongoose models, writing endpoints.
 
 ---
 
-# Phase 2A — Core Public Website MVP ⬜
+# Phase 2A — Core Public Website MVP 🟦
 
 **Goal:** launch the core property browsing experience. This is the first genuinely
 usable version of RC Premier Properties.
@@ -376,6 +391,12 @@ area, status. Keep them visually clean; a card that shows everything communicate
 **Property details** — gallery, price, location, specifications, description, highlights,
 amenities, map, assigned agent, inquiry CTA, viewing CTA. Similar properties only as a
 placeholder until real recommendation logic exists in Phase 5E.
+
+The Phase 2A map is a privacy-preserving public discovery baseline, not a production map
+provider decision. It may render only a separately approved public point, approximate
+city/municipality boundaries and configurable evaluation tiles. Geocoding, routing,
+nearby landmarks, production provider selection and provider account setup remain in
+Phase 2B.
 
 **About** — company, mission, service area, professional positioning. **Do not fabricate
 awards, statistics, reviews, accreditations or company history.** Only publish what the
@@ -405,13 +426,13 @@ sorts actually use. Unpublished listings must be unreachable through any public 
 
 ### Security requirements
 
-- [ ] Input validation on every filter and form field, server-side
-- [ ] **NoSQL injection prevention** — never pass unsanitised user input into a query
-      object
-- [ ] Rate limiting and spam prevention on the inquiry form from day one
-- [ ] Only published listings exposed publicly; draft, pending and archived never leak
-- [ ] Owner and internal reference data never serialized to public responses
-- [ ] Inquiry data treated as personal information from the moment it is collected
+- [x] Input validation on every filter and form field, server-side
+- [x] **NoSQL injection prevention** — allowlisted fields, scalar validation and escaped
+      regular expressions; user input is never spread into a query object
+- [x] Rate limiting and honeypot spam prevention on the inquiry form from day one
+- [x] Only published listings exposed publicly; draft, pending and archived never leak
+- [x] Owner and internal reference data never serialized to public responses
+- [x] Inquiry data treated as personal information from the moment it is collected
 
 ### SEO requirements
 
@@ -437,9 +458,9 @@ market, not an afterthought.
 
 ### Testing requirements
 
-- [ ] Unit tests for filter/query building and price formatting
-- [ ] Integration tests for property listing, detail and inquiry endpoints
-- [ ] A test proving unpublished listings are not publicly reachable
+- [x] Unit tests for filter/query building and price formatting
+- [x] Integration tests for property listing, detail and inquiry endpoints
+- [x] A test proving unpublished listings are not publicly reachable
 - [ ] Manual acceptance pass across all three breakpoints
 
 ### Documentation to update
@@ -449,16 +470,18 @@ market, not an afterthought.
 
 ### Definition of Done
 
-- [ ] All core public pages implemented and matching the Phase 1 designs
-- [ ] Property search, filtering, sorting and pagination work against real data
+- [x] All core public pages implemented and matching the Phase 1 designs
+- [ ] Property search, filtering, sorting and pagination are implemented and tested with
+      isolated fixtures, but a real MongoDB and supplied inventory are unavailable
 - [ ] Filters reflected in the URL; browser navigation behaves correctly
-- [ ] Empty, loading and error states implemented everywhere
-- [ ] Inquiries persist and are retrievable
-- [ ] Unpublished listings verified unreachable publicly
+- [x] Empty, loading and error states implemented across the public routes and forms
+- [ ] Inquiry persistence is implemented; live persistence is unverified without MongoDB,
+      and staff retrieval correctly waits for authenticated administration
+- [x] Unpublished listings verified unreachable publicly
 - [ ] Responsive on mobile, tablet and desktop
-- [ ] SEO foundation in place: metadata, sitemap, robots, canonical URLs, structured data
+- [x] SEO foundation in place: metadata, sitemap, robots, canonical URLs, structured data
 - [ ] Accessibility requirements met
-- [ ] Tests pass; security requirements verified
+- [x] Unit and HTTP integration tests pass; implemented security requirements are covered
 - [ ] Documentation updated
 
 ### Not in this phase
@@ -490,8 +513,10 @@ to admin review unless the business explicitly wants auto-confirmation.
 
 **Video tours** — where the business supplies them.
 
-**Maps and nearby landmarks** — _map provider to be evaluated/selected during this
-phase._ Must respect the Phase 1 location-privacy rule.
+**Production maps and nearby landmarks** — evaluate and select the production map
+provider, configure the production account/domain, and decide whether to add geocoding,
+routing or nearby-landmark data. The Phase 2A discovery baseline does not select a
+production provider. Every expansion must preserve the Phase 1 location-privacy rule.
 
 **Property brochure** — decide during implementation whether brochures are uploaded,
 generated, or both.
@@ -1052,7 +1077,7 @@ No vendor has been selected. Each decision below is deliberately open.
 | Decision                | Decide by | What should drive it                                                          |
 | ----------------------- | --------- | ----------------------------------------------------------------------------- |
 | Test runner             | Phase 1   | Speed, TypeScript/ESM support, CI integration, watch-mode experience          |
-| Map provider            | Phase 2B  | Philippine coverage quality, pricing at expected volume, privacy controls     |
+| Production map provider | Phase 2B  | Philippine coverage quality, pricing at expected volume, privacy controls     |
 | Authentication approach | Phase 3A  | Security posture, MFA support, maintenance burden, cost — **not convenience** |
 | Media storage provider  | Phase 3A  | Cost at volume, CDN integration, image transformation, private-bucket support |
 | Email provider          | Phase 4   | Deliverability to Philippine recipients, transactional reliability, cost      |

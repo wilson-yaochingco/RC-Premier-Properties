@@ -3,9 +3,9 @@
 Rules every endpoint in the RC Premier Properties API follows. Types referenced here are
 defined in [`shared/src/api.ts`](../../shared/src/api.ts) and imported by both apps.
 
-> **Scope:** one endpoint exists today — `GET /api/v1/health`. This document describes
-> the conventions new endpoints must follow. Endpoint reference documentation is written
-> when the endpoint is built, not before.
+> **Scope:** these conventions apply to the implemented health, public-property read and
+> inquiry-create endpoints. See [`public-api.md`](public-api.md) for the endpoint
+> reference.
 
 ---
 
@@ -83,15 +83,19 @@ caller.
 
 ## Status codes in use
 
-| Code | When                                                            |
-| ---- | --------------------------------------------------------------- |
-| 200  | Successful read                                                 |
-| 404  | No route matched, or the addressed resource does not exist      |
-| 429  | Rate limit exceeded                                             |
-| 500  | Unhandled error — logged server-side with the full error object |
+| Code | When                                                             |
+| ---- | ---------------------------------------------------------------- |
+| 200  | Successful read                                                  |
+| 201  | Inquiry accepted                                                 |
+| 400  | Invalid query, slug or request body, with field issues as needed |
+| 413  | JSON request body exceeds the 1 MB limit                         |
+| 415  | Inquiry request is not sent with a JSON-compatible content type  |
+| 404  | No route matched, or the addressed resource does not exist       |
+| 429  | Rate limit exceeded                                              |
+| 500  | Unhandled error — logged server-side with the full error object  |
 
-Codes for creation, validation failure and authentication will be added to this table
-when the endpoints that use them are built.
+There are no authenticated endpoints yet, so no authentication/authorization status
+codes are currently part of the public contract.
 
 ---
 
@@ -101,6 +105,8 @@ Routers are registered one line per module in `backend/src/routes.ts`:
 
 ```ts
 router.use("/health", healthRoutes);
+router.use("/properties", createPropertyRoutes());
+router.use("/inquiries", createInquiryRoutes());
 ```
 
 A module's own `*.routes.ts` maps paths to controller functions and nothing else — no
@@ -124,8 +130,20 @@ headers), `legacyHeaders: false`.
 **The health endpoint is skipped** — an uptime monitor polling it must never be
 throttled into reporting a false outage. See `middleware/rateLimit.ts`.
 
+Inquiry creation also has an independent, tighter budget of 5 submissions per IP per
+15-minute window. Exceeding either limiter returns the common 429 error envelope.
+
 Behind a reverse proxy in production, `trust proxy` is enabled so the limiter counts
 real client IPs rather than the proxy's.
+
+---
+
+## Public exposure boundary
+
+The public API can read published properties and create inquiries. It cannot create,
+edit or publish properties, and it cannot read inquiry records. Do not add either
+capability without the authenticated staff/admin phase and an explicit authorization
+decision.
 
 ---
 

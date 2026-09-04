@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify:
-    name: Lint, typecheck, build
+    name: Lint, typecheck, test, build, browser acceptance
     runs-on: ubuntu-latest
 
     steps:
@@ -31,5 +31,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Unit and integration tests
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      - name: Browser acceptance tests
+        run: npm run test:e2e

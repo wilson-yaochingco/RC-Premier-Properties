@@ -238,11 +238,11 @@ On GitHub, open a PR from your branch into `main`. A good PR includes:
 - **Screenshots** for meaningful UI changes
 - **Known limitations** or follow-up work
 
-CI runs `format:check`, `lint`, `typecheck` and `build` on every PR. Run those locally
-first — a green local run means a green PR:
+CI runs `format:check`, `lint`, `typecheck`, unit/API tests and `build` on every PR. Run
+those locally first — a green local run means a green PR:
 
 ```bash
-npm run format:check && npm run lint && npm run typecheck && npm run build
+npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
 ```
 
 ## 11. Review and merge
@@ -347,7 +347,7 @@ own. If a conflict is in code you did not write, ask the person who did.
 Verify the result actually works before pushing:
 
 ```bash
-npm run lint && npm run typecheck && npm run build
+npm run lint && npm run typecheck && npm test && npm run build
 ```
 
 ---
@@ -437,7 +437,9 @@ These require repository admin access and are not yet configured:
 - [ ] Enable branch protection on `main`
 - [ ] Require a Pull Request before merging
 - [ ] Require the CI check to pass before merging
-- [ ] Add a pull request template
+
+A repository pull request template is committed under `.github/`; the remaining items
+above require repository-admin access.
 
 Until branch protection is enabled, `main` will accept a direct push. Follow the
 workflow anyway — the convention only works if everyone keeps to it before the

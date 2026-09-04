@@ -40,7 +40,14 @@ reasoning behind significant structural decisions.
 - **Does not belong here:** temporary implementation notes, TODOs, or a description of
   what a single function does.
 
-Current: [`overview.md`](architecture/overview.md).
+Current:
+
+- [`overview.md`](architecture/overview.md) — package, backend, frontend and runtime
+  architecture
+- [`brand-and-public-experience.md`](architecture/brand-and-public-experience.md) —
+  visual system, information architecture and public-experience rules
+- [`geographic-data-and-maps.md`](architecture/geographic-data-and-maps.md) — Leaflet
+  loading, tile/boundary attribution, map filtering and listing-location privacy
 
 ### `features/`
 
@@ -49,10 +56,14 @@ not before. A feature spec should cover purpose, requirements, user-facing behav
 business rules, important edge cases, and the split of responsibility between frontend
 and backend.
 
-Expected eventually: `properties.md`, `inquiries.md`, `authentication.md`,
-`appointments.md`.
+Current:
 
-**Currently empty on purpose.** No features exist yet.
+- [`properties.md`](features/properties.md) — published catalogue, filters and property
+  detail behaviour
+- [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
+
+Authentication, staff administration and confirmed appointments are not implemented,
+so they do not yet have feature specifications.
 
 ### `api/`
 
@@ -62,23 +73,32 @@ conventions, and versioning decisions.
 Document endpoints that exist. Do not write reference documentation for endpoints that
 have not been built.
 
-Current: [`conventions.md`](api/conventions.md).
+Current:
+
+- [`conventions.md`](api/conventions.md) — cross-endpoint rules
+- [`public-api.md`](api/public-api.md) — implemented public endpoints and parameters
 
 ### `database/`
 
 Data models, relationships between collections, indexing decisions, schema decisions,
 and notes on migrations or data changes.
 
-**Currently empty on purpose.** There are no Mongoose models yet — only a connection.
-Do not invent schemas for features that do not exist.
+Current: [`property-and-inquiry-models.md`](database/property-and-inquiry-models.md).
+Property and inquiry schemas exist. Their production persistence path still needs a real
+MongoDB verification run; there is no production inventory or seed data.
 
 ### `development/`
 
 How to work on the project: local setup, environment variables, git workflow, testing
 conventions, deployment instructions, coding conventions.
 
-Current: [`setup.md`](development/setup.md) — the full VS Code onboarding guide, and
-[`git-workflow.md`](development/git-workflow.md) — branching, commits and pull requests.
+Current:
+
+- [`setup.md`](development/setup.md) — the full VS Code onboarding guide
+- [`git-workflow.md`](development/git-workflow.md) — branching, commits and pull requests
+- [`testing.md`](development/testing.md) — automated and manual verification boundaries
+- [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
+  agent-placeholder replacement guide plus map/contact launch dependencies
 
 ---
 

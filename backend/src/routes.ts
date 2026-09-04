@@ -1,5 +1,9 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import healthRoutes from "./modules/health/health.routes.js";
+import { createPropertyRoutes } from "./modules/properties/property.routes.js";
+import type { PropertyService } from "./modules/properties/property.types.js";
+import { createInquiryRoutes } from "./modules/inquiries/inquiry.routes.js";
+import type { InquiryService } from "./modules/inquiries/inquiry.types.js";
 
 /**
  * Root API router, mounted on `API_PREFIX` in `app.ts`.
@@ -9,8 +13,26 @@ import healthRoutes from "./modules/health/health.routes.js";
  * `<name>.routes.ts`, `<name>.controller.ts`, `<name>.service.ts`, `<name>.model.ts`,
  * then add its router below.
  */
-const router = Router();
+export interface ApiDependencies {
+  propertyService?: PropertyService;
+  inquiryService?: InquiryService;
+  inquiryRateLimit?: RequestHandler;
+}
 
-router.use("/health", healthRoutes);
+export function createApiRouter(dependencies: ApiDependencies = {}): Router {
+  const router = Router();
 
-export default router;
+  router.use("/health", healthRoutes);
+  router.use("/properties", createPropertyRoutes(dependencies.propertyService));
+  router.use(
+    "/inquiries",
+    createInquiryRoutes({
+      service: dependencies.inquiryService,
+      rateLimit: dependencies.inquiryRateLimit,
+    }),
+  );
+
+  return router;
+}
+
+export default createApiRouter();

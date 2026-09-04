@@ -1,0 +1,92 @@
+.page {
+  background: var(--color-paper, #f5f2eb);
+  color: var(--color-ink, #3a424f);
+  min-height: 100%;
+  padding: clamp(7rem, 12vw, 11rem) 0 clamp(5rem, 10vw, 9rem);
+}
+
+.container {
+  margin-inline: auto;
+  max-width: 86rem;
+  padding-inline: clamp(1.25rem, 4vw, 4.5rem);
+}
+
+.layout {
+  display: grid;
+  gap: clamp(3rem, 7vw, 7rem);
+}
+
+.intro {
+  align-self: start;
+}
+
+.eyebrow {
+  align-items: center;
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  gap: 0.8rem;
+  letter-spacing: 0.16em;
+  margin: 0 0 1.5rem;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  background: var(--color-gold, #b4893d);
+  content: "";
+  height: 1px;
+  width: 2.5rem;
+}
+
+.title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(2.7rem, 7vw, 6rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  margin: 0;
+  max-width: 12ch;
+}
+
+.copy {
+  color: color-mix(in srgb, var(--color-ink, #3a424f) 72%, white);
+  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  line-height: 1.75;
+  margin: 2rem 0 0;
+  max-width: 38rem;
+}
+
+.note {
+  border-top: 1px solid color-mix(in srgb, var(--color-ink, #3a424f) 18%, white);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  margin-top: 2.5rem;
+  max-width: 34rem;
+  padding-top: 1.25rem;
+}
+
+.formPanel {
+  background: #fff;
+  box-shadow: 0 1.5rem 4rem rgb(58 66 79 / 8%);
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.formLabel {
+  color: var(--brand-secondary-text, #806024);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0 0 2rem;
+  text-transform: uppercase;
+}
+
+@media (min-width: 64rem) {
+  .layout {
+    grid-template-columns: minmax(0, 0.82fr) minmax(32rem, 1.18fr);
+  }
+
+  .intro {
+    position: sticky;
+    top: 8rem;
+  }
+}

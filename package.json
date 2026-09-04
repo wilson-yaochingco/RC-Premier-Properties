@@ -4,7 +4,7 @@
   "private": true,
   "description": "RC Premier Properties - full-stack real estate web application",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "workspaces": [
     "shared",
@@ -19,10 +19,18 @@
     "build": "npm run build --workspace shared && npm run build --workspace backend && npm run build --workspace frontend",
     "lint": "npm run lint --workspace backend && npm run lint --workspace frontend",
     "typecheck": "npm run typecheck --workspaces",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pretest:e2e": "node e2e/build.mjs",
+    "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "prettier": "^3.4.2"
+    "@playwright/test": "^1.62.1",
+    "@types/supertest": "^7.2.1",
+    "prettier": "^3.4.2",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.11"
   }
 }

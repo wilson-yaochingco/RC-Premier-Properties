@@ -3,8 +3,10 @@
 This records decisions that are **already in force** and verifiable in the code. It is
 not a plan for future work.
 
-Status: the project is a foundation. One endpoint exists (`GET /api/v1/health`), and
-there are no database models.
+Status: the foundation and public MVP vertical slice are implemented. The API exposes
+health, published-property reads and inquiry creation; Mongoose models exist for
+properties and inquiries. Authentication, administration and confirmed appointments
+remain outside the implemented system.
 
 ---
 
@@ -42,13 +44,9 @@ in the next section.
 response shapes, the error envelope, and `API_VERSION` / `API_PREFIX`.
 
 Both apps import from `@rc/shared` rather than declaring their own copies. Renaming a
-field there fails the build on whichever side was not updated — verified by renaming
-`HealthResponse.database` and watching both apps fail to compile:
-
-```
-backend  health.controller.ts: TS2353: 'database' does not exist in type 'HealthResponse'
-frontend BackendStatus.tsx:    TS2339: Property 'database' does not exist on type 'HealthResponse'
-```
+field there fails the build on whichever side was not updated. The contract now includes
+health, property taxonomy and public listing shapes, search/facet responses, inquiry
+requests and acknowledgements, and the common error envelope.
 
 **Rule:** if it travels over the network, it goes in `shared/src/api.ts`. Types only one
 app cares about stay local — `frontend/src/types/` or the relevant backend module.
@@ -71,7 +69,9 @@ backend/src/
 ├── middleware/     Cross-cutting: errorHandler, notFound, rateLimit
 ├── lib/            Backend infrastructure owned by no single domain
 └── modules/        One folder per business domain
-    └── health/
+    ├── health/
+    ├── properties/
+    └── inquiries/
 ```
 
 Each domain owns its routes, controller, service, model, validation and types in one
@@ -81,8 +81,8 @@ across four directories per feature and funnels every change through one shared
 `routes/index.ts`.
 
 **`app.ts` never listens.** It builds and returns a configured Express app; `server.ts`
-starts it. This keeps startup concerns out of app configuration and lets tests import
-the app directly.
+starts it. This keeps startup concerns out of app configuration and lets Supertest use
+dependency-injected property and inquiry services without opening a network port.
 
 **Middleware order matters** and is fixed in `app.ts`: `trust proxy` (production only) →
 helmet → CORS → body parsers (1 MB limit) → rate limiter and routes on `API_PREFIX` →
@@ -113,6 +113,18 @@ exist to stay small.
 `app/` holds routing concerns. Reusable logic does not move into `app/` merely because a
 page uses it.
 
+The implemented routes are `/`, `/properties`, `/properties/[slug]`, `/about`,
+`/contact`, `/sell` and `/book-viewing`, plus loading, error and not-found boundaries,
+`robots.txt` and `sitemap.xml`. Property and inquiry code lives under matching feature
+folders. A small shared API client normalizes non-2xx, network and malformed-response
+failures into the shared error contract.
+
+Global and route metadata use `NEXT_PUBLIC_SITE_URL` as their public origin. Static
+routes appear in `sitemap.xml`; `robots.txt` allows the public site and reserves `/admin`
+and `/api`. Property detail pages derive canonical/Open Graph metadata and JSON-LD from
+the published record. Dynamic listing URLs are not fabricated into the static sitemap
+while no production inventory source is available.
+
 ---
 
 ## Configuration and environment
@@ -122,8 +134,9 @@ throws a clear error if `MONGODB_URI` is missing, and exports a frozen typed obj
 other backend module reads `process.env`.
 
 On the frontend, `src/lib/env.ts` is the only reader of `NEXT_PUBLIC_API_URL` and
-exports `API_BASE_URL` / `apiUrl()`. Only `NEXT_PUBLIC_`-prefixed variables reach the
-browser, so no secret may ever use that prefix.
+`NEXT_PUBLIC_SITE_URL`. It exports the normalized API and public-site origins. Only
+`NEXT_PUBLIC_`-prefixed variables reach the browser, so no secret may ever use that
+prefix.
 
 Real `.env` / `.env.local` files are git-ignored; the committed `.env.example` files are
 the templates.
@@ -140,11 +153,35 @@ Connection failure is handled differently by environment, deliberately:
 - **development** — log a warning and start the HTTP server anyway, so the API is
   workable before MongoDB is installed. `/api/v1/health` honestly reports
   `database.status: "disconnected"`.
-- **anything else** — exit with code 1. A production process should not serve traffic it
-  cannot fulfil.
+- **test and production** — exit with code 1. A production process should not serve
+  traffic it cannot fulfil, and tests should not silently use an unavailable database.
 
 `server.ts` handles `SIGINT`/`SIGTERM` by closing the HTTP server and the mongoose
 connection before exiting.
+
+The schemas, query builders and service wiring are implemented, but real MongoDB
+persistence has not yet been verified with project credentials. Automated API tests
+inject services and therefore prove routing, normalization, validation and disclosure
+behaviour without claiming that external persistence works. No seed records are shipped.
+
+---
+
+## Public data and workflow boundaries
+
+Every public property query adds `publicationStatus: "published"` within the service;
+clients cannot request drafts. Public projections omit exact addresses, coordinates,
+owner references and internal notes. Property reads are available as list, facet and
+slug-detail endpoints. There are no public property write endpoints.
+
+Inquiry creation accepts contact, property, seller and viewing-request submissions. It
+returns an opaque acknowledgement without echoing personal data. There is deliberately
+no public inquiry read endpoint. A viewing submission is a request for staff follow-up,
+not a booking or confirmed appointment.
+
+No authentication or authorization layer exists yet. Consequently, staff/admin routes,
+property management and inquiry retrieval have not been exposed. The approved company
+logo, production media, public contact details and actual listings have also not been
+supplied; the public UI represents those gaps explicitly instead of inventing data.
 
 ---
 
@@ -166,9 +203,8 @@ automatically, so no `express-async-handler` wrapper is needed.
 
 ## Tooling
 
-ESLint flat config per app; Prettier and line-ending normalization at the root; CI runs
-`format:check`, `lint`, `typecheck` and `build` on every push and pull request.
-
-There is **no test runner** yet — a deliberate deferral, not an oversight. `createApp()`
-is exported from `app.ts` without listening specifically so integration tests can be
-added later without restructuring.
+ESLint flat config per app; Prettier and line-ending normalization at the root; Vitest
+for unit/API integration tests; Supertest for in-process Express requests; and Playwright
+for browser acceptance. CI runs `format:check`, `lint`, `typecheck`, `test` and `build` on
+pushes to `main` and pull requests. Browser acceptance remains a separate command until a
+stable CI browser strategy is adopted.

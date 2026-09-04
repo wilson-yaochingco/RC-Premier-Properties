@@ -4,15 +4,19 @@ Instructions for AI coding agents and new contributors. Read this before writing
 
 ---
 
-## Scope: this is a foundation, not a product
+## Scope: preserve the public MVP boundary
 
-The repository currently contains **no product features**. One endpoint exists
-(`GET /api/v1/health`) and there are **no database models**.
+The repository contains a public MVP vertical slice: editorial public pages, published
+property search and detail routes, connected inquiry forms, and Mongoose property and
+inquiry models. Real MongoDB persistence, production inventory, the approved logo, real
+media, and public business contact details have not yet been supplied or verified. Read
+[`docs/ROADMAP.md`](docs/ROADMAP.md) and the feature documents before changing this
+boundary.
 
-Do not implement any of the following unless explicitly asked for that specific feature:
-property listings, cards, detail pages, search, filtering, authentication, user or agent
-accounts, agent profiles, inquiries, contact forms, appointments, favorites, an admin
-dashboard, image uploads, payments, notifications, seed data, or AI features.
+Do not implement deferred functionality unless explicitly asked for that specific
+feature: authentication, user or agent accounts, agent profiles, confirmed appointments,
+favorites, an admin dashboard, image uploads, payments, notifications, production seed
+data, or AI features. A viewing submission currently creates an inquiry request only.
 
 Do not create database schemas for features that do not exist. Do not fabricate
 functionality to demonstrate architecture.
@@ -147,7 +151,8 @@ npm run dev:shared       # rebuild the contract on save, while editing shared/sr
 Before claiming work is complete, run and confirm:
 
 ```bash
-npm run format:check && npm run lint && npm run typecheck && npm run build
+npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
+npm run test:e2e
 ```
 
 Two things worth knowing about verification:
