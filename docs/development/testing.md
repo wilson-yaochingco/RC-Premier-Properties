@@ -86,10 +86,11 @@ Neither Vitest nor Playwright connects to the project database. The backend HTTP
 inject service doubles, and the browser tests use the explicit fixture API. They prove
 application behaviour without pretending to prove MongoDB connectivity or persistence.
 
-A full environment is not persistence-verified until a developer with approved database
-access confirms a connected health response, a published property create/read path and
-an inquiry write by an authorized internal inspection method. There is intentionally no
-public inquiry read endpoint and no production seed command. Use synthetic data only;
+The project Atlas environment passed this persistence gate on 2026-09-05: the real health
+endpoint reported a connected Mongoose state, and temporary synthetic property and
+inquiry records passed create/read/delete checks. The property check used the public
+service projection and confirmed private fields stayed excluded. There is intentionally
+no public inquiry read endpoint and no production seed command. Use synthetic data only;
 never submit a real person's details during verification.
 
 The supplemental responsive request mentions user and admin portals. Those routes do not

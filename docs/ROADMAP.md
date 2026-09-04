@@ -34,12 +34,13 @@ Architecture is documented separately in
 | 6     | Production Hardening & Launch         | ⬜     | Launch gate |
 | 7     | Post-Launch Growth                    | ⬜     | No          |
 
-**Phases 0, 1 and 2A are In Progress, not Complete.** Phase 0 still needs a verified
-MongoDB connection and repository-admin branch protection. Phase 1 still needs the
-approved logo asset and business validation of lifecycle vocabulary. Phase 2A is built
-and tested around those dependencies but cannot pass its persistence and real-inventory
-gates without MongoDB and supplied listings. A directory existing is not evidence that a
-capability works.
+**Phases 0, 1 and 2A are In Progress, not Complete.** Phase 0 still needs
+repository-admin branch protection; the Atlas connection and live health response were
+verified on 2026-09-05. Phase 1 still needs the approved logo asset and business
+validation of lifecycle vocabulary. Phase 2A is built and tested, including live
+synthetic inquiry and published-property persistence checks, but cannot pass its
+real-inventory gates without supplied listings. A directory existing is not evidence
+that a capability works.
 
 ---
 
@@ -237,11 +238,10 @@ without requiring a test network port or pretending that an unavailable MongoDB 
       locally; the same gate is configured in CI
 - [x] Documentation structure exists with conventions written down
 - [x] Development workflow documented
-- [ ] **MongoDB connection verified working** — never yet achieved; no local server and
-      no Atlas string configured
-- [x] **Backend starts successfully** — verified in development; it reports MongoDB as
-      disconnected and continues in an explicitly degraded state when the local service
-      is unavailable
+- [x] **MongoDB connection verified working** — Atlas connection and the connected health
+      response verified on 2026-09-05
+- [x] **Backend starts successfully** — verified with connected Atlas; in development it
+      also continues in an explicitly degraded state when MongoDB is unavailable
 - [x] Feature work has landed through the documented pull request workflow
 - [ ] Branch protection enabled on `main` (currently recorded as unprotected)
 - [x] Pull request template added
@@ -474,11 +474,12 @@ market, not an afterthought.
 
 - [x] All core public pages implemented and matching the Phase 1 designs
 - [ ] Property search, filtering, sorting and pagination are implemented and tested with
-      isolated fixtures, but a real MongoDB and supplied inventory are unavailable
+      isolated fixtures; the live Mongoose create/public-read path is verified, but
+      supplied inventory remains unavailable
 - [x] Filters reflected in the URL; browser back-navigation restores filters and results
 - [x] Empty, loading and error states implemented across the public routes and forms
-- [ ] Inquiry persistence is implemented; live persistence is unverified without MongoDB,
-      and staff retrieval correctly waits for authenticated administration
+- [x] Inquiry create/read persistence is verified against Atlas with a temporary synthetic
+      record; staff retrieval correctly waits for authenticated administration
 - [x] Unpublished listings verified unreachable publicly
 - [ ] Automated overflow checks pass from 320px through 1920px, but the required manual
       visual acceptance pass across mobile, tablet and desktop is still open

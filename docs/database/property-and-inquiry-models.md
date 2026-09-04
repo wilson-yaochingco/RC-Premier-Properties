@@ -1,12 +1,13 @@
 # Property and Inquiry Models
 
-Status: implemented Mongoose schema and service contract. Last reviewed 2026-09-04.
+Status: implemented Mongoose schema and service contract with live Atlas persistence
+verified. Last reviewed 2026-09-05.
 
 The repository includes the models, indexes, projections and service queries described
 here. It does not include real listings or seed data. Automated tests verify query
-construction and the HTTP layer with injected services; actual create/read persistence
-against a project MongoDB instance remains unverified until credentials and a reachable
-database are supplied.
+construction and the HTTP layer with injected services. On 2026-09-05, live Atlas checks
+verified a connected health response, temporary inquiry write/read/delete, and temporary
+published-property create/public-read/delete with private fields excluded.
 
 ## Property taxonomy
 
