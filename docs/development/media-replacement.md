@@ -1,6 +1,6 @@
 # Media and Brand Asset Replacement
 
-Status: all production assets are still external blockers. Last reviewed 2026-09-01.
+Status: all production assets are still external blockers. Last reviewed 2026-09-04.
 
 The repository intentionally ships no photographs, videos, downloaded stock media or
 AI-generated property imagery. The supplied project attachment contains requirements but

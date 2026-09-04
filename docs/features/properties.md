@@ -1,6 +1,7 @@
 # Public Properties
 
-Status: implemented public read and interactive-map experience. Last reviewed 2026-09-02.
+Status: implemented public read and Phase 2A interactive-map experience. Last reviewed
+2026-09-04.
 
 ## Purpose and routes
 
