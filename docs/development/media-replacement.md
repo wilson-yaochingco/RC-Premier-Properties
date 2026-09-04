@@ -1,6 +1,6 @@
 # Media and Brand Asset Replacement
 
-Status: all production assets are still external blockers. Last reviewed 2026-09-04.
+Status: all production assets are still external blockers. Last reviewed 2026-09-05.
 
 The repository intentionally ships no photographs, videos, downloaded stock media or
 AI-generated property imagery. The supplied project attachment contains requirements but
@@ -60,9 +60,9 @@ Although the schema reserves `video` and `floor-plan` kinds, no video player or 
 viewer is implemented. Add explicit rendering and accessibility behaviour before storing
 those URLs in real records. Do not label a video URL as an image to bypass the boundary.
 
-No real listings or seed data are provided, and real MongoDB persistence is not yet
-verified. Media metadata should be introduced through a future authorized property
-management workflow or a carefully reviewed migration—not an unauthenticated endpoint.
+No real listings or seed data are provided. Live MongoDB persistence is verified. Media
+metadata should be introduced through a future authorized property-management workflow
+or a carefully reviewed migration—not an unauthenticated endpoint.
 
 ## Map and contact dependencies
 

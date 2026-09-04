@@ -1,6 +1,7 @@
 # Public Inquiries
 
-Status: implemented create-only workflow. Last reviewed 2026-09-04.
+Status: implemented create-only workflow with live Atlas persistence verified. Last
+reviewed 2026-09-05.
 
 ## Entry points
 
@@ -61,14 +62,13 @@ rules are designed. There is likewise no public update/delete route and no email
 messaging or CRM integration that the UI pretends is active.
 
 The schema, service and HTTP workflow are implemented and covered with injected-service
-tests. Actual inquiry persistence against a real project MongoDB instance has not yet
-been verified. A working `MONGODB_URI` is therefore an integration requirement, not an
-assumed success.
+tests. On 2026-09-05, a temporary synthetic inquiry was written to the project Atlas
+database, read back and deleted by its exact identifier. This verifies live Mongoose
+persistence without retaining test personal data.
 
 ## Current blockers and exclusions
 
 - Public business contact details and response expectations have not been supplied.
-- Real MongoDB create/read persistence remains unverified.
 - Production abuse-control review is still required; no CAPTCHA or step-up challenge
   provider has been selected beyond the implemented honeypot and rate limits.
 - Inquiry reads and management require the absent auth/admin phase.

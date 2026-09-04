@@ -1,7 +1,7 @@
 # Public Properties
 
-Status: implemented public read and Phase 2A interactive-map experience. Last reviewed
-2026-09-04.
+Status: implemented public read and Phase 2A interactive-map experience. Live Atlas
+persistence verified; real inventory remains unsupplied. Last reviewed 2026-09-05.
 
 ## Purpose and routes
 
@@ -116,8 +116,8 @@ assets.
 ## Current blockers and exclusions
 
 - No real listings or seed data have been supplied.
-- MongoDB schemas and services are implemented, but real project persistence is not yet
-  verified.
+- Live MongoDB create/public-read persistence and private-field exclusion are verified
+  with a temporary synthetic record; no real inventory has been supplied.
 - No approved logo, property imagery or agent profiles have been supplied.
 - Production map-provider selection remains deferred to Phase 2B. Retaining the current
   evaluation tiles would require an appropriate Stadia Maps plan and registered frontend

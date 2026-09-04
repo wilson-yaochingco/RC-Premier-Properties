@@ -1,6 +1,6 @@
 # Public API Reference
 
-Status: implemented public MVP contract. Last reviewed 2026-09-04.
+Status: implemented public MVP contract. Last reviewed 2026-09-05.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. Request
 and response types live in [`shared/src/api.ts`](../../shared/src/api.ts); this document
@@ -26,6 +26,8 @@ Returns the service name, ISO timestamp, process uptime, validated environment a
 current readable Mongoose connection state. The HTTP status remains `200` when the
 development server has started with MongoDB disconnected; callers must inspect
 `database.status` rather than infer database health from the HTTP code.
+
+The connected Atlas response was verified through this endpoint on 2026-09-05.
 
 ## `GET /properties`
 
