@@ -1,18 +1,20 @@
 # Phase 3A Authentication and Authorization
 
-Status: **accepted architecture; not implemented**
+Status: **accepted architecture; Auth0 Free selected; not implemented**
 
 This decision defines the security boundary for the Phase 3A listing-management slice.
-It does not expose an admin API, create staff accounts, or select a vendor. Implementation
-must not begin until the provider and deployment inputs in [Implementation gates](#implementation-gates)
-are approved.
+It does not expose an admin API or create staff accounts. Implementation may begin with
+an injected OIDC test boundary, but live Auth0 integration and deployment must not be
+completed until the inputs in [Implementation gates](#implementation-gates) are approved.
 
 ## Decision
 
-RC Premier Properties will delegate staff authentication to a managed OpenID Connect
-(OIDC) identity provider. The provider owns credentials, authenticator enrollment,
-account recovery and MFA. The Express backend owns the application session, staff
-allowlist, role and permission checks, and audit trail.
+RC Premier Properties will delegate staff authentication to Auth0 Free as its managed
+OpenID Connect (OIDC) identity provider. Auth0 owns credentials, authenticator enrollment
+and account recovery. The Express backend owns the application session, staff allowlist,
+role and permission checks, and audit trail. The provider evaluation, Free-plan limits
+and production assurance gate are recorded in
+[`oidc-provider-selection.md`](oidc-provider-selection.md).
 
 The browser will receive only an opaque, backend-issued session cookie. Provider tokens,
 refresh tokens and the application session identifier must not be stored in
@@ -88,9 +90,10 @@ passwords or MFA secrets.
    challenge method. It generates transaction-specific `state`, `nonce` and PKCE values.
 2. Login and callback return locations use an exact allowlist. A query parameter must
    never become an arbitrary post-login redirect.
-3. The identity provider authenticates the staff member and enforces MFA. A
-   phishing-resistant option such as WebAuthn/passkeys must be available; SMS is not an
-   acceptable sole second factor for administrators.
+3. The identity provider authenticates the staff member. The backend creates an
+   administrator session only when validated protocol evidence proves the approved
+   phishing-resistant authentication policy was satisfied. Passkey availability or an
+   operational instruction to use one is not sufficient evidence.
 4. The backend validates issuer, audience, signature, expiry, nonce, state and PKCE
    binding before accepting the identity result.
 5. The backend looks up the stable `(issuer, subject)` pair in the local staff allowlist.
@@ -213,8 +216,9 @@ secrets, inquiry message bodies or complete before/after copies of personal data
   failures without creating an account-enumeration signal.
 - Revoke sessions after account recovery, factor replacement, suspected compromise or a
   staff status/role change.
-- MFA recovery is handled by the selected provider under a documented staff verification
-  process. The application must not add security questions or an email-only bypass.
+- Authenticator recovery is handled by the selected provider under a documented staff
+  verification process. The application must not add security questions or an
+  email-only bypass.
 - Record successful login, failed callback validation, logout, session revocation,
   denied admin access, staff status changes and sensitive listing/inquiry actions.
 - Security logs use structured event names and correlation IDs. They exclude secrets and
@@ -244,13 +248,14 @@ experience.
 
 ## Implementation order
 
-1. Approve the implementation gates below and record the provider decision.
-2. Add shared auth/session response shapes and authenticated error conventions.
-3. Add the staff identity, session and audit models with indexes and retention rules.
-4. Implement and test OIDC login/callback/logout plus server-side session middleware.
-5. Implement named permission middleware and the complete authorization test matrix.
-6. Add the smallest admin shell and protected session bootstrap needed by Phase 3A.
-7. Add property administration one lifecycle capability at a time, followed by inquiry
+1. Add shared auth/session response shapes and authenticated error conventions.
+2. Add the staff identity, session and audit models with indexes and retention rules.
+3. Implement the injectable OIDC boundary, session middleware, named permissions and
+   automated security tests without depending on a live provider.
+4. Provision the approved Auth0 development tenant and connect the real
+   login/callback/logout flow after the gates below are satisfied.
+5. Add the smallest admin shell and protected session bootstrap needed by Phase 3A.
+6. Add property administration one lifecycle capability at a time, followed by inquiry
    management and the audit view.
 
 Authentication and authorization land before any property write or inquiry read route.
@@ -259,12 +264,13 @@ threat model are approved.
 
 ## Implementation gates
 
-The following inputs are still required before code is written:
+The following inputs are required before live Auth0 integration is completed:
 
-- Select an OIDC provider that supports Authorization Code + PKCE, enforced MFA,
-  phishing-resistant authenticators, exact redirect URI registration, session/account
-  revocation, audit logs and separate development/staging/production tenants or
-  equivalent isolation.
+- Provision the selected Auth0 Free development tenant with Authorization Code + PKCE,
+  passkeys, exact redirect URIs and public sign-up disabled.
+- Prove the Free-plan production assurance gate in the provider-selection decision. If
+  password-only or skipped passkey enrollment can produce an administrator session,
+  production remains blocked pending an explicitly approved alternative.
 - Approve the initial administrator identities through a private channel.
 - Confirm production frontend and API origins and the deployment's same-site cookie
   topology.

@@ -31,7 +31,7 @@ make ownership and dependencies visible without treating skipped UI work as comp
 | 1     | Product Planning, Brand & UX          | 🟦      | 🟩 Complete    | ↪ External owner | ⛔ Logo and lifecycle approval         | Yes         |
 | 2A    | Core Public Website MVP               | 🟦      | 🟩 Implemented | ↪ External owner | ⛔ Supplied production inventory       | Yes         |
 | 2B    | Enhanced Property Experience          | ↪       | ↪ Deferred     | ↪ Deferred       | ↪ Requirements deferred                | No          |
-| 3A    | Secure Property Administration        | 🟨      | 🟨 Next focus  | ↪ External owner | ⛔ Provider, identities and lifecycles | Partly      |
+| 3A    | Secure Property Administration        | 🟨      | 🟨 Next focus  | ↪ External owner | ⛔ Auth0 Free setup and assurance gate | Partly      |
 | 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated          | No          |
 | 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated          | No          |
 | 5     | Communication & AI                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Providers not selected              | No          |
@@ -594,7 +594,7 @@ channels the business actually uses rather than adding all four.
 
 ---
 
-# Phase 3A — Secure Property Administration ⬜
+# Phase 3A — Secure Property Administration 🟨
 
 **Goal:** let authorized staff manage listings without touching the database by hand.
 
@@ -606,10 +606,13 @@ can update is not a product.
 
 ### Authentication
 
-The architecture delegates credentials, recovery and MFA to a managed OpenID Connect
-identity provider while Express owns opaque, revocable application sessions and local
-authorization. The exact provider remains an implementation gate. See
-[`architecture/authentication-and-authorization.md`](architecture/authentication-and-authorization.md).
+The architecture delegates credentials, passkey enrollment and recovery to Auth0 Free
+while Express owns opaque, revocable application sessions and local authorization. The
+selection does not create an account or credentials. Development-tenant provisioning
+and proof that the Free plan can enforce the production authentication requirement
+remain implementation gates. See
+[`architecture/authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
+and [`architecture/oidc-provider-selection.md`](architecture/oidc-provider-selection.md).
 
 ### Authorization
 
@@ -1103,22 +1106,22 @@ environment gets its own database, its own credentials, and its own configured o
 
 # Decision log — deferred decisions
 
-No vendor has been selected. Each decision below is deliberately open.
+Vendors remain deliberately unselected unless the table records an accepted choice.
 
-| Decision                | Decide by | What should drive it                                                                                      |
-| ----------------------- | --------- | --------------------------------------------------------------------------------------------------------- |
-| Test runner             | Phase 1   | Speed, TypeScript/ESM support, CI integration, watch-mode experience                                      |
-| Production map provider | Phase 2B  | Philippine coverage quality, pricing at expected volume, privacy controls                                 |
-| OIDC identity provider  | Phase 3A  | Managed OIDC architecture accepted; select the vendor by MFA, recovery, isolation, data handling and cost |
-| Media storage provider  | Phase 3A  | Cost at volume, CDN integration, image transformation, private-bucket support                             |
-| Email provider          | Phase 4   | Deliverability to Philippine recipients, transactional reliability, cost                                  |
-| SMS/OTP provider        | Phase 4   | Philippine carrier coverage, delivery rates, per-message cost                                             |
-| AI provider             | Phase 5   | Model quality, cost per request, data handling terms, latency                                             |
-| Hosting provider        | Phase 6   | Region/latency for Philippine users, cost, operational simplicity                                         |
-| CDN                     | Phase 6   | Image delivery performance, regional presence, cost                                                       |
-| WAF / DDoS protection   | Phase 6   | Threat coverage, false-positive rate, integration with hosting                                            |
-| Analytics provider      | Phase 6   | Privacy posture, data ownership, required metrics                                                         |
-| Monitoring provider     | Phase 6   | Error tracking, alerting, log retention, cost                                                             |
+| Decision                | Decide by | What should drive it                                                                  |
+| ----------------------- | --------- | ------------------------------------------------------------------------------------- |
+| Test runner             | Phase 1   | Speed, TypeScript/ESM support, CI integration, watch-mode experience                  |
+| Production map provider | Phase 2B  | Philippine coverage quality, pricing at expected volume, privacy controls             |
+| OIDC identity provider  | Phase 3A  | **Auth0 Free selected**; production gated on authentication assurance and plan limits |
+| Media storage provider  | Phase 3A  | Cost at volume, CDN integration, image transformation, private-bucket support         |
+| Email provider          | Phase 4   | Deliverability to Philippine recipients, transactional reliability, cost              |
+| SMS/OTP provider        | Phase 4   | Philippine carrier coverage, delivery rates, per-message cost                         |
+| AI provider             | Phase 5   | Model quality, cost per request, data handling terms, latency                         |
+| Hosting provider        | Phase 6   | Region/latency for Philippine users, cost, operational simplicity                     |
+| CDN                     | Phase 6   | Image delivery performance, regional presence, cost                                   |
+| WAF / DDoS protection   | Phase 6   | Threat coverage, false-positive rate, integration with hosting                        |
+| Analytics provider      | Phase 6   | Privacy posture, data ownership, required metrics                                     |
+| Monitoring provider     | Phase 6   | Error tracking, alerting, log retention, cost                                         |
 
 Open business questions:
 
