@@ -18,21 +18,25 @@ Architecture is documented separately in
 | 🟦     | In Progress                                   |
 | 🟩     | Complete — Definition of Done fully verified  |
 | ⛔     | Blocked — waiting on a decision or dependency |
+| ↪      | Deferred — intentionally not in active scope  |
 
 ## Phase overview
 
-| Phase | Name                                  | Status | In MVP?     |
-| ----- | ------------------------------------- | ------ | ----------- |
-| 0     | Project Foundation                    | 🟩     | Yes         |
-| 1     | Product Planning, Brand & UX          | 🟦     | Yes         |
-| 2A    | Core Public Website MVP               | 🟦     | Yes         |
-| 2B    | Enhanced Property Experience          | ⬜     | No          |
-| 3A    | Secure Property Administration        | ⬜     | Partly      |
-| 3B    | CRM & Advanced Administration         | ⬜     | No          |
-| 4     | Client Accounts & Seller Verification | ⬜     | No          |
-| 5     | Communication & AI                    | ⬜     | No          |
-| 6     | Production Hardening & Launch         | ⬜     | Launch gate |
-| 7     | Post-Launch Growth                    | ⬜     | No          |
+The overall status describes the complete product phase. The three workstream columns
+make ownership and dependencies visible without treating skipped UI work as completed.
+
+| Phase | Name                                  | Overall | Backend / data | Frontend / UI    | Business / external                    | In MVP?     |
+| ----- | ------------------------------------- | ------- | -------------- | ---------------- | -------------------------------------- | ----------- |
+| 0     | Project Foundation                    | 🟩      | 🟩 Complete    | 🟩 Complete      | ↪ Branch protection follow-up          | Yes         |
+| 1     | Product Planning, Brand & UX          | 🟦      | 🟩 Complete    | ↪ External owner | ⛔ Logo and lifecycle approval         | Yes         |
+| 2A    | Core Public Website MVP               | 🟦      | 🟩 Implemented | ↪ External owner | ⛔ Supplied production inventory       | Yes         |
+| 2B    | Enhanced Property Experience          | ↪       | ↪ Deferred     | ↪ Deferred       | ↪ Requirements deferred                | No          |
+| 3A    | Secure Property Administration        | 🟨      | 🟨 Next focus  | ↪ External owner | ⛔ Provider, identities and lifecycles | Partly      |
+| 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated          | No          |
+| 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated          | No          |
+| 5     | Communication & AI                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Providers not selected              | No          |
+| 6     | Production Hardening & Launch         | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Infrastructure not selected         | Launch gate |
+| 7     | Post-Launch Growth                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Prioritize after launch             | No          |
 
 **Phase 0 is Complete. Phases 1 and 2A remain In Progress.** The Atlas connection and
 live health response were verified on 2026-09-05. Repository-admin branch protection is
@@ -42,6 +46,19 @@ approved logo asset and business validation of lifecycle vocabulary. Phase 2A is
 and tested, including live synthetic inquiry and published-property persistence checks,
 but cannot pass its real-inventory gates without supplied listings. A directory existing
 is not evidence that a capability works.
+
+### Active implementation ownership
+
+The active engineering focus is backend and feature infrastructure. Frontend/UI work is
+not owned by the current backend workstream and remains visible as externally owned; it
+is not silently counted as complete. Phase 2B is intentionally deferred because it is
+outside the public MVP. The next backend implementation slice is Phase 3A authentication,
+authorization and administration APIs.
+
+This ownership split does not weaken dependency rules or a phase's Definition of Done.
+A backend workstream may be complete while the overall product phase remains open. Do
+not expose property writes or inquiry reads before Phase 3A authentication and
+server-side authorization are implemented and tested.
 
 ---
 
