@@ -45,8 +45,8 @@ Current:
 - [`overview.md`](architecture/overview.md) — package, backend, frontend and runtime
   architecture
 - [`authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
-  — accepted Phase 3A staff identity, session and permission architecture; implementation
-  gates remain open
+  — implemented Phase 3A backend identity, session and permission architecture; live
+  provider and production gates remain open
 - [`oidc-provider-selection.md`](architecture/oidc-provider-selection.md) — Auth0 Free
   selection, provider comparison, configuration baseline and provisioning gates
 - [`brand-and-public-experience.md`](architecture/brand-and-public-experience.md) —
@@ -67,8 +67,9 @@ Current:
   detail behaviour
 - [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
 
-Authentication, staff administration and confirmed appointments are not implemented,
-so they do not yet have feature specifications.
+The backend authentication foundation is documented as an architectural boundary rather
+than a user-facing feature. Staff administration and confirmed appointments are not
+implemented, so they do not yet have feature specifications.
 
 ### `api/`
 
@@ -82,15 +83,24 @@ Current:
 
 - [`conventions.md`](api/conventions.md) — cross-endpoint rules
 - [`public-api.md`](api/public-api.md) — implemented public endpoints and parameters
+- [`authentication-api.md`](api/authentication-api.md) — staff login, current-session and
+  logout contract
 
 ### `database/`
 
 Data models, relationships between collections, indexing decisions, schema decisions,
 and notes on migrations or data changes.
 
-Current: [`property-and-inquiry-models.md`](database/property-and-inquiry-models.md).
-Property and inquiry schemas exist. Their production persistence path still needs a real
-MongoDB verification run; there is no production inventory or seed data.
+Current:
+
+- [`property-and-inquiry-models.md`](database/property-and-inquiry-models.md) — public MVP
+  records and visibility rules
+- [`authentication-models.md`](database/authentication-models.md) — staff identities,
+  sessions, OIDC transactions and security audit events
+
+Property and inquiry schemas exist and their Atlas persistence path has been verified.
+The new authentication collections have automated schema coverage but still require the
+live development-tenant acceptance pass. There is no production inventory or seed data.
 
 ### `development/`
 
@@ -102,6 +112,8 @@ Current:
 - [`setup.md`](development/setup.md) — the full VS Code onboarding guide
 - [`git-workflow.md`](development/git-workflow.md) — branching, commits and pull requests
 - [`testing.md`](development/testing.md) — automated and manual verification boundaries
+- [`auth0-setup.md`](development/auth0-setup.md) — development tenant, secrets,
+  administrator bootstrap and live-login acceptance
 - [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
   agent-placeholder replacement guide plus map/contact launch dependencies
 

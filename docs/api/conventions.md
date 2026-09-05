@@ -3,9 +3,9 @@
 Rules every endpoint in the RC Premier Properties API follows. Types referenced here are
 defined in [`shared/src/api.ts`](../../shared/src/api.ts) and imported by both apps.
 
-> **Scope:** these conventions apply to the implemented health, public-property read and
-> inquiry-create endpoints. See [`public-api.md`](public-api.md) for the endpoint
-> reference.
+> **Scope:** these conventions apply to the implemented health, public-property,
+> inquiry-create and authentication endpoints. See [`public-api.md`](public-api.md) and
+> [`authentication-api.md`](authentication-api.md) for endpoint references.
 
 ---
 
@@ -83,19 +83,22 @@ caller.
 
 ## Status codes in use
 
-| Code | When                                                             |
-| ---- | ---------------------------------------------------------------- |
-| 200  | Successful read                                                  |
-| 201  | Inquiry accepted                                                 |
-| 400  | Invalid query, slug or request body, with field issues as needed |
-| 413  | JSON request body exceeds the 1 MB limit                         |
-| 415  | Inquiry request is not sent with a JSON-compatible content type  |
-| 404  | No route matched, or the addressed resource does not exist       |
-| 429  | Rate limit exceeded                                              |
-| 500  | Unhandled error — logged server-side with the full error object  |
+| Code | When                                                              |
+| ---- | ----------------------------------------------------------------- |
+| 200  | Successful read                                                   |
+| 201  | Inquiry accepted                                                  |
+| 400  | Invalid query, slug or request body, with field issues as needed  |
+| 401  | Authentication is missing, invalid, expired or unacceptable       |
+| 403  | Authenticated caller lacks the required named permission          |
+| 413  | JSON request body exceeds the 1 MB limit                          |
+| 415  | Inquiry request is not sent with a JSON-compatible content type   |
+| 404  | No route/resource, or protected existence must remain undisclosed |
+| 429  | Rate limit exceeded                                               |
+| 500  | Unhandled error — logged server-side with the full error object   |
 
-There are no authenticated endpoints yet, so no authentication/authorization status
-codes are currently part of the public contract.
+Authentication errors deliberately avoid disclosing whether an external identity exists
+in the local staff allowlist. Protected-resource handlers may return `404` instead of
+`403` when revealing existence would disclose information outside the caller's scope.
 
 ---
 
@@ -107,6 +110,7 @@ Routers are registered one line per module in `backend/src/routes.ts`:
 router.use("/health", healthRoutes);
 router.use("/properties", createPropertyRoutes());
 router.use("/inquiries", createInquiryRoutes());
+router.use("/auth", createAuthRoutes());
 ```
 
 A module's own `*.routes.ts` maps paths to controller functions and nothing else — no
@@ -133,6 +137,9 @@ throttled into reporting a false outage. See `middleware/rateLimit.ts`.
 Inquiry creation also has an independent, tighter budget of 5 submissions per IP per
 15-minute window. Exceeding either limiter returns the common 429 error envelope.
 
+Login start has a separate budget of 10 attempts per IP per 15 minutes. Authenticated
+responses also use `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
+
 Behind a reverse proxy in production, `trust proxy` is enabled so the limiter counts
 real client IPs rather than the proxy's.
 
@@ -140,10 +147,10 @@ real client IPs rather than the proxy's.
 
 ## Public exposure boundary
 
-The public API can read published properties and create inquiries. It cannot create,
-edit or publish properties, and it cannot read inquiry records. Do not add either
-capability without the authenticated staff/admin phase and an explicit authorization
-decision.
+The public API can read published properties and create inquiries. The auth API only
+establishes and revokes staff sessions; it does not create public registration or expose
+business records. Property writes and inquiry reads require a separately implemented,
+named-permission-protected endpoint plus a service-level authorization decision.
 
 ---
 

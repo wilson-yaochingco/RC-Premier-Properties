@@ -1,11 +1,26 @@
 # Phase 3A Authentication and Authorization
 
-Status: **accepted architecture; Auth0 Free selected; not implemented**
+Status: **accepted architecture; backend foundation implemented; live Auth0 acceptance pending**
 
 This decision defines the security boundary for the Phase 3A listing-management slice.
-It does not expose an admin API or create staff accounts. Implementation may begin with
-an injected OIDC test boundary, but live Auth0 integration and deployment must not be
-completed until the inputs in [Implementation gates](#implementation-gates) are approved.
+The backend authentication foundation and controlled staff bootstrap now implement this
+boundary. It does not expose property-management or inquiry-management APIs. Live Auth0
+acceptance and production deployment remain gated by the inputs in
+[Implementation gates](#implementation-gates).
+
+## Implementation status
+
+The implemented foundation includes shared session contracts, local staff identities,
+MongoDB-backed opaque sessions, one-time OIDC transactions, structured security audit
+events, Auth0/OIDC Authorization Code + PKCE, exact origin and return-URL checks,
+session-bound CSRF, named permissions and controlled administrator provisioning.
+
+Automated tests use both an injected provider boundary and a local signed OIDC protocol
+server. They do not need Auth0 credentials. The next step is to provision the development
+tenant and complete the live acceptance procedure in
+[`../development/auth0-setup.md`](../development/auth0-setup.md), followed by the first
+permission-protected Phase 3A backend capability. The admin frontend remains separate
+work.
 
 ## Decision
 
@@ -61,7 +76,7 @@ It does not add:
 - favorites, confirmed viewing appointments or seller accounts;
 - a full CRM or user-management dashboard;
 - email, SMS or notification providers;
-- authentication or authorization code in this documentation change.
+- property-management, inquiry-management or audit-read endpoints.
 
 ## Trust boundaries
 

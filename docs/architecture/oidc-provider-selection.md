@@ -1,6 +1,6 @@
 # OIDC Provider Selection
 
-Status: **accepted for Phase 3A; provider account not yet provisioned**
+Status: **accepted and integrated behind a testable boundary; provider account not yet provisioned**
 
 Decision date: 2026-09-05
 
@@ -25,10 +25,9 @@ roles, Organizations and access-token permissions are not the source of applicat
 authorization.
 
 Use Auth0 Universal Login with a Regular Web Application and Authorization Code + PKCE.
-The backend should integrate through the standards-based `openid-client` library rather
-than adopt Auth0's encrypted-cookie session quickstart. This preserves the already
-accepted MongoDB-backed, immediately revocable session design and limits provider
-coupling to OIDC configuration.
+The backend integrates through the standards-based `openid-client` library rather than
+Auth0's encrypted-cookie session quickstart. This preserves the accepted MongoDB-backed,
+immediately revocable session design and limits provider coupling to OIDC configuration.
 
 ## Evaluation context
 
@@ -179,9 +178,10 @@ control.
 
 ## Application integration
 
-The backend should use a maintained release of `openid-client` compatible with the
-repository's Node.js and ESM requirements. Confirm the exact release during
-implementation and commit it through the root workspace lockfile.
+The backend uses ESM-compatible `openid-client` 6.8.7, committed through the root
+workspace lockfile. Its boundary performs discovery, constructs Authorization Code +
+PKCE requests and validates the returned code grant, ID-token signature, issuer,
+audience, expiry, state and nonce.
 
 The integration boundary is deliberately narrow:
 
@@ -203,10 +203,15 @@ login transaction. They are not returned to the frontend or used as the long-liv
 Premier Properties session. Do not use the Auth0 Express quickstart's encrypted cookie
 session because it does not implement the accepted local session model.
 
-Authentication tests must not depend on the live Auth0 service. Inject the OIDC boundary
-and test it with deterministic signed fixtures or a local protocol test double. A small
-manual development-tenant acceptance pass verifies the real redirect flow after the
-automated security suite passes.
+Authentication tests do not depend on the live Auth0 service. HTTP tests inject the OIDC
+boundary, and protocol tests use a local issuer, generated signing key and JWKS to cover
+positive and negative validation paths. A manual development-tenant acceptance pass
+still has to verify the real redirect flow after the automated security suite passes.
+
+The application requires the configured authentication-method reference (default
+`AUTH_REQUIRED_AMR=mfa`) before creating a local administrator session. This is a denial
+control, not evidence that the unprovisioned Free tenant will emit that value for every
+approved passkey flow. The production assurance gate therefore remains open.
 
 ## Cost and operational controls
 

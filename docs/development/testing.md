@@ -42,6 +42,10 @@ npm run test:e2e
 - An API endpoint has an HTTP-level integration test covering its success response and
   important validation or visibility failure. Services are dependency-injected so this
   layer does not pretend that a missing MongoDB service is working.
+- Authentication HTTP tests use an in-memory session/store boundary and a fake OIDC
+  provider. Protocol tests separately run `openid-client` against a local issuer with a
+  generated signing key and JWKS, so issuer, audience, signature, expiry, state, nonce
+  and PKCE failures are exercised without a live Auth0 dependency.
 - Mongoose query builders are tested for the published-only predicate and sanitised user
   input. Real persistence remains a separate integration gate that needs MongoDB.
 - A public user journey has a browser test for navigation, URL state, responsive overflow
@@ -82,9 +86,10 @@ Lighthouse measurement after hosting, media and analytics are selected.
 
 ## External integration boundary
 
-Neither Vitest nor Playwright connects to the project database. The backend HTTP tests
-inject service doubles, and the browser tests use the explicit fixture API. They prove
-application behaviour without pretending to prove MongoDB connectivity or persistence.
+Neither Vitest nor Playwright connects to the project database or Auth0. The backend HTTP
+tests inject service doubles, the OIDC protocol tests use a loopback signed issuer, and
+the browser tests use the explicit fixture API. They prove application behaviour without
+pretending to prove external connectivity or persistence.
 
 The project Atlas environment passed this persistence gate on 2026-09-05: the real health
 endpoint reported a connected Mongoose state, and temporary synthetic property and
@@ -94,9 +99,10 @@ no public inquiry read endpoint and no production seed command. Use synthetic da
 never submit a real person's details during verification.
 
 The supplemental responsive request mentions user and admin portals. Those routes do not
-exist in the authorized public MVP, so portal QA is **not applicable**, not silently
-passed. Authentication, client accounts and administration remain later roadmap work;
-testing requirements do not authorize implementing them early.
+exist, so portal UI QA is **not applicable**, not silently passed. The backend staff
+authentication boundary now exists; its real provider redirect, passkey assurance and
+cookie behavior require the manual development-tenant acceptance pass in
+[`auth0-setup.md`](auth0-setup.md). Client accounts and administration remain later work.
 
 ## CI
 

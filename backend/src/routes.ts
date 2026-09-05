@@ -4,6 +4,10 @@ import { createPropertyRoutes } from "./modules/properties/property.routes.js";
 import type { PropertyService } from "./modules/properties/property.types.js";
 import { createInquiryRoutes } from "./modules/inquiries/inquiry.routes.js";
 import type { InquiryService } from "./modules/inquiries/inquiry.types.js";
+import {
+  createAuthRoutes,
+  type AuthRouteDependencies,
+} from "./modules/auth/auth.routes.js";
 
 /**
  * Root API router, mounted on `API_PREFIX` in `app.ts`.
@@ -17,12 +21,14 @@ export interface ApiDependencies {
   propertyService?: PropertyService;
   inquiryService?: InquiryService;
   inquiryRateLimit?: RequestHandler;
+  auth?: AuthRouteDependencies;
 }
 
 export function createApiRouter(dependencies: ApiDependencies = {}): Router {
   const router = Router();
 
   router.use("/health", healthRoutes);
+  router.use("/auth", createAuthRoutes(dependencies.auth));
   router.use("/properties", createPropertyRoutes(dependencies.propertyService));
   router.use(
     "/inquiries",
