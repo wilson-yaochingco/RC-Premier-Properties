@@ -44,6 +44,9 @@ Current:
 
 - [`overview.md`](architecture/overview.md) — package, backend, frontend and runtime
   architecture
+- [`authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
+  — accepted Phase 3A staff identity, session and permission architecture; implementation
+  gates remain open
 - [`brand-and-public-experience.md`](architecture/brand-and-public-experience.md) —
   visual system, information architecture and public-experience rules
 - [`geographic-data-and-maps.md`](architecture/geographic-data-and-maps.md) — Leaflet
