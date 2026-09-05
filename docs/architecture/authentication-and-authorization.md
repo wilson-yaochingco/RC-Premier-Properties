@@ -12,8 +12,10 @@ acceptance and production deployment remain gated by the inputs in
 
 The implemented foundation includes shared session contracts, local staff identities,
 MongoDB-backed opaque sessions, one-time OIDC transactions, structured security audit
-events, Auth0/OIDC Authorization Code + PKCE, exact origin and return-URL checks,
-session-bound CSRF, named permissions and controlled administrator provisioning.
+events for every successful session-revocation transition, Auth0/OIDC Authorization Code
+
+- PKCE with an explicit MFA step-up request, exact origin and return-URL checks,
+  session-bound CSRF, named permissions and controlled administrator provisioning.
 
 Automated tests use both an injected provider boundary and a local signed OIDC protocol
 server. They do not need Auth0 credentials. The next step is to provision the development
@@ -102,13 +104,17 @@ passwords or MFA secrets.
 ## Authentication flow
 
 1. The backend starts an OIDC Authorization Code flow with PKCE using the `S256`
-   challenge method. It generates transaction-specific `state`, `nonce` and PKCE values.
+   challenge method. It generates transaction-specific `state`, `nonce` and PKCE values
+   and requests Auth0's standard MFA authentication context through
+   `acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`.
 2. Login and callback return locations use an exact allowlist. A query parameter must
    never become an arbitrary post-login redirect.
-3. The identity provider authenticates the staff member. The backend creates an
-   administrator session only when validated protocol evidence proves the approved
-   phishing-resistant authentication policy was satisfied. Passkey availability or an
-   operational instruction to use one is not sufficient evidence.
+3. The Auth0 tenant requires MFA for every login through policy **Always** and at least
+   one configured independent MFA factor. A database-connection passkey may be the
+   primary authentication method, but is not itself proof that Auth0 completed an MFA
+   challenge. The backend creates an administrator session only when the verified ID
+   token contains `amr: ["mfa"]`; a missing, empty, password-only, primary-passkey-only or
+   otherwise incorrect value fails closed.
 4. The backend validates issuer, audience, signature, expiry, nonce, state and PKCE
    binding before accepting the identity result.
 5. The backend looks up the stable `(issuer, subject)` pair in the local staff allowlist.
@@ -144,6 +150,20 @@ Session activity is updated at a bounded interval rather than writing on every r
 Expired and revoked sessions are rejected even if the browser still sends a cookie. The
 collection uses a TTL index for cleanup, but authorization must check expiry explicitly
 because TTL deletion is asynchronous.
+
+Each successful revocation transition records `auth.session.revoked` with the safe
+database session ID and one predefined reason: rotation, logout, concurrent limit, staff
+disablement or authorization change. Conditional MongoDB updates ensure an already
+revoked session is not reported again. Logout and staff deactivation keep their
+higher-level audit events; bulk deactivation also records the number actually revoked.
+
+The session transition and audit insertion are separate writes in the current store.
+This keeps local standalone MongoDB development supported; multi-document transactions
+require a replica set and a broader transaction boundary. If an audit insert fails after
+a successful revocation, the security transition remains effective and the request fails
+closed, but the event can be missing. Production must either accept this documented
+failure mode with operational alerting or add a replica-set transaction/outbox design
+before launch.
 
 No authenticated admin response may be stored by shared caches. Admin pages and API
 responses use appropriate `Cache-Control: no-store` behavior and remain excluded from
@@ -281,8 +301,10 @@ threat model are approved.
 
 The following inputs are required before live Auth0 integration is completed:
 
-- Provision the selected Auth0 Free development tenant with Authorization Code + PKCE,
-  passkeys, exact redirect URIs and public sign-up disabled.
+- Provision the selected Auth0 development tenant with Authorization Code + PKCE, exact
+  redirect URIs, public sign-up disabled, at least one independent MFA factor and tenant
+  MFA policy **Always**. A primary passkey remains optional and separate from the MFA
+  factor.
 - Prove the Free-plan production assurance gate in the provider-selection decision. If
   password-only or skipped passkey enrollment can produce an administrator session,
   production remains blocked pending an explicitly approved alternative.

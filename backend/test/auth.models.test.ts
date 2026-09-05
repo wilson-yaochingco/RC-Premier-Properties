@@ -60,12 +60,13 @@ describe("authentication persistence schemas", () => {
 
   it("limits audit details to non-sensitive structured fields", async () => {
     const event = new SecurityAuditEventModel({
-      action: "auth.login.failed",
-      entityType: "authentication",
-      outcome: "failed",
+      action: "auth.session.revoked",
+      entityType: "session",
+      entityId: "safe-database-session-id",
+      outcome: "succeeded",
       requestId: "request-test",
       details: {
-        reason: "invalid-callback",
+        reason: "rotation",
         message: "private inquiry message",
         token: "provider-token",
       },
@@ -73,6 +74,7 @@ describe("authentication persistence schemas", () => {
     });
     await expect(event.validate()).resolves.toBeUndefined();
     const serialized = JSON.stringify(event.toObject());
+    expect(event.details?.reason).toBe("rotation");
     expect(serialized).not.toContain("private inquiry message");
     expect(serialized).not.toContain("provider-token");
   });

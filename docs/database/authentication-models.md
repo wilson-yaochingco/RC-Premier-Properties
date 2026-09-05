@@ -40,6 +40,9 @@ Indexes:
 Authorization checks expiry explicitly; the TTL index is cleanup only. Activity is
 touched at most once every five minutes. Idle expiry defaults to 30 minutes, absolute
 expiry to eight hours, and a fourth concurrent login revokes the oldest active session.
+Store revocation methods use a `revokedAt`-absent condition and return only sessions that
+actually transitioned, preventing repeated logout or racing revokers from reporting a
+false second success.
 
 ## `OidcTransaction`
 
@@ -58,15 +61,29 @@ predefined action and outcome, entity type/identifier, server-generated request 
 timestamp and a deliberately small details object. Details allow only a reason code,
 named permission and revoked-session count.
 
+Every actual session-revocation transition emits `auth.session.revoked`. Rotation,
+logout, concurrent-limit eviction, staff disablement and role/status/authorization-
+version changes record the safe MongoDB session ID and predefined reason. Staff
+deactivation and administrator reprovisioning also retain a safe aggregate count on
+their higher-level event.
+
 Indexes support newest-first review, actor history and action history. There is no TTL
 index because the application retention period has not been approved. Events cannot
 store callback codes, provider tokens, cookies, CSRF values, passwords, arbitrary text,
 inquiry messages or complete data snapshots.
+
+Revocation and audit insertion are currently separate writes. The conditional session
+update is atomic, but the following audit insert is not in the same MongoDB transaction.
+This supports standalone local MongoDB; multi-document transactions require a replica
+set. A failed audit insert therefore fails the request closed without undoing a completed
+revocation, but can leave that transition without its event. Production must approve
+this limitation with alerting or add a replica-set transaction/outbox before launch.
 
 ## Controlled administrator bootstrap
 
 No public provisioning endpoint exists. After creating the Auth0 user, an authorized
 operator runs the local CLI with the exact Auth0 `user_id` subject. The issuer always
 comes from validated backend configuration. Re-running the command updates/reactivates
-that identity, increments its authorization version, revokes its existing sessions and
-records an audit event.
+that identity, increments its authorization version, revokes its existing sessions,
+records one revocation event per actual transition and records the aggregate on the
+provisioning event.

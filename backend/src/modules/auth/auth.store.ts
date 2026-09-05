@@ -3,9 +3,11 @@ import { AuthSessionModel, type AuthSessionEntity } from "./auth-session.model.j
 import type {
   AuthSessionRecord,
   AuthStore,
+  CreateAuthSessionResult,
   CreateAuthSessionInput,
   CreateOidcTransactionInput,
   OidcTransactionRecord,
+  RevokedSessionRecord,
   SecurityAuditEventInput,
   SessionRevocationReason,
   StaffIdentityRecord,
@@ -23,6 +25,7 @@ import {
 type LeanStaffIdentity = StaffIdentityEntity & { _id: unknown };
 type LeanAuthSession = AuthSessionEntity & { _id: unknown };
 type LeanOidcTransaction = OidcTransactionEntity & { _id: unknown };
+type LeanRevokedSession = { _id: unknown; staffIdentity: unknown };
 
 function toStaffRecord(record: LeanStaffIdentity): StaffIdentityRecord {
   return {
@@ -126,7 +129,7 @@ export class MongooseAuthStore implements AuthStore {
   async createSession(
     input: CreateAuthSessionInput,
     maxConcurrentSessions: number,
-  ): Promise<AuthSessionRecord> {
+  ): Promise<CreateAuthSessionResult> {
     const created = await AuthSessionModel.create({
       ...input,
       staffIdentity: objectId(input.staffIdentityId),
@@ -142,19 +145,27 @@ export class MongooseAuthStore implements AuthStore {
       .select("_id")
       .lean<Array<{ _id: Types.ObjectId }>>();
 
-    if (excess.length > 0) {
-      await AuthSessionModel.updateMany(
-        { _id: { $in: excess.map((record) => record._id) } },
+    const revokedSessionIds: string[] = [];
+    for (const record of excess) {
+      const revoked = await AuthSessionModel.findOneAndUpdate(
+        { _id: record._id, revokedAt: { $exists: false } },
         {
           $set: {
             revokedAt: input.createdAt,
             revocationReason: "concurrent-limit",
           },
         },
-      );
+        { new: true },
+      )
+        .select("_id")
+        .lean<{ _id: Types.ObjectId } | null>();
+      if (revoked) revokedSessionIds.push(String(revoked._id));
     }
 
-    return toSessionRecord(created.toObject() as LeanAuthSession);
+    return {
+      session: toSessionRecord(created.toObject() as LeanAuthSession),
+      revokedSessionIds,
+    };
   }
 
   async findSessionByHash(sessionHash: string): Promise<AuthSessionRecord | null> {
@@ -180,12 +191,17 @@ export class MongooseAuthStore implements AuthStore {
     sessionHash: string,
     at: Date,
     reason: SessionRevocationReason,
-  ): Promise<boolean> {
-    const result = await AuthSessionModel.updateOne(
+  ): Promise<RevokedSessionRecord | null> {
+    const record = await AuthSessionModel.findOneAndUpdate(
       { sessionHash, revokedAt: { $exists: false } },
       { $set: { revokedAt: at, revocationReason: reason } },
-    );
-    return result.modifiedCount > 0;
+      { new: true },
+    )
+      .select("_id staffIdentity")
+      .lean<LeanRevokedSession | null>();
+    return record
+      ? { id: String(record._id), staffIdentityId: String(record.staffIdentity) }
+      : null;
   }
 
   async revokeSessionById(
@@ -204,12 +220,19 @@ export class MongooseAuthStore implements AuthStore {
     staffIdentityId: string,
     at: Date,
     reason: SessionRevocationReason,
-  ): Promise<number> {
-    const result = await AuthSessionModel.updateMany(
-      { staffIdentity: objectId(staffIdentityId), revokedAt: { $exists: false } },
-      { $set: { revokedAt: at, revocationReason: reason } },
-    );
-    return result.modifiedCount;
+  ): Promise<string[]> {
+    const revokedSessionIds: string[] = [];
+    while (true) {
+      const record = await AuthSessionModel.findOneAndUpdate(
+        { staffIdentity: objectId(staffIdentityId), revokedAt: { $exists: false } },
+        { $set: { revokedAt: at, revocationReason: reason } },
+        { new: true },
+      )
+        .select("_id")
+        .lean<{ _id: Types.ObjectId } | null>();
+      if (!record) return revokedSessionIds;
+      revokedSessionIds.push(String(record._id));
+    }
   }
 
   async disableStaff(id: string, at: Date): Promise<StaffIdentityRecord | null> {

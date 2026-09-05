@@ -10,12 +10,12 @@ Use **Auth0 Free** as the managed OpenID Connect identity provider for Phase 3A 
 authentication. The selected plan has no recurring charge and does not require a credit
 card to sign up. No Auth0 account, tenant or credential is created by this decision.
 
-Auth0 Free is acceptable for development and the small invited-staff MVP only while the
-[production assurance gate](#free-plan-security-boundary) is satisfied. This is not an
-approval to silently add a paid subscription. If the Free plan cannot technically
-enforce the required administrator authentication strength, production authentication
-remains blocked until the owner explicitly approves a different control, plan or
-provider.
+Auth0 Free is acceptable for development integration and automated/local testing. Its
+current pricing matrix excludes Pro MFA factors, so it is not approved as a durable
+production authentication plan. This is not approval to add a paid subscription. Live
+development testing may use trial capabilities, but production authentication remains
+blocked until the owner explicitly approves an Auth0 plan or another provider/control
+that can enforce the required administrator MFA strength.
 
 Auth0 authenticates staff and manages credentials, passkey enrollment and recovery.
 Express continues to own the opaque application session, local staff allowlist,
@@ -54,7 +54,8 @@ The production authentication design must support:
 Strengths:
 
 - Native OIDC and Authorization Code + PKCE support, including `S256`.
-- Universal Login supports phishing-resistant passkeys on the Free plan.
+- Universal Login supports phishing-resistant passkeys as a primary authentication
+  method on the Free plan; a primary passkey is not automatically an Auth0 MFA event.
 - Public sign-up can be disabled at the database-connection level.
 - Separate tenants are the documented isolation model for development, staging and
   production.
@@ -70,8 +71,8 @@ Costs and limitations:
 - Free includes passkeys, Auth0 database connections, basic attack protection, one
   tenant, three tenant administrators and one day of tenant-log retention.
 - Free does **not** include Pro MFA factors, separate production/development
-  environments, log streaming or standard support. It therefore does not automatically
-  satisfy the previously proposed always-on MFA control.
+  environments, log streaming or standard support. MFA controls may be available for
+  trial evaluation but are not a durable Free-plan production entitlement.
 - Auth0 requires database connections with passkeys enabled to keep passwords enabled;
   progressive passkey enrollment can be postponed. Passkey availability alone is not
   proof that every administrator used a passkey.
@@ -132,14 +133,19 @@ Provisioning must use these controls:
   than assuming extra tenants are permitted.
 - Register the backend as a Regular Web Application/confidential OIDC client.
 - Enable only Authorization Code and the grants actually required by the implementation;
-  require PKCE with `S256`.
+  require PKCE with `S256`. Every authorization request includes the standard MFA
+  `acr_values` value; the Auth0 MFA API grant is not used.
 - Use Universal Login. Do not embed credential collection in the RC Premier frontend.
 - Use a dedicated database connection with **Disable Sign Ups** enabled. Do not enable
   social connections or Organizations without a later decision.
-- Enable passkeys on a dedicated Auth0 database connection and keep public sign-up
-  disabled. Every administrator must enroll a passkey during controlled provisioning.
-  Do not describe this as enforced MFA unless the configured Free tenant and returned
-  OIDC evidence prove the authentication strength on every login.
+- Keep public sign-up disabled on the dedicated database connection. A passkey may be
+  enabled there as the primary authentication method, but it must not be described as or
+  substituted for an Auth0 MFA factor.
+- Under **Security → Multi-factor Auth**, configure at least one independent factor,
+  select tenant policy **Always**, and do not add an Action that weakens or overrides the
+  policy. WebAuthn with FIDO Security Keys is the phishing-resistant MFA factor aligned
+  with the production requirement; OTP can exercise development flow but does not meet
+  that production requirement.
 - Register exact callback and logout URLs. Do not use wildcard production URLs.
 - Request only `openid profile email`. Do not request provider API access or offline
   access unless a later implementation requirement proves it necessary.
@@ -156,10 +162,10 @@ policy, connections, callback URLs, log retention and tenant administrators.
 
 ## Free-plan security boundary
 
-Auth0 Free provides passkeys, but its current pricing matrix excludes Pro MFA and its
-passkey documentation says passwords must remain enabled on a passkey-enabled database
-connection. Progressive passkey enrollment is optional and deferrable. The application
-must therefore not infer strong authentication merely because passkeys are available.
+Auth0 Free provides primary passkeys, but its current pricing matrix excludes Pro MFA
+factors. A primary passkey and WebAuthn configured as a second-factor challenge are
+different Auth0 features. The application never infers MFA from passkey availability or
+use; only the verified hosted-flow `amr` array containing `mfa` satisfies the backend.
 
 Before production, a tenant acceptance test must prove all of the following:
 
@@ -170,11 +176,12 @@ Before production, a tenant acceptance test must prove all of the following:
 - password-only login, skipped passkey enrollment and recovery cannot yield an
   administrator application session.
 
-If Auth0 Free cannot meet those tests using documented, generally available controls,
-the backend must deny the session. Production remains blocked until the owner explicitly
-approves a paid Auth0 plan, another identity provider or a revised security requirement.
-Operational instructions such as “always use your passkey” are not an enforcement
-control.
+Current Auth0 pricing shows Pro MFA factors as unavailable on Free, so the production
+gate is presently unresolved. The backend denies the session whenever the tenant does
+not perform MFA or does not provide the validated evidence. Production remains blocked
+until the owner explicitly approves a suitable paid Auth0 plan, another identity
+provider or a revised security requirement. Operational instructions such as “always use
+your passkey” are not an enforcement control.
 
 ## Application integration
 
@@ -208,10 +215,14 @@ boundary, and protocol tests use a local issuer, generated signing key and JWKS 
 positive and negative validation paths. A manual development-tenant acceptance pass
 still has to verify the real redirect flow after the automated security suite passes.
 
-The application requires the configured authentication-method reference (default
-`AUTH_REQUIRED_AMR=mfa`) before creating a local administrator session. This is a denial
-control, not evidence that the unprovisioned Free tenant will emit that value for every
-approved passkey flow. The production assurance gate therefore remains open.
+Every authorization request includes
+`acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`, while the
+tenant-wide policy **Always** is the primary enforcement control. Auth0 documents that a
+hosted flow adds `mfa` to the ID-token `amr` only after a successful MFA challenge. The
+application requires that verified value (default `AUTH_REQUIRED_AMR=mfa`) before
+creating a local administrator session. Missing, empty or other values are denied. This
+is a denial control, not evidence that an unprovisioned tenant or Free plan can supply
+durable production MFA; the production assurance gate remains open.
 
 ## Cost and operational controls
 
@@ -257,6 +268,9 @@ Re-evaluate the provider if:
 ## Primary sources reviewed
 
 - [Auth0 Authorization Code Flow with PKCE](https://auth0.com/docs/api/authentication/authorization-code-flow-with-pkce/authorize-with-pkce)
+- [Auth0 tenant-wide MFA configuration](https://auth0.com/docs/secure/multi-factor-authentication/enable-mfa)
+- [Auth0 MFA step-up and validated `amr`](https://auth0.com/docs/secure/multi-factor-authentication/step-up-authentication/configure-step-up-authentication-for-web-apps)
+- [Auth0 remembered-browser and `acr_values` behavior](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa)
 - [Auth0 MFA factors](https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors)
 - [Auth0 passkey configuration and limitations](https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy)
 - [Auth0 application settings](https://auth0.com/docs/get-started/applications/application-settings)

@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { SecurityAuditEventModel } from "./security-audit-event.model.js";
 import { StaffIdentityModel } from "./staff-identity.model.js";
 import type { StaffIdentityRecord } from "./auth.types.js";
-import { AuthSessionModel } from "./auth-session.model.js";
+import { mongooseAuthStore } from "./auth.store.js";
 
 export interface ProvisionAdminInput {
   issuer: string;
@@ -85,27 +84,36 @@ export async function provisionAdmin(
 
   if (!document) throw new Error("Unable to provision administrator.");
 
-  const revoked = existing
-    ? await AuthSessionModel.updateMany(
-        { staffIdentity: document._id, revokedAt: { $exists: false } },
-        {
-          $set: {
-            revokedAt: validated.now,
-            revocationReason: "authorization-changed",
-          },
-        },
+  const requestId = randomUUID();
+  const revokedSessionIds = existing
+    ? await mongooseAuthStore.revokeSessionsForStaff(
+        String(document._id),
+        validated.now,
+        "authorization-changed",
       )
-    : null;
+    : [];
 
-  await SecurityAuditEventModel.create({
+  await Promise.all(
+    revokedSessionIds.map((sessionId) =>
+      mongooseAuthStore.recordAudit({
+        action: "auth.session.revoked",
+        entityType: "session",
+        entityId: sessionId,
+        outcome: "succeeded",
+        requestId,
+        reason: "authorization-changed",
+        occurredAt: validated.now,
+      }),
+    ),
+  );
+
+  await mongooseAuthStore.recordAudit({
     action: "staff.provisioned",
     entityType: "staff-identity",
     entityId: String(document._id),
     outcome: "succeeded",
-    requestId: randomUUID(),
-    ...(revoked?.modifiedCount
-      ? { details: { revokedSessionCount: revoked.modifiedCount } }
-      : {}),
+    requestId,
+    revokedSessionCount: revokedSessionIds.length,
     occurredAt: validated.now,
   });
 

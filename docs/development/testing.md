@@ -45,7 +45,14 @@ npm run test:e2e
 - Authentication HTTP tests use an in-memory session/store boundary and a fake OIDC
   provider. Protocol tests separately run `openid-client` against a local issuer with a
   generated signing key and JWKS, so issuer, audience, signature, expiry, state, nonce
-  and PKCE failures are exercised without a live Auth0 dependency.
+  and PKCE failures are exercised without a live Auth0 dependency. They also verify the
+  MFA `acr_values` request, accepted `amr: ["mfa"]`, fail-closed missing/empty/password-
+  only/passkey-only evidence, and that no insufficient-assurance callback creates a
+  session.
+- Session tests assert exact-once revocation audit events for rotation, logout,
+  concurrent-limit eviction, staff deactivation and stale local authorization. Repeated
+  revocation attempts create no false event, and serialized audits are checked against
+  raw tokens, hashes, cookies, CSRF values, callback codes and provider tokens.
 - Mongoose query builders are tested for the published-only predicate and sanitised user
   input. Real persistence remains a separate integration gate that needs MongoDB.
 - A public user journey has a browser test for navigation, URL state, responsive overflow
@@ -100,8 +107,9 @@ never submit a real person's details during verification.
 
 The supplemental responsive request mentions user and admin portals. Those routes do not
 exist, so portal UI QA is **not applicable**, not silently passed. The backend staff
-authentication boundary now exists; its real provider redirect, passkey assurance and
-cookie behavior require the manual development-tenant acceptance pass in
+authentication boundary now exists; its real provider redirect, tenant-wide MFA policy,
+separate primary-passkey/MFA-factor behavior, `amr` evidence and cookie behavior require
+the manual development-tenant acceptance pass in
 [`auth0-setup.md`](auth0-setup.md). Client accounts and administration remain later work.
 
 ## CI

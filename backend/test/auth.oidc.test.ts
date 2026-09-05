@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { generateKeyPairSync, sign } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  MFA_ACR_VALUE,
   OidcVerificationError,
   OpenIdClientProvider,
 } from "../src/modules/auth/auth.oidc.js";
@@ -28,17 +29,21 @@ function idToken(
 ): string {
   const now = Math.floor(Date.now() / 1000);
   const header = encode({ alg: "RS256", kid: "fixture-key", typ: "JWT" });
-  const payload = encode({
+  const claims: Record<string, unknown> = {
     iss: code === "wrong-issuer" ? "https://attacker.invalid/" : issuer,
     sub: "auth0|protocol-test-admin",
     aud: code === "wrong-audience" ? "different-client" : CLIENT_ID,
     iat: now - 5,
     exp: code === "expired" ? now - 300 : now + 300,
     nonce: code === "wrong-nonce" ? "different-nonce" : EXPECTED_NONCE,
-    amr: ["mfa"],
     name: "Protocol Test Admin",
     email: "protocol-admin@example.test",
-  });
+  };
+  if (code !== "missing-amr") {
+    claims.amr =
+      code === "empty-amr" ? [] : code === "passkey-only" ? ["phr"] : ["mfa"];
+  }
+  const payload = encode(claims);
   const unsigned = `${header}.${payload}`;
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey).toString(
     "base64url",
@@ -140,6 +145,7 @@ describe("openid-client protocol boundary", () => {
     expect(url.searchParams.get("state")).toBe(authorization.state);
     expect(url.searchParams.get("nonce")).toBe(authorization.nonce);
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(url.searchParams.get("acr_values")).toBe(MFA_ACR_VALUE);
     expect(url.searchParams.get("code_challenge")).toBeTruthy();
     expect(authorization.codeVerifier).not.toBe(url.searchParams.get("code_challenge"));
   });
@@ -164,6 +170,26 @@ describe("openid-client protocol boundary", () => {
     expect(identity).not.toHaveProperty("id_token");
     expect(identity).not.toHaveProperty("access_token");
   });
+
+  it.each([
+    ["missing amr", "missing-amr", []],
+    ["empty amr", "empty-amr", []],
+    ["passkey-only amr", "passkey-only", ["phr"]],
+  ])(
+    "returns validated %s evidence for the service to enforce",
+    async (_label, code, amr) => {
+      const identity = await provider.completeAuthorization({
+        callbackUrl: new URL(
+          `${CALLBACK_URL}?code=${code}&state=${encodeURIComponent(EXPECTED_STATE)}`,
+        ),
+        expectedState: EXPECTED_STATE,
+        expectedNonce: EXPECTED_NONCE,
+        codeVerifier: CODE_VERIFIER,
+      });
+
+      expect(identity.authenticationMethods).toEqual(amr);
+    },
+  );
 
   it.each([
     ["wrong issuer", "wrong-issuer", EXPECTED_STATE, EXPECTED_NONCE, CODE_VERIFIER],

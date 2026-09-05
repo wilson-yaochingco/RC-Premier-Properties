@@ -5,6 +5,9 @@ import type {
   VerifiedOidcIdentity,
 } from "./auth.types.js";
 
+export const MFA_ACR_VALUE =
+  "http://schemas.openid.net/pape/policies/2007/06/multi-factor";
+
 export interface OpenIdClientProviderConfig {
   issuerUrl: string;
   clientId: string;
@@ -39,6 +42,7 @@ export class OpenIdClientProvider implements OidcProvider {
       nonce,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
+      acr_values: MFA_ACR_VALUE,
     });
 
     return {

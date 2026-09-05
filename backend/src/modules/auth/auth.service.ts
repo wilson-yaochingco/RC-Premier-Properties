@@ -9,6 +9,7 @@ import type {
   AuthStore,
   OidcProvider,
   SecurityAuditEventInput,
+  SessionRevocationReason,
   StaffIdentityRecord,
 } from "./auth.types.js";
 
@@ -140,17 +141,25 @@ export class AuthService {
     }
 
     if (input.previousSessionToken && isOpaqueToken(input.previousSessionToken)) {
-      await this.store.revokeSessionByHash(
+      const rotatedSession = await this.store.revokeSessionByHash(
         this.crypto.hashSession(input.previousSessionToken),
         now,
         "rotation",
       );
+      if (rotatedSession) {
+        await this.recordSessionRevocation(
+          rotatedSession.id,
+          "rotation",
+          input.requestId,
+          now,
+        );
+      }
     }
 
     const sessionToken = this.crypto.randomToken();
     const idleExpiresAt = new Date(now.getTime() + this.config.sessionIdleMs);
     const absoluteExpiresAt = new Date(now.getTime() + this.config.sessionAbsoluteMs);
-    const session = await this.store.createSession(
+    const sessionResult = await this.store.createSession(
       {
         sessionHash: this.crypto.hashSession(sessionToken),
         staffIdentityId: staff.id,
@@ -163,6 +172,13 @@ export class AuthService {
       },
       this.config.maxConcurrentSessions,
     );
+    await this.recordSessionRevocations(
+      sessionResult.revokedSessionIds,
+      "concurrent-limit",
+      input.requestId,
+      now,
+    );
+    const session = sessionResult.session;
     await this.store.markStaffLogin(staff.id, now);
     await this.store.recordAudit({
       actorStaffIdentityId: staff.id,
@@ -218,7 +234,12 @@ export class AuthService {
 
     const staff = await this.store.findStaffById(session.staffIdentityId);
     if (!staff || !isAssignedActiveAdmin(staff)) {
-      await this.store.revokeSessionById(session.id, now, "authorization-changed");
+      await this.revokeSessionByIdAndAudit(
+        session.id,
+        "authorization-changed",
+        requestId,
+        now,
+      );
       await this.rejectedSession(
         "authorization-changed",
         requestId,
@@ -229,7 +250,12 @@ export class AuthService {
       throw new HttpError(401, SESSION_REQUIRED);
     }
     if (session.staffAuthorizationVersion !== staff.authorizationVersion) {
-      await this.store.revokeSessionById(session.id, now, "authorization-changed");
+      await this.revokeSessionByIdAndAudit(
+        session.id,
+        "authorization-changed",
+        requestId,
+        now,
+      );
       await this.rejectedSession(
         "authorization-changed",
         requestId,
@@ -336,7 +362,14 @@ export class AuthService {
     now = new Date(),
   ): Promise<void> {
     if (!context) return;
-    await this.store.revokeSessionById(context.session.id, now, "logout");
+    const revoked = await this.revokeSessionByIdAndAudit(
+      context.session.id,
+      "logout",
+      requestId,
+      now,
+      context.staff.id,
+    );
+    if (!revoked) return;
     await this.store.recordAudit({
       actorStaffIdentityId: context.staff.id,
       action: "auth.logout.succeeded",
@@ -355,10 +388,16 @@ export class AuthService {
   ): Promise<boolean> {
     const staff = await this.store.disableStaff(staffIdentityId, now);
     if (!staff) return false;
-    const revokedSessionCount = await this.store.revokeSessionsForStaff(
+    const revokedSessionIds = await this.store.revokeSessionsForStaff(
       staffIdentityId,
       now,
       "staff-disabled",
+    );
+    await this.recordSessionRevocations(
+      revokedSessionIds,
+      "staff-disabled",
+      requestId,
+      now,
     );
     await this.store.recordAudit({
       action: "staff.deactivated",
@@ -366,7 +405,7 @@ export class AuthService {
       entityId: staffIdentityId,
       outcome: "succeeded",
       requestId,
-      revokedSessionCount,
+      revokedSessionCount: revokedSessionIds.length,
       occurredAt: now,
     });
     return true;
@@ -407,6 +446,57 @@ export class AuthService {
       reason,
       occurredAt,
     });
+  }
+
+  private async revokeSessionByIdAndAudit(
+    sessionId: string,
+    reason: SessionRevocationReason,
+    requestId: string,
+    occurredAt: Date,
+    actorStaffIdentityId?: string,
+  ): Promise<boolean> {
+    const revoked = await this.store.revokeSessionById(sessionId, occurredAt, reason);
+    if (!revoked) return false;
+    await this.recordSessionRevocation(
+      sessionId,
+      reason,
+      requestId,
+      occurredAt,
+      actorStaffIdentityId,
+    );
+    return true;
+  }
+
+  private async recordSessionRevocation(
+    sessionId: string,
+    reason: SessionRevocationReason,
+    requestId: string,
+    occurredAt: Date,
+    actorStaffIdentityId?: string,
+  ): Promise<void> {
+    await this.store.recordAudit({
+      ...(actorStaffIdentityId ? { actorStaffIdentityId } : {}),
+      action: "auth.session.revoked",
+      entityType: "session",
+      entityId: sessionId,
+      outcome: "succeeded",
+      requestId,
+      reason,
+      occurredAt,
+    });
+  }
+
+  private async recordSessionRevocations(
+    sessionIds: readonly string[],
+    reason: SessionRevocationReason,
+    requestId: string,
+    occurredAt: Date,
+  ): Promise<void> {
+    await Promise.all(
+      sessionIds.map((sessionId) =>
+        this.recordSessionRevocation(sessionId, reason, requestId, occurredAt),
+      ),
+    );
   }
 
   private async rejectedSession(

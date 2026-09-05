@@ -81,6 +81,10 @@ export const AUDIT_REASONS = [
   "invalid-csrf",
   "disallowed-origin",
   "missing-permission",
+  "logout",
+  "rotation",
+  "concurrent-limit",
+  "staff-disabled",
 ] as const;
 export type AuditReason = (typeof AUDIT_REASONS)[number];
 
@@ -118,6 +122,16 @@ export interface CreateAuthSessionInput {
   expiresAt: Date;
 }
 
+export interface CreateAuthSessionResult {
+  session: AuthSessionRecord;
+  revokedSessionIds: string[];
+}
+
+export interface RevokedSessionRecord {
+  id: string;
+  staffIdentityId: string;
+}
+
 export interface AuthStore {
   createOidcTransaction(input: CreateOidcTransactionInput): Promise<void>;
   consumeOidcTransaction(
@@ -133,7 +147,7 @@ export interface AuthStore {
   createSession(
     input: CreateAuthSessionInput,
     maxConcurrentSessions: number,
-  ): Promise<AuthSessionRecord>;
+  ): Promise<CreateAuthSessionResult>;
   findSessionByHash(sessionHash: string): Promise<AuthSessionRecord | null>;
   touchSession(
     id: string,
@@ -145,7 +159,7 @@ export interface AuthStore {
     sessionHash: string,
     at: Date,
     reason: SessionRevocationReason,
-  ): Promise<boolean>;
+  ): Promise<RevokedSessionRecord | null>;
   revokeSessionById(
     id: string,
     at: Date,
@@ -155,7 +169,7 @@ export interface AuthStore {
     staffIdentityId: string,
     at: Date,
     reason: SessionRevocationReason,
-  ): Promise<number>;
+  ): Promise<string[]>;
   disableStaff(id: string, at: Date): Promise<StaffIdentityRecord | null>;
   recordAudit(event: SecurityAuditEventInput): Promise<void>;
 }

@@ -49,7 +49,7 @@ The current logout endpoint revokes the RC Premier application session locally. 
 Allowed Logout URL above reserves the safe return address for a future reviewed Auth0
 SSO-logout addition; the backend does not call it yet.
 
-## 3. Configure Universal Login and the staff connection
+## 3. Configure Universal Login, the staff connection and required MFA
 
 1. Under **Branding → Universal Login**, use the current Universal Login experience and
    disable any Classic/custom login page.
@@ -59,17 +59,47 @@ SSO-logout addition; the backend does not call it yet.
 4. Turn on **Disable Sign Ups**. Verify the connection is enabled only for the RC Premier
    development application.
 5. Do not enable social connections or Organizations.
-6. In the connection's **Authentication Methods**, enable passkeys. Choose the passkey
-   button (or button plus autofill) and enable progressive enrollment for the initial
-   administrator.
+6. In the connection's **Authentication Methods**, you may enable a database-connection
+   passkey as a convenient phishing-resistant **primary login method**. This passkey is
+   not the MFA factor and does not by itself satisfy the backend's `amr: mfa` gate.
+7. Go to **Security → Multi-factor Auth**. Under **Factors**, enable and configure at
+   least one independent factor. For the accepted phishing-resistant production policy,
+   use **WebAuthn with FIDO Security Keys**. Auth0 lists OTP, Guardian push, phone, Duo
+   and WebAuthn security keys as independent factors; WebAuthn biometrics and email are
+   dependent factors and cannot be the only configured factor.
+8. Under **Define policies → Require Multi-factor Auth**, select **Always**, then click
+   **Save**. Do not select **Never** or risk-based/Adaptive MFA: every administrator
+   login must complete MFA.
+9. Leave **Customize MFA Factors using Actions** off for this baseline and do not deploy
+   a post-login Action that changes MFA behavior. Auth0 documents that Action MFA logic
+   takes precedence over the dashboard policy. A future Action requires a separate
+   security review.
+10. Do not enable the application's **MFA** grant type. That grant is for Auth0's MFA API;
+    this application uses the hosted Universal Login Authorization Code flow.
 
-Auth0 Free includes passkeys but not Pro MFA. Auth0 also requires passwords to remain
-enabled and lets users defer progressive enrollment. The backend therefore requires the
-validated ID-token authentication-method evidence `amr: mfa` before creating an admin
-session. Auth0 documents WebAuthn device-biometric authentication as producing that
-value. A password-only callback is denied even for a locally approved administrator.
-Do not change `AUTH_REQUIRED_AMR` merely to make a failed login pass; first verify the
-actual tenant evidence and review the security decision.
+Every backend authorization request also sends the standard Auth0 MFA step-up value
+`acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`. This forces a
+new MFA requirement even if an Auth0 "remember this browser" state exists. Tenant policy
+**Always** is the primary enforcement control; the request parameter is defense in depth.
+
+Auth0's current documentation says a hosted flow adds `mfa` to the ID token's validated
+`amr` array only after the user passes an MFA challenge. The backend requires exactly
+that evidence. Missing `amr`, an empty array, password-only evidence, and passkey-only
+evidence all fail closed with no application session.
+
+These are two different WebAuthn uses:
+
+- A **database-connection passkey** can be the primary authentication method. It is not
+  automatically proof that Auth0 ran an MFA challenge.
+- **WebAuthn with FIDO Security Keys** under **Security → Multi-factor Auth** is an Auth0
+  MFA factor used after the primary authentication step.
+
+The current Auth0 Free pricing matrix does not include Pro MFA factors. A new tenant may
+permit MFA evaluation during its trial, but Free must not be treated as durable
+production MFA. If the tenant cannot select **Always**, cannot enable a suitable factor,
+or does not return validated `amr: ["mfa"]`, the backend will deny login. Do not change
+`AUTH_REQUIRED_AMR`, add a custom claim or weaken the check; production remains blocked
+until an appropriate paid Auth0 plan or another approved provider/control is selected.
 
 ## 4. Configure local secrets
 
@@ -133,10 +163,10 @@ Navigate to this URL in the same browser used for the frontend:
 http://localhost:5000/api/v1/auth/login?returnTo=http%3A%2F%2Flocalhost%3A3000%2F
 ```
 
-Complete Universal Login with the approved staff user and enroll/use the passkey when
-prompted. The browser should return to `http://localhost:3000/` with an `HttpOnly` local
-session cookie. Use the browser console on that page to inspect the non-secret session
-response:
+Complete Universal Login with the approved staff user. Use the configured primary login
+method, then complete the separate Auth0 MFA-factor challenge. The browser should return
+to `http://localhost:3000/` with an `HttpOnly` local session cookie. Use the browser
+console on that page to inspect the non-secret session response:
 
 ```js
 const session = await fetch("http://localhost:5000/api/v1/auth/session", {
@@ -162,12 +192,15 @@ See [`testing.md`](testing.md) for the automated/manual boundary and
 
 Perform this once the tenant and administrator are provisioned:
 
-1. Confirm the approved passkey login returns to the exact configured frontend URL and
-   `GET /auth/session` returns `200`, local staff fields, named permissions, a CSRF token
-   and both expiry timestamps. DevTools must show an `HttpOnly`, `SameSite=Lax` session
-   cookie; it must not appear in browser storage or the response body.
-2. Attempt password-only login and skipped passkey enrollment. The callback must return
-   the generic `401 Authentication failed.` response and issue no application session.
+1. Confirm a primary login followed by the configured MFA factor returns to the exact
+   frontend URL and `GET /auth/session` returns `200`, local staff fields, named
+   permissions, a CSRF token and both expiry timestamps. DevTools must show an `HttpOnly`,
+   `SameSite=Lax` session cookie; it must not appear in browser storage or the response
+   body.
+2. Inspect the Auth0 tenant log for that transaction and verify a separate MFA challenge
+   completed. Test password-only and primary-passkey-only paths without completing the
+   MFA factor. Each callback must return generic `401 Authentication failed.` and issue
+   no application session. A primary passkey alone is not a passing result.
 3. Try an Auth0 user that has no local `StaffIdentity`, then disable the approved local
    record. Both must receive the same generic `401` and no session. Re-run the controlled
    provisioning command to reactivate the approved administrator afterward.
@@ -189,3 +222,10 @@ There is no permission-protected business endpoint or admin UI in this foundatio
 manual insufficient-permission `403` and denied admin navigation are not yet possible.
 The automated middleware test covers `403`; repeat it manually when the first protected
 Phase 3A capability is introduced.
+
+Official configuration references:
+
+- [Enable Multi-Factor Authentication](https://auth0.com/docs/secure/multi-factor-authentication/enable-mfa)
+- [Configure step-up authentication for web apps](https://auth0.com/docs/secure/multi-factor-authentication/step-up-authentication/configure-step-up-authentication-for-web-apps)
+- [Customize MFA and remembered-browser behavior](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa)
+- [Auth0 plan comparison](https://auth0.com/pricing)

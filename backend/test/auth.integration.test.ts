@@ -21,11 +21,13 @@ import { assertProtectedResourceVisible } from "../src/modules/auth/auth.service
 import type {
   AuthSessionRecord,
   AuthStore,
+  CreateAuthSessionResult,
   CreateAuthSessionInput,
   CreateOidcTransactionInput,
   OidcAuthorizationRequest,
   OidcProvider,
   OidcTransactionRecord,
+  RevokedSessionRecord,
   SecurityAuditEventInput,
   SessionRevocationReason,
   StaffIdentityRecord,
@@ -124,7 +126,7 @@ class MemoryAuthStore implements AuthStore {
   async createSession(
     input: CreateAuthSessionInput,
     maxConcurrentSessions: number,
-  ): Promise<AuthSessionRecord> {
+  ): Promise<CreateAuthSessionResult> {
     const session: AuthSessionRecord = {
       id: `session-${this.nextId++}`,
       ...input,
@@ -138,11 +140,13 @@ class MemoryAuthStore implements AuthStore {
           candidate.expiresAt.getTime() > input.createdAt.getTime(),
       )
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    const revokedSessionIds: string[] = [];
     for (const excess of active.slice(maxConcurrentSessions)) {
-      excess.revokedAt = input.createdAt;
-      excess.revocationReason = "concurrent-limit";
+      if (this.revoke(excess, input.createdAt, "concurrent-limit")) {
+        revokedSessionIds.push(excess.id);
+      }
     }
-    return { ...session };
+    return { session: { ...session }, revokedSessionIds };
   }
 
   async findSessionByHash(sessionHash: string): Promise<AuthSessionRecord | null> {
@@ -170,11 +174,13 @@ class MemoryAuthStore implements AuthStore {
     sessionHash: string,
     at: Date,
     reason: SessionRevocationReason,
-  ): Promise<boolean> {
+  ): Promise<RevokedSessionRecord | null> {
     const session = [...this.sessions.values()].find(
       (candidate) => candidate.sessionHash === sessionHash,
     );
-    return this.revoke(session, at, reason);
+    return this.revoke(session, at, reason) && session
+      ? { id: session.id, staffIdentityId: session.staffIdentityId }
+      : null;
   }
 
   async revokeSessionById(
@@ -189,17 +195,17 @@ class MemoryAuthStore implements AuthStore {
     staffIdentityId: string,
     at: Date,
     reason: SessionRevocationReason,
-  ): Promise<number> {
-    let count = 0;
+  ): Promise<string[]> {
+    const revokedSessionIds: string[] = [];
     for (const session of this.sessions.values()) {
       if (
         session.staffIdentityId === staffIdentityId &&
         this.revoke(session, at, reason)
       ) {
-        count += 1;
+        revokedSessionIds.push(session.id);
       }
     }
-    return count;
+    return revokedSessionIds;
   }
 
   async disableStaff(id: string, at: Date): Promise<StaffIdentityRecord | null> {
@@ -267,10 +273,19 @@ class FakeOidcProvider implements OidcProvider {
     const subject = ["unknown", "disabled", "unassigned"].includes(code)
       ? code
       : "admin";
+    const authenticationMethods = ["missing-amr", "empty-amr"].includes(code)
+      ? []
+      : code === "password-only"
+        ? ["pwd"]
+        : code === "passkey-only"
+          ? ["phr"]
+          : code === "incorrect-assurance"
+            ? ["otp"]
+            : ["mfa"];
     return {
       issuer: code === "invalid-issuer" ? "https://attacker.invalid/" : ISSUER,
       subject,
-      authenticationMethods: code === "password-only" ? ["pwd"] : ["mfa"],
+      authenticationMethods,
       displayName: "Provider display name",
       email: "provider@example.test",
     };
@@ -548,20 +563,28 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(auth.store.sessions.size).toBe(1);
   });
 
-  it.each(["unknown", "disabled", "unassigned", "password-only"])(
-    "does not issue a session for %s staff",
-    async (code) => {
-      const { callback } = await startAndComplete(buildApp(auth), auth.cookies, code);
-      expect(callback.status).toBe(401);
-      expect(callback.body.message).toBe("Authentication failed.");
-      expect(auth.store.sessions.size).toBe(0);
-    },
-  );
+  it.each([
+    "unknown",
+    "disabled",
+    "unassigned",
+    "missing-amr",
+    "empty-amr",
+    "password-only",
+    "passkey-only",
+    "incorrect-assurance",
+  ])("does not issue a session for %s staff", async (code) => {
+    const { callback } = await startAndComplete(buildApp(auth), auth.cookies, code);
+    expect(callback.status).toBe(401);
+    expect(callback.body.message).toBe("Authentication failed.");
+    expect(auth.store.sessions.size).toBe(0);
+  });
 
   it("rotates an existing session during a new login", async () => {
     const app = buildApp(auth);
     const first = await startAndComplete(app, auth.cookies);
     const oldCookie = cookiePair(first.callback, auth.cookies.sessionName);
+    const oldSession = [...auth.store.sessions.values()][0];
+    if (!oldSession) throw new Error("Missing old session fixture");
     const secondStart = await request(app)
       .get(`${API_PREFIX}/auth/login`)
       .set("Cookie", oldCookie);
@@ -583,6 +606,17 @@ describe("Phase 3A authentication HTTP boundary", () => {
       (await request(app).get(`${API_PREFIX}/auth/session`).set("Cookie", newCookie))
         .status,
     ).toBe(200);
+    expect(
+      auth.store.audits.filter(
+        (event) =>
+          event.action === "auth.session.revoked" && event.reason === "rotation",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        entityId: oldSession.id,
+        outcome: "succeeded",
+      }),
+    ]);
   });
 
   it("rejects malformed, revoked, idle-expired, and absolute-expired sessions", async () => {
@@ -623,6 +657,15 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(statuses.map((response) => response.status).sort()).toEqual([
       200, 200, 200, 401,
     ]);
+    const evictions = auth.store.audits.filter(
+      (event) =>
+        event.action === "auth.session.revoked" && event.reason === "concurrent-limit",
+    );
+    expect(evictions).toHaveLength(1);
+    expect(evictions[0]).toMatchObject({
+      entityType: "session",
+      outcome: "succeeded",
+    });
   });
 
   it("requires an exact origin and a session-bound CSRF token for logout", async () => {
@@ -676,16 +719,52 @@ describe("Phase 3A authentication HTTP boundary", () => {
       (await request(app).get(`${API_PREFIX}/auth/session`).set("Cookie", firstCookie))
         .status,
     ).toBe(401);
+    const repeated = await request(app)
+      .post(`${API_PREFIX}/auth/logout`)
+      .set("Origin", ORIGIN)
+      .set("Cookie", firstCookie)
+      .set("X-CSRF-Token", firstCsrf);
+    expect(repeated.status).toBe(200);
     expect(
-      (await request(app).post(`${API_PREFIX}/auth/logout`).set("Origin", ORIGIN))
-        .status,
-    ).toBe(200);
+      auth.store.audits.filter(
+        (event) => event.action === "auth.session.revoked" && event.reason === "logout",
+      ),
+    ).toHaveLength(1);
+    expect(
+      auth.store.audits.filter((event) => event.action === "auth.logout.succeeded"),
+    ).toHaveLength(1);
   });
 
-  it("revokes all sessions when a staff identity is deactivated", async () => {
+  it("does not audit a second revocation for an already-revoked session", async () => {
     const app = buildApp(auth);
     const login = await startAndComplete(app, auth.cookies);
-    const cookie = cookiePair(login.callback, auth.cookies.sessionName);
+    const sessionCookie = cookiePair(login.callback, auth.cookies.sessionName);
+    const context = await auth.service.authenticate(
+      sessionCookie.split("=")[1],
+      "logout-context",
+      NOW,
+    );
+
+    await auth.service.logout(context, "logout-first", NOW);
+    await auth.service.logout(context, "logout-repeated", NOW);
+
+    expect(
+      auth.store.audits.filter(
+        (event) => event.action === "auth.session.revoked" && event.reason === "logout",
+      ),
+    ).toHaveLength(1);
+    expect(
+      auth.store.audits.filter((event) => event.action === "auth.logout.succeeded"),
+    ).toHaveLength(1);
+  });
+
+  it("revokes and audits every active session when staff is deactivated", async () => {
+    const app = buildApp(auth);
+    const firstLogin = await startAndComplete(app, auth.cookies);
+    const secondLogin = await startAndComplete(app, auth.cookies);
+    const cookies = [firstLogin, secondLogin].map((login) =>
+      cookiePair(login.callback, auth.cookies.sessionName),
+    );
     const admin = [...auth.store.staff.values()].find(
       (staff) => staff.subject === "admin",
     );
@@ -694,14 +773,55 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(
       await auth.service.deactivateStaff(admin.id, "deactivation-test", new Date()),
     ).toBe(true);
+    for (const cookie of cookies) {
+      expect(
+        (await request(app).get(`${API_PREFIX}/auth/session`).set("Cookie", cookie))
+          .status,
+      ).toBe(401);
+    }
+    const revocations = auth.store.audits.filter(
+      (event) =>
+        event.action === "auth.session.revoked" && event.reason === "staff-disabled",
+    );
+    expect(revocations).toHaveLength(2);
+    expect(new Set(revocations.map((event) => event.entityId)).size).toBe(2);
     expect(
-      (await request(app).get(`${API_PREFIX}/auth/session`).set("Cookie", cookie))
-        .status,
-    ).toBe(401);
-    expect(
-      auth.store.audits.some((event) => event.action === "staff.deactivated"),
-    ).toBe(true);
+      auth.store.audits.find((event) => event.action === "staff.deactivated"),
+    ).toMatchObject({ revokedSessionCount: 2 });
   });
+
+  it.each(["role", "status", "authorization-version"] as const)(
+    "audits one revocation for a stale %s decision",
+    async (change) => {
+      const app = buildApp(auth);
+      const login = await startAndComplete(app, auth.cookies);
+      const cookie = cookiePair(login.callback, auth.cookies.sessionName);
+      const admin = [...auth.store.staff.values()].find(
+        (staff) => staff.subject === "admin",
+      );
+      if (!admin) throw new Error("Missing admin fixture");
+
+      if (change === "role") admin.role = null;
+      if (change === "status") admin.status = "disabled";
+      if (change === "authorization-version") admin.authorizationVersion += 1;
+
+      expect(
+        (await request(app).get(`${API_PREFIX}/auth/session`).set("Cookie", cookie))
+          .status,
+      ).toBe(401);
+      expect(
+        (await request(app).get(`${API_PREFIX}/auth/session`).set("Cookie", cookie))
+          .status,
+      ).toBe(401);
+      expect(
+        auth.store.audits.filter(
+          (event) =>
+            event.action === "auth.session.revoked" &&
+            event.reason === "authorization-changed",
+        ),
+      ).toHaveLength(1);
+    },
+  );
 
   it("keeps public property visibility unchanged", async () => {
     const app = buildApp(auth);
@@ -713,21 +833,38 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(draftGuess.body.message).toBe("Property not found.");
   });
 
-  it("keeps callback errors and audit records free of codes and inquiry content", async () => {
+  it("keeps all audit records free of authentication secrets and inquiry content", async () => {
     const secretCode = "provider-secret-code-do-not-log";
     const app = buildApp(auth);
     const start = await request(app).get(`${API_PREFIX}/auth/login`);
-    const response = await request(app)
+    const callback = await request(app)
       .get(`${API_PREFIX}/auth/callback`)
-      .query({ code: secretCode, state: "invalid" })
+      .query({ code: secretCode, state: stateFrom(start) })
       .set("Cookie", cookiePair(start, auth.cookies.transactionName));
+    const sessionCookie = cookiePair(callback, auth.cookies.sessionName);
+    const rawSessionToken = sessionCookie.split("=")[1] ?? "";
+    const storedSession = [...auth.store.sessions.values()].at(-1);
+    if (!storedSession) throw new Error("Missing session fixture");
+    const current = await request(app)
+      .get(`${API_PREFIX}/auth/session`)
+      .set("Cookie", sessionCookie);
+    const csrfToken = (current.body as CurrentSessionResponse).csrfToken;
+    await request(app)
+      .post(`${API_PREFIX}/auth/logout`)
+      .set("Origin", ORIGIN)
+      .set("Cookie", sessionCookie)
+      .set("X-CSRF-Token", csrfToken);
     const serialized = JSON.stringify({
-      body: response.body,
       audits: auth.store.audits,
     });
 
-    expect(response.status).toBe(401);
+    expect(callback.status).toBe(303);
     expect(serialized).not.toContain(secretCode);
+    expect(serialized).not.toContain(rawSessionToken);
+    expect(serialized).not.toContain(storedSession.sessionHash);
+    expect(serialized).not.toContain(sessionCookie);
+    expect(serialized).not.toContain(csrfToken);
+    expect(serialized).not.toContain("fixture-access-token");
     expect(serialized).not.toContain("private inquiry message");
   });
 });
