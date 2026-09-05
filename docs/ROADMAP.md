@@ -583,18 +583,16 @@ can update is not a product.
 
 ### Authentication
 
-Plan session/token architecture, secure credential handling, password hashing if
-credentials are managed locally, MFA/2FA, login rate limiting, account lockout, secure
-logout, and session expiry.
-
-Decide deliberately whether authentication is built in-house or delegated to a managed
-identity provider, and **document the security implications of the choice.** Do not
-choose on convenience alone. _Provider to be evaluated/selected during this phase._
+The architecture delegates credentials, recovery and MFA to a managed OpenID Connect
+identity provider while Express owns opaque, revocable application sessions and local
+authorization. The exact provider remains an implementation gate. See
+[`architecture/authentication-and-authorization.md`](architecture/authentication-and-authorization.md).
 
 ### Authorization
 
-Server-side role enforcement on every sensitive action. Candidate roles: `admin`,
-`agent`, `client` — not final until validated against real requirements.
+Server-side permission enforcement on every sensitive action. Phase 3A starts with one
+invited `admin` staff role. `agent` and `client` roles remain deferred until their
+roadmap phases and validated requirements exist.
 
 **Hiding a button in the frontend is not authorization.** Every sensitive backend action
 independently verifies permissions, regardless of what the UI allows.
@@ -1084,27 +1082,28 @@ environment gets its own database, its own credentials, and its own configured o
 
 No vendor has been selected. Each decision below is deliberately open.
 
-| Decision                | Decide by | What should drive it                                                          |
-| ----------------------- | --------- | ----------------------------------------------------------------------------- |
-| Test runner             | Phase 1   | Speed, TypeScript/ESM support, CI integration, watch-mode experience          |
-| Production map provider | Phase 2B  | Philippine coverage quality, pricing at expected volume, privacy controls     |
-| Authentication approach | Phase 3A  | Security posture, MFA support, maintenance burden, cost — **not convenience** |
-| Media storage provider  | Phase 3A  | Cost at volume, CDN integration, image transformation, private-bucket support |
-| Email provider          | Phase 4   | Deliverability to Philippine recipients, transactional reliability, cost      |
-| SMS/OTP provider        | Phase 4   | Philippine carrier coverage, delivery rates, per-message cost                 |
-| AI provider             | Phase 5   | Model quality, cost per request, data handling terms, latency                 |
-| Hosting provider        | Phase 6   | Region/latency for Philippine users, cost, operational simplicity             |
-| CDN                     | Phase 6   | Image delivery performance, regional presence, cost                           |
-| WAF / DDoS protection   | Phase 6   | Threat coverage, false-positive rate, integration with hosting                |
-| Analytics provider      | Phase 6   | Privacy posture, data ownership, required metrics                             |
-| Monitoring provider     | Phase 6   | Error tracking, alerting, log retention, cost                                 |
+| Decision                | Decide by | What should drive it                                                                                      |
+| ----------------------- | --------- | --------------------------------------------------------------------------------------------------------- |
+| Test runner             | Phase 1   | Speed, TypeScript/ESM support, CI integration, watch-mode experience                                      |
+| Production map provider | Phase 2B  | Philippine coverage quality, pricing at expected volume, privacy controls                                 |
+| OIDC identity provider  | Phase 3A  | Managed OIDC architecture accepted; select the vendor by MFA, recovery, isolation, data handling and cost |
+| Media storage provider  | Phase 3A  | Cost at volume, CDN integration, image transformation, private-bucket support                             |
+| Email provider          | Phase 4   | Deliverability to Philippine recipients, transactional reliability, cost                                  |
+| SMS/OTP provider        | Phase 4   | Philippine carrier coverage, delivery rates, per-message cost                                             |
+| AI provider             | Phase 5   | Model quality, cost per request, data handling terms, latency                                             |
+| Hosting provider        | Phase 6   | Region/latency for Philippine users, cost, operational simplicity                                         |
+| CDN                     | Phase 6   | Image delivery performance, regional presence, cost                                                       |
+| WAF / DDoS protection   | Phase 6   | Threat coverage, false-positive rate, integration with hosting                                            |
+| Analytics provider      | Phase 6   | Privacy posture, data ownership, required metrics                                                         |
+| Monitoring provider     | Phase 6   | Error tracking, alerting, log retention, cost                                                             |
 
 Open business questions:
 
 - **"Cash-out calculator"** — meaning undefined. ⛔ Blocks that Phase 2B item.
 - **Property lifecycle statuses** — proposed, needs business validation.
 - **Inquiry lifecycle statuses** — proposed, needs business validation.
-- **Roles** (`admin`, `agent`, `client`) — proposed, needs validation.
+- **Future roles** — Phase 3A begins with invited `admin` staff only. Define `agent` and
+  `client` permissions only when those roadmap capabilities begin.
 - **Production location disclosure per listing type** — the technical privacy boundary is
   decided, but the business must approve which `publicPrecision` values staff may use.
   Exact disclosure and future staff controls require explicit approval before they are
