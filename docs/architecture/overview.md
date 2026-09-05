@@ -3,10 +3,10 @@
 This records decisions that are **already in force** and verifiable in the code. It is
 not a plan for future work.
 
-Status: the foundation and public MVP vertical slice are implemented. The API exposes
-health, published-property reads and inquiry creation; Mongoose models exist for
-properties and inquiries. Authentication, administration and confirmed appointments
-remain outside the implemented system.
+Status: the public MVP vertical slice and Phase 3A backend authentication foundation are
+implemented. The API exposes health, published-property reads, inquiry creation and the
+staff login/session/logout boundary. Property administration, inquiry administration and
+confirmed appointments remain outside the implemented system.
 
 ---
 
@@ -46,7 +46,8 @@ response shapes, the error envelope, and `API_VERSION` / `API_PREFIX`.
 Both apps import from `@rc/shared` rather than declaring their own copies. Renaming a
 field there fails the build on whichever side was not updated. The contract now includes
 health, property taxonomy and public listing shapes, search/facet responses, inquiry
-requests and acknowledgements, and the common error envelope.
+requests and acknowledgements, staff session and named permission shapes, and the common
+error envelope.
 
 **Rule:** if it travels over the network, it goes in `shared/src/api.ts`. Types only one
 app cares about stay local — `frontend/src/types/` or the relevant backend module.
@@ -66,12 +67,13 @@ backend/src/
 ├── app.ts          Express assembly — exported without listening
 ├── routes.ts       Mounts each module under API_PREFIX
 ├── config/         env.ts (validated config), database.ts (mongoose lifecycle)
-├── middleware/     Cross-cutting: errorHandler, notFound, rateLimit
+├── middleware/     Cross-cutting: errors, request context and rate limits
 ├── lib/            Backend infrastructure owned by no single domain
 └── modules/        One folder per business domain
     ├── health/
     ├── properties/
-    └── inquiries/
+    ├── inquiries/
+    └── auth/        OIDC, local staff, sessions, CSRF, permissions and audit
 ```
 
 Each domain owns its routes, controller, service, model, validation and types in one
@@ -133,6 +135,11 @@ while no production inventory source is available.
 throws a clear error if `MONGODB_URI` is missing, and exports a frozen typed object. No
 other backend module reads `process.env`.
 
+Authentication configuration is validated as one all-or-nothing group. It may be absent
+in development and tests, in which case auth routes return `503`; production refuses to
+start without it. Issuer, callback and return URLs are normalized and checked against
+exact origins before the application is assembled.
+
 On the frontend, `src/lib/env.ts` is the only reader of `NEXT_PUBLIC_API_URL` and
 `NEXT_PUBLIC_SITE_URL`. It exports the normalized API and public-site origins. Only
 `NEXT_PUBLIC_`-prefixed variables reach the browser, so no secret may ever use that
@@ -178,10 +185,11 @@ returns an opaque acknowledgement without echoing personal data. There is delibe
 no public inquiry read endpoint. A viewing submission is a request for staff follow-up,
 not a booking or confirmed appointment.
 
-No authentication or authorization layer exists yet. Consequently, staff/admin routes,
-property management and inquiry retrieval have not been exposed. The approved company
-logo, production media, public contact details and actual listings have also not been
-supplied; the public UI represents those gaps explicitly instead of inventing data.
+The authentication/session boundary exists, but no property-management, inquiry-read or
+audit-read API has been exposed yet. Those future endpoints must opt into a named
+permission and perform service-level scope checks. The approved company logo, production
+media, public contact details and actual listings have also not been supplied; the public
+UI represents those gaps explicitly instead of inventing data.
 
 ---
 

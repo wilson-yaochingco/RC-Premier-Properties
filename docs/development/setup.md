@@ -151,6 +151,13 @@ MONGODB_URI=mongodb://127.0.0.1:27017/rc_premier
 CORS_ORIGIN=http://localhost:3000
 ```
 
+The Auth0 variables at the bottom of `backend/.env.example` are optional during ordinary
+development but required together in production. Leave every required Auth0 value blank
+to keep the auth routes safely unavailable, or follow
+[`auth0-setup.md`](auth0-setup.md) to configure the development tenant, generate a local
+session-hash secret and provision the first administrator. Never put a client secret in
+a `NEXT_PUBLIC_` variable.
+
 `frontend/.env.local` normally needs no changes:
 
 ```ini
@@ -202,6 +209,12 @@ Open **http://localhost:3000**. You should see the RC Premier Properties public 
 Visit `/properties`, `/about`, `/contact`, `/sell` and `/book-viewing` to exercise the
 implemented routes. With no published records, the catalogue and featured section show
 intentional empty states; the repository contains no seed or sample inventory.
+
+When Auth0 is configured, start a staff login at
+`http://localhost:5000/api/v1/auth/login`. The provider redirects back to the backend,
+which issues the local opaque session and redirects to the exact allowlisted frontend
+URL. Follow the complete real-login and security acceptance checklist in
+[`auth0-setup.md`](auth0-setup.md).
 
 You can also check the API directly:
 

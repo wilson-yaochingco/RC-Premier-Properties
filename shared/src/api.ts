@@ -51,6 +51,52 @@ export interface ApiErrorResponse {
   issues?: ValidationIssue[];
 }
 
+/** Staff roles owned by the RC Premier Properties application, never by Auth0 claims. */
+export const STAFF_ROLES = ["admin"] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+/** Deny-by-default capabilities checked by backend authorization middleware. */
+export const AUTH_PERMISSIONS = [
+  "property:read-private",
+  "property:write",
+  "property:publish",
+  "property:change-availability",
+  "inquiry:read",
+  "inquiry:update",
+  "audit:read",
+] as const;
+
+export type AuthPermission = (typeof AUTH_PERMISSIONS)[number];
+
+/** Optional query accepted by `GET /api/v1/auth/login`. */
+export interface StartLoginRequest {
+  /** Exact allowlisted frontend URL to receive the browser after login. */
+  returnTo?: string;
+}
+
+export interface AuthenticatedStaff {
+  id: string;
+  displayName: string;
+  email: string;
+  role: StaffRole;
+}
+
+/** Body returned by `GET /api/v1/auth/session`. */
+export interface CurrentSessionResponse {
+  authenticated: true;
+  staff: AuthenticatedStaff;
+  permissions: AuthPermission[];
+  /** Session-bound token required in `X-CSRF-Token` on authenticated writes. */
+  csrfToken: string;
+  idleExpiresAt: string;
+  absoluteExpiresAt: string;
+}
+
+/** Body returned by the idempotent `POST /api/v1/auth/logout`. */
+export interface LogoutResponse {
+  status: "logged-out";
+}
+
 export const PROPERTY_TYPES = [
   "house-and-lot",
   "condominium",

@@ -2,8 +2,9 @@
 
 Node.js + Express 5 + TypeScript (ESM) + Mongoose.
 
-The public MVP API exposes health, published-property reads and inquiry creation. It has
-no authenticated/admin endpoints, no public property writes and no public inquiry reads.
+The API exposes the public MVP plus the Phase 3A backend staff authentication foundation.
+It has no property-management or inquiry-management endpoint, no public property writes
+and no public inquiry reads.
 
 > Architecture and API conventions live in [`/docs`](../docs/README.md), not here.
 > See [architecture overview](../docs/architecture/overview.md) and
@@ -22,18 +23,21 @@ npm run dev:backend          # at the repo root → http://localhost:5000
 Verify: `curl http://localhost:5000/api/v1/health`
 
 Full setup instructions: [`docs/development/setup.md`](../docs/development/setup.md).
+Auth0 development-tenant setup and administrator provisioning:
+[`docs/development/auth0-setup.md`](../docs/development/auth0-setup.md).
 
 ## Scripts
 
 Run via `npm run <script> --workspace backend`, or use the root shortcuts.
 
-| Script      | Purpose                       |
-| ----------- | ----------------------------- |
-| `dev`       | Watch mode via `tsx`          |
-| `build`     | Compile TypeScript to `dist/` |
-| `start`     | Run the compiled build        |
-| `lint`      | ESLint                        |
-| `typecheck` | TypeScript, no emit           |
+| Script                 | Purpose                                          |
+| ---------------------- | ------------------------------------------------ |
+| `dev`                  | Watch mode via `tsx`                             |
+| `build`                | Compile TypeScript to `dist/`                    |
+| `start`                | Run the compiled build                           |
+| `lint`                 | ESLint                                           |
+| `typecheck`            | TypeScript, no emit                              |
+| `auth:provision-admin` | Controlled local administrator create/reactivate |
 
 The root `npm test` command runs backend unit and Supertest integration coverage with
 injected services; it does not claim to verify a real MongoDB instance.
@@ -46,12 +50,13 @@ src/
 ├── app.ts          Express assembly — exported without listening
 ├── routes.ts       Mounts each module under API_PREFIX
 ├── config/         env.ts, database.ts
-├── middleware/     errorHandler, notFound, rateLimit
+├── middleware/     errors, request context and rate limits
 ├── lib/            Infrastructure owned by no single domain
 └── modules/        One folder per business domain
     ├── health/
     ├── properties/
-    └── inquiries/
+    ├── inquiries/
+    └── auth/        OIDC, staff, sessions, CSRF, permissions and audit
 ```
 
 Organized by domain: a feature's routes, controller, service and model live together
@@ -70,6 +75,19 @@ under `modules/<domain>/`. Create a module when its feature begins — not befor
 See the [public API reference](../docs/api/public-api.md) for parameters, validation and
 disclosure rules.
 
+## Staff authentication endpoints
+
+| Method | Path                    | Behaviour                                       |
+| ------ | ----------------------- | ----------------------------------------------- |
+| `GET`  | `/api/v1/auth/login`    | Starts Auth0 Authorization Code + PKCE login    |
+| `GET`  | `/api/v1/auth/callback` | Validates callback and issues the local session |
+| `GET`  | `/api/v1/auth/session`  | Returns local staff, permissions and CSRF token |
+| `POST` | `/api/v1/auth/logout`   | Revokes the local session and clears cookies    |
+
+These routes are unavailable until the complete Auth0 environment group is configured.
+See the [authentication API](../docs/api/authentication-api.md) for cookies, response
+contracts and failure behavior. No provider token is exposed to browser JavaScript.
+
 ## Gotchas
 
 - ESM project: relative imports must end in `.js`. This is correct.
@@ -81,5 +99,7 @@ disclosure rules.
   it. Public projections exclude exact address, coordinates and internal fields.
 - Inquiry creation is limited to five submissions per IP per 15 minutes, has a honeypot,
   and returns no submitted personal data. There is deliberately no public inquiry read.
-- Models and services are implemented, but real project MongoDB persistence has not yet
-  been verified. No seed data or production listings are included.
+- Public property and inquiry persistence has been verified against the project Atlas
+  database. Authentication persistence has automated schema/store coverage and still
+  needs the documented development-tenant acceptance pass. No seed data or production
+  listings are included.

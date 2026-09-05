@@ -9,6 +9,10 @@ construction and the HTTP layer with injected services. On 2026-09-05, live Atla
 verified a connected health response, temporary inquiry write/read/delete, and temporary
 published-property create/public-read/delete with private fields excluded.
 
+Phase 3A authentication collections now exist, but no property-administration or
+inquiry-read route has been added. Their schemas and retention rules are documented in
+[`authentication-models.md`](authentication-models.md).
+
 ## Property taxonomy
 
 The first supported property types are house and lot, condominium, townhouse, lot/land,

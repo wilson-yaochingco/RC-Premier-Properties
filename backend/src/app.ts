@@ -7,6 +7,7 @@ import { createApiRouter, type ApiDependencies } from "./routes.js";
 import { apiRateLimit } from "./middleware/rateLimit.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { requestContext } from "./middleware/requestContext.js";
 
 /**
  * Builds the configured Express application without starting a listener, so it can be
@@ -21,6 +22,7 @@ export function createApp(dependencies: ApiDependencies = {}): Express {
   }
 
   app.use(helmet());
+  app.use(requestContext);
   app.use(
     cors({
       origin: env.CORS_ORIGIN,
