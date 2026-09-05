@@ -23,7 +23,7 @@ Architecture is documented separately in
 
 | Phase | Name                                  | Status | In MVP?     |
 | ----- | ------------------------------------- | ------ | ----------- |
-| 0     | Project Foundation                    | 🟦     | Yes         |
+| 0     | Project Foundation                    | 🟩     | Yes         |
 | 1     | Product Planning, Brand & UX          | 🟦     | Yes         |
 | 2A    | Core Public Website MVP               | 🟦     | Yes         |
 | 2B    | Enhanced Property Experience          | ⬜     | No          |
@@ -34,13 +34,14 @@ Architecture is documented separately in
 | 6     | Production Hardening & Launch         | ⬜     | Launch gate |
 | 7     | Post-Launch Growth                    | ⬜     | No          |
 
-**Phases 0, 1 and 2A are In Progress, not Complete.** Phase 0 still needs
-repository-admin branch protection; the Atlas connection and live health response were
-verified on 2026-09-05. Phase 1 still needs the approved logo asset and business
-validation of lifecycle vocabulary. Phase 2A is built and tested, including live
-synthetic inquiry and published-property persistence checks, but cannot pass its
-real-inventory gates without supplied listings. A directory existing is not evidence
-that a capability works.
+**Phase 0 is Complete. Phases 1 and 2A remain In Progress.** The Atlas connection and
+live health response were verified on 2026-09-05. Repository-admin branch protection is
+an accepted follow-up rather than a Phase 0 completion gate; until it is enabled, the
+documented pull-request workflow remains enforced by convention. Phase 1 still needs the
+approved logo asset and business validation of lifecycle vocabulary. Phase 2A is built
+and tested, including live synthetic inquiry and published-property persistence checks,
+but cannot pass its real-inventory gates without supplied listings. A directory existing
+is not evidence that a capability works.
 
 ---
 
@@ -159,7 +160,7 @@ Phase 7  Growth
 
 ---
 
-# Phase 0 — Project Foundation 🟦
+# Phase 0 — Project Foundation 🟩
 
 **Goal:** a clean, maintainable full-stack development environment before product
 development begins.
@@ -243,10 +244,15 @@ without requiring a test network port or pretending that an unavailable MongoDB 
 - [x] **Backend starts successfully** — verified with connected Atlas; in development it
       also continues in an explicitly degraded state when MongoDB is unavailable
 - [x] Feature work has landed through the documented pull request workflow
-- [ ] Branch protection enabled on `main` (currently recorded as unprotected)
 - [x] Pull request template added
 - [x] Frontend API client foundation implemented with typed HTTP, transport and JSON
       error normalization
+
+### Accepted repository-admin follow-up
+
+- [ ] Enable branch protection on `main`, require pull requests, and require CI before
+      merging. This remains visibly open but is not a Phase 0 completion gate; the same
+      workflow is enforced by team convention in the meantime.
 
 ### Not in this phase
 
