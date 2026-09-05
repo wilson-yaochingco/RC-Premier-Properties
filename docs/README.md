@@ -47,6 +47,8 @@ Current:
 - [`authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
   — accepted Phase 3A staff identity, session and permission architecture; implementation
   gates remain open
+- [`oidc-provider-selection.md`](architecture/oidc-provider-selection.md) — Auth0 Free
+  selection, provider comparison, configuration baseline and provisioning gates
 - [`brand-and-public-experience.md`](architecture/brand-and-public-experience.md) —
   visual system, information architecture and public-experience rules
 - [`geographic-data-and-maps.md`](architecture/geographic-data-and-maps.md) — Leaflet
