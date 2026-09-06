@@ -17,8 +17,12 @@ explains behaviour and intentionally does not create a second TypeScript contrac
 | `GET`  | `/properties/:slug`  | Read one published property                         | `200`   |
 | `POST` | `/inquiries`         | Store a public inquiry or viewing request           | `201`   |
 
-There are no public property writes and no public inquiry reads. Authentication, staff
-authorization and admin APIs have not been implemented.
+There are no public property writes and no public inquiry reads. Staff authentication
+uses a separate backend session boundary documented in
+[`authentication-api.md`](authentication-api.md). Protected private property reads and
+draft writes are documented separately in
+[`property-administration-api.md`](property-administration-api.md); they never widen the
+public visibility rules below.
 
 ## `GET /health`
 

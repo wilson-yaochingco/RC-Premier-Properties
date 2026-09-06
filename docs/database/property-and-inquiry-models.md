@@ -9,6 +9,10 @@ construction and the HTTP layer with injected services. On 2026-09-05, live Atla
 verified a connected health response, temporary inquiry write/read/delete, and temporary
 published-property create/public-read/delete with private fields excluded.
 
+Phase 3A authentication collections and the first property-administration routes now
+exist; no inquiry-read route has been added. Their schemas and retention rules are documented in
+[`authentication-models.md`](authentication-models.md).
+
 ## Property taxonomy
 
 The first supported property types are house and lot, condominium, townhouse, lot/land,
@@ -100,7 +104,12 @@ public Phase 2A forms.
 
 ## Administration boundary
 
-There is no authenticated writer or staff dashboard. Property records currently have no
-public create/update/delete route, and inquiry records have no public read/update/delete
-route. Those operations must wait for the authentication and authorization design; the
-existence of a Mongoose model is not permission to expose it.
+Authenticated administrators can list/read private property DTOs, create an available
+draft and edit content while the record remains a draft. The routes project only the
+fields needed by that editor and exclude private address, internal coordinates, owner
+reference and internal notes. Create assigns `publicationStatus: draft` and
+`availability: available`; update predicates on `publicationStatus: draft` and never
+changes either lifecycle field.
+
+There is still no public create/update/delete route and no public inquiry read. Publish,
+archive, availability, media and inquiry operations require later explicit endpoints.

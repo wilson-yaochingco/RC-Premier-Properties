@@ -2,14 +2,12 @@ import mongoose, { Schema, type Model } from "mongoose";
 import {
   LISTING_PURPOSES,
   PROPERTY_AVAILABILITY,
+  PROPERTY_PUBLICATION_STATUSES,
   PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
   type PublicMapPoint,
 } from "@rc/shared";
-import {
-  PROPERTY_PUBLICATION_STATUSES,
-  type PropertyEntity,
-} from "./property.types.js";
+import type { PropertyEntity } from "./property.types.js";
 
 const mediaSchema = new Schema(
   {

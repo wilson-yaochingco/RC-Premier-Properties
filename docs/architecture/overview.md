@@ -3,9 +3,10 @@
 This records decisions that are **already in force** and verifiable in the code. It is
 not a plan for future work.
 
-Status: the foundation and public MVP vertical slice are implemented. The API exposes
-health, published-property reads and inquiry creation; Mongoose models exist for
-properties and inquiries. Authentication, administration and confirmed appointments
+Status: the public MVP vertical slice, Phase 3A authentication foundation, and first
+property-administration slice are implemented. The API exposes health, published reads,
+inquiry creation, staff login/session/logout, private property reads and draft
+create/edit. Publishing, availability transitions, media and inquiry administration
 remain outside the implemented system.
 
 ---
@@ -45,8 +46,9 @@ response shapes, the error envelope, and `API_VERSION` / `API_PREFIX`.
 
 Both apps import from `@rc/shared` rather than declaring their own copies. Renaming a
 field there fails the build on whichever side was not updated. The contract now includes
-health, property taxonomy and public listing shapes, search/facet responses, inquiry
-requests and acknowledgements, and the common error envelope.
+health, property taxonomy, public and private listing shapes, draft-property requests,
+search/facet responses, inquiry requests and acknowledgements, staff session and named
+permission shapes, and the common error envelope.
 
 **Rule:** if it travels over the network, it goes in `shared/src/api.ts`. Types only one
 app cares about stay local — `frontend/src/types/` or the relevant backend module.
@@ -66,12 +68,13 @@ backend/src/
 ├── app.ts          Express assembly — exported without listening
 ├── routes.ts       Mounts each module under API_PREFIX
 ├── config/         env.ts (validated config), database.ts (mongoose lifecycle)
-├── middleware/     Cross-cutting: errorHandler, notFound, rateLimit
+├── middleware/     Cross-cutting: errors, request context and rate limits
 ├── lib/            Backend infrastructure owned by no single domain
 └── modules/        One folder per business domain
     ├── health/
     ├── properties/
-    └── inquiries/
+    ├── inquiries/
+    └── auth/        OIDC, local staff, sessions, CSRF, permissions and audit
 ```
 
 Each domain owns its routes, controller, service, model, validation and types in one
@@ -114,10 +117,10 @@ exist to stay small.
 page uses it.
 
 The implemented routes are `/`, `/properties`, `/properties/[slug]`, `/about`,
-`/contact`, `/sell` and `/book-viewing`, plus loading, error and not-found boundaries,
-`robots.txt` and `sitemap.xml`. Property and inquiry code lives under matching feature
-folders. A small shared API client normalizes non-2xx, network and malformed-response
-failures into the shared error contract.
+`/contact`, `/sell`, `/book-viewing`, and the protected `/admin` property list/create/edit
+routes, plus loading, error and not-found boundaries, `robots.txt` and `sitemap.xml`.
+Property and inquiry code lives under matching feature folders. A small shared API client
+normalizes non-2xx, network and malformed-response failures into the shared error contract.
 
 Global and route metadata use `NEXT_PUBLIC_SITE_URL` as their public origin. Static
 routes appear in `sitemap.xml`; `robots.txt` allows the public site and reserves `/admin`
@@ -132,6 +135,11 @@ while no production inventory source is available.
 `backend/src/config/env.ts` reads the environment once at startup, applies defaults,
 throws a clear error if `MONGODB_URI` is missing, and exports a frozen typed object. No
 other backend module reads `process.env`.
+
+Authentication configuration is validated as one all-or-nothing group. It may be absent
+in development and tests, in which case auth routes return `503`; production refuses to
+start without it. Issuer, callback and return URLs are normalized and checked against
+exact origins before the application is assembled.
 
 On the frontend, `src/lib/env.ts` is the only reader of `NEXT_PUBLIC_API_URL` and
 `NEXT_PUBLIC_SITE_URL`. It exports the normalized API and public-site origins. Only
@@ -178,10 +186,12 @@ returns an opaque acknowledgement without echoing personal data. There is delibe
 no public inquiry read endpoint. A viewing submission is a request for staff follow-up,
 not a booking or confirmed appointment.
 
-No authentication or authorization layer exists yet. Consequently, staff/admin routes,
-property management and inquiry retrieval have not been exposed. The approved company
-logo, production media, public contact details and actual listings have also not been
-supplied; the public UI represents those gaps explicitly instead of inventing data.
+The authentication/session boundary now protects private property list/detail and draft
+create/edit endpoints. Reads require `property:read-private`; writes require
+`property:write`, exact origin and session-bound CSRF. Publication, availability,
+inquiry-read and audit-read APIs remain unimplemented. The approved company logo,
+production media, public contact details and actual listings have also not been supplied;
+the public UI represents those gaps explicitly instead of inventing data.
 
 ---
 

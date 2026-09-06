@@ -1,23 +1,21 @@
 import type {
+  AdminPropertyDetail,
+  AdminPropertyListRequest,
+  AdminPropertyListResponse,
+  CreateDraftPropertyRequest,
   ListingPurpose,
   PropertyAvailability,
   PropertyMediaKind,
+  PropertyPublicationStatus,
   PropertyType,
   PublicLocationPrecision,
   PublicMapPoint,
   PropertyMapResponse,
   PublicPropertyDetail,
   PublicPropertySummary,
+  UpdateDraftPropertyRequest,
 } from "@rc/shared";
-
-export const PROPERTY_PUBLICATION_STATUSES = [
-  "draft",
-  "pending",
-  "published",
-  "archived",
-] as const;
-
-export type PropertyPublicationStatus = (typeof PROPERTY_PUBLICATION_STATUSES)[number];
+import type { SecurityAuditEventInput } from "../auth/auth.types.js";
 
 export interface PropertyMediaEntity {
   kind: PropertyMediaKind;
@@ -85,17 +83,70 @@ export interface PropertyEntity {
   internalNotes?: string;
   /** Internal-only owner reference; excluded at schema and query level. */
   ownerReference?: string;
-  publishedAt: Date;
+  publishedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface PublicPropertyRecord extends Omit<
   PropertyEntity,
-  "publicationStatus" | "internalNotes" | "ownerReference" | "location"
+  "publicationStatus" | "internalNotes" | "ownerReference" | "location" | "publishedAt"
 > {
   _id: unknown;
   location: Omit<PropertyLocationEntity, "privateAddress" | "coordinates">;
+  publishedAt: Date;
+}
+
+export interface AdminPropertyRecord extends PropertyEntity {
+  _id: unknown;
+}
+
+export interface PropertyContentPersistenceInput extends Omit<
+  CreateDraftPropertyRequest,
+  "price"
+> {
+  price: CreateDraftPropertyRequest["price"] & { currency: "PHP" };
+}
+
+export interface DraftPropertyPersistenceInput extends PropertyContentPersistenceInput {
+  availability: "available";
+  publicationStatus: "draft";
+}
+
+export interface PropertyAdminRepository {
+  list(
+    request: AdminPropertyListRequest,
+  ): Promise<{ records: AdminPropertyRecord[]; total: number }>;
+  findById(id: string): Promise<AdminPropertyRecord | null>;
+  createDraft(input: DraftPropertyPersistenceInput): Promise<AdminPropertyRecord>;
+  updateDraft(
+    id: string,
+    input: Partial<PropertyContentPersistenceInput>,
+  ): Promise<AdminPropertyRecord | null>;
+}
+
+export interface PropertyAuditRecorder {
+  recordAudit(event: SecurityAuditEventInput): Promise<void>;
+}
+
+export interface PropertyMutationContext {
+  actorStaffIdentityId: string;
+  requestId: string;
+  occurredAt?: Date;
+}
+
+export interface AdminPropertyService {
+  listPrivate(request: AdminPropertyListRequest): Promise<AdminPropertyListResponse>;
+  findPrivateById(id: string): Promise<AdminPropertyDetail | null>;
+  createDraft(
+    input: CreateDraftPropertyRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail>;
+  updateDraft(
+    id: string,
+    input: UpdateDraftPropertyRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
 }
 
 export interface PropertyService {

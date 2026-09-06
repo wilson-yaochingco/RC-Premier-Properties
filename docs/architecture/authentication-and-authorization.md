@@ -1,11 +1,30 @@
 # Phase 3A Authentication and Authorization
 
-Status: **accepted architecture; Auth0 Free selected; not implemented**
+Status: **accepted architecture; backend and first admin consumer implemented; live session acceptance pending**
 
 This decision defines the security boundary for the Phase 3A listing-management slice.
-It does not expose an admin API or create staff accounts. Implementation may begin with
-an injected OIDC test boundary, but live Auth0 integration and deployment must not be
-completed until the inputs in [Implementation gates](#implementation-gates) are approved.
+The backend authentication foundation and controlled staff bootstrap now implement this
+boundary. The first property-management consumer now implements private reads and draft
+create/edit only. A development passkey authentication redirect has been reported, but
+the application session and production deployment remain gated by the inputs in
+[Implementation gates](#implementation-gates).
+
+## Implementation status
+
+The implemented foundation includes shared session contracts, local staff identities,
+MongoDB-backed opaque sessions, one-time OIDC transactions, structured security audit
+events for every successful session-revocation transition, Auth0/OIDC Authorization Code
+
+- PKCE with an explicit MFA step-up request, exact origin and return-URL checks,
+  session-bound CSRF, named permissions and controlled administrator provisioning. The
+  first protected consumer is the private property read and draft create/edit slice.
+
+Automated tests use both an injected provider boundary and a local signed OIDC protocol
+server. They do not need Auth0 credentials. The Auth0 Free application, disabled signup,
+local administrator and passkey redirect to the public root were reported working on
+2026-09-06. The exact `/admin` return, application session cookie, protected operations
+and logout still require the live acceptance procedure in
+[`../development/auth0-setup.md`](../development/auth0-setup.md).
 
 ## Decision
 
@@ -61,7 +80,8 @@ It does not add:
 - favorites, confirmed viewing appointments or seller accounts;
 - a full CRM or user-management dashboard;
 - email, SMS or notification providers;
-- authentication or authorization code in this documentation change.
+- property publication, availability changes, media management, inquiry management or
+  audit-read endpoints.
 
 ## Trust boundaries
 
@@ -87,13 +107,17 @@ passwords or MFA secrets.
 ## Authentication flow
 
 1. The backend starts an OIDC Authorization Code flow with PKCE using the `S256`
-   challenge method. It generates transaction-specific `state`, `nonce` and PKCE values.
+   challenge method. It generates transaction-specific `state`, `nonce` and PKCE values
+   and requests Auth0's standard MFA authentication context through
+   `acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`.
 2. Login and callback return locations use an exact allowlist. A query parameter must
    never become an arbitrary post-login redirect.
-3. The identity provider authenticates the staff member. The backend creates an
-   administrator session only when validated protocol evidence proves the approved
-   phishing-resistant authentication policy was satisfied. Passkey availability or an
-   operational instruction to use one is not sufficient evidence.
+3. Production requires Auth0 MFA for every login through policy **Always** and at least
+   one configured independent MFA factor. The Free development tenant instead uses a
+   database-connection passkey plus a reviewed Post-Login Action that places Auth0's
+   passkey-use result in a signed namespaced ID-token claim. The backend accepts that
+   claim only outside production; production still requires verified `amr: ["mfa"]`.
+   Missing evidence and password-only authentication fail closed.
 4. The backend validates issuer, audience, signature, expiry, nonce, state and PKCE
    binding before accepting the identity result.
 5. The backend looks up the stable `(issuer, subject)` pair in the local staff allowlist.
@@ -129,6 +153,20 @@ Session activity is updated at a bounded interval rather than writing on every r
 Expired and revoked sessions are rejected even if the browser still sends a cookie. The
 collection uses a TTL index for cleanup, but authorization must check expiry explicitly
 because TTL deletion is asynchronous.
+
+Each successful revocation transition records `auth.session.revoked` with the safe
+database session ID and one predefined reason: rotation, logout, concurrent limit, staff
+disablement or authorization change. Conditional MongoDB updates ensure an already
+revoked session is not reported again. Logout and staff deactivation keep their
+higher-level audit events; bulk deactivation also records the number actually revoked.
+
+The session transition and audit insertion are separate writes in the current store.
+This keeps local standalone MongoDB development supported; multi-document transactions
+require a replica set and a broader transaction boundary. If an audit insert fails after
+a successful revocation, the security transition remains effective and the request fails
+closed, but the event can be missing. Production must either accept this documented
+failure mode with operational alerting or add a replica-set transaction/outbox design
+before launch.
 
 No authenticated admin response may be stored by shared caches. Admin pages and API
 responses use appropriate `Cache-Control: no-store` behavior and remain excluded from
@@ -253,10 +291,13 @@ experience.
 3. Implement the injectable OIDC boundary, session middleware, named permissions and
    automated security tests without depending on a live provider.
 4. Provision the approved Auth0 development tenant and connect the real
-   login/callback/logout flow after the gates below are satisfied.
+   login/callback/logout flow after the gates below are satisfied. **Provisioning and a
+   passkey redirect are reported complete; session/logout acceptance remains open.**
 5. Add the smallest admin shell and protected session bootstrap needed by Phase 3A.
-6. Add property administration one lifecycle capability at a time, followed by inquiry
-   management and the audit view.
+   **Implemented.**
+6. Add property administration one lifecycle capability at a time. Private read and
+   draft create/content-edit are implemented; publication and availability remain later
+   explicit capabilities, followed by inquiry management and the audit view.
 
 Authentication and authorization land before any property write or inquiry read route.
 Media upload remains a separate Phase 3A slice after its storage provider and upload
@@ -264,10 +305,10 @@ threat model are approved.
 
 ## Implementation gates
 
-The following inputs are required before live Auth0 integration is completed:
+The following gates must be closed before live Auth0 integration is accepted:
 
-- Provision the selected Auth0 Free development tenant with Authorization Code + PKCE,
-  passkeys, exact redirect URIs and public sign-up disabled.
+- Verify the reported development tenant configuration through the exact `/admin`
+  callback, backend session, protected-operation and logout checks in the runbook.
 - Prove the Free-plan production assurance gate in the provider-selection decision. If
   password-only or skipped passkey enrollment can produce an administrator session,
   production remains blocked pending an explicitly approved alternative.

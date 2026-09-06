@@ -151,6 +151,13 @@ MONGODB_URI=mongodb://127.0.0.1:27017/rc_premier
 CORS_ORIGIN=http://localhost:3000
 ```
 
+The Auth0 variables at the bottom of `backend/.env.example` are optional during ordinary
+development but required together in production. Leave every required Auth0 value blank
+to keep the auth routes safely unavailable, or follow
+[`auth0-setup.md`](auth0-setup.md) to configure the development tenant, generate a local
+session-hash secret and provision the first administrator. Never put a client secret in
+a `NEXT_PUBLIC_` variable.
+
 `frontend/.env.local` normally needs no changes:
 
 ```ini
@@ -202,6 +209,14 @@ Open **http://localhost:3000**. You should see the RC Premier Properties public 
 Visit `/properties`, `/about`, `/contact`, `/sell` and `/book-viewing` to exercise the
 implemented routes. With no published records, the catalogue and featured section show
 intentional empty states; the repository contains no seed or sample inventory.
+
+When Auth0 is configured, start a staff login at
+`http://localhost:3000/admin`. The protected shell starts the backend login route when
+needed, the provider redirects back to the backend, and the backend issues the local
+opaque session before returning to the exact allowlisted `/admin` URL. Ensure
+`AUTH_ALLOWED_RETURN_URLS` includes `http://localhost:3000/admin`, then follow the
+complete real-login and security acceptance checklist in
+[`auth0-setup.md`](auth0-setup.md).
 
 You can also check the API directly:
 
@@ -354,9 +369,11 @@ Then register it with one line in `backend/src/routes.ts`, and put any type the 
 also needs in `shared/src/api.ts`.
 
 The public API currently provides health, published property list/facet/detail reads and
-inquiry creation. There are no public property writes or inquiry reads. Authentication,
-admin tools and confirmed appointments have not been implemented; a viewing submission
-is only a request for follow-up.
+inquiry creation. There are no public property writes or inquiry reads. The protected
+staff boundary provides an admin shell plus private property list/detail and draft
+create/edit operations. Publishing, availability transitions, media management, inquiry
+administration and confirmed appointments remain unimplemented; a viewing submission is
+only a request for follow-up.
 
 ---
 

@@ -1,5 +1,12 @@
 import {
+  ADMIN_PROPERTY_CONTENT_FIELDS,
   PUBLIC_LOCATION_PRECISIONS,
+  type AdminPropertyContentField,
+  type AdminPropertyDetail,
+  type AdminPropertyListRequest,
+  type AdminPropertyListResponse,
+  type AdminPropertySummary,
+  type CreateDraftPropertyRequest,
   type PropertyMapResponse,
   type PropertyFacetsResponse,
   type PropertySearchRequest,
@@ -11,11 +18,21 @@ import {
   type PublicPropertyDetail,
   type PublicPropertyLocation,
   type PublicPropertySummary,
+  type UpdateDraftPropertyRequest,
 } from "@rc/shared";
 import type { Model, QueryFilter, SortOrder } from "mongoose";
+import { HttpError } from "../../middleware/errorHandler.js";
+import { mongooseAuthStore } from "../auth/auth.store.js";
 import { PropertyModel } from "./property.model.js";
 import type {
+  AdminPropertyRecord,
+  AdminPropertyService,
+  DraftPropertyPersistenceInput,
+  PropertyAdminRepository,
+  PropertyAuditRecorder,
+  PropertyContentPersistenceInput,
   PropertyEntity,
+  PropertyMutationContext,
   PropertyService,
   PublicPropertyRecord,
 } from "./property.types.js";
@@ -45,6 +62,33 @@ const PUBLIC_PROPERTY_PROJECTION = [
   "coverMedia",
   "gallery",
   "publishedAt",
+  "updatedAt",
+].join(" ");
+
+const ADMIN_PROPERTY_PROJECTION = [
+  "_id",
+  "propertyId",
+  "slug",
+  "title",
+  "purpose",
+  "propertyType",
+  "availability",
+  "publicationStatus",
+  "featured",
+  "price",
+  "location.province",
+  "location.city",
+  "location.barangay",
+  "location.development",
+  "location.publicPrecision",
+  "specifications",
+  "shortDescription",
+  "description",
+  "highlights",
+  "amenities",
+  "features",
+  "publishedAt",
+  "createdAt",
   "updatedAt",
 ].join(" ");
 
@@ -295,6 +339,49 @@ function toPublicPropertyDetail(record: PublicPropertyRecord): PublicPropertyDet
   };
 }
 
+export function toAdminPropertySummary(
+  record: AdminPropertyRecord,
+): AdminPropertySummary {
+  return {
+    id: String(record._id),
+    propertyId: record.propertyId,
+    slug: record.slug,
+    title: record.title,
+    purpose: record.purpose,
+    propertyType: record.propertyType,
+    availability: record.availability,
+    publicationStatus: record.publicationStatus,
+    featured: record.featured,
+    price: record.price,
+    location: {
+      province: record.location.province,
+      city: record.location.city,
+      ...(record.location.barangay ? { barangay: record.location.barangay } : {}),
+      ...(record.location.development
+        ? { development: record.location.development }
+        : {}),
+      publicPrecision: record.location.publicPrecision ?? "city-only",
+    },
+    shortDescription: record.shortDescription,
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+export function toAdminPropertyDetail(
+  record: AdminPropertyRecord,
+): AdminPropertyDetail {
+  return {
+    ...toAdminPropertySummary(record),
+    specifications: record.specifications,
+    description: record.description,
+    highlights: record.highlights,
+    amenities: record.amenities,
+    features: record.features,
+    createdAt: record.createdAt.toISOString(),
+    ...(record.publishedAt ? { publishedAt: record.publishedAt.toISOString() } : {}),
+  };
+}
+
 interface FacetAggregate {
   _id: null;
   min: number;
@@ -421,3 +508,205 @@ export class MongoosePropertyService implements PropertyService {
 }
 
 export const mongoosePropertyService = new MongoosePropertyService();
+
+export class MongoosePropertyAdminRepository implements PropertyAdminRepository {
+  constructor(private readonly model: Model<PropertyEntity> = PropertyModel) {}
+
+  async list(
+    request: AdminPropertyListRequest,
+  ): Promise<{ records: AdminPropertyRecord[]; total: number }> {
+    const filter: QueryFilter<PropertyEntity> = request.publicationStatus
+      ? { publicationStatus: request.publicationStatus }
+      : {};
+    const skip = (request.page - 1) * request.limit;
+    const [records, total] = await Promise.all([
+      this.model
+        .find(filter)
+        .select(ADMIN_PROPERTY_PROJECTION)
+        .sort({ updatedAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(request.limit)
+        .lean<AdminPropertyRecord[]>(),
+      this.model.countDocuments(filter),
+    ]);
+    return { records, total };
+  }
+
+  async findById(id: string): Promise<AdminPropertyRecord | null> {
+    return this.model
+      .findById(id)
+      .select(ADMIN_PROPERTY_PROJECTION)
+      .lean<AdminPropertyRecord | null>();
+  }
+
+  async createDraft(
+    input: DraftPropertyPersistenceInput,
+  ): Promise<AdminPropertyRecord> {
+    const document = await this.model.create(input);
+    return document.toObject() as AdminPropertyRecord;
+  }
+
+  async updateDraft(
+    id: string,
+    input: Partial<PropertyContentPersistenceInput>,
+  ): Promise<AdminPropertyRecord | null> {
+    return this.model
+      .findOneAndUpdate(
+        { _id: id, publicationStatus: "draft" },
+        { $set: input },
+        { new: true, runValidators: true },
+      )
+      .select(ADMIN_PROPERTY_PROJECTION)
+      .lean<AdminPropertyRecord | null>();
+  }
+}
+
+function createPersistenceInput(
+  input: CreateDraftPropertyRequest,
+): DraftPropertyPersistenceInput {
+  return {
+    propertyId: input.propertyId,
+    slug: input.slug,
+    title: input.title,
+    purpose: input.purpose,
+    propertyType: input.propertyType,
+    featured: input.featured,
+    price: { ...input.price, currency: "PHP" },
+    location: input.location,
+    specifications: input.specifications,
+    shortDescription: input.shortDescription,
+    description: input.description,
+    highlights: input.highlights,
+    amenities: input.amenities,
+    features: input.features,
+    availability: "available",
+    publicationStatus: "draft",
+  };
+}
+
+function updatePersistenceInput(
+  input: UpdateDraftPropertyRequest,
+): Partial<PropertyContentPersistenceInput> {
+  return {
+    ...(input.propertyId !== undefined ? { propertyId: input.propertyId } : {}),
+    ...(input.slug !== undefined ? { slug: input.slug } : {}),
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.purpose !== undefined ? { purpose: input.purpose } : {}),
+    ...(input.propertyType !== undefined ? { propertyType: input.propertyType } : {}),
+    ...(input.featured !== undefined ? { featured: input.featured } : {}),
+    ...(input.price !== undefined
+      ? { price: { ...input.price, currency: "PHP" as const } }
+      : {}),
+    ...(input.location !== undefined ? { location: input.location } : {}),
+    ...(input.specifications !== undefined
+      ? { specifications: input.specifications }
+      : {}),
+    ...(input.shortDescription !== undefined
+      ? { shortDescription: input.shortDescription }
+      : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.highlights !== undefined ? { highlights: input.highlights } : {}),
+    ...(input.amenities !== undefined ? { amenities: input.amenities } : {}),
+    ...(input.features !== undefined ? { features: input.features } : {}),
+  };
+}
+
+function changedFields(input: UpdateDraftPropertyRequest): AdminPropertyContentField[] {
+  return ADMIN_PROPERTY_CONTENT_FIELDS.filter((field) => input[field] !== undefined);
+}
+
+function isDuplicateKey(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === 11000
+  );
+}
+
+export class DefaultAdminPropertyService implements AdminPropertyService {
+  constructor(
+    private readonly repository: PropertyAdminRepository,
+    private readonly audit: PropertyAuditRecorder,
+  ) {}
+
+  async listPrivate(
+    request: AdminPropertyListRequest,
+  ): Promise<AdminPropertyListResponse> {
+    const { records, total } = await this.repository.list(request);
+    return {
+      items: records.map(toAdminPropertySummary),
+      pagination: {
+        page: request.page,
+        limit: request.limit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / request.limit),
+      },
+    };
+  }
+
+  async findPrivateById(id: string): Promise<AdminPropertyDetail | null> {
+    const record = await this.repository.findById(id);
+    return record ? toAdminPropertyDetail(record) : null;
+  }
+
+  async createDraft(
+    input: CreateDraftPropertyRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail> {
+    try {
+      const record = await this.repository.createDraft(createPersistenceInput(input));
+      await this.audit.recordAudit({
+        actorStaffIdentityId: context.actorStaffIdentityId,
+        action: "property.created",
+        entityType: "property",
+        entityId: String(record._id),
+        outcome: "succeeded",
+        requestId: context.requestId,
+        changedFields: [...ADMIN_PROPERTY_CONTENT_FIELDS],
+        occurredAt: context.occurredAt ?? new Date(),
+      });
+      return toAdminPropertyDetail(record);
+    } catch (error) {
+      if (isDuplicateKey(error)) {
+        throw new HttpError(409, "Property ID or slug already exists.");
+      }
+      throw error;
+    }
+  }
+
+  async updateDraft(
+    id: string,
+    input: UpdateDraftPropertyRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    try {
+      const record = await this.repository.updateDraft(
+        id,
+        updatePersistenceInput(input),
+      );
+      if (!record) return null;
+      await this.audit.recordAudit({
+        actorStaffIdentityId: context.actorStaffIdentityId,
+        action: "property.edited",
+        entityType: "property",
+        entityId: String(record._id),
+        outcome: "succeeded",
+        requestId: context.requestId,
+        changedFields: changedFields(input),
+        occurredAt: context.occurredAt ?? new Date(),
+      });
+      return toAdminPropertyDetail(record);
+    } catch (error) {
+      if (isDuplicateKey(error)) {
+        throw new HttpError(409, "Property ID or slug already exists.");
+      }
+      throw error;
+    }
+  }
+}
+
+export const mongooseAdminPropertyService = new DefaultAdminPropertyService(
+  new MongoosePropertyAdminRepository(),
+  mongooseAuthStore,
+);

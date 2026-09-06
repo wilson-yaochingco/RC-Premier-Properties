@@ -1,12 +1,20 @@
 import {
+  ADMIN_PROPERTY_CONTENT_FIELDS,
   LISTING_PURPOSES,
+  PROPERTY_PUBLICATION_STATUSES,
   PUBLIC_PROPERTY_AREAS,
+  PUBLIC_LOCATION_PRECISIONS,
   PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPES,
+  type AdminPropertyContentInput,
+  type AdminPropertyListRequest,
+  type CreateDraftPropertyRequest,
   type PropertySearchFilters,
   type PropertySearchRequest,
+  type UpdateDraftPropertyRequest,
   type ValidationIssue,
 } from "@rc/shared";
+import { Types } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
 
 const ALLOWED_QUERY_FIELDS = new Set([
@@ -36,6 +44,8 @@ const MAX_LIMIT = 48;
 const MAX_PRICE = 1_000_000_000_000;
 const MAX_ROOM_COUNT = 100;
 const MAX_AREA_SQM = 100_000_000;
+const MAX_ADMIN_LIST_LIMIT = 50;
+const MAX_LIST_ITEMS = 50;
 
 type RawQuery = Record<string, unknown>;
 
@@ -249,4 +259,393 @@ export function parsePropertySlug(rawSlug: unknown): string {
     ]);
   }
   return rawSlug;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function unknownFields(
+  value: Record<string, unknown>,
+  allowed: readonly string[],
+  prefix: string,
+  issues: ValidationIssue[],
+): void {
+  const allowedFields = new Set(allowed);
+  for (const field of Object.keys(value)) {
+    if (!allowedFields.has(field)) {
+      issues.push({
+        field: prefix ? `${prefix}.${field}` : field,
+        message: "Unknown field.",
+      });
+    }
+  }
+}
+
+function requiredText(
+  value: unknown,
+  field: string,
+  maxLength: number,
+  issues: ValidationIssue[],
+): string | undefined {
+  if (typeof value !== "string") {
+    issues.push({ field, message: "Must be text." });
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    issues.push({ field, message: "Is required." });
+    return undefined;
+  }
+  if (normalized.length > maxLength) {
+    issues.push({ field, message: `Must be at most ${maxLength} characters.` });
+    return undefined;
+  }
+  return normalized;
+}
+
+function optionalText(
+  value: unknown,
+  field: string,
+  maxLength: number,
+  issues: ValidationIssue[],
+): string | undefined {
+  if (value === undefined || value === "") return undefined;
+  return requiredText(value, field, maxLength, issues);
+}
+
+function requiredBoolean(
+  value: unknown,
+  field: string,
+  issues: ValidationIssue[],
+): boolean | undefined {
+  if (typeof value !== "boolean") {
+    issues.push({ field, message: "Must be true or false." });
+    return undefined;
+  }
+  return value;
+}
+
+function boundedBodyNumber(
+  value: unknown,
+  field: string,
+  maximum: number,
+  issues: ValidationIssue[],
+  integer = false,
+): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > maximum ||
+    (integer && !Number.isInteger(value))
+  ) {
+    issues.push({
+      field,
+      message: integer
+        ? `Must be a whole number from 0 to ${maximum}.`
+        : `Must be a number from 0 to ${maximum}.`,
+    });
+    return undefined;
+  }
+  return value;
+}
+
+function bodyEnum<const T extends readonly string[]>(
+  value: unknown,
+  field: string,
+  allowed: T,
+  issues: ValidationIssue[],
+): T[number] | undefined {
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    issues.push({ field, message: `Must be one of: ${allowed.join(", ")}.` });
+    return undefined;
+  }
+  return value as T[number];
+}
+
+function textList(
+  value: unknown,
+  field: string,
+  issues: ValidationIssue[],
+): string[] | undefined {
+  if (!Array.isArray(value) || value.length > MAX_LIST_ITEMS) {
+    issues.push({
+      field,
+      message: `Must be a list with at most ${MAX_LIST_ITEMS} items.`,
+    });
+    return undefined;
+  }
+  const normalized: string[] = [];
+  for (const [index, item] of value.entries()) {
+    const text = requiredText(item, `${field}.${index}`, 200, issues);
+    if (text && !normalized.includes(text)) normalized.push(text);
+  }
+  return normalized;
+}
+
+function parsePrice(
+  value: unknown,
+  required: boolean,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["price"] | undefined {
+  if (value === undefined && !required) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "price", message: "Must be an object." });
+    return undefined;
+  }
+  unknownFields(value, ["amount", "negotiable"], "price", issues);
+  const amount = boundedBodyNumber(value.amount, "price.amount", MAX_PRICE, issues);
+  const negotiable = requiredBoolean(value.negotiable, "price.negotiable", issues);
+  return amount !== undefined && negotiable !== undefined
+    ? { amount, negotiable }
+    : undefined;
+}
+
+function parseLocation(
+  value: unknown,
+  required: boolean,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["location"] | undefined {
+  if (value === undefined && !required) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "location", message: "Must be an object." });
+    return undefined;
+  }
+  unknownFields(
+    value,
+    ["province", "city", "barangay", "development", "publicPrecision"],
+    "location",
+    issues,
+  );
+  const province = requiredText(value.province, "location.province", 100, issues);
+  const city = requiredText(value.city, "location.city", 100, issues);
+  const barangay = optionalText(value.barangay, "location.barangay", 100, issues);
+  const development = optionalText(
+    value.development,
+    "location.development",
+    140,
+    issues,
+  );
+  const publicPrecision = bodyEnum(
+    value.publicPrecision,
+    "location.publicPrecision",
+    PUBLIC_LOCATION_PRECISIONS,
+    issues,
+  );
+  if (!province || !city || !publicPrecision) return undefined;
+  return {
+    province,
+    city,
+    ...(barangay ? { barangay } : {}),
+    ...(development ? { development } : {}),
+    publicPrecision,
+  };
+}
+
+function parseSpecifications(
+  value: unknown,
+  required: boolean,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["specifications"] | undefined {
+  if (value === undefined && !required) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "specifications", message: "Must be an object." });
+    return undefined;
+  }
+  const fields = [
+    "bedrooms",
+    "bathrooms",
+    "parkingSpaces",
+    "lotAreaSqm",
+    "floorAreaSqm",
+    "storeys",
+    "furnishing",
+  ] as const;
+  unknownFields(value, fields, "specifications", issues);
+  const result: AdminPropertyContentInput["specifications"] = {};
+  for (const field of ["bedrooms", "bathrooms", "parkingSpaces", "storeys"] as const) {
+    if (value[field] !== undefined) {
+      const parsed = boundedBodyNumber(
+        value[field],
+        `specifications.${field}`,
+        MAX_ROOM_COUNT,
+        issues,
+        true,
+      );
+      if (parsed !== undefined) result[field] = parsed;
+    }
+  }
+  for (const field of ["lotAreaSqm", "floorAreaSqm"] as const) {
+    if (value[field] !== undefined) {
+      const parsed = boundedBodyNumber(
+        value[field],
+        `specifications.${field}`,
+        MAX_AREA_SQM,
+        issues,
+      );
+      if (parsed !== undefined) result[field] = parsed;
+    }
+  }
+  const furnishing = optionalText(
+    value.furnishing,
+    "specifications.furnishing",
+    100,
+    issues,
+  );
+  if (furnishing) result.furnishing = furnishing;
+  return result;
+}
+
+function parseAdminPropertyContent(
+  rawBody: unknown,
+  mode: "create" | "update",
+): CreateDraftPropertyRequest | UpdateDraftPropertyRequest {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(rawBody)) {
+    throw new HttpError(400, "Invalid property request.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  unknownFields(rawBody, ADMIN_PROPERTY_CONTENT_FIELDS, "", issues);
+  if (mode === "update" && Object.keys(rawBody).length === 0) {
+    issues.push({ field: "body", message: "Provide at least one field to update." });
+  }
+
+  const required = mode === "create";
+  const result: UpdateDraftPropertyRequest = {};
+
+  const propertyId =
+    rawBody.propertyId !== undefined || required
+      ? requiredText(rawBody.propertyId, "propertyId", 40, issues)
+      : undefined;
+  if (propertyId) {
+    if (!PROPERTY_ID_PATTERN.test(propertyId)) {
+      issues.push({
+        field: "propertyId",
+        message: "May contain only letters, numbers, hyphens, and underscores.",
+      });
+    } else {
+      result.propertyId = propertyId.toUpperCase();
+    }
+  }
+
+  const slug =
+    rawBody.slug !== undefined || required
+      ? requiredText(rawBody.slug, "slug", 160, issues)
+      : undefined;
+  if (slug) {
+    if (!SLUG_PATTERN.test(slug)) {
+      issues.push({
+        field: "slug",
+        message: "Must be lowercase words separated by single hyphens.",
+      });
+    } else {
+      result.slug = slug;
+    }
+  }
+
+  for (const [field, maximum] of [
+    ["title", 180],
+    ["shortDescription", 500],
+    ["description", 10_000],
+  ] as const) {
+    if (rawBody[field] !== undefined || required) {
+      const parsed = requiredText(rawBody[field], field, maximum, issues);
+      if (parsed) result[field] = parsed;
+    }
+  }
+
+  if (rawBody.purpose !== undefined || required) {
+    const value = bodyEnum(rawBody.purpose, "purpose", LISTING_PURPOSES, issues);
+    if (value) result.purpose = value;
+  }
+  if (rawBody.propertyType !== undefined || required) {
+    const value = bodyEnum(
+      rawBody.propertyType,
+      "propertyType",
+      PROPERTY_TYPES,
+      issues,
+    );
+    if (value) result.propertyType = value;
+  }
+  if (rawBody.featured !== undefined || required) {
+    const value = requiredBoolean(rawBody.featured, "featured", issues);
+    if (value !== undefined) result.featured = value;
+  }
+
+  const price = parsePrice(rawBody.price, required, issues);
+  if (price) result.price = price;
+  const location = parseLocation(rawBody.location, required, issues);
+  if (location) result.location = location;
+  const specifications = parseSpecifications(rawBody.specifications, required, issues);
+  if (specifications) result.specifications = specifications;
+
+  for (const field of ["highlights", "amenities", "features"] as const) {
+    if (rawBody[field] !== undefined || required) {
+      const value = textList(rawBody[field], field, issues);
+      if (value) result[field] = value;
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new HttpError(400, "Invalid property request.", issues);
+  }
+  return result as CreateDraftPropertyRequest | UpdateDraftPropertyRequest;
+}
+
+export function parseCreateDraftPropertyBody(
+  rawBody: unknown,
+): CreateDraftPropertyRequest {
+  return parseAdminPropertyContent(rawBody, "create") as CreateDraftPropertyRequest;
+}
+
+export function parseUpdateDraftPropertyBody(
+  rawBody: unknown,
+): UpdateDraftPropertyRequest {
+  return parseAdminPropertyContent(rawBody, "update");
+}
+
+export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListRequest {
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(query)) {
+    if (!["publicationStatus", "page", "limit"].includes(field)) {
+      issues.push({ field, message: "Unknown query parameter." });
+    }
+  }
+  const publicationStatus = enumValue(
+    query,
+    "publicationStatus",
+    PROPERTY_PUBLICATION_STATUSES,
+    issues,
+  );
+  const page =
+    nonNegativeNumber(query, "page", issues, {
+      integer: true,
+      minimum: 1,
+      maximum: 100_000,
+    }) ?? 1;
+  const limit =
+    nonNegativeNumber(query, "limit", issues, {
+      integer: true,
+      minimum: 1,
+      maximum: MAX_ADMIN_LIST_LIMIT,
+    }) ?? 25;
+  if (issues.length > 0) {
+    throw new HttpError(400, "Invalid private property parameters.", issues);
+  }
+  return { ...(publicationStatus ? { publicationStatus } : {}), page, limit };
+}
+
+export function parseAdminPropertyId(rawId: unknown): string {
+  if (
+    typeof rawId !== "string" ||
+    !/^[a-fA-F0-9]{24}$/.test(rawId) ||
+    !Types.ObjectId.isValid(rawId)
+  ) {
+    throw new HttpError(400, "Invalid property ID.", [
+      { field: "id", message: "Must be a valid property identifier." },
+    ]);
+  }
+  return rawId;
 }

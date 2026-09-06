@@ -42,10 +42,32 @@ npm run test:e2e
 - An API endpoint has an HTTP-level integration test covering its success response and
   important validation or visibility failure. Services are dependency-injected so this
   layer does not pretend that a missing MongoDB service is working.
+- Authentication HTTP tests use an in-memory session/store boundary and a fake OIDC
+  provider. Protocol tests separately run `openid-client` against a local issuer with a
+  generated signing key and JWKS, so issuer, audience, signature, expiry, state, nonce
+  and PKCE failures are exercised without a live Auth0 dependency. They also verify the
+  MFA `acr_values` request, accepted `amr: ["mfa"]`, development-only signed passkey
+  evidence, fail-closed missing/empty/password-only evidence, and production rejection
+  of passkey-only evidence.
+- Session tests assert exact-once revocation audit events for rotation, logout,
+  concurrent-limit eviction, staff deactivation and stale local authorization. Repeated
+  revocation attempts create no false event, and serialized audits are checked against
+  raw tokens, hashes, cookies, CSRF values, callback codes and provider tokens.
+- Admin-property HTTP tests exercise all four protected routes as anonymous, denied and
+  permitted callers. They cover session rejection, exact-origin and session-bound CSRF
+  enforcement, strict allowlisted validation, forced draft creation, draft-only edits,
+  public invisibility and the shared error envelope without a live database or Auth0.
+- Admin-property service tests prove explicit field assignment and exact-once safe audit
+  metadata for successful creates and edits. Failed or non-draft edits emit no success
+  event.
 - Mongoose query builders are tested for the published-only predicate and sanitised user
   input. Real persistence remains a separate integration gate that needs MongoDB.
 - A public user journey has a browser test for navigation, URL state, responsive overflow
   and accessible form feedback.
+- The protected admin browser fixture covers session bootstrap, the unauthenticated
+  sign-in URL, no-index metadata, private list, draft create/edit, CSRF forwarding,
+  memory-only client state, forbidden and expired-session states. It intercepts the
+  Auth0/session boundary and does not claim to test a live provider login.
 - The interactive map has browser coverage for deferred loading, shared URL filters,
   card/marker synchronization, approved-point privacy and isolated data failures.
 - Practical performance checks guard initial encoded JavaScript, layout shift, long
@@ -82,9 +104,10 @@ Lighthouse measurement after hosting, media and analytics are selected.
 
 ## External integration boundary
 
-Neither Vitest nor Playwright connects to the project database. The backend HTTP tests
-inject service doubles, and the browser tests use the explicit fixture API. They prove
-application behaviour without pretending to prove MongoDB connectivity or persistence.
+Neither Vitest nor Playwright connects to the project database or Auth0. The backend HTTP
+tests inject service doubles, the OIDC protocol tests use a loopback signed issuer, and
+the browser tests use the explicit fixture API. They prove application behaviour without
+pretending to prove external connectivity or persistence.
 
 The project Atlas environment passed this persistence gate on 2026-09-05: the real health
 endpoint reported a connected Mongoose state, and temporary synthetic property and
@@ -93,10 +116,14 @@ service projection and confirmed private fields stayed excluded. There is intent
 no public inquiry read endpoint and no production seed command. Use synthetic data only;
 never submit a real person's details during verification.
 
-The supplemental responsive request mentions user and admin portals. Those routes do not
-exist in the authorized public MVP, so portal QA is **not applicable**, not silently
-passed. Authentication, client accounts and administration remain later roadmap work;
-testing requirements do not authorize implementing them early.
+The protected `/admin` shell and draft-property pages now exist and have isolated browser
+coverage. A passkey authentication and redirect to the public root were reported against
+the Auth0 Free development tenant on 2026-09-06. That evidence does not yet verify the
+application session cookie, `/admin` return URL, protected MongoDB operations, CSRF
+behavior or logout against the live tenant; those remain explicit manual gates in
+[`auth0-setup.md`](auth0-setup.md). Production still requires validated `amr: mfa` and
+cannot use the development-only signed passkey assurance. Client accounts and broader
+administration remain later work.
 
 ## CI
 

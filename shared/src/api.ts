@@ -51,6 +51,52 @@ export interface ApiErrorResponse {
   issues?: ValidationIssue[];
 }
 
+/** Staff roles owned by the RC Premier Properties application, never by Auth0 claims. */
+export const STAFF_ROLES = ["admin"] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+/** Deny-by-default capabilities checked by backend authorization middleware. */
+export const AUTH_PERMISSIONS = [
+  "property:read-private",
+  "property:write",
+  "property:publish",
+  "property:change-availability",
+  "inquiry:read",
+  "inquiry:update",
+  "audit:read",
+] as const;
+
+export type AuthPermission = (typeof AUTH_PERMISSIONS)[number];
+
+/** Optional query accepted by `GET /api/v1/auth/login`. */
+export interface StartLoginRequest {
+  /** Exact allowlisted frontend URL to receive the browser after login. */
+  returnTo?: string;
+}
+
+export interface AuthenticatedStaff {
+  id: string;
+  displayName: string;
+  email: string;
+  role: StaffRole;
+}
+
+/** Body returned by `GET /api/v1/auth/session`. */
+export interface CurrentSessionResponse {
+  authenticated: true;
+  staff: AuthenticatedStaff;
+  permissions: AuthPermission[];
+  /** Session-bound token required in `X-CSRF-Token` on authenticated writes. */
+  csrfToken: string;
+  idleExpiresAt: string;
+  absoluteExpiresAt: string;
+}
+
+/** Body returned by the idempotent `POST /api/v1/auth/logout`. */
+export interface LogoutResponse {
+  status: "logged-out";
+}
+
 export const PROPERTY_TYPES = [
   "house-and-lot",
   "condominium",
@@ -83,6 +129,15 @@ export const PROPERTY_AVAILABILITY = [
   "rented",
 ] as const;
 export type PropertyAvailability = (typeof PROPERTY_AVAILABILITY)[number];
+
+export const PROPERTY_PUBLICATION_STATUSES = [
+  "draft",
+  "pending",
+  "published",
+  "archived",
+] as const;
+
+export type PropertyPublicationStatus = (typeof PROPERTY_PUBLICATION_STATUSES)[number];
 
 export type PropertyCurrency = "PHP";
 
@@ -174,6 +229,104 @@ export interface PublicPropertyDetail extends PublicPropertySummary {
   features: string[];
   gallery: PublicPropertyMedia[];
   updatedAt: string;
+}
+
+/** Content fields accepted by the Phase 3A draft create/edit endpoints. */
+export const ADMIN_PROPERTY_CONTENT_FIELDS = [
+  "propertyId",
+  "slug",
+  "title",
+  "purpose",
+  "propertyType",
+  "featured",
+  "price",
+  "location",
+  "specifications",
+  "shortDescription",
+  "description",
+  "highlights",
+  "amenities",
+  "features",
+] as const;
+
+export type AdminPropertyContentField = (typeof ADMIN_PROPERTY_CONTENT_FIELDS)[number];
+
+export interface AdminPropertyPriceInput {
+  amount: number;
+  negotiable: boolean;
+}
+
+export interface AdminPropertyLocationInput {
+  province: string;
+  city: string;
+  barangay?: string;
+  development?: string;
+  publicPrecision: PublicLocationPrecision;
+}
+
+export interface AdminPropertyContentInput {
+  propertyId: string;
+  slug: string;
+  title: string;
+  purpose: ListingPurpose;
+  propertyType: PropertyType;
+  featured: boolean;
+  price: AdminPropertyPriceInput;
+  location: AdminPropertyLocationInput;
+  specifications: PublicPropertySpecifications;
+  shortDescription: string;
+  description: string;
+  highlights: string[];
+  amenities: string[];
+  features: string[];
+}
+
+/** Body accepted by `POST /api/v1/admin/properties`. */
+export type CreateDraftPropertyRequest = AdminPropertyContentInput;
+
+/** Body accepted by `PATCH /api/v1/admin/properties/:id`. */
+export type UpdateDraftPropertyRequest = Partial<AdminPropertyContentInput>;
+
+export interface AdminPropertySummary {
+  id: string;
+  propertyId: string;
+  slug: string;
+  title: string;
+  purpose: ListingPurpose;
+  propertyType: PropertyType;
+  availability: PropertyAvailability;
+  publicationStatus: PropertyPublicationStatus;
+  featured: boolean;
+  price: {
+    amount: number;
+    currency: PropertyCurrency;
+    negotiable: boolean;
+  };
+  location: AdminPropertyLocationInput;
+  shortDescription: string;
+  updatedAt: string;
+}
+
+export interface AdminPropertyDetail extends AdminPropertySummary {
+  specifications: PublicPropertySpecifications;
+  description: string;
+  highlights: string[];
+  amenities: string[];
+  features: string[];
+  createdAt: string;
+  publishedAt?: string;
+}
+
+export interface AdminPropertyListRequest {
+  publicationStatus?: PropertyPublicationStatus;
+  page: number;
+  limit: number;
+}
+
+/** Body returned by `GET /api/v1/admin/properties`. */
+export interface AdminPropertyListResponse {
+  items: AdminPropertySummary[];
+  pagination: PaginationMeta;
 }
 
 export const PROPERTY_SORT_OPTIONS = ["newest", "price-asc", "price-desc"] as const;
