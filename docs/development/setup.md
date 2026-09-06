@@ -211,9 +211,11 @@ implemented routes. With no published records, the catalogue and featured sectio
 intentional empty states; the repository contains no seed or sample inventory.
 
 When Auth0 is configured, start a staff login at
-`http://localhost:5000/api/v1/auth/login`. The provider redirects back to the backend,
-which issues the local opaque session and redirects to the exact allowlisted frontend
-URL. Follow the complete real-login and security acceptance checklist in
+`http://localhost:3000/admin`. The protected shell starts the backend login route when
+needed, the provider redirects back to the backend, and the backend issues the local
+opaque session before returning to the exact allowlisted `/admin` URL. Ensure
+`AUTH_ALLOWED_RETURN_URLS` includes `http://localhost:3000/admin`, then follow the
+complete real-login and security acceptance checklist in
 [`auth0-setup.md`](auth0-setup.md).
 
 You can also check the API directly:
@@ -367,9 +369,11 @@ Then register it with one line in `backend/src/routes.ts`, and put any type the 
 also needs in `shared/src/api.ts`.
 
 The public API currently provides health, published property list/facet/detail reads and
-inquiry creation. There are no public property writes or inquiry reads. Authentication,
-admin tools and confirmed appointments have not been implemented; a viewing submission
-is only a request for follow-up.
+inquiry creation. There are no public property writes or inquiry reads. The protected
+staff boundary provides an admin shell plus private property list/detail and draft
+create/edit operations. Publishing, availability transitions, media management, inquiry
+administration and confirmed appointments remain unimplemented; a viewing submission is
+only a request for follow-up.
 
 ---
 

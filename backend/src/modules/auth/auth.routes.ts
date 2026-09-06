@@ -22,6 +22,12 @@ export interface AuthRouteDependencies {
   loginRateLimit?: RequestHandler;
 }
 
+export interface ResolvedAuthRouteDependencies {
+  service: AuthService | null;
+  cookies?: AuthCookieSettings;
+  loginRateLimit: RequestHandler;
+}
+
 function defaultAuthService(): AuthService | null {
   const auth = env.AUTH;
   if (!auth) return null;
@@ -41,6 +47,7 @@ function defaultAuthService(): AuthService | null {
       allowedReturnUrls: auth.allowedReturnUrls,
       allowedOrigins: [env.CORS_ORIGIN],
       requiredAmr: auth.requiredAmr,
+      allowPasskeyOnly: auth.allowPasskeyOnly,
       sessionIdleMs: auth.sessionIdleMinutes * 60_000,
       sessionAbsoluteMs: auth.sessionAbsoluteHours * 60 * 60_000,
       sessionActivityTouchMs: 5 * 60_000,
@@ -50,18 +57,12 @@ function defaultAuthService(): AuthService | null {
   );
 }
 
-export function createAuthRoutes(dependencies: AuthRouteDependencies = {}): Router {
-  const router = Router();
-  router.use(noStore());
-
+export function resolveAuthRouteDependencies(
+  dependencies: AuthRouteDependencies = {},
+): ResolvedAuthRouteDependencies {
   const service = dependencies.service ?? defaultAuthService();
-  if (!service) {
-    router.use((_req, _res, next) => {
-      next(new HttpError(503, "Authentication is not configured."));
-    });
-    return router;
-  }
-
+  const loginRateLimit = dependencies.loginRateLimit ?? createLoginRateLimit();
+  if (!service) return { service: null, loginRateLimit };
   const cookies =
     dependencies.cookies ??
     createAuthCookieSettings(
@@ -69,13 +70,29 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}): Rout
       service.config.sessionAbsoluteMs,
       service.config.transactionLifetimeMs,
     );
+  return { service, cookies, loginRateLimit };
+}
+
+export function createAuthRoutes(
+  dependencies: AuthRouteDependencies = {},
+  resolved: ResolvedAuthRouteDependencies = resolveAuthRouteDependencies(dependencies),
+): Router {
+  const router = Router();
+  router.use(noStore());
+
+  const { service } = resolved;
+  if (!service) {
+    router.use((_req, _res, next) => {
+      next(new HttpError(503, "Authentication is not configured."));
+    });
+    return router;
+  }
+
+  const cookies = resolved.cookies;
+  if (!cookies) throw new Error("Resolved authentication cookies are missing.");
   const controller = createAuthController(service, cookies);
 
-  router.get(
-    "/login",
-    dependencies.loginRateLimit ?? createLoginRateLimit(),
-    controller.start,
-  );
+  router.get("/login", resolved.loginRateLimit, controller.start);
   router.get("/callback", controller.callback);
   router.get("/session", requireAuthentication(service, cookies), controller.current);
   router.post(

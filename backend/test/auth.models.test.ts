@@ -78,6 +78,28 @@ describe("authentication persistence schemas", () => {
     expect(serialized).not.toContain("private inquiry message");
     expect(serialized).not.toContain("provider-token");
   });
+
+  it("accepts property field names but strips property values from audit details", async () => {
+    const event = new SecurityAuditEventModel({
+      action: "property.edited",
+      entityType: "property",
+      entityId: "507f1f77bcf86cd799439011",
+      outcome: "succeeded",
+      requestId: "request-property-edit",
+      details: {
+        changedFields: ["title", "description"],
+        description: "Sensitive property description",
+        csrfToken: "sensitive-csrf-value",
+      },
+      occurredAt: new Date(),
+    });
+
+    await expect(event.validate()).resolves.toBeUndefined();
+    expect(event.details?.changedFields).toEqual(["title", "description"]);
+    const serialized = JSON.stringify(event.toObject());
+    expect(serialized).not.toContain("Sensitive property description");
+    expect(serialized).not.toContain("sensitive-csrf-value");
+  });
 });
 
 describe("authentication token and cookie controls", () => {

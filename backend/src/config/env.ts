@@ -202,6 +202,7 @@ export interface AuthEnvironmentConfig {
   callbackUrl: string;
   allowedReturnUrls: readonly string[];
   requiredAmr: string;
+  allowPasskeyOnly: boolean;
   sessionHashSecret: string;
   sessionIdleMinutes: number;
   sessionAbsoluteHours: number;
@@ -259,6 +260,7 @@ function authEnvironment(
     callbackUrl,
     allowedReturnUrls,
     requiredAmr,
+    allowPasskeyOnly: nodeEnv !== "production",
     sessionHashSecret,
     sessionIdleMinutes: positiveInteger("AUTH_SESSION_IDLE_MINUTES", 30),
     sessionAbsoluteHours: positiveInteger("AUTH_SESSION_ABSOLUTE_HOURS", 8),

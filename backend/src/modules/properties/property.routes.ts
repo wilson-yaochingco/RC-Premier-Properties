@@ -1,6 +1,18 @@
-import { Router } from "express";
-import { createPropertyController } from "./property.controller.js";
-import type { PropertyService } from "./property.types.js";
+import { Router, type RequestHandler } from "express";
+import { HttpError } from "../../middleware/errorHandler.js";
+import {
+  noStore,
+  requireAllowedOrigin,
+  requireAuthentication,
+  requireCsrf,
+  requirePermission,
+} from "../auth/auth.middleware.js";
+import type { ResolvedAuthRouteDependencies } from "../auth/auth.routes.js";
+import {
+  createAdminPropertyController,
+  createPropertyController,
+} from "./property.controller.js";
+import type { AdminPropertyService, PropertyService } from "./property.types.js";
 
 export function createPropertyRoutes(service?: PropertyService): Router {
   const router = Router();
@@ -10,6 +22,69 @@ export function createPropertyRoutes(service?: PropertyService): Router {
   router.get("/map", controller.map);
   router.get("/:slug", controller.detail);
   router.get("/", controller.search);
+
+  return router;
+}
+
+export interface AdminPropertyRouteDependencies {
+  service?: AdminPropertyService;
+  auth: ResolvedAuthRouteDependencies;
+  readPermission?: RequestHandler;
+  writePermission?: RequestHandler;
+}
+
+const requireJson: RequestHandler = (request, _response, next) => {
+  if (!request.is("application/json")) {
+    next(new HttpError(415, "Property requests must use application/json."));
+    return;
+  }
+  next();
+};
+
+export function createAdminPropertyRoutes(
+  dependencies: AdminPropertyRouteDependencies,
+): Router {
+  const router = Router();
+  router.use(noStore());
+
+  const { service: authService, cookies } = dependencies.auth;
+  if (!authService || !cookies) {
+    router.use((_req, _res, next) => {
+      next(new HttpError(503, "Authentication is not configured."));
+    });
+    return router;
+  }
+
+  const controller = createAdminPropertyController(dependencies.service);
+  const authenticate = requireAuthentication(authService, cookies);
+  const requireRead =
+    dependencies.readPermission ??
+    requirePermission(authService, "property:read-private");
+  const requireWrite =
+    dependencies.writePermission ?? requirePermission(authService, "property:write");
+  const allowedOrigin = requireAllowedOrigin(authService);
+  const csrf = requireCsrf(authService);
+
+  router.get("/", authenticate, requireRead, controller.list);
+  router.get("/:id", authenticate, requireRead, controller.detail);
+  router.post(
+    "/",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireWrite,
+    requireJson,
+    controller.create,
+  );
+  router.patch(
+    "/:id",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireWrite,
+    requireJson,
+    controller.update,
+  );
 
   return router;
 }

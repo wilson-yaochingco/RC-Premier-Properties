@@ -130,6 +130,15 @@ export const PROPERTY_AVAILABILITY = [
 ] as const;
 export type PropertyAvailability = (typeof PROPERTY_AVAILABILITY)[number];
 
+export const PROPERTY_PUBLICATION_STATUSES = [
+  "draft",
+  "pending",
+  "published",
+  "archived",
+] as const;
+
+export type PropertyPublicationStatus = (typeof PROPERTY_PUBLICATION_STATUSES)[number];
+
 export type PropertyCurrency = "PHP";
 
 /**
@@ -220,6 +229,104 @@ export interface PublicPropertyDetail extends PublicPropertySummary {
   features: string[];
   gallery: PublicPropertyMedia[];
   updatedAt: string;
+}
+
+/** Content fields accepted by the Phase 3A draft create/edit endpoints. */
+export const ADMIN_PROPERTY_CONTENT_FIELDS = [
+  "propertyId",
+  "slug",
+  "title",
+  "purpose",
+  "propertyType",
+  "featured",
+  "price",
+  "location",
+  "specifications",
+  "shortDescription",
+  "description",
+  "highlights",
+  "amenities",
+  "features",
+] as const;
+
+export type AdminPropertyContentField = (typeof ADMIN_PROPERTY_CONTENT_FIELDS)[number];
+
+export interface AdminPropertyPriceInput {
+  amount: number;
+  negotiable: boolean;
+}
+
+export interface AdminPropertyLocationInput {
+  province: string;
+  city: string;
+  barangay?: string;
+  development?: string;
+  publicPrecision: PublicLocationPrecision;
+}
+
+export interface AdminPropertyContentInput {
+  propertyId: string;
+  slug: string;
+  title: string;
+  purpose: ListingPurpose;
+  propertyType: PropertyType;
+  featured: boolean;
+  price: AdminPropertyPriceInput;
+  location: AdminPropertyLocationInput;
+  specifications: PublicPropertySpecifications;
+  shortDescription: string;
+  description: string;
+  highlights: string[];
+  amenities: string[];
+  features: string[];
+}
+
+/** Body accepted by `POST /api/v1/admin/properties`. */
+export type CreateDraftPropertyRequest = AdminPropertyContentInput;
+
+/** Body accepted by `PATCH /api/v1/admin/properties/:id`. */
+export type UpdateDraftPropertyRequest = Partial<AdminPropertyContentInput>;
+
+export interface AdminPropertySummary {
+  id: string;
+  propertyId: string;
+  slug: string;
+  title: string;
+  purpose: ListingPurpose;
+  propertyType: PropertyType;
+  availability: PropertyAvailability;
+  publicationStatus: PropertyPublicationStatus;
+  featured: boolean;
+  price: {
+    amount: number;
+    currency: PropertyCurrency;
+    negotiable: boolean;
+  };
+  location: AdminPropertyLocationInput;
+  shortDescription: string;
+  updatedAt: string;
+}
+
+export interface AdminPropertyDetail extends AdminPropertySummary {
+  specifications: PublicPropertySpecifications;
+  description: string;
+  highlights: string[];
+  amenities: string[];
+  features: string[];
+  createdAt: string;
+  publishedAt?: string;
+}
+
+export interface AdminPropertyListRequest {
+  publicationStatus?: PropertyPublicationStatus;
+  page: number;
+  limit: number;
+}
+
+/** Body returned by `GET /api/v1/admin/properties`. */
+export interface AdminPropertyListResponse {
+  items: AdminPropertySummary[];
+  pagination: PaginationMeta;
 }
 
 export const PROPERTY_SORT_OPTIONS = ["newest", "price-asc", "price-desc"] as const;

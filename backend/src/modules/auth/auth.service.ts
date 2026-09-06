@@ -135,7 +135,12 @@ export class AuthService {
       await this.failedLogin("unassigned-staff", input.requestId, now, staff.id);
       throw new HttpError(401, AUTHENTICATION_FAILED);
     }
-    if (!identity.authenticationMethods.includes(this.config.requiredAmr)) {
+    const hasRequiredMfa = identity.authenticationMethods.includes(
+      this.config.requiredAmr,
+    );
+    const hasAllowedDevelopmentPasskey =
+      this.config.allowPasskeyOnly && identity.passkeyAuthenticated;
+    if (!hasRequiredMfa && !hasAllowedDevelopmentPasskey) {
       await this.failedLogin("insufficient-assurance", input.requestId, now, staff.id);
       throw new HttpError(401, AUTHENTICATION_FAILED);
     }

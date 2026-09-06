@@ -3,10 +3,11 @@
 This records decisions that are **already in force** and verifiable in the code. It is
 not a plan for future work.
 
-Status: the public MVP vertical slice and Phase 3A backend authentication foundation are
-implemented. The API exposes health, published-property reads, inquiry creation and the
-staff login/session/logout boundary. Property administration, inquiry administration and
-confirmed appointments remain outside the implemented system.
+Status: the public MVP vertical slice, Phase 3A authentication foundation, and first
+property-administration slice are implemented. The API exposes health, published reads,
+inquiry creation, staff login/session/logout, private property reads and draft
+create/edit. Publishing, availability transitions, media and inquiry administration
+remain outside the implemented system.
 
 ---
 
@@ -45,9 +46,9 @@ response shapes, the error envelope, and `API_VERSION` / `API_PREFIX`.
 
 Both apps import from `@rc/shared` rather than declaring their own copies. Renaming a
 field there fails the build on whichever side was not updated. The contract now includes
-health, property taxonomy and public listing shapes, search/facet responses, inquiry
-requests and acknowledgements, staff session and named permission shapes, and the common
-error envelope.
+health, property taxonomy, public and private listing shapes, draft-property requests,
+search/facet responses, inquiry requests and acknowledgements, staff session and named
+permission shapes, and the common error envelope.
 
 **Rule:** if it travels over the network, it goes in `shared/src/api.ts`. Types only one
 app cares about stay local — `frontend/src/types/` or the relevant backend module.
@@ -116,10 +117,10 @@ exist to stay small.
 page uses it.
 
 The implemented routes are `/`, `/properties`, `/properties/[slug]`, `/about`,
-`/contact`, `/sell` and `/book-viewing`, plus loading, error and not-found boundaries,
-`robots.txt` and `sitemap.xml`. Property and inquiry code lives under matching feature
-folders. A small shared API client normalizes non-2xx, network and malformed-response
-failures into the shared error contract.
+`/contact`, `/sell`, `/book-viewing`, and the protected `/admin` property list/create/edit
+routes, plus loading, error and not-found boundaries, `robots.txt` and `sitemap.xml`.
+Property and inquiry code lives under matching feature folders. A small shared API client
+normalizes non-2xx, network and malformed-response failures into the shared error contract.
 
 Global and route metadata use `NEXT_PUBLIC_SITE_URL` as their public origin. Static
 routes appear in `sitemap.xml`; `robots.txt` allows the public site and reserves `/admin`
@@ -185,11 +186,12 @@ returns an opaque acknowledgement without echoing personal data. There is delibe
 no public inquiry read endpoint. A viewing submission is a request for staff follow-up,
 not a booking or confirmed appointment.
 
-The authentication/session boundary exists, but no property-management, inquiry-read or
-audit-read API has been exposed yet. Those future endpoints must opt into a named
-permission and perform service-level scope checks. The approved company logo, production
-media, public contact details and actual listings have also not been supplied; the public
-UI represents those gaps explicitly instead of inventing data.
+The authentication/session boundary now protects private property list/detail and draft
+create/edit endpoints. Reads require `property:read-private`; writes require
+`property:write`, exact origin and session-bound CSRF. Publication, availability,
+inquiry-read and audit-read APIs remain unimplemented. The approved company logo,
+production media, public contact details and actual listings have also not been supplied;
+the public UI represents those gaps explicitly instead of inventing data.
 
 ---
 

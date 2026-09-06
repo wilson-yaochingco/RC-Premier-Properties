@@ -19,7 +19,10 @@ explains behaviour and intentionally does not create a second TypeScript contrac
 
 There are no public property writes and no public inquiry reads. Staff authentication
 uses a separate backend session boundary documented in
-[`authentication-api.md`](authentication-api.md); no administration APIs are exposed.
+[`authentication-api.md`](authentication-api.md). Protected private property reads and
+draft writes are documented separately in
+[`property-administration-api.md`](property-administration-api.md); they never widen the
+public visibility rules below.
 
 ## `GET /health`
 

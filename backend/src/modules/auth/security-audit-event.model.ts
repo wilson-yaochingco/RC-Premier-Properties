@@ -7,12 +7,17 @@ import {
   type AuditOutcome,
   type AuditReason,
 } from "./auth.types.js";
-import { AUTH_PERMISSIONS, type AuthPermission } from "@rc/shared";
+import {
+  ADMIN_PROPERTY_CONTENT_FIELDS,
+  AUTH_PERMISSIONS,
+  type AdminPropertyContentField,
+  type AuthPermission,
+} from "@rc/shared";
 
 export interface SecurityAuditEventEntity {
   actorStaffIdentity?: Types.ObjectId;
   action: AuditAction;
-  entityType: "authentication" | "session" | "staff-identity";
+  entityType: "authentication" | "property" | "session" | "staff-identity";
   entityId?: string;
   outcome: AuditOutcome;
   requestId: string;
@@ -20,6 +25,7 @@ export interface SecurityAuditEventEntity {
     reason?: AuditReason;
     permission?: AuthPermission;
     revokedSessionCount?: number;
+    changedFields?: AdminPropertyContentField[];
   };
   occurredAt: Date;
 }
@@ -29,6 +35,7 @@ const auditDetailsSchema = new Schema(
     reason: { type: String, enum: AUDIT_REASONS },
     permission: { type: String, enum: AUTH_PERMISSIONS },
     revokedSessionCount: { type: Number, min: 0 },
+    changedFields: [{ type: String, enum: ADMIN_PROPERTY_CONTENT_FIELDS }],
   },
   { _id: false },
 );
@@ -39,7 +46,7 @@ const securityAuditEventSchema = new Schema<SecurityAuditEventEntity>(
     action: { type: String, enum: AUDIT_ACTIONS, required: true },
     entityType: {
       type: String,
-      enum: ["authentication", "session", "staff-identity"],
+      enum: ["authentication", "property", "session", "staff-identity"],
       required: true,
     },
     entityId: { type: String, trim: true, maxlength: 255 },

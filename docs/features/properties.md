@@ -84,9 +84,10 @@ coordinate. See the
 [public API reference](../api/public-api.md) and
 [model contract](../database/property-and-inquiry-models.md) for the complete boundary.
 
-There are no public property create/update/delete endpoints. Authentication,
-authorization, staff administration and inventory-management UI are later work and must
-precede any such endpoint.
+There are no public property create/update/delete endpoints. The Phase 3A staff UI now
+uses separate authenticated private-read and draft create/edit routes; those routes do
+not weaken this published-only boundary. See
+[`property-administration.md`](property-administration.md).
 
 ## Property detail behaviour
 
@@ -125,4 +126,5 @@ assets.
 - No certified, licence-compatible barangay boundary dataset has been approved.
 - No production listing has a business-reviewed public precision or public point; only
   clearly synthetic browser fixtures exercise markers.
-- No auth/admin property-management phase is implemented.
+- The first auth/admin draft-management slice is implemented; publishing, availability
+  transitions and media management remain open Phase 3A work.

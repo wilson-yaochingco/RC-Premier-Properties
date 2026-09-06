@@ -1,6 +1,6 @@
 # OIDC Provider Selection
 
-Status: **accepted and integrated behind a testable boundary; provider account not yet provisioned**
+Status: **accepted and integrated; development passkey redirect reported, live session acceptance pending**
 
 Decision date: 2026-09-05
 
@@ -141,11 +141,10 @@ Provisioning must use these controls:
 - Keep public sign-up disabled on the dedicated database connection. A passkey may be
   enabled there as the primary authentication method, but it must not be described as or
   substituted for an Auth0 MFA factor.
-- Under **Security → Multi-factor Auth**, configure at least one independent factor,
-  select tenant policy **Always**, and do not add an Action that weakens or overrides the
-  policy. WebAuthn with FIDO Security Keys is the phishing-resistant MFA factor aligned
-  with the production requirement; OTP can exercise development flow but does not meet
-  that production requirement.
+- On the Free development tenant, require a database-connection passkey and deploy the
+  reviewed Post-Login Action that reports actual passkey use through a signed namespaced
+  ID-token claim. The backend accepts that evidence only outside production. Production
+  still requires an approved MFA factor and policy **Always**.
 - Register exact callback and logout URLs. Do not use wildcard production URLs.
 - Request only `openid profile email`. Do not request provider API access or offline
   access unless a later implementation requirement proves it necessary.
@@ -164,8 +163,10 @@ policy, connections, callback URLs, log retention and tenant administrators.
 
 Auth0 Free provides primary passkeys, but its current pricing matrix excludes Pro MFA
 factors. A primary passkey and WebAuthn configured as a second-factor challenge are
-different Auth0 features. The application never infers MFA from passkey availability or
-use; only the verified hosted-flow `amr` array containing `mfa` satisfies the backend.
+different Auth0 features. For development, the application uses a reviewed Post-Login
+Action to copy Auth0's actual passkey-use result into a signed ID-token claim; that claim
+is accepted only when the backend is not running in production. Production continues to
+require the verified hosted-flow `amr` array containing `mfa`.
 
 Before production, a tenant acceptance test must prove all of the following:
 
@@ -212,17 +213,18 @@ session because it does not implement the accepted local session model.
 
 Authentication tests do not depend on the live Auth0 service. HTTP tests inject the OIDC
 boundary, and protocol tests use a local issuer, generated signing key and JWKS to cover
-positive and negative validation paths. A manual development-tenant acceptance pass
-still has to verify the real redirect flow after the automated security suite passes.
+positive and negative validation paths. Passkey authentication and redirect to the
+public root were reported working on 2026-09-06; a manual development-tenant acceptance
+pass still has to verify the backend session, exact `/admin` return, protected operations
+and logout after the automated security suite passes.
 
 Every authorization request includes
 `acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`, while the
-tenant-wide policy **Always** is the primary enforcement control. Auth0 documents that a
-hosted flow adds `mfa` to the ID-token `amr` only after a successful MFA challenge. The
-application requires that verified value (default `AUTH_REQUIRED_AMR=mfa`) before
-creating a local administrator session. Missing, empty or other values are denied. This
-is a denial control, not evidence that an unprovisioned tenant or Free plan can supply
-durable production MFA; the production assurance gate remains open.
+tenant-wide policy **Always** remains the intended production enforcement control.
+Auth0 documents that a hosted flow adds `mfa` to the ID-token `amr` only after a
+successful MFA challenge. Development may instead satisfy assurance with the signed
+passkey claim; production requires `AUTH_REQUIRED_AMR=mfa`. This does not establish that
+Free supplies durable production MFA, so the production assurance gate remains open.
 
 ## Cost and operational controls
 
@@ -239,17 +241,15 @@ durable production MFA; the production assurance gate remains open.
   staff identity, and verify that local sessions are revoked immediately.
 - Document tenant-owner recovery and require MFA for Auth0 Dashboard administrators.
 
-## Remaining provisioning gates
+## Remaining acceptance gates
 
-Authentication implementation may begin with an injected/test-double OIDC boundary.
-Live integration cannot be completed until the project owner supplies:
-
-- an Auth0 development tenant;
-- its issuer URL, client ID and client secret through a secure channel;
-- approved local callback/logout URLs;
-- the first administrator's Auth0 issuer/subject identity;
-- confirmation that the proposed 30-minute idle and 8-hour absolute application session
-  limits are acceptable.
+The owner has configured the Auth0 Free development application, disabled signup,
+provisioned the first local administrator and completed a passkey redirect. Secrets stay
+only in the ignored local environment. Live integration is not accepted until the exact
+`/admin` return, backend session cookie, protected property operations, CSRF rejection,
+logout and disabled/unknown-staff behavior pass the manual runbook. The proposed
+30-minute idle and 8-hour absolute application session limits also require operational
+approval.
 
 Production remains blocked until the Free-plan security boundary, production identity
 isolation, production domains, log retention and staff recovery ownership are approved.

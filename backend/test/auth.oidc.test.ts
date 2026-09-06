@@ -5,6 +5,7 @@ import {
   MFA_ACR_VALUE,
   OidcVerificationError,
   OpenIdClientProvider,
+  PASSKEY_AUTHENTICATION_CLAIM,
 } from "../src/modules/auth/auth.oidc.js";
 
 const CLIENT_ID = "oidc-protocol-test-client";
@@ -43,6 +44,7 @@ function idToken(
     claims.amr =
       code === "empty-amr" ? [] : code === "passkey-only" ? ["phr"] : ["mfa"];
   }
+  claims[PASSKEY_AUTHENTICATION_CLAIM] = code === "passkey-only";
   const payload = encode(claims);
   const unsigned = `${header}.${payload}`;
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey).toString(
@@ -146,6 +148,7 @@ describe("openid-client protocol boundary", () => {
     expect(url.searchParams.get("nonce")).toBe(authorization.nonce);
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("acr_values")).toBe(MFA_ACR_VALUE);
+    expect(url.searchParams.get("prompt")).toBe("login");
     expect(url.searchParams.get("code_challenge")).toBeTruthy();
     expect(authorization.codeVerifier).not.toBe(url.searchParams.get("code_challenge"));
   });
@@ -164,6 +167,7 @@ describe("openid-client protocol boundary", () => {
       issuer,
       subject: "auth0|protocol-test-admin",
       authenticationMethods: ["mfa"],
+      passkeyAuthenticated: false,
       displayName: "Protocol Test Admin",
       email: "protocol-admin@example.test",
     });
@@ -188,6 +192,7 @@ describe("openid-client protocol boundary", () => {
       });
 
       expect(identity.authenticationMethods).toEqual(amr);
+      expect(identity.passkeyAuthenticated).toBe(code === "passkey-only");
     },
   );
 

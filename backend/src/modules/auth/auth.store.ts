@@ -258,7 +258,10 @@ export class MongooseAuthStore implements AuthStore {
       ...(event.entityId ? { entityId: event.entityId } : {}),
       outcome: event.outcome,
       requestId: event.requestId,
-      ...(event.reason || event.permission || event.revokedSessionCount !== undefined
+      ...(event.reason ||
+      event.permission ||
+      event.revokedSessionCount !== undefined ||
+      event.changedFields
         ? {
             details: {
               ...(event.reason ? { reason: event.reason } : {}),
@@ -266,6 +269,7 @@ export class MongooseAuthStore implements AuthStore {
               ...(event.revokedSessionCount !== undefined
                 ? { revokedSessionCount: event.revokedSessionCount }
                 : {}),
+              ...(event.changedFields ? { changedFields: event.changedFields } : {}),
             },
           }
         : {}),

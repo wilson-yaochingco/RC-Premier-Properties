@@ -1,7 +1,7 @@
 # Authentication Models
 
-Status: implemented Mongoose schemas and service wiring; live project-database
-acceptance pending.
+Status: implemented Mongoose schemas and service wiring; full live session/audit
+acceptance remains pending.
 
 These collections support invited Phase 3A staff only. They do not create public users,
 clients, agents, profiles or any deferred account schema.
@@ -59,7 +59,7 @@ Provider ID, access and refresh tokens are never persisted.
 Append-only authentication events record a local actor reference when one exists,
 predefined action and outcome, entity type/identifier, server-generated request ID,
 timestamp and a deliberately small details object. Details allow only a reason code,
-named permission and revoked-session count.
+named permission, revoked-session count and allowlisted property field names.
 
 Every actual session-revocation transition emits `auth.session.revoked`. Rotation,
 logout, concurrent-limit eviction, staff disablement and role/status/authorization-
@@ -71,6 +71,11 @@ Indexes support newest-first review, actor history and action history. There is 
 index because the application retention period has not been approved. Events cannot
 store callback codes, provider tokens, cookies, CSRF values, passwords, arbitrary text,
 inquiry messages or complete data snapshots.
+
+Successful draft creation/editing uses `property.created` and `property.edited`. These
+events identify the actor and property and record changed field names only; property
+values and raw bodies are not valid audit fields. Property persistence and audit insert
+remain separate writes under the same documented standalone-MongoDB limitation.
 
 Revocation and audit insertion are currently separate writes. The conditional session
 update is atomic, but the following audit insert is not in the same MongoDB transaction.

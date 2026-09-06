@@ -1,6 +1,7 @@
 # Staff Authentication API
 
-Status: backend foundation implemented; live Auth0 development-tenant acceptance pending.
+Status: backend foundation implemented; development passkey redirect reported, live
+application-session and logout acceptance pending.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. The JSON
 contracts and named permissions live in `shared/src/api.ts`. The endpoints use Auth0 only
@@ -30,8 +31,9 @@ The endpoint creates a ten-minute one-time transaction in MongoDB, sets an opaqu
 authorization request includes random state, nonce and PKCE values with
 `code_challenge_method=S256`, plus
 `acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor` to require the
-configured Auth0 MFA step. It is independently limited to ten starts per IP per 15
-minutes.
+configured Auth0 MFA step. It also sends `prompt=login` so a new local session cannot be
+created solely from a pre-existing Auth0 SSO cookie without another authentication
+prompt. It is independently limited to ten starts per IP per 15 minutes.
 
 ## `GET /auth/callback`
 
@@ -42,10 +44,12 @@ envelope and clears the transaction cookie.
 
 A valid provider identity must then match an active local record by exact `(issuer,
 subject)`, have the local `admin` role, and contain the configured authentication-method
-evidence, currently an `amr` array containing `mfa`. Auth0 adds that hosted-flow evidence
-only after a completed MFA challenge. A primary passkey is not inferred to be MFA.
-Unknown, disabled, unassigned, missing/empty `amr`, password-only, primary-passkey-only
-and other incorrect assurance results receive no application session.
+evidence. Production requires an `amr` array containing `mfa`, which Auth0 adds only
+after a completed MFA challenge. Development and test may alternatively accept the
+signed namespaced boolean claim emitted by the reviewed Post-Login Action when Auth0
+reports actual passkey use. That alternative is hard-disabled in production. Unknown,
+disabled, unassigned, missing evidence, password-only and other incorrect assurance
+results receive no application session.
 
 Success revokes any existing browser session, creates a new local opaque session, sets
 the session cookie and redirects to the stored exact `returnTo` URL. No provider token
@@ -96,8 +100,9 @@ and one named permission. The initial local `admin` role receives:
 Permission checks deny by default. Anonymous access returns `401`; an authenticated
 identity missing a required permission returns `403`; a service may return the common
 protected-resource `404 Resource not found.` response when revealing existence would
-disclose protected information. No property-management or inquiry-management route is
-introduced by this foundation.
+disclose protected information. The implemented private property routes use the first
+two permissions; publication, availability and inquiry administration remain
+unimplemented. See [`property-administration-api.md`](property-administration-api.md).
 
 ## Error and audit boundary
 

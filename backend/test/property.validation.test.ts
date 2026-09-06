@@ -1,3 +1,4 @@
+import type { CreateDraftPropertyRequest } from "@rc/shared";
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../src/middleware/errorHandler.js";
 import { PropertyModel } from "../src/modules/properties/property.model.js";
@@ -8,9 +9,35 @@ import {
 } from "../src/modules/properties/property.service.js";
 import type { PublicPropertyRecord } from "../src/modules/properties/property.types.js";
 import {
+  parseAdminPropertyId,
+  parseAdminPropertyListQuery,
+  parseCreateDraftPropertyBody,
   parsePropertyMapQuery,
   parsePropertySearchQuery,
+  parseUpdateDraftPropertyBody,
 } from "../src/modules/properties/property.validation.js";
+
+const DRAFT_REQUEST: CreateDraftPropertyRequest = {
+  propertyId: "RCPP-ADMIN-001",
+  slug: "admin-draft-fixture",
+  title: "Admin draft fixture",
+  purpose: "sale",
+  propertyType: "house-and-lot",
+  featured: false,
+  price: { amount: 7_500_000, negotiable: true },
+  location: {
+    province: "Pampanga",
+    city: "Angeles City",
+    barangay: "Balibago",
+    publicPrecision: "barangay-area",
+  },
+  specifications: { bedrooms: 3, bathrooms: 2, lotAreaSqm: 180 },
+  shortDescription: "A test-only private draft.",
+  description: "Detailed content for the test-only private draft.",
+  highlights: ["First highlight"],
+  amenities: [],
+  features: ["Covered parking"],
+};
 
 describe("property search validation", () => {
   it("normalizes supported filters and supplies pagination defaults", () => {
@@ -339,5 +366,72 @@ describe("property public map point schema", () => {
     await expect(property.validate()).rejects.toThrow(
       "Public map coordinates must be [longitude, latitude] within valid ranges.",
     );
+  });
+});
+
+describe("admin property validation", () => {
+  it("normalizes an allowlisted draft request without adding lifecycle fields", () => {
+    expect(
+      parseCreateDraftPropertyBody({
+        ...DRAFT_REQUEST,
+        propertyId: " rcpp-admin-001 ",
+        title: " Admin draft fixture ",
+        highlights: [" First highlight ", "First highlight"],
+      }),
+    ).toEqual(DRAFT_REQUEST);
+  });
+
+  it.each([
+    { ...DRAFT_REQUEST, publicationStatus: "published" },
+    { ...DRAFT_REQUEST, availability: "sold" },
+    { ...DRAFT_REQUEST, publishedAt: "2026-09-06T00:00:00.000Z" },
+    { ...DRAFT_REQUEST, internalNotes: "mass assignment" },
+    { ...DRAFT_REQUEST, price: { ...DRAFT_REQUEST.price, currency: "PHP" } },
+    {
+      ...DRAFT_REQUEST,
+      location: { ...DRAFT_REQUEST.location, privateAddress: "private" },
+    },
+    { ...DRAFT_REQUEST, propertyType: "castle" },
+    { ...DRAFT_REQUEST, price: { amount: -1, negotiable: false } },
+    { ...DRAFT_REQUEST, specifications: { bedrooms: 1.5 } },
+  ])("rejects invalid or unknown create fields", (body) => {
+    expect(() => parseCreateDraftPropertyBody(body)).toThrowError(
+      expect.objectContaining({ status: 400 }),
+    );
+  });
+
+  it("accepts a partial content edit and rejects empty or lifecycle edits", () => {
+    expect(
+      parseUpdateDraftPropertyBody({
+        title: " Updated title ",
+        description: " Updated draft description. ",
+      }),
+    ).toEqual({
+      title: "Updated title",
+      description: "Updated draft description.",
+    });
+    expect(() => parseUpdateDraftPropertyBody({})).toThrow(HttpError);
+    expect(() =>
+      parseUpdateDraftPropertyBody({ publicationStatus: "published" }),
+    ).toThrow(HttpError);
+    expect(() => parseUpdateDraftPropertyBody({ availability: "sold" })).toThrow(
+      HttpError,
+    );
+  });
+
+  it("validates private list pagination, status, unknown query fields, and IDs", () => {
+    expect(
+      parseAdminPropertyListQuery({
+        publicationStatus: "draft",
+        page: "2",
+        limit: "10",
+      }),
+    ).toEqual({ publicationStatus: "draft", page: 2, limit: 10 });
+    expect(() => parseAdminPropertyListQuery({ owner: "any" })).toThrow(HttpError);
+    expect(() => parseAdminPropertyListQuery({ limit: "51" })).toThrow(HttpError);
+    expect(parseAdminPropertyId("507f1f77bcf86cd799439011")).toBe(
+      "507f1f77bcf86cd799439011",
+    );
+    expect(() => parseAdminPropertyId("not-an-object-id")).toThrow(HttpError);
   });
 });

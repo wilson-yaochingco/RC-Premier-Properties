@@ -65,11 +65,13 @@ Current:
 
 - [`properties.md`](features/properties.md) — published catalogue, filters and property
   detail behaviour
+- [`property-administration.md`](features/property-administration.md) — protected admin
+  shell, private property reads and draft content workflow
 - [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
 
-The backend authentication foundation is documented as an architectural boundary rather
-than a user-facing feature. Staff administration and confirmed appointments are not
-implemented, so they do not yet have feature specifications.
+The backend authentication foundation is documented as an architectural boundary. The
+first property-administration slice now has a feature specification; confirmed
+appointments and broader staff administration remain unimplemented.
 
 ### `api/`
 
@@ -85,6 +87,8 @@ Current:
 - [`public-api.md`](api/public-api.md) — implemented public endpoints and parameters
 - [`authentication-api.md`](api/authentication-api.md) — staff login, current-session and
   logout contract
+- [`property-administration-api.md`](api/property-administration-api.md) — protected
+  private reads and draft create/edit contracts
 
 ### `database/`
 
@@ -99,8 +103,10 @@ Current:
   sessions, OIDC transactions and security audit events
 
 Property and inquiry schemas exist and their Atlas persistence path has been verified.
-The new authentication collections have automated schema coverage but still require the
-live development-tenant acceptance pass. There is no production inventory or seed data.
+The authentication collections have automated schema coverage, and an Auth0 development
+passkey redirect has been reported. The backend session, protected admin operations and
+logout still require the live acceptance pass. There is no production inventory or seed
+data.
 
 ### `development/`
 

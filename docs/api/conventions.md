@@ -4,8 +4,8 @@ Rules every endpoint in the RC Premier Properties API follows. Types referenced 
 defined in [`shared/src/api.ts`](../../shared/src/api.ts) and imported by both apps.
 
 > **Scope:** these conventions apply to the implemented health, public-property,
-> inquiry-create and authentication endpoints. See [`public-api.md`](public-api.md) and
-> [`authentication-api.md`](authentication-api.md) for endpoint references.
+> inquiry-create, authentication and private draft-property endpoints. See the endpoint
+> references in this directory.
 
 ---
 
@@ -86,12 +86,13 @@ caller.
 | Code | When                                                              |
 | ---- | ----------------------------------------------------------------- |
 | 200  | Successful read                                                   |
-| 201  | Inquiry accepted                                                  |
+| 201  | Inquiry accepted or private property draft created                |
 | 400  | Invalid query, slug or request body, with field issues as needed  |
 | 401  | Authentication is missing, invalid, expired or unacceptable       |
 | 403  | Authenticated caller lacks the required named permission          |
+| 409  | A unique property ID or slug already exists                       |
 | 413  | JSON request body exceeds the 1 MB limit                          |
-| 415  | Inquiry request is not sent with a JSON-compatible content type   |
+| 415  | A supported write request is not sent as JSON                     |
 | 404  | No route/resource, or protected existence must remain undisclosed |
 | 429  | Rate limit exceeded                                               |
 | 500  | Unhandled error — logged server-side with the full error object   |
@@ -148,9 +149,9 @@ real client IPs rather than the proxy's.
 ## Public exposure boundary
 
 The public API can read published properties and create inquiries. The auth API only
-establishes and revokes staff sessions; it does not create public registration or expose
-business records. Property writes and inquiry reads require a separately implemented,
-named-permission-protected endpoint plus a service-level authorization decision.
+establishes and revokes staff sessions; it does not create public registration. Private
+property reads and draft content writes are separate named-permission-protected routes.
+Publishing, availability changes and inquiry reads remain unavailable.
 
 ---
 

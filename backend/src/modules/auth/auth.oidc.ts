@@ -8,6 +8,10 @@ import type {
 export const MFA_ACR_VALUE =
   "http://schemas.openid.net/pape/policies/2007/06/multi-factor";
 
+/** Development-only assurance emitted by the reviewed Auth0 Post-Login Action. */
+export const PASSKEY_AUTHENTICATION_CLAIM =
+  "https://rc-premier-properties.example/claims/passkey";
+
 export interface OpenIdClientProviderConfig {
   issuerUrl: string;
   clientId: string;
@@ -43,6 +47,7 @@ export class OpenIdClientProvider implements OidcProvider {
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
       acr_values: MFA_ACR_VALUE,
+      prompt: "login",
     });
 
     return {
@@ -85,11 +90,13 @@ export class OpenIdClientProvider implements OidcProvider {
       const authenticationMethods = Array.isArray(claims.amr)
         ? claims.amr.filter((method): method is string => typeof method === "string")
         : [];
+      const passkeyAuthenticated = claims[PASSKEY_AUTHENTICATION_CLAIM] === true;
 
       return {
         issuer: claims.iss,
         subject: claims.sub,
         authenticationMethods,
+        passkeyAuthenticated,
         ...(typeof claims.name === "string" ? { displayName: claims.name } : {}),
         ...(typeof claims.email === "string" ? { email: claims.email } : {}),
       };

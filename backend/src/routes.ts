@@ -1,11 +1,18 @@
 import { Router, type RequestHandler } from "express";
 import healthRoutes from "./modules/health/health.routes.js";
-import { createPropertyRoutes } from "./modules/properties/property.routes.js";
-import type { PropertyService } from "./modules/properties/property.types.js";
+import {
+  createAdminPropertyRoutes,
+  createPropertyRoutes,
+} from "./modules/properties/property.routes.js";
+import type {
+  AdminPropertyService,
+  PropertyService,
+} from "./modules/properties/property.types.js";
 import { createInquiryRoutes } from "./modules/inquiries/inquiry.routes.js";
 import type { InquiryService } from "./modules/inquiries/inquiry.types.js";
 import {
   createAuthRoutes,
+  resolveAuthRouteDependencies,
   type AuthRouteDependencies,
 } from "./modules/auth/auth.routes.js";
 
@@ -19,6 +26,9 @@ import {
  */
 export interface ApiDependencies {
   propertyService?: PropertyService;
+  adminPropertyService?: AdminPropertyService;
+  adminPropertyReadPermission?: RequestHandler;
+  adminPropertyWritePermission?: RequestHandler;
   inquiryService?: InquiryService;
   inquiryRateLimit?: RequestHandler;
   auth?: AuthRouteDependencies;
@@ -26,9 +36,25 @@ export interface ApiDependencies {
 
 export function createApiRouter(dependencies: ApiDependencies = {}): Router {
   const router = Router();
+  const auth = resolveAuthRouteDependencies(dependencies.auth);
 
   router.use("/health", healthRoutes);
-  router.use("/auth", createAuthRoutes(dependencies.auth));
+  router.use("/auth", createAuthRoutes(dependencies.auth, auth));
+  router.use(
+    "/admin/properties",
+    createAdminPropertyRoutes({
+      auth,
+      ...(dependencies.adminPropertyService
+        ? { service: dependencies.adminPropertyService }
+        : {}),
+      ...(dependencies.adminPropertyReadPermission
+        ? { readPermission: dependencies.adminPropertyReadPermission }
+        : {}),
+      ...(dependencies.adminPropertyWritePermission
+        ? { writePermission: dependencies.adminPropertyWritePermission }
+        : {}),
+    }),
+  );
   router.use("/properties", createPropertyRoutes(dependencies.propertyService));
   router.use(
     "/inquiries",

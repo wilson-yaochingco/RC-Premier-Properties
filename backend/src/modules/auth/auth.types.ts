@@ -1,4 +1,4 @@
-import type { AuthPermission, StaffRole } from "@rc/shared";
+import type { AdminPropertyContentField, AuthPermission, StaffRole } from "@rc/shared";
 
 export const STAFF_STATUSES = ["active", "disabled"] as const;
 export type StaffStatus = (typeof STAFF_STATUSES)[number];
@@ -58,6 +58,8 @@ export const AUDIT_ACTIONS = [
   "auth.logout.succeeded",
   "auth.session.revoked",
   "auth.access.denied",
+  "property.created",
+  "property.edited",
   "staff.provisioned",
   "staff.deactivated",
 ] as const;
@@ -91,13 +93,14 @@ export type AuditReason = (typeof AUDIT_REASONS)[number];
 export interface SecurityAuditEventInput {
   actorStaffIdentityId?: string;
   action: AuditAction;
-  entityType: "authentication" | "session" | "staff-identity";
+  entityType: "authentication" | "property" | "session" | "staff-identity";
   entityId?: string;
   outcome: AuditOutcome;
   requestId: string;
   reason?: AuditReason;
   permission?: AuthPermission;
   revokedSessionCount?: number;
+  changedFields?: AdminPropertyContentField[];
   occurredAt: Date;
 }
 
@@ -185,6 +188,8 @@ export interface VerifiedOidcIdentity {
   issuer: string;
   subject: string;
   authenticationMethods: string[];
+  /** True only when the signed ID token carries the reviewed Auth0 Action claim. */
+  passkeyAuthenticated: boolean;
   displayName?: string;
   email?: string;
 }
@@ -205,6 +210,8 @@ export interface AuthServiceConfig {
   allowedReturnUrls: readonly string[];
   allowedOrigins: readonly string[];
   requiredAmr: string;
+  /** Allows signed passkey evidence only in non-production environments. */
+  allowPasskeyOnly: boolean;
   sessionIdleMs: number;
   sessionAbsoluteMs: number;
   sessionActivityTouchMs: number;
