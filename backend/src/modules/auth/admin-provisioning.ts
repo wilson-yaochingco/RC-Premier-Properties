@@ -11,6 +11,17 @@ export interface ProvisionAdminInput {
   now?: Date;
 }
 
+export interface StaffIdentitySelector {
+  issuer: string;
+  subject: string;
+  now?: Date;
+}
+
+export interface DisableStaffResult {
+  staff: StaffIdentityRecord;
+  revokedSessionCount: number;
+}
+
 function text(value: string, name: string, maximum: number): string {
   const normalized = value.trim();
   if (!normalized || normalized.length > maximum) {
@@ -19,7 +30,7 @@ function text(value: string, name: string, maximum: number): string {
   return normalized;
 }
 
-function normalizedIssuer(value: string): string {
+export function normalizeStaffIssuer(value: string): string {
   const parsed = new URL(value.trim());
   if (
     parsed.protocol !== "https:" ||
@@ -34,16 +45,26 @@ function normalizedIssuer(value: string): string {
   return `${parsed.origin}/`;
 }
 
+export function validateStaffIdentitySelector(input: StaffIdentitySelector) {
+  return {
+    issuer: normalizeStaffIssuer(input.issuer),
+    subject: (() => {
+      const subject = text(input.subject, "subject", 255);
+      if (/\s/.test(subject)) throw new Error("subject must not contain whitespace.");
+      return subject;
+    })(),
+    now: input.now ?? new Date(),
+  };
+}
+
 export function validateProvisionAdminInput(input: ProvisionAdminInput) {
-  const issuer = normalizedIssuer(input.issuer);
-  const subject = text(input.subject, "subject", 255);
-  if (/\s/.test(subject)) throw new Error("subject must not contain whitespace.");
+  const { issuer, subject, now } = validateStaffIdentitySelector(input);
   const displayName = text(input.displayName, "display name", 160);
   const email = text(input.email, "email", 254).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("email must be a valid address.");
   }
-  return { issuer, subject, displayName, email, now: input.now ?? new Date() };
+  return { issuer, subject, displayName, email, now };
 }
 
 /** Controlled bootstrap operation; it is deliberately not exposed through HTTP. */
@@ -130,4 +151,56 @@ export async function provisionAdmin(
     createdAt: document.createdAt,
     updatedAt: document.updatedAt,
   };
+}
+
+/** Disable one exact allowlisted identity and revoke all of its local sessions. */
+export async function disableStaffIdentity(
+  input: StaffIdentitySelector,
+): Promise<DisableStaffResult | null> {
+  const validated = validateStaffIdentitySelector(input);
+  const existing = await StaffIdentityModel.findOne({
+    issuer: validated.issuer,
+    subject: validated.subject,
+    status: "active",
+  })
+    .select("_id")
+    .lean<{ _id: unknown } | null>();
+  if (!existing) return null;
+
+  const staff = await mongooseAuthStore.disableStaff(
+    String(existing._id),
+    validated.now,
+  );
+  if (!staff) return null;
+
+  const requestId = randomUUID();
+  const revokedSessionIds = await mongooseAuthStore.revokeSessionsForStaff(
+    staff.id,
+    validated.now,
+    "staff-disabled",
+  );
+  await Promise.all(
+    revokedSessionIds.map((sessionId) =>
+      mongooseAuthStore.recordAudit({
+        action: "auth.session.revoked",
+        entityType: "session",
+        entityId: sessionId,
+        outcome: "succeeded",
+        requestId,
+        reason: "staff-disabled",
+        occurredAt: validated.now,
+      }),
+    ),
+  );
+  await mongooseAuthStore.recordAudit({
+    action: "staff.deactivated",
+    entityType: "staff-identity",
+    entityId: staff.id,
+    outcome: "succeeded",
+    requestId,
+    revokedSessionCount: revokedSessionIds.length,
+    occurredAt: validated.now,
+  });
+
+  return { staff, revokedSessionCount: revokedSessionIds.length };
 }

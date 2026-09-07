@@ -2,12 +2,13 @@ import { API_PREFIX } from "@rc/shared";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
+import { safeErrorMessage } from "./lib/safe-error.js";
 
 async function start(): Promise<void> {
   try {
     await connectDatabase();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = safeErrorMessage(error, [env.MONGODB_URI]);
 
     if (env.NODE_ENV !== "development") {
       console.error(
@@ -37,7 +38,12 @@ async function start(): Promise<void> {
     console.log(`\n[server] ${signal} received, shutting down`);
     server.close(() => {
       void disconnectDatabase()
-        .catch((error: unknown) => console.error("[db] close failed:", error))
+        .catch((error: unknown) =>
+          console.error(
+            "[db] close failed:",
+            safeErrorMessage(error, [env.MONGODB_URI]),
+          ),
+        )
         .finally(() => process.exit(0));
     });
   };

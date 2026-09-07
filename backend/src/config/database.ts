@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import type { DatabaseStatus } from "@rc/shared";
 import { env } from "./env.js";
+import { safeErrorMessage } from "../lib/safe-error.js";
 
 /**
  * MongoDB connection lifecycle. No schemas or models are defined here — this module
@@ -12,7 +13,7 @@ mongoose.connection.on("connected", () => {
 });
 
 mongoose.connection.on("error", (error: Error) => {
-  console.error("[db] connection error:", error.message);
+  console.error("[db] connection error:", safeErrorMessage(error, [env.MONGODB_URI]));
 });
 
 mongoose.connection.on("disconnected", () => {

@@ -627,6 +627,14 @@ development-only signed passkey assurance is disabled in production. See
 [`architecture/authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
 and [`architecture/oidc-provider-selection.md`](architecture/oidc-provider-selection.md).
 
+The 2026-09-08 Level 6 engineering review preserved that architecture and added explicit
+proxy-trust configuration, environment-aware backend/frontend headers, private admin
+caching, redacted infrastructure logging, an operator-only staff disable/revocation
+command and regression coverage for the complete security boundary. The live Auth0 and
+production gates above remain open; automated evidence is not presented as provider or
+deployment evidence. See
+[`development/authentication-operations.md`](development/authentication-operations.md).
+
 ### Authorization
 
 Server-side permission enforcement on every sensitive action. Phase 3A starts with one

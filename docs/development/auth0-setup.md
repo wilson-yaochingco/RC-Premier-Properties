@@ -5,6 +5,10 @@ administrator provisioning and a passkey redirect to `http://localhost:3000/` we
 reported working on 2026-09-06. Live application-session bootstrap, protected property
 operations and logout still require the manual acceptance run below.
 
+The Level 6 automated security review is complete. Production configuration, staff
+disable/recovery and remaining blockers are tracked in
+[`authentication-operations.md`](authentication-operations.md).
+
 This runbook configures invited staff authentication only. Do not enable public signup,
 social connections, Auth0 Organizations or Auth0 roles. Local `StaffIdentity` records
 remain the source of application authorization.
@@ -171,10 +175,11 @@ eventually live in the deployment secret manager.
 4. With MongoDB reachable and `backend/.env` configured, run from the repository root:
 
    ```bash
-   npm run auth:provision-admin --workspace backend -- --subject "auth0|..." --email "approved-staff@example.com" --name "Approved Staff Name"
+   npm run auth:provision-admin --workspace backend -- --issuer "https://<your-development-domain>/" --subject "auth0|..." --email "approved-staff@example.com" --name "Approved Staff Name"
    ```
 
-The CLI takes the issuer from `AUTH0_ISSUER_URL`, creates or updates the local allowlist
+The CLI requires the issuer explicitly and refuses it unless its normalized value
+exactly matches `AUTH0_ISSUER_URL`. It creates or updates the exact local allowlist
 record and writes a security audit event. It never creates an Auth0 user and is not an
 HTTP endpoint.
 
@@ -261,9 +266,9 @@ property operations or logout work. Perform these remaining checks:
    shared `403` envelope. If this is checked manually, alter only a disposable local test
    fixture and restore it immediately; do not invent or persist a production role.
 
-The `/admin` shell and draft-property slice are deliberately narrower than the complete
-Phase 3A lifecycle. Publishing, archiving, availability transitions, media and inquiry
-administration remain unavailable.
+The `/admin` shell now includes the implemented property lifecycle, media-reference and
+lightweight inquiry/viewing workflows. Production binary uploads and broader CRM remain
+outside this runbook and retain their roadmap gates.
 
 Official configuration references:
 

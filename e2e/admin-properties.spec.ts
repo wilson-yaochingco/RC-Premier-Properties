@@ -287,6 +287,23 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     CSRF_TOKEN,
   ]);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
+  expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
+});
+
+test("admin HTML is private, non-indexable, and protected by browser headers", async ({
+  request,
+}) => {
+  const response = await request.get("/admin");
+  const headers = response.headers();
+
+  expect(response.ok()).toBe(true);
+  expect(headers["cache-control"]).toContain("no-store");
+  expect(headers["x-robots-tag"]).toContain("noindex");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  expect(headers["strict-transport-security"]).toContain("max-age=31536000");
 });
 
 test("the admin shell exposes sign-in, forbidden, and expired-session states", async ({

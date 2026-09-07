@@ -125,6 +125,8 @@ Current:
 - [`testing.md`](development/testing.md) — automated and manual verification boundaries
 - [`auth0-setup.md`](development/auth0-setup.md) — development tenant, secrets,
   administrator bootstrap and live-login acceptance
+- [`authentication-operations.md`](development/authentication-operations.md) —
+  production configuration gate, staff disable/revocation and recovery procedure
 - [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
   agent-placeholder replacement guide plus map/contact launch dependencies
 

@@ -32,7 +32,7 @@ function idToken(
   const header = encode({ alg: "RS256", kid: "fixture-key", typ: "JWT" });
   const claims: Record<string, unknown> = {
     iss: code === "wrong-issuer" ? "https://attacker.invalid/" : issuer,
-    sub: "auth0|protocol-test-admin",
+    ...(code === "missing-subject" ? {} : { sub: "auth0|protocol-test-admin" }),
     aud: code === "wrong-audience" ? "different-client" : CLIENT_ID,
     iat: now - 5,
     exp: code === "expired" ? now - 300 : now + 300,
@@ -204,6 +204,13 @@ describe("openid-client protocol boundary", () => {
     ["wrong state", "valid", "wrong-state", EXPECTED_NONCE, CODE_VERIFIER],
     ["wrong nonce", "wrong-nonce", EXPECTED_STATE, EXPECTED_NONCE, CODE_VERIFIER],
     ["wrong PKCE verifier", "valid", EXPECTED_STATE, EXPECTED_NONCE, "wrong-verifier"],
+    [
+      "missing subject",
+      "missing-subject",
+      EXPECTED_STATE,
+      EXPECTED_NONCE,
+      CODE_VERIFIER,
+    ],
   ])("rejects %s", async (_label, code, callbackState, expectedNonce, codeVerifier) => {
     await expect(
       provider.completeAuthorization({
@@ -215,5 +222,21 @@ describe("openid-client protocol boundary", () => {
         codeVerifier,
       }),
     ).rejects.toBeInstanceOf(OidcVerificationError);
+  });
+
+  it("ignores client-supplied passkey signals outside the signed ID token", async () => {
+    const callback = new URL(
+      `${CALLBACK_URL}?code=valid&state=${encodeURIComponent(EXPECTED_STATE)}`,
+    );
+    callback.searchParams.set(PASSKEY_AUTHENTICATION_CLAIM, "true");
+    callback.searchParams.set("passkeyAuthenticated", "true");
+
+    const identity = await provider.completeAuthorization({
+      callbackUrl: callback,
+      expectedState: EXPECTED_STATE,
+      expectedNonce: EXPECTED_NONCE,
+      codeVerifier: CODE_VERIFIER,
+    });
+    expect(identity.passkeyAuthenticated).toBe(false);
   });
 });

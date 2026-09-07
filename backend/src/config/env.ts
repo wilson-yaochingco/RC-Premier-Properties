@@ -60,6 +60,18 @@ function positiveInteger(name: string, fallback: number): number {
   return parsed;
 }
 
+/** Parse the exact number of trusted reverse-proxy hops; zero means trust none. */
+export function normalizeTrustProxyHops(value: string | undefined): number {
+  if (!value || value.trim() === "") return 0;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 10) {
+    throw new Error(
+      `Invalid TRUST_PROXY_HOPS: "${value}" must be an integer from 0 to 10.`,
+    );
+  }
+  return parsed;
+}
+
 /** Validate and normalize the single browser origin allowed by CORS. */
 export function normalizeCorsOrigin(value: string): string {
   const normalized = value.trim();
@@ -210,6 +222,24 @@ export interface AuthEnvironmentConfig {
   transactionMinutes: number;
 }
 
+function validateProductionAuthPolicy(config: AuthEnvironmentConfig): void {
+  if (config.requiredAmr !== "mfa") {
+    throw new Error('Production AUTH_REQUIRED_AMR must remain "mfa".');
+  }
+  if (config.sessionIdleMinutes > 30) {
+    throw new Error("Production AUTH_SESSION_IDLE_MINUTES cannot exceed 30.");
+  }
+  if (config.sessionAbsoluteHours > 8) {
+    throw new Error("Production AUTH_SESSION_ABSOLUTE_HOURS cannot exceed 8.");
+  }
+  if (config.maxConcurrentSessions > 3) {
+    throw new Error("Production AUTH_MAX_CONCURRENT_SESSIONS cannot exceed 3.");
+  }
+  if (config.transactionMinutes > 10) {
+    throw new Error("Production AUTH_TRANSACTION_MINUTES cannot exceed 10.");
+  }
+}
+
 function authEnvironment(
   nodeEnv: Environment,
   corsOrigin: string,
@@ -253,7 +283,7 @@ function authEnvironment(
   );
   validateAuthTransportSecurity(nodeEnv, corsOrigin, callbackUrl, allowedReturnUrls);
 
-  return Object.freeze({
+  const config: AuthEnvironmentConfig = {
     issuerUrl,
     clientId: required("AUTH0_CLIENT_ID"),
     clientSecret: required("AUTH0_CLIENT_SECRET"),
@@ -266,7 +296,9 @@ function authEnvironment(
     sessionAbsoluteHours: positiveInteger("AUTH_SESSION_ABSOLUTE_HOURS", 8),
     maxConcurrentSessions: positiveInteger("AUTH_MAX_CONCURRENT_SESSIONS", 3),
     transactionMinutes: positiveInteger("AUTH_TRANSACTION_MINUTES", 10),
-  });
+  };
+  if (nodeEnv === "production") validateProductionAuthPolicy(config);
+  return Object.freeze(config);
 }
 
 const nodeEnv = environment("NODE_ENV", "development");
@@ -278,6 +310,7 @@ export const env = Object.freeze({
   NODE_ENV: nodeEnv,
   IS_PRODUCTION: nodeEnv === "production",
   PORT: port("PORT", 5000),
+  TRUST_PROXY_HOPS: normalizeTrustProxyHops(process.env.TRUST_PROXY_HOPS),
   MONGODB_URI: required("MONGODB_URI"),
   CORS_ORIGIN: corsOrigin,
   AUTH: authEnvironment(nodeEnv, corsOrigin),

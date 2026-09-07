@@ -23,6 +23,7 @@ import { createAuthCookieSettings } from "../src/modules/auth/auth.cookies.js";
 import { AuthCrypto } from "../src/modules/auth/auth.crypto.js";
 import { OidcVerificationError } from "../src/modules/auth/auth.oidc.js";
 import { requirePermission } from "../src/modules/auth/auth.middleware.js";
+import { createAuthRoutes } from "../src/modules/auth/auth.routes.js";
 import { AuthService } from "../src/modules/auth/auth.service.js";
 import { assertProtectedResourceVisible } from "../src/modules/auth/auth.service.js";
 import type {
@@ -287,9 +288,12 @@ class FakeOidcProvider implements OidcProvider {
       throw new OidcVerificationError();
     }
 
-    const subject = ["unknown", "disabled", "unassigned"].includes(code)
-      ? code
-      : "admin";
+    const subject =
+      code === "email-match-only"
+        ? "different-subject"
+        : ["unknown", "disabled", "unassigned"].includes(code)
+          ? code
+          : "admin";
     const authenticationMethods = ["missing-amr", "empty-amr"].includes(code)
       ? []
       : code === "password-only"
@@ -305,7 +309,8 @@ class FakeOidcProvider implements OidcProvider {
       authenticationMethods,
       passkeyAuthenticated: code === "passkey-only",
       displayName: "Provider display name",
-      email: "provider@example.test",
+      email:
+        code === "email-match-only" ? "admin@example.test" : "provider@example.test",
     };
   }
 }
@@ -755,6 +760,30 @@ describe("Phase 3A authentication HTTP boundary", () => {
     auth = makeAuth();
   });
 
+  it("fails safely when authentication is unavailable or no session exists", async () => {
+    const unavailable = express();
+    unavailable.use(
+      `${API_PREFIX}/auth`,
+      createAuthRoutes(
+        {},
+        {
+          service: null,
+          loginRateLimit: passThrough,
+        },
+      ),
+    );
+    unavailable.use(errorHandler);
+
+    const notConfigured = await request(unavailable).get(`${API_PREFIX}/auth/session`);
+    const anonymous = await request(buildApp(auth)).get(`${API_PREFIX}/auth/session`);
+
+    expect(notConfigured.status).toBe(503);
+    expect(notConfigured.body.message).toBe("Authentication is not configured.");
+    expect(notConfigured.headers["cache-control"]).toBe("no-store");
+    expect(anonymous.status).toBe(401);
+    expect(anonymous.body.message).toBe("Authentication required.");
+  });
+
   it("starts Authorization Code + S256 PKCE with an opaque transaction cookie", async () => {
     const response = await request(buildApp(auth))
       .get(`${API_PREFIX}/auth/login`)
@@ -816,12 +845,35 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(limited.headers["cache-control"]).toBe("no-store");
   });
 
+  it("allows credentialed CORS only for the configured exact origin", async () => {
+    const app = buildApp(auth);
+    const allowed = await request(app)
+      .options(`${API_PREFIX}/admin/properties`)
+      .set("Origin", ORIGIN)
+      .set("Access-Control-Request-Method", "POST")
+      .set("Access-Control-Request-Headers", "content-type,x-csrf-token");
+    const hostile = await request(app)
+      .options(`${API_PREFIX}/admin/properties`)
+      .set("Origin", "https://attacker.invalid")
+      .set("Access-Control-Request-Method", "POST");
+
+    expect(allowed.status).toBe(204);
+    expect(allowed.headers["access-control-allow-origin"]).toBe(ORIGIN);
+    expect(allowed.headers["access-control-allow-credentials"]).toBe("true");
+    expect(allowed.headers["access-control-allow-origin"]).not.toBe("*");
+    expect(hostile.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
   it("rejects return URLs unless they exactly match the configured allowlist", async () => {
     const app = buildApp(auth);
     for (const returnTo of [
       "http://localhost:3000/admin/extra",
       "http://localhost:3000/admin?next=https://attacker.invalid",
       "https://attacker.invalid/admin",
+      "http://localhost:3000.evil.invalid/admin",
+      "//attacker.invalid/admin",
+      "javascript:alert(1)",
+      "%2F%2Fattacker.invalid%2Fadmin",
     ]) {
       const response = await request(app)
         .get(`${API_PREFIX}/auth/login`)
@@ -833,6 +885,41 @@ describe("Phase 3A authentication HTTP boundary", () => {
         message: "Invalid login return URL.",
       });
     }
+  });
+
+  it("rejects missing, duplicate, and expired stateful login transactions", async () => {
+    const app = buildApp(auth);
+
+    const missingStart = await request(app).get(`${API_PREFIX}/auth/login`);
+    const missing = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid" })
+      .set("Cookie", cookiePair(missingStart, auth.cookies.transactionName));
+
+    const duplicateStart = await request(app).get(`${API_PREFIX}/auth/login`);
+    const duplicate = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid", state: [stateFrom(duplicateStart), "attacker-state"] })
+      .set("Cookie", cookiePair(duplicateStart, auth.cookies.transactionName));
+
+    const expiredStart = await request(app).get(`${API_PREFIX}/auth/login`);
+    const transaction = [...auth.store.transactions.values()].find(
+      (candidate) =>
+        candidate.stateHash ===
+        new AuthCrypto(SECRET).hashState(stateFrom(expiredStart)),
+    );
+    if (!transaction) throw new Error("Missing transaction fixture");
+    transaction.expiresAt = new Date(0);
+    const expired = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid", state: stateFrom(expiredStart) })
+      .set("Cookie", cookiePair(expiredStart, auth.cookies.transactionName));
+
+    for (const response of [missing, duplicate, expired]) {
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe("Authentication failed.");
+    }
+    expect(auth.store.sessions.size).toBe(0);
   });
 
   it("creates an opaque hashed session and returns only local staff authorization", async () => {
@@ -923,6 +1010,7 @@ describe("Phase 3A authentication HTTP boundary", () => {
     "empty-amr",
     "password-only",
     "incorrect-assurance",
+    "email-match-only",
   ])("does not issue a session for %s staff", async (code) => {
     const { callback } = await startAndComplete(buildApp(auth), auth.cookies, code);
     expect(callback.status).toBe(401);
@@ -1009,6 +1097,57 @@ describe("Phase 3A authentication HTTP boundary", () => {
         .set("Cookie", cookie);
       expect(response.status).toBe(401);
     }
+  });
+
+  it("extends idle activity only up to the immutable absolute lifetime", async () => {
+    const app = buildApp(auth);
+    const login = await startAndComplete(app, auth.cookies);
+    const sessionToken = cookiePair(login.callback, auth.cookies.sessionName).split(
+      "=",
+    )[1];
+    const session = [...auth.store.sessions.values()].at(-1);
+    if (!sessionToken || !session) throw new Error("Missing session fixture");
+
+    for (let minutes = 6; minutes < 8 * 60; minutes += 6) {
+      await auth.service.authenticate(
+        sessionToken,
+        `activity-${minutes}`,
+        new Date(session.createdAt.getTime() + minutes * 60_000),
+      );
+      expect(session.expiresAt.getTime()).toBeLessThanOrEqual(
+        session.absoluteExpiresAt.getTime(),
+      );
+    }
+
+    await expect(
+      auth.service.authenticate(
+        sessionToken,
+        "absolute-boundary",
+        new Date(session.absoluteExpiresAt),
+      ),
+    ).rejects.toMatchObject({ status: 401, message: "Authentication required." });
+  });
+
+  it("fails closed when the session or staff store is unavailable", async () => {
+    const databaseCredential = "database-password-must-not-escape";
+    auth.store.findSessionByHash = async () => {
+      throw new Error(`MongoDB unavailable: mongodb://staff:${databaseCredential}@db`);
+    };
+
+    const response = await request(buildApp(auth))
+      .get(`${API_PREFIX}/auth/session`)
+      .set(
+        "Cookie",
+        `${auth.cookies.sessionName}=${new AuthCrypto(SECRET).randomToken()}`,
+      );
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({
+      status: "error",
+      statusCode: 503,
+      message: "Authentication service is unavailable.",
+    });
+    expect(JSON.stringify(response.body)).not.toContain(databaseCredential);
   });
 
   it("enforces the three-session concurrent limit", async () => {

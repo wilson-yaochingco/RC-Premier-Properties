@@ -25,19 +25,22 @@ Verify: `curl http://localhost:5000/api/v1/health`
 Full setup instructions: [`docs/development/setup.md`](../docs/development/setup.md).
 Auth0 development-tenant setup and administrator provisioning:
 [`docs/development/auth0-setup.md`](../docs/development/auth0-setup.md).
+Production gates, staff disablement and recovery:
+[`docs/development/authentication-operations.md`](../docs/development/authentication-operations.md).
 
 ## Scripts
 
 Run via `npm run <script> --workspace backend`, or use the root shortcuts.
 
-| Script                 | Purpose                                          |
-| ---------------------- | ------------------------------------------------ |
-| `dev`                  | Watch mode via `tsx`                             |
-| `build`                | Compile TypeScript to `dist/`                    |
-| `start`                | Run the compiled build                           |
-| `lint`                 | ESLint                                           |
-| `typecheck`            | TypeScript, no emit                              |
-| `auth:provision-admin` | Controlled local administrator create/reactivate |
+| Script                 | Purpose                                              |
+| ---------------------- | ---------------------------------------------------- |
+| `dev`                  | Watch mode via `tsx`                                 |
+| `build`                | Compile TypeScript to `dist/`                        |
+| `start`                | Run the compiled build                               |
+| `lint`                 | ESLint                                               |
+| `typecheck`            | TypeScript, no emit                                  |
+| `auth:provision-admin` | Controlled local administrator create/reactivate     |
+| `auth:disable-staff`   | Disable one exact staff identity and revoke sessions |
 
 The root `npm test` command runs backend unit and Supertest integration coverage with
 injected services; it does not claim to verify a real MongoDB instance.

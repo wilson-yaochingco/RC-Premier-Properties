@@ -4,6 +4,7 @@ import {
   normalizeAuthIssuerUrl,
   normalizeAuthReturnUrls,
   normalizeCorsOrigin,
+  normalizeTrustProxyHops,
   validateAuthTransportSecurity,
 } from "../src/config/env.js";
 
@@ -24,6 +25,17 @@ describe("CORS origin configuration", () => {
       "not-an-origin",
     ]) {
       expect(() => normalizeCorsOrigin(value)).toThrow(/Invalid CORS_ORIGIN/);
+    }
+  });
+});
+
+describe("reverse proxy configuration", () => {
+  it("trusts no forwarded address by default and accepts only a bounded exact hop count", () => {
+    expect(normalizeTrustProxyHops(undefined)).toBe(0);
+    expect(normalizeTrustProxyHops("0")).toBe(0);
+    expect(normalizeTrustProxyHops("2")).toBe(2);
+    for (const value of ["-1", "1.5", "all", "11"]) {
+      expect(() => normalizeTrustProxyHops(value)).toThrow(/TRUST_PROXY_HOPS/);
     }
   });
 });

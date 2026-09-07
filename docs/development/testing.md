@@ -47,8 +47,13 @@ npm run test:e2e
   generated signing key and JWKS, so issuer, audience, signature, expiry, state, nonce
   and PKCE failures are exercised without a live Auth0 dependency. They also verify the
   MFA `acr_values` request, accepted `amr: ["mfa"]`, development-only signed passkey
-  evidence, fail-closed missing/empty/password-only evidence, and production rejection
-  of passkey-only evidence.
+  evidence, rejection of client-supplied passkey signals, fail-closed
+  missing/empty/password-only evidence, and production rejection of passkey-only
+  evidence.
+- Level 6 regression tests additionally cover absent/partial production configuration,
+  missing/duplicate/expired transactions, email-only non-authorization, immutable
+  absolute expiry, store outages, exact CORS behavior, proxy trust, security headers,
+  redacted errors and query-string disclosure.
 - Session tests assert exact-once revocation audit events for rotation, logout,
   concurrent-limit eviction, staff deactivation and stale local authorization. Repeated
   revocation attempts create no false event, and serialized audits are checked against
@@ -75,8 +80,9 @@ npm run test:e2e
 - The protected admin browser fixture covers session bootstrap, the unauthenticated
   sign-in URL, no-index metadata, private list, draft create/edit, CSRF forwarding,
   private/public location authoring, memory-only client state, forbidden and
-  expired-session states. It intercepts the
-  Auth0/session boundary and does not claim to test a live provider login.
+  expired-session states. It also verifies private HTML cache headers and confirms both
+  local and session storage stay empty. It intercepts the Auth0/session boundary and
+  does not claim to test a live provider login.
 - The interactive map has browser coverage for deferred loading, shared URL filters,
   card/marker synchronization, approved-point privacy and isolated data failures.
 - Practical performance checks guard initial encoded JavaScript, layout shift, long
@@ -125,8 +131,8 @@ service projection and confirmed private fields stayed excluded. There is intent
 no public inquiry read endpoint and no production seed command. Use synthetic data only;
 never submit a real person's details during verification.
 
-The protected `/admin` shell and draft-property pages now exist and have isolated browser
-coverage. A passkey authentication and redirect to the public root were reported against
+The protected `/admin` property/inquiry workflows have isolated browser coverage. A
+passkey authentication and redirect to the public root were reported against
 the Auth0 Free development tenant on 2026-09-06. That evidence does not yet verify the
 application session cookie, `/admin` return URL, protected MongoDB operations, CSRF
 behavior or logout against the live tenant; those remain explicit manual gates in

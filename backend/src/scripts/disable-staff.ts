@@ -2,16 +2,14 @@ import { connectDatabase, disconnectDatabase } from "../config/database.js";
 import { env } from "../config/env.js";
 import { safeErrorMessage } from "../lib/safe-error.js";
 import {
+  disableStaffIdentity,
   normalizeStaffIssuer,
-  provisionAdmin,
 } from "../modules/auth/admin-provisioning.js";
 
 function argument(name: string): string {
   const index = process.argv.indexOf(`--${name}`);
   const value = index >= 0 ? process.argv[index + 1] : undefined;
-  if (!value || value.startsWith("--")) {
-    throw new Error(`Missing --${name}.`);
-  }
+  if (!value || value.startsWith("--")) throw new Error(`Missing --${name}.`);
   return value;
 }
 
@@ -29,14 +27,15 @@ async function run(): Promise<void> {
 
   await connectDatabase();
   try {
-    const staff = await provisionAdmin({
+    const result = await disableStaffIdentity({
       issuer,
       subject: argument("subject"),
-      email: argument("email"),
-      displayName: argument("name"),
     });
+    if (!result) {
+      throw new Error("The exact active staff identity was not found.");
+    }
     console.log(
-      `[auth] provisioned active admin ${staff.id} for issuer ${staff.issuer} and subject ${staff.subject}`,
+      `[auth] disabled staff ${result.staff.id} and revoked ${result.revokedSessionCount} session(s)`,
     );
   } finally {
     await disconnectDatabase();
@@ -44,11 +43,12 @@ async function run(): Promise<void> {
 }
 
 void run().catch((error: unknown) => {
-  const message = safeErrorMessage(error, [
-    env.MONGODB_URI,
-    env.AUTH?.clientSecret,
-    env.AUTH?.sessionHashSecret,
-  ]);
-  console.error(`[auth] admin provisioning failed: ${message}`);
+  console.error(
+    `[auth] staff disable failed: ${safeErrorMessage(error, [
+      env.MONGODB_URI,
+      env.AUTH?.clientSecret,
+      env.AUTH?.sessionHashSecret,
+    ])}`,
+  );
   process.exitCode = 1;
 });

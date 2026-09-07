@@ -87,8 +87,14 @@ this limitation with alerting or add a replica-set transaction/outbox before lau
 ## Controlled administrator bootstrap
 
 No public provisioning endpoint exists. After creating the Auth0 user, an authorized
-operator runs the local CLI with the exact Auth0 `user_id` subject. The issuer always
-comes from validated backend configuration. Re-running the command updates/reactivates
-that identity, increments its authorization version, revokes its existing sessions,
-records one revocation event per actual transition and records the aggregate on the
-provisioning event.
+operator runs the local CLI with the exact issuer and Auth0 `user_id` subject. The
+explicit issuer must match validated backend configuration. Re-running the command
+updates/reactivates that identity, increments its authorization version, revokes its
+existing sessions, records one revocation event per actual transition and records the
+aggregate on the provisioning event.
+
+The operator-only disable CLI selects the same exact `(issuer, subject)` pair, changes
+an active identity to `disabled`, increments its authorization version and revokes every
+active local session. It is not an HTTP endpoint. Provider deletion does not remove or
+disable this local record automatically; the old identity remains disabled until the
+retention policy permits deletion.

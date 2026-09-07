@@ -238,7 +238,7 @@ export class MongooseAuthStore implements AuthStore {
   async disableStaff(id: string, at: Date): Promise<StaffIdentityRecord | null> {
     if (!Types.ObjectId.isValid(id)) return null;
     const record = await StaffIdentityModel.findOneAndUpdate(
-      { _id: objectId(id) },
+      { _id: objectId(id), status: { $ne: "disabled" } },
       {
         $set: { status: "disabled", updatedAt: at },
         $inc: { authorizationVersion: 1 },

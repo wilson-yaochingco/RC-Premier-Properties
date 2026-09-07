@@ -1,12 +1,12 @@
 # Phase 3A Authentication and Authorization
 
-Status: **accepted architecture; backend and first admin consumer implemented; live session acceptance pending**
+Status: **accepted architecture; Level 6 engineering hardening complete; live session acceptance pending**
 
 This decision defines the security boundary for the Phase 3A listing-management slice.
-The backend authentication foundation and controlled staff bootstrap now implement this
-boundary. The first property-management consumer now implements private reads and draft
-create/edit only. A development passkey authentication redirect has been reported, but
-the application session and production deployment remain gated by the inputs in
+The backend authentication foundation, controlled staff lifecycle tooling and protected
+property/inquiry consumers implement this boundary. A development passkey authentication
+redirect has been reported, but the application session and production deployment remain
+gated by the inputs in
 [Implementation gates](#implementation-gates).
 
 ## Implementation status
@@ -16,8 +16,8 @@ MongoDB-backed opaque sessions, one-time OIDC transactions, structured security 
 events for every successful session-revocation transition, Auth0/OIDC Authorization Code
 
 - PKCE with an explicit MFA step-up request, exact origin and return-URL checks,
-  session-bound CSRF, named permissions and controlled administrator provisioning. The
-  first protected consumer is the private property read and draft create/edit slice.
+  session-bound CSRF, named permissions and controlled administrator provisioning,
+  disablement and session revocation.
 
 Automated tests use both an injected provider boundary and a local signed OIDC protocol
 server. They do not need Auth0 credentials. The Auth0 Free application, disabled signup,
@@ -80,7 +80,7 @@ It does not add:
 - favorites, confirmed viewing appointments or seller accounts;
 - a full CRM or user-management dashboard;
 - email, SMS or notification providers;
-- media management or audit-read endpoints.
+- production binary image uploads or audit-read endpoints.
 
 ## Trust boundaries
 
@@ -148,6 +148,11 @@ The following are implementation defaults and may be tightened during provider r
 | Deactivation        | Revoke all sessions for the staff identity immediately                                                      |
 | Concurrent sessions | Maximum three per staff identity; creating another revokes the oldest                                       |
 
+Production startup rejects an assurance value other than `mfa`, an idle lifetime above
+30 minutes, an absolute lifetime above eight hours, more than three concurrent sessions
+or an OIDC transaction lifetime above ten minutes. A future policy relaxation therefore
+requires a reviewed code/documentation change, not only an environment edit.
+
 Session activity is updated at a bounded interval rather than writing on every request.
 Expired and revoked sessions are rejected even if the browser still sends a cookie. The
 collection uses a TTL index for cleanup, but authorization must check expiry explicitly
@@ -171,6 +176,13 @@ No authenticated admin response may be stored by shared caches. Admin pages and 
 responses use appropriate `Cache-Control: no-store` behavior and remain excluded from
 search indexing.
 
+Express sends Helmet's reviewed JSON/API policy, browser-feature restrictions and HSTS
+only in production. Next.js sends content-type, clickjacking, referrer and browser-feature
+headers on every route, with explicit `no-store` and `noindex` headers for `/admin`. A
+frontend CSP remains a production gate because the final media/map origins and a tested
+nonce-compatible Next.js policy are not approved; a guessed policy could break the
+application without improving authorization.
+
 ## CSRF, CORS and browser controls
 
 Cookie authentication requires CSRF protection on every state-changing request. The
@@ -183,6 +195,10 @@ Safe reads do not mutate state. State-changing routes accept only the documented
 types and never use `GET`. CORS remains pinned to the configured frontend origin with
 credentials enabled. CORS, `SameSite` cookies and JSON content types are defense in depth;
 none replaces the CSRF token check.
+
+Forwarded client addresses are trusted only when `TRUST_PROXY_HOPS` explicitly names the
+known proxy depth. Its default is zero. A nonzero production value is unsafe unless
+direct backend access is blocked by the deployment network.
 
 The production frontend and API should be deployed under the same registrable site. If
 that cannot be done, cookie behavior and the complete CSRF model require a new review
@@ -260,6 +276,9 @@ secrets, inquiry message bodies or complete before/after copies of personal data
   denied admin access, staff status changes and sensitive listing/inquiry actions.
 - Security logs use structured event names and correlation IDs. They exclude secrets and
   minimize IP/user-agent retention to what is operationally justified.
+- Unexpected errors are logged as bounded, redacted summaries rather than raw Error
+  objects or callback URLs. Configured database/Auth0/session secrets, URL credentials
+  and common token parameters are removed.
 
 ## Required tests
 
@@ -294,9 +313,9 @@ experience.
    passkey redirect are reported complete; session/logout acceptance remains open.**
 5. Add the smallest admin shell and protected session bootstrap needed by Phase 3A.
    **Implemented.**
-6. Add property administration one lifecycle capability at a time. Private read and
-   draft create/content-edit are implemented; publication and availability remain later
-   explicit capabilities, followed by inquiry management and the audit view.
+6. Add property administration one lifecycle capability at a time. The requested
+   property lifecycle, media-reference and lightweight inquiry/viewing slices are now
+   protected by this boundary; the audit view remains unimplemented.
 
 Authentication and authorization land before any property write or inquiry read route.
 Media upload remains a separate Phase 3A slice after its storage provider and upload

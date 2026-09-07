@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { ApiErrorResponse, ValidationIssue } from "@rc/shared";
 import { env } from "../config/env.js";
+import { safeErrorMessage } from "../lib/safe-error.js";
 
 /** An error carrying an intended HTTP status code. */
 export class HttpError extends Error {
@@ -44,7 +45,13 @@ export function errorHandler(
       : (bodyError?.message ?? "Internal Server Error");
 
   if (status >= 500) {
-    console.error("[error]", error);
+    console.error(
+      `[error] ${safeErrorMessage(error, [
+        env.MONGODB_URI,
+        env.AUTH?.clientSecret,
+        env.AUTH?.sessionHashSecret,
+      ])}`,
+    );
   }
 
   const body: ApiErrorResponse = {
