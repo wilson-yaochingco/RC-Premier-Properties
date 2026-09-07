@@ -36,7 +36,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
       <div className={styles.cardBody}>
         <div className={styles.cardMeta}>
           <span>{propertyTypeLabel(property.propertyType)}</span>
-          <span>ID {property.propertyId}</span>
+          <span>Premier Property #{property.propertyId}</span>
         </div>
         <p className={styles.cardLocation}>{formatLocation(property.location)}</p>
         <h3 className={styles.cardTitle}>

@@ -29,6 +29,8 @@ export interface ApiDependencies {
   adminPropertyService?: AdminPropertyService;
   adminPropertyReadPermission?: RequestHandler;
   adminPropertyWritePermission?: RequestHandler;
+  adminPropertyPublishPermission?: RequestHandler;
+  adminPropertyAvailabilityPermission?: RequestHandler;
   inquiryService?: InquiryService;
   inquiryRateLimit?: RequestHandler;
   auth?: AuthRouteDependencies;
@@ -52,6 +54,12 @@ export function createApiRouter(dependencies: ApiDependencies = {}): Router {
         : {}),
       ...(dependencies.adminPropertyWritePermission
         ? { writePermission: dependencies.adminPropertyWritePermission }
+        : {}),
+      ...(dependencies.adminPropertyPublishPermission
+        ? { publishPermission: dependencies.adminPropertyPublishPermission }
+        : {}),
+      ...(dependencies.adminPropertyAvailabilityPermission
+        ? { availabilityPermission: dependencies.adminPropertyAvailabilityPermission }
         : {}),
     }),
   );

@@ -1,85 +1,45 @@
 # Property Administration API
 
-Status: Phase 3A private read and draft-content slice implemented.
+Status: Phase 3A property lifecycle API implemented.
 
-All paths are relative to `API_PREFIX` from `@rc/shared`. Request and response shapes
-live only in `shared/src/api.ts`.
+All paths are relative to `API_PREFIX` from `@rc/shared`. Request and response shapes live only in `shared/src/api.ts`.
 
 ## Routes and permissions
 
-| Method  | Path                    | Permission              | Success |
-| ------- | ----------------------- | ----------------------- | ------- |
-| `GET`   | `/admin/properties`     | `property:read-private` | `200`   |
-| `GET`   | `/admin/properties/:id` | `property:read-private` | `200`   |
-| `POST`  | `/admin/properties`     | `property:write`        | `201`   |
-| `PATCH` | `/admin/properties/:id` | `property:write`        | `200`   |
+| Method  | Path                                 | Permission                     | Purpose                             |
+| ------- | ------------------------------------ | ------------------------------ | ----------------------------------- |
+| `GET`   | `/admin/properties`                  | `property:read-private`        | Search and paginate private records |
+| `GET`   | `/admin/properties/:id`              | `property:read-private`        | Read private detail / preview data  |
+| `POST`  | `/admin/properties`                  | `property:write`               | Create an available draft           |
+| `PATCH` | `/admin/properties/:id`              | `property:write`               | Edit draft or unpublished content   |
+| `POST`  | `/admin/properties/:id/publish`      | `property:publish`             | Publish                             |
+| `POST`  | `/admin/properties/:id/unpublish`    | `property:publish`             | Withdraw from public reads          |
+| `POST`  | `/admin/properties/:id/archive`      | `property:publish`             | Archive safely                      |
+| `POST`  | `/admin/properties/:id/restore`      | `property:publish`             | Restore privately                   |
+| `PATCH` | `/admin/properties/:id/availability` | `property:change-availability` | Change market state                 |
 
-Every route requires a valid local staff session and returns `Cache-Control: no-store`
-plus `X-Robots-Tag: noindex, nofollow`. Anonymous, invalid, expired, revoked and
-disabled-staff sessions return the shared `401` envelope. An authenticated session
-without the named permission returns `403`.
+Every route requires a valid local staff session and returns `Cache-Control: no-store` plus `X-Robots-Tag: noindex, nofollow`. Every write additionally requires the exact configured `Origin`, JSON content, and the session token in `X-CSRF-Token`.
 
-Both writes additionally require an exact configured `Origin`, JSON content, and the
-session-bound token from `GET /auth/session` in `X-CSRF-Token`. Missing, incorrect and
-cross-session tokens return `403` before property persistence.
+## Private list
 
-## Private reads
+`GET /admin/properties` accepts optional `query`, `publicationStatus`, and `availability` filters plus bounded `page` and `limit` values. Search is case-insensitive across Premier Property number, slug, title, and city. The default page size is 25 and maximum is 50. Unknown query parameters are rejected.
 
-`GET /admin/properties` accepts optional `publicationStatus` plus bounded `page` and
-`limit` values. The default is page 1 with 25 items; the maximum page size is 50.
-Unknown query parameters are rejected. The private list may return draft, pending,
-published and archived records and is separate from the published-only public query.
+List and detail responses include `version`. They exclude private addresses, internal coordinates, owner references, internal notes, and media-management fields.
 
-`GET /admin/properties/:id` uses the MongoDB property identifier. Malformed identifiers
-return `400`; missing records return the protected `404 Property not found.` envelope.
+## Writes and concurrency
 
-Admin responses include listing content, publication status, availability and normal
-timestamps needed by the editor. They deliberately exclude private addresses, internal
-coordinates, owner references, internal notes and media-management fields from this
-slice.
+Create accepts `CreateDraftPropertyRequest`, assigns `draft`, `available`, and PHP, and rejects lifecycle or private fields. Unique indexes protect both Premier Property number and slug; a collision returns `409`.
 
-## Create draft
+Every other write requires a non-negative integer `expectedVersion` from the latest private response. Content updates include it alongside at least one allowlisted content field. Transition bodies contain only `expectedVersion`. Availability bodies contain `expectedVersion` and `availability`. Unknown fields are rejected.
 
-`POST /admin/properties` accepts `CreateDraftPropertyRequest`. It validates the property
-ID, slug, title, purpose, property type, PHP price, public location text/precision,
-specifications, descriptions and bounded string lists. Unknown top-level and nested
-fields are rejected.
+The mutation matches ID, current state, and version in one MongoDB operation and increments the version. A stale version or intervening state change returns `409`; no newer content is overwritten.
 
-The server always assigns:
+Invalid transitions also return `409`. Missing records return `404`. Malformed IDs or bodies return `400`.
 
-- `publicationStatus: "draft"`;
-- `availability: "available"`; and
-- `price.currency: "PHP"`.
+## Visibility and deletion
 
-Supplying `publicationStatus`, `availability`, `publishedAt`, private address, internal
-coordinates, internal notes, owner data or another unknown field returns `400`. A client
-cannot publish or change availability through this endpoint. Duplicate property IDs or
-slugs return `409`.
+Public property endpoints always impose `publicationStatus: published`. Draft, unpublished, and archived records cannot be read publicly. No hard-delete route exists; archive/restore is the safe retention policy.
 
-## Edit draft content
+## Audit events
 
-`PATCH /admin/properties/:id` accepts a non-empty
-`UpdateDraftPropertyRequest`. Only the allowlisted content fields are copied into the
-update. It can update only a record whose current publication status is `draft`; a
-missing or non-draft record returns the same protected `404`.
-
-The endpoint never changes publication status, availability or `publishedAt`. Publishing,
-archiving and availability transitions require future explicit endpoints and are not
-implemented here.
-
-## Audit and visibility
-
-Successful creation records exactly one `property.created` event. Successful editing
-records exactly one `property.edited` event. Events contain the local staff actor,
-property database ID, request ID, timestamp and allowlisted request field names only.
-They contain no descriptions, addresses, property values, request body, cookies,
-session/CSRF values or provider tokens.
-
-Property persistence and audit insertion are separate MongoDB writes, matching the
-documented session-audit limitation. A failed audit insert fails the HTTP request but
-does not undo a completed property write. Production must approve this limitation with
-monitoring or add a replica-set transaction/outbox design.
-
-Public `GET /properties` and `GET /properties/:slug` still add
-`publicationStatus: "published"` in the service. Creating or editing a draft cannot make
-it visible through either public endpoint.
+Successful actions emit `property.created`, `property.edited`, `property.published`, `property.unpublished`, `property.reserved`, `property.sold`, `property.availability-changed`, `property.archived`, or `property.restored`. Audit details never contain listing values or authentication secrets.

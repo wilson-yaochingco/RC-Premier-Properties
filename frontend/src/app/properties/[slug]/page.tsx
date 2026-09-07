@@ -107,14 +107,14 @@ export default async function PropertyDetailPage({
             <span aria-hidden="true">/</span>
             <Link href="/properties">Properties</Link>
             <span aria-hidden="true">/</span>
-            <span aria-current="page">{property.propertyId}</span>
+            <span aria-current="page">Premier Property #{property.propertyId}</span>
           </nav>
 
           <div className={styles.identityGrid}>
             <div>
               <p className={styles.meta}>
-                {propertyTypeLabel(property.propertyType)} · For {property.purpose} · ID{" "}
-                {property.propertyId}
+                {propertyTypeLabel(property.propertyType)} · For {property.purpose} ·
+                Premier Property #{property.propertyId}
               </p>
               <h1 className={styles.title}>{property.title}</h1>
               <p className={styles.location}>{location}</p>
@@ -236,8 +236,8 @@ export default async function PropertyDetailPage({
             <p className={styles.asideLabel}>Property guidance</p>
             <h2>Ask about this property.</h2>
             <p className={styles.asideCopy}>
-              Include the Property ID in your message so the team can respond with the
-              right listing context.
+              Include the Premier Property number in your message so the team can
+              respond with the right listing context.
             </p>
             <div className={styles.asideActions}>
               <Button

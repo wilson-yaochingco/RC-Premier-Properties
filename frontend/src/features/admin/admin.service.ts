@@ -1,7 +1,10 @@
 import {
   API_PREFIX,
+  type AdminPropertyAvailabilityRequest,
   type AdminPropertyDetail,
+  type AdminPropertyListRequest,
   type AdminPropertyListResponse,
+  type AdminPropertyTransitionRequest,
   type CreateDraftPropertyRequest,
   type CurrentSessionResponse,
   type LogoutResponse,
@@ -22,10 +25,54 @@ export function getCurrentSession(signal?: AbortSignal) {
   );
 }
 
-export function getAdminProperties(signal?: AbortSignal) {
+export function getAdminProperties(
+  request: AdminPropertyListRequest,
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({
+    page: String(request.page),
+    limit: String(request.limit),
+  });
+  if (request.query) query.set("query", request.query);
+  if (request.publicationStatus) {
+    query.set("publicationStatus", request.publicationStatus);
+  }
+  if (request.availability) query.set("availability", request.availability);
   return apiRequest<AdminPropertyListResponse>(
-    `${API_PREFIX}/admin/properties?publicationStatus=draft&page=1&limit=25`,
+    `${API_PREFIX}/admin/properties?${query.toString()}`,
     authenticatedRequest(signal),
+  );
+}
+
+function lifecycleRequest(
+  id: string,
+  action: "publish" | "unpublish" | "archive" | "restore",
+  body: AdminPropertyTransitionRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminPropertyDetail>(
+    `${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/${action}`,
+    { ...writeRequest(body, csrfToken), method: "POST" },
+  );
+}
+
+export function transitionAdminProperty(
+  id: string,
+  action: "publish" | "unpublish" | "archive" | "restore",
+  expectedVersion: number,
+  csrfToken: string,
+) {
+  return lifecycleRequest(id, action, { expectedVersion }, csrfToken);
+}
+
+export function changeAdminPropertyAvailability(
+  id: string,
+  body: AdminPropertyAvailabilityRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminPropertyDetail>(
+    `${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/availability`,
+    { ...writeRequest(body, csrfToken), method: "PATCH" },
   );
 }
 

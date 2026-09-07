@@ -122,18 +122,13 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
 export const LISTING_PURPOSES = ["sale", "rent"] as const;
 export type ListingPurpose = (typeof LISTING_PURPOSES)[number];
 
-export const PROPERTY_AVAILABILITY = [
-  "available",
-  "reserved",
-  "sold",
-  "rented",
-] as const;
+export const PROPERTY_AVAILABILITY = ["available", "reserved", "sold"] as const;
 export type PropertyAvailability = (typeof PROPERTY_AVAILABILITY)[number];
 
 export const PROPERTY_PUBLICATION_STATUSES = [
   "draft",
-  "pending",
   "published",
+  "unpublished",
   "archived",
 ] as const;
 
@@ -285,7 +280,21 @@ export interface AdminPropertyContentInput {
 export type CreateDraftPropertyRequest = AdminPropertyContentInput;
 
 /** Body accepted by `PATCH /api/v1/admin/properties/:id`. */
-export type UpdateDraftPropertyRequest = Partial<AdminPropertyContentInput>;
+export type UpdateDraftPropertyRequest = Partial<AdminPropertyContentInput> & {
+  /** Version returned by the most recent private read. */
+  expectedVersion: number;
+};
+
+/** Body accepted by publication and archive transition endpoints. */
+export interface AdminPropertyTransitionRequest {
+  expectedVersion: number;
+}
+
+/** Body accepted by `PATCH /api/v1/admin/properties/:id/availability`. */
+export interface AdminPropertyAvailabilityRequest {
+  expectedVersion: number;
+  availability: PropertyAvailability;
+}
 
 export interface AdminPropertySummary {
   id: string;
@@ -304,6 +313,8 @@ export interface AdminPropertySummary {
   };
   location: AdminPropertyLocationInput;
   shortDescription: string;
+  /** Optimistic-concurrency token. Send it back with every mutation. */
+  version: number;
   updatedAt: string;
 }
 
@@ -318,7 +329,9 @@ export interface AdminPropertyDetail extends AdminPropertySummary {
 }
 
 export interface AdminPropertyListRequest {
+  query?: string;
   publicationStatus?: PropertyPublicationStatus;
+  availability?: PropertyAvailability;
   page: number;
   limit: number;
 }

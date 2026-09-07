@@ -7,7 +7,7 @@ export default function PropertyNotFound() {
       <EmptyState
         eyebrow="Property unavailable"
         title="This published property could not be found."
-        description="The link may be incorrect, or the listing may no longer be publicly available. Draft, pending and archived listings are never exposed here."
+        description="The link may be incorrect, or the listing may no longer be publicly available. Draft, unpublished, and archived listings are never exposed here."
         headingLevel="h1"
       />
       <Button href="/properties" variant="primary">

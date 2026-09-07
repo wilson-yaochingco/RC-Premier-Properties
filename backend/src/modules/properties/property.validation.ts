@@ -1,13 +1,16 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   LISTING_PURPOSES,
+  PROPERTY_AVAILABILITY,
   PROPERTY_PUBLICATION_STATUSES,
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
   PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPES,
   type AdminPropertyContentInput,
+  type AdminPropertyAvailabilityRequest,
   type AdminPropertyListRequest,
+  type AdminPropertyTransitionRequest,
   type CreateDraftPropertyRequest,
   type PropertySearchFilters,
   type PropertySearchRequest,
@@ -507,13 +510,23 @@ function parseAdminPropertyContent(
       { field: "body", message: "Must be a JSON object." },
     ]);
   }
-  unknownFields(rawBody, ADMIN_PROPERTY_CONTENT_FIELDS, "", issues);
-  if (mode === "update" && Object.keys(rawBody).length === 0) {
+  unknownFields(
+    rawBody,
+    mode === "update"
+      ? [...ADMIN_PROPERTY_CONTENT_FIELDS, "expectedVersion"]
+      : ADMIN_PROPERTY_CONTENT_FIELDS,
+    "",
+    issues,
+  );
+  if (
+    mode === "update" &&
+    !ADMIN_PROPERTY_CONTENT_FIELDS.some((field) => rawBody[field] !== undefined)
+  ) {
     issues.push({ field: "body", message: "Provide at least one field to update." });
   }
 
   const required = mode === "create";
-  const result: UpdateDraftPropertyRequest = {};
+  const result: Partial<AdminPropertyContentInput> = {};
 
   const propertyId =
     rawBody.propertyId !== undefined || required
@@ -603,13 +616,88 @@ export function parseCreateDraftPropertyBody(
 export function parseUpdateDraftPropertyBody(
   rawBody: unknown,
 ): UpdateDraftPropertyRequest {
-  return parseAdminPropertyContent(rawBody, "update");
+  const content = parseAdminPropertyContent(
+    rawBody,
+    "update",
+  ) as Partial<AdminPropertyContentInput>;
+  const body = rawBody as Record<string, unknown>;
+  const issues: ValidationIssue[] = [];
+  const expectedVersion = boundedBodyNumber(
+    body.expectedVersion,
+    "expectedVersion",
+    Number.MAX_SAFE_INTEGER,
+    issues,
+    true,
+  );
+  if (expectedVersion === undefined) {
+    if (issues.length === 0) {
+      issues.push({ field: "expectedVersion", message: "Is required." });
+    }
+    throw new HttpError(400, "Invalid property request.", issues);
+  }
+  return { ...content, expectedVersion };
+}
+
+function parseVersionedBody(
+  rawBody: unknown,
+  allowedFields: readonly string[],
+): { body: Record<string, unknown>; expectedVersion: number } {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(rawBody)) {
+    throw new HttpError(400, "Invalid property lifecycle request.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  unknownFields(rawBody, allowedFields, "", issues);
+  const expectedVersion = boundedBodyNumber(
+    rawBody.expectedVersion,
+    "expectedVersion",
+    Number.MAX_SAFE_INTEGER,
+    issues,
+    true,
+  );
+  if (expectedVersion === undefined && issues.length === 0) {
+    issues.push({ field: "expectedVersion", message: "Is required." });
+  }
+  if (issues.length > 0 || expectedVersion === undefined) {
+    throw new HttpError(400, "Invalid property lifecycle request.", issues);
+  }
+  return { body: rawBody, expectedVersion };
+}
+
+export function parseAdminPropertyTransitionBody(
+  rawBody: unknown,
+): AdminPropertyTransitionRequest {
+  const { expectedVersion } = parseVersionedBody(rawBody, ["expectedVersion"]);
+  return { expectedVersion };
+}
+
+export function parseAdminPropertyAvailabilityBody(
+  rawBody: unknown,
+): AdminPropertyAvailabilityRequest {
+  const { body, expectedVersion } = parseVersionedBody(rawBody, [
+    "expectedVersion",
+    "availability",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const availability = bodyEnum(
+    body.availability,
+    "availability",
+    PROPERTY_AVAILABILITY,
+    issues,
+  );
+  if (!availability || issues.length > 0) {
+    throw new HttpError(400, "Invalid property lifecycle request.", issues);
+  }
+  return { expectedVersion, availability };
 }
 
 export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListRequest {
   const issues: ValidationIssue[] = [];
   for (const field of Object.keys(query)) {
-    if (!["publicationStatus", "page", "limit"].includes(field)) {
+    if (
+      !["query", "publicationStatus", "availability", "page", "limit"].includes(field)
+    ) {
       issues.push({ field, message: "Unknown query parameter." });
     }
   }
@@ -619,6 +707,8 @@ export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListR
     PROPERTY_PUBLICATION_STATUSES,
     issues,
   );
+  const availability = enumValue(query, "availability", PROPERTY_AVAILABILITY, issues);
+  const searchQuery = boundedString(query, "query", 120, issues);
   const page =
     nonNegativeNumber(query, "page", issues, {
       integer: true,
@@ -634,7 +724,13 @@ export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListR
   if (issues.length > 0) {
     throw new HttpError(400, "Invalid private property parameters.", issues);
   }
-  return { ...(publicationStatus ? { publicationStatus } : {}), page, limit };
+  return {
+    ...(searchQuery ? { query: searchQuery } : {}),
+    ...(publicationStatus ? { publicationStatus } : {}),
+    ...(availability ? { availability } : {}),
+    page,
+    limit,
+  };
 }
 
 export function parseAdminPropertyId(rawId: unknown): string {

@@ -329,8 +329,8 @@ The implementation separates editorial publication from market availability so o
 cannot accidentally grant the other:
 
 ```text
-publicationStatus: draft → pending → published → archived
-availability:      available → reserved → sold / rented
+publicationStatus: draft → published → unpublished → archived
+availability:      available → reserved → sold
 ```
 
 This is the safest technical baseline; the business must validate the vocabulary before
@@ -377,8 +377,8 @@ their implementation phase approaches.
 - [x] Property taxonomy agreed and justified for the public MVP
 - [x] Property data model planned field by field, including public/private classification
 - [x] Location-privacy rule decided
-- [ ] Lifecycle statuses implemented as separate publication and availability states,
-      pending business validation before administration work
+- [x] Lifecycle statuses implemented as separate publication and availability states;
+      the business confirmed a sales-only `available → reserved → sold` market flow
 - [x] Information architecture and navigation agreed
 - [x] Designs exist as implemented, clickable pages for all seven core routes at mobile,
       tablet and desktop breakpoints
@@ -456,7 +456,7 @@ sorts actually use. Unpublished listings must be unreachable through any public 
 - [x] **NoSQL injection prevention** — allowlisted fields, scalar validation and escaped
       regular expressions; user input is never spread into a query object
 - [x] Rate limiting and honeypot spam prevention on the inquiry form from day one
-- [x] Only published listings exposed publicly; draft, pending and archived never leak
+- [x] Only published listings exposed publicly; draft, unpublished and archived never leak
 - [x] Owner and internal reference data never serialized to public responses
 - [x] Inquiry data treated as personal information from the moment it is collected
 
@@ -632,25 +632,25 @@ independently verifies permissions, regardless of what the UI allows.
 
 ### Property management
 
-Create, edit, preview, draft, publish, unpublish, archive, mark reserved, mark sold, mark
-rented.
+Create, edit, preview, draft, publish, unpublish, archive, mark reserved and mark sold.
 
 ### Current implemented slice
 
 - [x] Protected `/admin` shell bootstraps the backend session and keeps CSRF only in
       memory
 - [x] Private property list and detail require `property:read-private`
-- [x] Draft create and draft-content edit require `property:write`, exact origin and
+- [x] Draft create and private-content edit require `property:write`, exact origin and
       session-bound CSRF
-- [x] Create forces `draft` plus `available`; edit cannot change publication or
-      availability
-- [x] Property create/edit audits record only safe actor/entity metadata and changed
-      field names
+- [x] Create forces `draft` plus `available`; content edits cannot change publication or
+      availability and require the latest optimistic-concurrency version
+- [x] Protected preview, server-paginated search/filtering, publish/unpublish,
+      archive/restore and availability transitions are implemented
+- [x] Property lifecycle audits record only safe actor/entity metadata and changed field
+      names where applicable
 - [x] Automated HTTP, service and browser-fixture coverage passes without live Auth0
 - [ ] Live `/admin` session bootstrap, protected MongoDB writes, CSRF rejection and
       logout verified manually with the development tenant
-- [ ] Preview, publish/unpublish/archive, availability transitions, media and inquiry
-      administration implemented
+- [ ] Media and inquiry administration implemented
 
 ### Media management
 

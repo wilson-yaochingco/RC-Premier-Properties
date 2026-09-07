@@ -10,8 +10,10 @@ Full-stack real estate web application for Angeles City and the wider Pampanga m
 > Mongoose, but persistence has not yet been verified against a real project MongoDB
 > instance and no production inventory or seed data is supplied.
 
-Authentication, staff/admin tools, public inquiry reads, confirmed appointment booking,
-uploads, favorites, payments and notifications are not implemented. The current viewing
+Staff authentication and the property lifecycle administration slice are implemented;
+production Auth0 assurance still requires its documented manual acceptance pass. Public
+inquiry reads, confirmed appointment booking, uploads, favorites, payments and
+notifications are not implemented. The current viewing
 flow records a request only. The approved logo, real media and public business contact
 details still need to be supplied.
 

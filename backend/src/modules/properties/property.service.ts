@@ -3,9 +3,11 @@ import {
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentField,
   type AdminPropertyDetail,
+  type AdminPropertyAvailabilityRequest,
   type AdminPropertyListRequest,
   type AdminPropertyListResponse,
   type AdminPropertySummary,
+  type AdminPropertyTransitionRequest,
   type CreateDraftPropertyRequest,
   type PropertyMapResponse,
   type PropertyFacetsResponse,
@@ -88,6 +90,8 @@ const ADMIN_PROPERTY_PROJECTION = [
   "amenities",
   "features",
   "publishedAt",
+  "archiveRestoreStatus",
+  "__v",
   "createdAt",
   "updatedAt",
 ].join(" ");
@@ -363,6 +367,7 @@ export function toAdminPropertySummary(
       publicPrecision: record.location.publicPrecision ?? "city-only",
     },
     shortDescription: record.shortDescription,
+    version: record.__v ?? 0,
     updatedAt: record.updatedAt.toISOString(),
   };
 }
@@ -509,15 +514,34 @@ export class MongoosePropertyService implements PropertyService {
 
 export const mongoosePropertyService = new MongoosePropertyService();
 
+export function buildAdminPropertyFilter(
+  request: AdminPropertyListRequest,
+): QueryFilter<PropertyEntity> {
+  const filter: QueryFilter<PropertyEntity> = {
+    ...(request.publicationStatus
+      ? { publicationStatus: request.publicationStatus }
+      : {}),
+    ...(request.availability ? { availability: request.availability } : {}),
+  };
+  if (request.query) {
+    const query = new RegExp(escapeRegex(request.query), "i");
+    filter.$or = [
+      { propertyId: query },
+      { slug: query },
+      { title: query },
+      { "location.city": query },
+    ];
+  }
+  return filter;
+}
+
 export class MongoosePropertyAdminRepository implements PropertyAdminRepository {
   constructor(private readonly model: Model<PropertyEntity> = PropertyModel) {}
 
   async list(
     request: AdminPropertyListRequest,
   ): Promise<{ records: AdminPropertyRecord[]; total: number }> {
-    const filter: QueryFilter<PropertyEntity> = request.publicationStatus
-      ? { publicationStatus: request.publicationStatus }
-      : {};
+    const filter = buildAdminPropertyFilter(request);
     const skip = (request.page - 1) * request.limit;
     const [records, total] = await Promise.all([
       this.model
@@ -548,12 +572,52 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
 
   async updateDraft(
     id: string,
+    expectedVersion: number,
     input: Partial<PropertyContentPersistenceInput>,
   ): Promise<AdminPropertyRecord | null> {
+    const versionFilter =
+      expectedVersion === 0
+        ? { $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+        : { __v: expectedVersion };
     return this.model
       .findOneAndUpdate(
-        { _id: id, publicationStatus: "draft" },
-        { $set: input },
+        {
+          _id: id,
+          ...versionFilter,
+          publicationStatus: { $in: ["draft", "unpublished"] },
+        },
+        { $set: input, $inc: { __v: 1 } },
+        { new: true, runValidators: true },
+      )
+      .select(ADMIN_PROPERTY_PROJECTION)
+      .lean<AdminPropertyRecord | null>();
+  }
+
+  async transition(
+    id: string,
+    expectedVersion: number,
+    currentPublicationStatus: import("@rc/shared").PropertyPublicationStatus,
+    update: {
+      publicationStatus?: import("@rc/shared").PropertyPublicationStatus;
+      availability?: import("@rc/shared").PropertyAvailability;
+      publishedAt?: Date;
+      archiveRestoreStatus?: "draft" | "unpublished";
+      clearArchiveRestoreStatus?: boolean;
+    },
+  ): Promise<AdminPropertyRecord | null> {
+    const { clearArchiveRestoreStatus, ...set } = update;
+    const versionFilter =
+      expectedVersion === 0
+        ? { $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+        : { __v: expectedVersion };
+    return this.model
+      .findOneAndUpdate(
+        { _id: id, ...versionFilter, publicationStatus: currentPublicationStatus },
+        {
+          $set: set,
+          ...(clearArchiveRestoreStatus ? { $unset: { archiveRestoreStatus: 1 } } : {}),
+          $inc: { __v: 1 },
+        },
         { new: true, runValidators: true },
       )
       .select(ADMIN_PROPERTY_PROJECTION)
@@ -681,11 +745,17 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail | null> {
     try {
+      const current = await this.findExpectedRecord(id, input.expectedVersion);
+      if (!current) return null;
+      if (!["draft", "unpublished"].includes(current.publicationStatus)) {
+        throw new HttpError(409, "Only draft or unpublished properties can be edited.");
+      }
       const record = await this.repository.updateDraft(
         id,
+        input.expectedVersion,
         updatePersistenceInput(input),
       );
-      if (!record) return null;
+      if (!record) throw this.concurrencyConflict();
       await this.audit.recordAudit({
         actorStaffIdentityId: context.actorStaffIdentityId,
         action: "property.edited",
@@ -703,6 +773,175 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       }
       throw error;
     }
+  }
+
+  async publish(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (!["draft", "unpublished"].includes(current.publicationStatus)) {
+      throw new HttpError(
+        409,
+        "This property cannot be published from its current state.",
+      );
+    }
+    return this.applyTransition(
+      current,
+      input.expectedVersion,
+      { publicationStatus: "published", publishedAt: context.occurredAt ?? new Date() },
+      "property.published",
+      context,
+    );
+  }
+
+  async unpublish(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (current.publicationStatus !== "published") {
+      throw new HttpError(409, "Only a published property can be unpublished.");
+    }
+    return this.applyTransition(
+      current,
+      input.expectedVersion,
+      { publicationStatus: "unpublished" },
+      "property.unpublished",
+      context,
+    );
+  }
+
+  async archive(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (current.publicationStatus === "archived") {
+      throw new HttpError(409, "This property is already archived.");
+    }
+    const archiveRestoreStatus =
+      current.publicationStatus === "published" ||
+      current.publicationStatus === "unpublished"
+        ? "unpublished"
+        : "draft";
+    return this.applyTransition(
+      current,
+      input.expectedVersion,
+      { publicationStatus: "archived", archiveRestoreStatus },
+      "property.archived",
+      context,
+    );
+  }
+
+  async restore(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (current.publicationStatus !== "archived") {
+      throw new HttpError(409, "Only an archived property can be restored.");
+    }
+    return this.applyTransition(
+      current,
+      input.expectedVersion,
+      {
+        publicationStatus: current.archiveRestoreStatus ?? "draft",
+        clearArchiveRestoreStatus: true,
+      },
+      "property.restored",
+      context,
+    );
+  }
+
+  async changeAvailability(
+    id: string,
+    input: AdminPropertyAvailabilityRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (current.publicationStatus !== "published") {
+      throw new HttpError(
+        409,
+        "Availability can change only while a property is published.",
+      );
+    }
+    const allowed: Record<
+      import("@rc/shared").PropertyAvailability,
+      readonly import("@rc/shared").PropertyAvailability[]
+    > = {
+      available: ["reserved", "sold"],
+      reserved: ["available", "sold"],
+      sold: [],
+    };
+    if (!allowed[current.availability].includes(input.availability)) {
+      throw new HttpError(409, "This availability change is not allowed.");
+    }
+    const action =
+      input.availability === "reserved"
+        ? "property.reserved"
+        : input.availability === "sold"
+          ? "property.sold"
+          : "property.availability-changed";
+    return this.applyTransition(
+      current,
+      input.expectedVersion,
+      { availability: input.availability },
+      action,
+      context,
+    );
+  }
+
+  private async findExpectedRecord(
+    id: string,
+    expectedVersion: number,
+  ): Promise<AdminPropertyRecord | null> {
+    const current = await this.repository.findById(id);
+    if (!current) return null;
+    if ((current.__v ?? 0) !== expectedVersion) throw this.concurrencyConflict();
+    return current;
+  }
+
+  private concurrencyConflict(): HttpError {
+    return new HttpError(
+      409,
+      "This property changed after you loaded it. Refresh and review the latest version.",
+    );
+  }
+
+  private async applyTransition(
+    current: AdminPropertyRecord,
+    expectedVersion: number,
+    update: Parameters<PropertyAdminRepository["transition"]>[3],
+    action: import("../auth/auth.types.js").AuditAction,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail> {
+    const record = await this.repository.transition(
+      String(current._id),
+      expectedVersion,
+      current.publicationStatus,
+      update,
+    );
+    if (!record) throw this.concurrencyConflict();
+    await this.audit.recordAudit({
+      actorStaffIdentityId: context.actorStaffIdentityId,
+      action,
+      entityType: "property",
+      entityId: String(record._id),
+      outcome: "succeeded",
+      requestId: context.requestId,
+      occurredAt: context.occurredAt ?? new Date(),
+    });
+    return toAdminPropertyDetail(record);
   }
 }
 

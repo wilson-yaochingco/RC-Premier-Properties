@@ -102,6 +102,10 @@ const propertySchema = new Schema<PropertyEntity>(
       required: true,
       default: "draft",
     },
+    archiveRestoreStatus: {
+      type: String,
+      enum: ["draft", "unpublished"],
+    },
     featured: { type: Boolean, required: true, default: false },
     price: {
       amount: { type: Number, required: true, min: 0, max: 1_000_000_000_000 },
@@ -151,7 +155,7 @@ const propertySchema = new Schema<PropertyEntity>(
   },
   {
     timestamps: true,
-    versionKey: false,
+    versionKey: "__v",
   },
 );
 

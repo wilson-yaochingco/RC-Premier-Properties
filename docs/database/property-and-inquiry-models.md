@@ -25,9 +25,9 @@ Listing purpose is either sale or rent. Currency is PHP in the public MVP.
 
 Two concepts are stored separately:
 
-- `publicationStatus`: `draft`, `pending`, `published` or `archived`. Public endpoints
+- `publicationStatus`: `draft`, `published`, `unpublished` or `archived`. Public endpoints
   always add `publicationStatus: published` themselves; callers cannot override it.
-- `availability`: `available`, `reserved`, `sold` or `rented`. This is safe to show on a
+- `availability`: `available`, `reserved` or `sold`. This is safe to show on a
   published listing and does not grant publication by itself.
 
 Separating these prevents a reserved property from accidentally becoming public merely
@@ -104,12 +104,21 @@ public Phase 2A forms.
 
 ## Administration boundary
 
-Authenticated administrators can list/read private property DTOs, create an available
-draft and edit content while the record remains a draft. The routes project only the
+Authenticated administrators can search and paginate private property DTOs, create an
+available draft, preview it and edit content while the record is a draft or intentionally
+unpublished. The routes project only the
 fields needed by that editor and exclude private address, internal coordinates, owner
 reference and internal notes. Create assigns `publicationStatus: draft` and
-`availability: available`; update predicates on `publicationStatus: draft` and never
-changes either lifecycle field.
+`availability: available`. Every mutation predicates on the returned `__v` value and
+increments it atomically, preventing a stale administrator view from overwriting newer
+work. Legacy records created before versioning are treated as version zero and acquire
+version one on their first successful mutation, so no one-time data migration is needed.
 
-There is still no public create/update/delete route and no public inquiry read. Publish,
-archive, availability, media and inquiry operations require later explicit endpoints.
+Publishing, unpublishing, archiving, restoring and availability changes use separate
+permission-protected endpoints. Archived records retain whether they should restore to
+`draft` or `unpublished`; restoring never republishes a listing. Sold is a terminal
+availability state. There is no hard-delete property endpoint: archiving is
+the recoverable deletion policy and preserves inquiry and audit references.
+
+There is still no public create/update/delete route and no public inquiry read. Media
+and inquiry administration remain deferred.

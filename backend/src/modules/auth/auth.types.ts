@@ -60,6 +60,13 @@ export const AUDIT_ACTIONS = [
   "auth.access.denied",
   "property.created",
   "property.edited",
+  "property.published",
+  "property.unpublished",
+  "property.availability-changed",
+  "property.reserved",
+  "property.sold",
+  "property.archived",
+  "property.restored",
   "staff.provisioned",
   "staff.deactivated",
 ] as const;

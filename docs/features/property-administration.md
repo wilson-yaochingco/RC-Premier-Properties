@@ -1,52 +1,48 @@
 # Property Administration
 
-Status: Phase 3A protected shell, private reads, draft creation and draft-content editing
-implemented. Publishing, availability transitions and media remain deferred.
+Status: Phase 3A property lifecycle slice implemented. Media and inquiry administration remain deferred.
 
 ## Staff experience
 
-The `/admin` route redirects to `/admin/properties`. The protected shell requests
-`GET /auth/session` from the browser with credentials included. While that check is in
-progress it shows a loading state. A missing or expired session shows a staff sign-in
-link that starts the backend Auth0 route with the exact allowlisted return URL
-`<frontend-origin>/admin`.
+The protected `/admin` shell checks the local staff session, keeps its CSRF token only in React memory, and exposes no cached or indexed private response. The property workspace provides:
 
-After authentication, the shell shows the local staff display name, property navigation
-and local-session logout. The CSRF token stays in React memory and is passed only in the
-`X-CSRF-Token` header on backend writes. It is never stored in local or session storage.
+- `/admin/properties` — server-paginated results with search, publication, and availability filters;
+- `/admin/properties/new` — create an available private draft;
+- `/admin/properties/[id]/edit` — edit draft or unpublished content; and
+- `/admin/properties/[id]/preview` — protected pre-publication preview using the configured public location precision.
 
-Admin pages include:
+Search covers the Premier Property number, slug, title, and city. Results show loading, error, forbidden, empty, success, and pagination states. Lifecycle controls adapt to smaller screens and are hidden when the session lacks the relevant permission; Express remains the authorization boundary.
 
-- `/admin/properties` — private draft list and empty/error/forbidden states;
-- `/admin/properties/new` — create an available private draft; and
-- `/admin/properties/[id]/edit` — load private detail and edit draft content.
+## Lifecycle
 
-The forms use real labels, field-level API errors, a focusable error summary, keyboard
-controls and disabled fieldsets/submission while saving. Successful creation links to
-the new editor; successful editing keeps the refreshed draft in place. A `401` received
-after bootstrap returns the shell to an explicit expired-session state.
+Publication and market availability remain separate:
 
-## Lifecycle boundary
+```text
+publication: draft -> published -> unpublished -> archived
+availability: available -> reserved -> sold
+```
 
-This slice edits content only. There is no publication-status or availability input.
-The backend assigns new records to `draft` and `available`, and draft updates use a
-server-owned `publicationStatus: draft` predicate. Frontend controls are convenience,
-not authorization; all access, permission and CSRF decisions remain in Express.
+- Publish accepts draft or unpublished records.
+- Unpublish accepts only published records and produces `unpublished`.
+- Archive accepts any non-archived record and immediately removes a published listing from public reads.
+- Restore returns a never-published record to draft and a previously public record to unpublished. It never republishes automatically.
+- Availability changes are accepted only while published. Available may become reserved or sold, reserved may return to available or become sold, and sold is terminal.
+- Content is editable only while draft or unpublished.
 
-The editor intentionally excludes uploads/media, internal notes, owner data, exact
-internal coordinates and private address management. It does not implement publishing,
-unpublishing, archiving, availability changes, inquiry management or staff management.
+Every mutation includes the version from the latest private read. The MongoDB update matches both ID and version, then increments the version atomically. A stale operation returns `409` and instructs staff to refresh.
 
-## Search indexing and caching
+## Safe deletion policy
 
-The admin layout exports `noindex`, `nofollow` and `noarchive` metadata. `robots.txt`
-already disallows `/admin`, and authenticated API responses use `no-store`. These are
-indexing/cache controls, not substitutes for server authorization.
+There is no property hard-delete endpoint. Staff archive a record after an explicit confirmation. This keeps the action recoverable and preserves property references held by inquiries and security audit events.
 
-## External acceptance boundary
+## Authorization and auditing
 
-Automated browser tests mock only the network boundary and use no Auth0 credential.
-The owner has reported that the configured Auth0 Free passkey flow redirects to the
-frontend. The application session response, authenticated admin data load, CSRF-backed
-write and logout still require the manual browser pass in
-[`../development/auth0-setup.md`](../development/auth0-setup.md).
+Private reads and preview require `property:read-private`. Create/edit require `property:write`. Publish, unpublish, archive, and restore require `property:publish`. Availability transitions require `property:change-availability`. Every write also requires the configured origin, session-bound CSRF token, and JSON content.
+
+Successful create, edit, publish, unpublish, reserve, sold, general availability change, archive, and restore actions emit allowlisted audit events. Events contain actor, property database ID, request ID, timestamp, outcome, and content field names when relevant; they contain no property values, request body, cookies, CSRF data, or provider tokens.
+
+Property persistence and audit insertion remain separate MongoDB writes, matching the documented session-audit limitation. A failed audit insert fails the HTTP request but does not roll back a completed property mutation.
+
+## Deferred boundaries
+
+Media upload/management, inquiry administration, staff management, and hard deletion are not part of this level. The Auth0 development tenant still requires the manual end-to-end acceptance steps in [auth0-setup.md](../development/auth0-setup.md).

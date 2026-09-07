@@ -1,7 +1,9 @@
 import type {
   AdminPropertyDetail,
+  AdminPropertyAvailabilityRequest,
   AdminPropertyListRequest,
   AdminPropertyListResponse,
+  AdminPropertyTransitionRequest,
   CreateDraftPropertyRequest,
   ListingPurpose,
   PropertyAvailability,
@@ -84,6 +86,10 @@ export interface PropertyEntity {
   /** Internal-only owner reference; excluded at schema and query level. */
   ownerReference?: string;
   publishedAt?: Date;
+  /** Safe private state to restore after an archive action. */
+  archiveRestoreStatus?: "draft" | "unpublished";
+  /** Missing only on records created before optimistic concurrency was enabled. */
+  __v?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -121,7 +127,20 @@ export interface PropertyAdminRepository {
   createDraft(input: DraftPropertyPersistenceInput): Promise<AdminPropertyRecord>;
   updateDraft(
     id: string,
+    expectedVersion: number,
     input: Partial<PropertyContentPersistenceInput>,
+  ): Promise<AdminPropertyRecord | null>;
+  transition(
+    id: string,
+    expectedVersion: number,
+    currentPublicationStatus: PropertyPublicationStatus,
+    update: {
+      publicationStatus?: PropertyPublicationStatus;
+      availability?: PropertyAvailability;
+      publishedAt?: Date;
+      archiveRestoreStatus?: "draft" | "unpublished";
+      clearArchiveRestoreStatus?: boolean;
+    },
   ): Promise<AdminPropertyRecord | null>;
 }
 
@@ -145,6 +164,31 @@ export interface AdminPropertyService {
   updateDraft(
     id: string,
     input: UpdateDraftPropertyRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  publish(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  unpublish(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  archive(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  restore(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  changeAvailability(
+    id: string,
+    input: AdminPropertyAvailabilityRequest,
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail | null>;
 }

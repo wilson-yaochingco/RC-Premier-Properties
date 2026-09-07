@@ -1,8 +1,13 @@
-import type { CreateDraftPropertyRequest } from "@rc/shared";
+import {
+  PROPERTY_AVAILABILITY,
+  PROPERTY_PUBLICATION_STATUSES,
+  type CreateDraftPropertyRequest,
+} from "@rc/shared";
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../src/middleware/errorHandler.js";
 import { PropertyModel } from "../src/modules/properties/property.model.js";
 import {
+  buildAdminPropertyFilter,
   buildPublishedPropertyDetailFilter,
   buildPublishedPropertyFilter,
   toPublicPropertySummary,
@@ -10,7 +15,9 @@ import {
 import type { PublicPropertyRecord } from "../src/modules/properties/property.types.js";
 import {
   parseAdminPropertyId,
+  parseAdminPropertyAvailabilityBody,
   parseAdminPropertyListQuery,
+  parseAdminPropertyTransitionBody,
   parseCreateDraftPropertyBody,
   parsePropertyMapQuery,
   parsePropertySearchQuery,
@@ -370,6 +377,25 @@ describe("property public map point schema", () => {
 });
 
 describe("admin property validation", () => {
+  it("keeps the approved lifecycle sales-only and omits an unused review state", () => {
+    expect(PROPERTY_AVAILABILITY).toEqual(["available", "reserved", "sold"]);
+    expect(PROPERTY_PUBLICATION_STATUSES).toEqual([
+      "draft",
+      "published",
+      "unpublished",
+      "archived",
+    ]);
+    expect(() =>
+      parseAdminPropertyAvailabilityBody({
+        expectedVersion: 0,
+        availability: "rented",
+      }),
+    ).toThrow(HttpError);
+    expect(() => parseAdminPropertyListQuery({ publicationStatus: "pending" })).toThrow(
+      HttpError,
+    );
+  });
+
   it("normalizes an allowlisted draft request without adding lifecycle fields", () => {
     expect(
       parseCreateDraftPropertyBody({
@@ -403,35 +429,83 @@ describe("admin property validation", () => {
   it("accepts a partial content edit and rejects empty or lifecycle edits", () => {
     expect(
       parseUpdateDraftPropertyBody({
+        expectedVersion: 3,
         title: " Updated title ",
         description: " Updated draft description. ",
       }),
     ).toEqual({
       title: "Updated title",
       description: "Updated draft description.",
+      expectedVersion: 3,
     });
-    expect(() => parseUpdateDraftPropertyBody({})).toThrow(HttpError);
-    expect(() =>
-      parseUpdateDraftPropertyBody({ publicationStatus: "published" }),
-    ).toThrow(HttpError);
-    expect(() => parseUpdateDraftPropertyBody({ availability: "sold" })).toThrow(
+    expect(() => parseUpdateDraftPropertyBody({ expectedVersion: 3 })).toThrow(
       HttpError,
     );
+    expect(() =>
+      parseUpdateDraftPropertyBody({
+        expectedVersion: 3,
+        publicationStatus: "published",
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseUpdateDraftPropertyBody({ expectedVersion: 3, availability: "sold" }),
+    ).toThrow(HttpError);
+    expect(parseAdminPropertyTransitionBody({ expectedVersion: 3 })).toEqual({
+      expectedVersion: 3,
+    });
+    expect(
+      parseAdminPropertyAvailabilityBody({
+        expectedVersion: 3,
+        availability: "reserved",
+      }),
+    ).toEqual({ expectedVersion: 3, availability: "reserved" });
+    expect(() =>
+      parseAdminPropertyAvailabilityBody({
+        expectedVersion: -1,
+        availability: "reserved",
+      }),
+    ).toThrow(HttpError);
   });
 
   it("validates private list pagination, status, unknown query fields, and IDs", () => {
     expect(
       parseAdminPropertyListQuery({
         publicationStatus: "draft",
+        availability: "available",
+        query: "RCPP-001",
         page: "2",
         limit: "10",
       }),
-    ).toEqual({ publicationStatus: "draft", page: 2, limit: 10 });
+    ).toEqual({
+      query: "RCPP-001",
+      publicationStatus: "draft",
+      availability: "available",
+      page: 2,
+      limit: 10,
+    });
     expect(() => parseAdminPropertyListQuery({ owner: "any" })).toThrow(HttpError);
     expect(() => parseAdminPropertyListQuery({ limit: "51" })).toThrow(HttpError);
     expect(parseAdminPropertyId("507f1f77bcf86cd799439011")).toBe(
       "507f1f77bcf86cd799439011",
     );
     expect(() => parseAdminPropertyId("not-an-object-id")).toThrow(HttpError);
+  });
+
+  it("builds combined private search and lifecycle filters", () => {
+    const filter = buildAdminPropertyFilter({
+      query: "RCPP-001",
+      publicationStatus: "published",
+      availability: "reserved",
+      page: 2,
+      limit: 20,
+    });
+    expect(filter).toMatchObject({
+      publicationStatus: "published",
+      availability: "reserved",
+    });
+    expect(filter.$or).toHaveLength(4);
+    expect(String((filter.$or?.[0] as { propertyId: RegExp }).propertyId)).toBe(
+      "/RCPP-001/i",
+    );
   });
 });

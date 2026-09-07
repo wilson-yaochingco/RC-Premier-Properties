@@ -31,6 +31,8 @@ export interface AdminPropertyRouteDependencies {
   auth: ResolvedAuthRouteDependencies;
   readPermission?: RequestHandler;
   writePermission?: RequestHandler;
+  publishPermission?: RequestHandler;
+  availabilityPermission?: RequestHandler;
 }
 
 const requireJson: RequestHandler = (request, _response, next) => {
@@ -62,6 +64,12 @@ export function createAdminPropertyRoutes(
     requirePermission(authService, "property:read-private");
   const requireWrite =
     dependencies.writePermission ?? requirePermission(authService, "property:write");
+  const requirePublish =
+    dependencies.publishPermission ??
+    requirePermission(authService, "property:publish");
+  const requireAvailability =
+    dependencies.availabilityPermission ??
+    requirePermission(authService, "property:change-availability");
   const allowedOrigin = requireAllowedOrigin(authService);
   const csrf = requireCsrf(authService);
 
@@ -84,6 +92,31 @@ export function createAdminPropertyRoutes(
     requireWrite,
     requireJson,
     controller.update,
+  );
+  for (const [action, handler] of [
+    ["publish", controller.publish],
+    ["unpublish", controller.unpublish],
+    ["archive", controller.archive],
+    ["restore", controller.restore],
+  ] as const) {
+    router.post(
+      `/:id/${action}`,
+      authenticate,
+      allowedOrigin,
+      csrf,
+      requirePublish,
+      requireJson,
+      handler,
+    );
+  }
+  router.patch(
+    "/:id/availability",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireAvailability,
+    requireJson,
+    controller.changeAvailability,
   );
 
   return router;

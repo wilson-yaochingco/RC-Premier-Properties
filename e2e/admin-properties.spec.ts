@@ -43,6 +43,7 @@ const DRAFT: AdminPropertyDetail = {
   },
   specifications: { bedrooms: 3, bathrooms: 2 },
   shortDescription: "A private browser-test draft.",
+  version: 0,
   description: "This synthetic draft exists only in the browser test boundary.",
   highlights: [],
   amenities: [],
@@ -123,7 +124,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       await json(route, 200, property);
       return;
     }
-    if (request.method() === "POST") {
+    if (request.method() === "POST" && path.endsWith("/admin/properties")) {
       createRequest = request.postDataJSON() as Record<string, unknown>;
       property = {
         ...property,
@@ -139,17 +140,30 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       await json(route, 201, property);
       return;
     }
+    if (request.method() === "POST" && path.endsWith("/publish")) {
+      property = {
+        ...property,
+        publicationStatus: "published",
+        publishedAt: "2026-09-06T08:10:00.000Z",
+        version: property.version + 1,
+      };
+      await json(route, 200, property);
+      return;
+    }
     editRequest = request.postDataJSON() as Record<string, unknown>;
     property = {
       ...property,
       ...editRequest,
+      version: property.version + 1,
       updatedAt: "2026-09-06T08:05:00.000Z",
     };
     await json(route, 200, property);
   });
 
   await page.goto("/admin/properties");
-  await expect(page.getByRole("heading", { name: "Draft properties" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Properties", exact: true }),
+  ).toBeVisible();
   await expect(
     page.locator("td strong").filter({ hasText: "E2E private draft" }),
   ).toBeVisible();
@@ -175,12 +189,19 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   expect(createRequest).not.toHaveProperty("availability");
 
   await page.getByRole("link", { name: "Edit the new draft" }).click();
-  await expect(page.getByRole("heading", { name: "Edit draft content" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Edit property content" }),
+  ).toBeVisible();
   await page.getByLabel("Title").fill("E2E edited draft");
-  await page.getByRole("button", { name: "Save draft content" }).click();
-  await expect(page.getByText("Draft changes saved.")).toBeVisible();
-  expect(editRequest).toEqual({ title: "E2E edited draft" });
-  expect(writeCsrfHeaders).toEqual([CSRF_TOKEN, CSRF_TOKEN]);
+  await page.getByRole("button", { name: "Save property content" }).click();
+  await expect(page.getByText("Property changes saved.")).toBeVisible();
+  expect(editRequest).toEqual({ title: "E2E edited draft", expectedVersion: 0 });
+  await page.getByRole("link", { name: "Preview property" }).last().click();
+  await expect(page.getByText("Private property preview")).toBeVisible();
+  await page.getByRole("link", { name: "Back to properties" }).click();
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByText(/was published/i)).toBeVisible();
+  expect(writeCsrfHeaders).toEqual([CSRF_TOKEN, CSRF_TOKEN, CSRF_TOKEN]);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
 });
 

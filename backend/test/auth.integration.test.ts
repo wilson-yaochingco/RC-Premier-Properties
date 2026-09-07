@@ -381,6 +381,7 @@ const ADMIN_PROPERTY: AdminPropertyDetail = {
   },
   specifications: { bedrooms: 3, bathrooms: 2 },
   shortDescription: "A private test-only draft.",
+  version: 0,
   description: "A private draft used only by the authentication integration suite.",
   highlights: [],
   amenities: [],
@@ -454,6 +455,53 @@ function makeAdminPropertyService() {
         ...(input.price ? { price: { ...input.price, currency: "PHP" } } : {}),
         availability: property.availability,
         publicationStatus: property.publicationStatus,
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async publish(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "published",
+        publishedAt: NOW.toISOString(),
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async unpublish(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "unpublished",
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async archive(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "archived",
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async restore(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "draft",
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async changeAvailability(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        availability: input.availability,
+        version: property.version + 1,
       };
       return structuredClone(property);
     },
@@ -467,6 +515,8 @@ function buildApp(
     adminProperties?: ReturnType<typeof makeAdminPropertyService>;
     readPermission?: RequestHandler;
     writePermission?: RequestHandler;
+    publishPermission?: RequestHandler;
+    availabilityPermission?: RequestHandler;
   } = {},
 ) {
   return createApp({
@@ -483,6 +533,12 @@ function buildApp(
       : {}),
     ...(options.writePermission
       ? { adminPropertyWritePermission: options.writePermission }
+      : {}),
+    ...(options.publishPermission
+      ? { adminPropertyPublishPermission: options.publishPermission }
+      : {}),
+    ...(options.availabilityPermission
+      ? { adminPropertyAvailabilityPermission: options.availabilityPermission }
       : {}),
     inquiryRateLimit: passThrough,
   });
@@ -1179,9 +1235,26 @@ describe("Phase 3A admin property HTTP boundary", () => {
       request(app)
         .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
         .send({ title: "Anonymous edit" }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/unpublish`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/archive`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/restore`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
+        .send({ expectedVersion: 0, availability: "reserved" }),
     ]);
 
-    expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401]);
+    expect(responses.map((response) => response.status)).toEqual([
+      401, 401, 401, 401, 401, 401, 401, 401, 401,
+    ]);
     for (const response of responses) {
       expect(response.body).toMatchObject({ status: "error", statusCode: 401 });
     }
@@ -1191,7 +1264,12 @@ describe("Phase 3A admin property HTTP boundary", () => {
     const auth = makeAuth();
     const deny: RequestHandler = (_req, _res, next) =>
       next(new HttpError(403, "Permission denied."));
-    const app = buildApp(auth, { readPermission: deny, writePermission: deny });
+    const app = buildApp(auth, {
+      readPermission: deny,
+      writePermission: deny,
+      publishPermission: deny,
+      availabilityPermission: deny,
+    });
     const session = await authenticatedAdmin(app, auth);
     const readResponses = await Promise.all([
       request(app).get(`${API_PREFIX}/admin/properties`).set("Cookie", session.cookie),
@@ -1212,6 +1290,18 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", ORIGIN)
         .set("X-CSRF-Token", session.csrfToken)
         .send({ title: "Denied edit" }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, availability: "reserved" }),
     ]);
 
     for (const response of [...readResponses, ...writeResponses]) {
@@ -1303,7 +1393,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
       .set("Cookie", session.cookie)
       .set("Origin", ORIGIN)
       .set("X-CSRF-Token", session.csrfToken)
-      .send({ title: "Edited private draft" });
+      .send({ title: "Edited private draft", expectedVersion: 0 });
 
     expect(list.status).toBe(200);
     expect(list.headers["cache-control"]).toBe("no-store");
@@ -1320,6 +1410,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
     expect(adminProperties.creates[0]?.context.actorStaffIdentityId).toMatch(/^staff-/);
     expect(adminProperties.updates[0]?.input).toEqual({
       title: "Edited private draft",
+      expectedVersion: 0,
     });
   });
 
@@ -1361,6 +1452,51 @@ describe("Phase 3A admin property HTTP boundary", () => {
     expect(nonJson.status).toBe(415);
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
+  });
+
+  it("supports authorized publish, availability, unpublish, archive, and restore actions", async () => {
+    const auth = makeAuth();
+    const adminProperties = makeAdminPropertyService();
+    const app = buildApp(auth, { adminProperties });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+
+    const published = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+      .set(headers)
+      .send({ expectedVersion: 0 });
+    const reserved = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
+      .set(headers)
+      .send({ expectedVersion: 1, availability: "reserved" });
+    const unpublished = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/unpublish`)
+      .set(headers)
+      .send({ expectedVersion: 2 });
+    const archived = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/archive`)
+      .set(headers)
+      .send({ expectedVersion: 3 });
+    const restored = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/restore`)
+      .set(headers)
+      .send({ expectedVersion: 4 });
+
+    expect(published.body).toMatchObject({
+      publicationStatus: "published",
+      version: 1,
+    });
+    expect(reserved.body).toMatchObject({ availability: "reserved", version: 2 });
+    expect(unpublished.body).toMatchObject({
+      publicationStatus: "unpublished",
+      version: 3,
+    });
+    expect(archived.body).toMatchObject({ publicationStatus: "archived", version: 4 });
+    expect(restored.body).toMatchObject({ publicationStatus: "draft", version: 5 });
   });
 
   it("keeps a privately readable draft unavailable through public property routes", async () => {

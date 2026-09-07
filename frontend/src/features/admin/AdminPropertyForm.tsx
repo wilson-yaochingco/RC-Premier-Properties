@@ -175,12 +175,12 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
 function changedContent(
   before: AdminPropertyContentInput,
   after: AdminPropertyContentInput,
-): UpdateDraftPropertyRequest {
+): Omit<UpdateDraftPropertyRequest, "expectedVersion"> {
   return Object.fromEntries(
     ADMIN_PROPERTY_CONTENT_FIELDS.filter(
       (field) => JSON.stringify(before[field]) !== JSON.stringify(after[field]),
     ).map((field) => [field, after[field]]),
-  ) as UpdateDraftPropertyRequest;
+  ) as Omit<UpdateDraftPropertyRequest, "expectedVersion">;
 }
 
 function Field({
@@ -282,11 +282,11 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = contentFromForm(event.currentTarget);
-    const request =
+    const changed =
       mode === "edit" && load.kind === "ready" && load.property
         ? changedContent(editableContent(load.property), content)
         : content;
-    if (mode === "edit" && Object.keys(request).length === 0) {
+    if (mode === "edit" && Object.keys(changed).length === 0) {
       setSubmission({
         kind: "error",
         message: "No content fields have changed.",
@@ -298,22 +298,27 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
     }
 
     setSubmission({ kind: "pending" });
+    const expectedVersion = load.kind === "ready" ? load.property?.version : undefined;
     try {
       const property =
         mode === "create"
           ? await createDraftProperty(
-              request as CreateDraftPropertyRequest,
+              changed as CreateDraftPropertyRequest,
               session.csrfToken,
             )
           : await updateDraftProperty(
               propertyId ?? "",
-              request as UpdateDraftPropertyRequest,
+              {
+                ...(changed as Omit<UpdateDraftPropertyRequest, "expectedVersion">),
+                expectedVersion: expectedVersion ?? -1,
+              },
               session.csrfToken,
             );
       if (mode === "edit") setLoad({ kind: "ready", property });
       setSubmission({
         kind: "success",
-        message: mode === "create" ? "Draft property created." : "Draft changes saved.",
+        message:
+          mode === "create" ? "Draft property created." : "Property changes saved.",
         property,
       });
     } catch (error) {
@@ -373,17 +378,38 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
   const content = load.property ? editableContent(load.property) : EMPTY_CONTENT;
   const issues = submission.issues ?? [];
 
+  if (
+    mode === "edit" &&
+    load.property &&
+    !["draft", "unpublished"].includes(load.property.publicationStatus)
+  ) {
+    return (
+      <section className={styles.page}>
+        <div className={styles.panel} role="alert">
+          <h1>This property is not editable.</h1>
+          <p>Unpublish or restore it before changing listing content.</p>
+          <Link href={`/admin/properties/${load.property.id}/preview`}>
+            Preview property
+          </Link>
+          <Link href="/admin/properties">Back to properties</Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className={styles.page} aria-labelledby="property-form-title">
       <div className={styles.pageHeader}>
         <div>
           <p className={styles.eyebrow}>Property administration</p>
           <h1 id="property-form-title">
-            {mode === "create" ? "Create a draft property" : "Edit draft content"}
+            {mode === "create" ? "Create a draft property" : "Edit property content"}
           </h1>
-          <p>Publication and availability are controlled by separate future actions.</p>
+          <p>
+            Save content here, then preview and manage lifecycle from the property list.
+          </p>
         </div>
-        <Link href="/admin/properties">Back to drafts</Link>
+        <Link href="/admin/properties">Back to properties</Link>
       </div>
 
       {load.property ? (
@@ -419,6 +445,11 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
           {mode === "create" && submission.property ? (
             <Link href={`/admin/properties/${submission.property.id}/edit`}>
               Edit the new draft
+            </Link>
+          ) : null}
+          {submission.property ? (
+            <Link href={`/admin/properties/${submission.property.id}/preview`}>
+              Preview property
             </Link>
           ) : null}
         </div>
@@ -694,7 +725,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
             ? "Saving…"
             : mode === "create"
               ? "Create private draft"
-              : "Save draft content"}
+              : "Save property content"}
         </button>
       </form>
     </section>
