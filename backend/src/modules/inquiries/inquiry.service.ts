@@ -9,11 +9,16 @@ import type {
   CreateInquiryRequest,
   CreateInquiryResponse,
   InquiryStatus,
+  InquiryType,
+  UpdateViewingRequestRequest,
+  ViewingRequestStatus,
   UpdateInquiryStatusRequest,
 } from "@rc/shared";
 import { Types, type Model, type QueryFilter } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
 import { mongooseAuthStore } from "../auth/auth.store.js";
+import { PropertyModel } from "../properties/property.model.js";
+import type { PropertyEntity } from "../properties/property.types.js";
 import { InquiryModel } from "./inquiry.model.js";
 import type {
   AdminInquiryRecord,
@@ -23,13 +28,34 @@ import type {
   InquiryEntity,
   InquiryMutationContext,
   InquiryService,
+  ViewingPropertyRepository,
 } from "./inquiry.types.js";
 
 const RECEIVED_MESSAGE =
   "Thank you. Your inquiry has been received and our team will be in touch.";
+const VIEWING_RECEIVED_MESSAGE =
+  "Your viewing request has been received. Our team will contact you to confirm the requested schedule; it is not yet an appointment.";
+
+export class MongooseViewingPropertyRepository implements ViewingPropertyRepository {
+  constructor(private readonly model: Model<PropertyEntity> = PropertyModel) {}
+
+  async isRequestablePropertyId(propertyId: string): Promise<boolean> {
+    return Boolean(
+      await this.model.exists({
+        propertyId,
+        publicationStatus: "published",
+        purpose: "sale",
+        availability: { $ne: "sold" },
+      }),
+    );
+  }
+}
 
 export class MongooseInquiryService implements InquiryService {
-  constructor(private readonly model: Model<InquiryEntity> = InquiryModel) {}
+  constructor(
+    private readonly model: Model<InquiryEntity> = InquiryModel,
+    private readonly properties: ViewingPropertyRepository = new MongooseViewingPropertyRepository(),
+  ) {}
 
   async create(
     request: Omit<CreateInquiryRequest, "website">,
@@ -39,34 +65,90 @@ export class MongooseInquiryService implements InquiryService {
     const idempotencyKeyHash = idempotencyKey
       ? createHash("sha256").update(idempotencyKey).digest("hex")
       : undefined;
+    if (idempotencyKeyHash) {
+      const existing = await this.findIdempotentInquiry(idempotencyKeyHash);
+      if (existing) {
+        return createResponse(
+          String(existing._id),
+          existing.createdAt,
+          existing.inquiryType,
+        );
+      }
+    }
+
+    const { requestedDate, requestedTime, ...inquiryInput } = request;
+    if (inquiryInput.inquiryType === "viewing") {
+      if (
+        !inquiryInput.propertyId ||
+        !requestedDate ||
+        !requestedTime ||
+        !(await this.properties.isRequestablePropertyId(inquiryInput.propertyId))
+      ) {
+        throw new HttpError(400, "Invalid viewing request.", [
+          {
+            field: "propertyId",
+            message: "Select a published sale property that is available for viewing.",
+          },
+        ]);
+      }
+    }
     let inquiry;
     try {
       inquiry = await this.model.create({
-        ...request,
+        ...inquiryInput,
         privacyConsentAt: now,
         status: "new",
         statusHistory: [{ toStatus: "new", changedAt: now }],
+        ...(inquiryInput.inquiryType === "viewing"
+          ? {
+              viewingRequest: {
+                status: "requested",
+                requestedDate,
+                requestedTime,
+                statusHistory: [
+                  {
+                    toStatus: "requested",
+                    requestedDate,
+                    requestedTime,
+                    changedAt: now,
+                  },
+                ],
+              },
+            }
+          : {}),
         ...(idempotencyKeyHash ? { idempotencyKeyHash } : {}),
       });
     } catch (error) {
       if (!idempotencyKeyHash || !isDuplicateKey(error)) throw error;
-      const existing = await this.model
-        .findOne({ idempotencyKeyHash })
-        .select("_id createdAt")
-        .lean<{ _id: unknown; createdAt: Date } | null>();
+      const existing = await this.findIdempotentInquiry(idempotencyKeyHash);
       if (!existing) throw error;
-      return createResponse(String(existing._id), existing.createdAt);
+      return createResponse(
+        String(existing._id),
+        existing.createdAt,
+        existing.inquiryType,
+      );
     }
 
-    return createResponse(String(inquiry._id), inquiry.createdAt);
+    return createResponse(String(inquiry._id), inquiry.createdAt, inquiry.inquiryType);
+  }
+
+  private findIdempotentInquiry(idempotencyKeyHash: string) {
+    return this.model
+      .findOne({ idempotencyKeyHash })
+      .select("_id createdAt inquiryType")
+      .lean<{ _id: unknown; createdAt: Date; inquiryType: InquiryType } | null>();
   }
 }
 
-function createResponse(id: string, createdAt: Date): CreateInquiryResponse {
+function createResponse(
+  id: string,
+  createdAt: Date,
+  inquiryType: InquiryType,
+): CreateInquiryResponse {
   return {
     inquiryId: id,
     status: "received",
-    message: RECEIVED_MESSAGE,
+    message: inquiryType === "viewing" ? VIEWING_RECEIVED_MESSAGE : RECEIVED_MESSAGE,
     createdAt: createdAt.toISOString(),
   };
 }
@@ -106,6 +188,9 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
     if (request.inquiryType) filters.push({ inquiryType: request.inquiryType });
     if (request.source) filters.push({ source: request.source });
     if (request.propertyId) filters.push({ propertyId: request.propertyId });
+    if (request.viewingStatus) {
+      filters.push({ "viewingRequest.status": request.viewingStatus });
+    }
     if (request.query) {
       const expression = new RegExp(escapeRegExp(request.query), "i");
       filters.push({
@@ -124,7 +209,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
       this.model
         .find(filter)
         .select(
-          "name email inquiryType source propertyId subject status createdAt updatedAt archivedAt __v",
+          "name email inquiryType source propertyId subject status viewingRequest.status viewingRequest.requestedDate viewingRequest.requestedTime createdAt updatedAt archivedAt __v",
         )
         .sort({ createdAt: -1, _id: -1 })
         .skip((request.page - 1) * request.limit)
@@ -172,6 +257,65 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
               changedByStaffIdentity: new Types.ObjectId(actorStaffIdentityId),
               changedAt: occurredAt,
             },
+          },
+          $inc: { __v: 1 },
+        },
+        { new: true },
+      )
+      .select("+internalNotes")
+      .lean<AdminInquiryRecord | null>();
+  }
+
+  async updateViewingRequest(
+    id: string,
+    expectedVersion: number,
+    currentViewingStatus: ViewingRequestStatus,
+    input: Pick<
+      UpdateViewingRequestRequest,
+      "status" | "requestedDate" | "requestedTime"
+    >,
+    actorStaffIdentityId: string,
+    occurredAt: Date,
+    currentInquiryStatus: InquiryStatus,
+    nextInquiryStatus: InquiryStatus,
+  ): Promise<AdminInquiryRecord | null> {
+    const inquiryStatusChanged = currentInquiryStatus !== nextInquiryStatus;
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: id,
+          inquiryType: "viewing",
+          status: currentInquiryStatus,
+          "viewingRequest.status": currentViewingStatus,
+          archivedAt: { $exists: false },
+          ...versionFilter(expectedVersion),
+        },
+        {
+          $set: {
+            "viewingRequest.status": input.status,
+            "viewingRequest.requestedDate": input.requestedDate,
+            "viewingRequest.requestedTime": input.requestedTime,
+            ...(inquiryStatusChanged ? { status: nextInquiryStatus } : {}),
+          },
+          $push: {
+            "viewingRequest.statusHistory": {
+              fromStatus: currentViewingStatus,
+              toStatus: input.status,
+              requestedDate: input.requestedDate,
+              requestedTime: input.requestedTime,
+              changedByStaffIdentity: new Types.ObjectId(actorStaffIdentityId),
+              changedAt: occurredAt,
+            },
+            ...(inquiryStatusChanged
+              ? {
+                  statusHistory: {
+                    fromStatus: currentInquiryStatus,
+                    toStatus: nextInquiryStatus,
+                    changedByStaffIdentity: new Types.ObjectId(actorStaffIdentityId),
+                    changedAt: occurredAt,
+                  },
+                }
+              : {}),
           },
           $inc: { __v: 1 },
         },
@@ -267,6 +411,15 @@ function toSummary(record: AdminInquiryRecord): AdminInquirySummary {
     ...(record.propertyId ? { propertyId: record.propertyId } : {}),
     ...(record.subject ? { subject: record.subject } : {}),
     status: record.status,
+    ...(record.viewingRequest
+      ? {
+          viewingRequest: {
+            status: record.viewingRequest.status,
+            requestedDate: record.viewingRequest.requestedDate,
+            requestedTime: record.viewingRequest.requestedTime,
+          },
+        }
+      : {}),
     version: record.__v ?? 0,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
@@ -283,7 +436,7 @@ function toDetail(record: AdminInquiryRecord): AdminInquiryDetail {
   return {
     ...summary,
     ...(record.phone ? { phone: record.phone } : {}),
-    message: record.message,
+    ...(record.message ? { message: record.message } : {}),
     privacyConsentAt: record.privacyConsentAt.toISOString(),
     internalNotes: (record.internalNotes ?? []).map((entry) => ({
       id: String(entry._id),
@@ -295,6 +448,20 @@ function toDetail(record: AdminInquiryRecord): AdminInquiryDetail {
       toStatus: entry.toStatus,
       changedAt: entry.changedAt.toISOString(),
     })),
+    viewingRequest: record.viewingRequest
+      ? {
+          status: record.viewingRequest.status,
+          requestedDate: record.viewingRequest.requestedDate,
+          requestedTime: record.viewingRequest.requestedTime,
+          statusHistory: record.viewingRequest.statusHistory.map((entry) => ({
+            ...(entry.fromStatus ? { fromStatus: entry.fromStatus } : {}),
+            toStatus: entry.toStatus,
+            requestedDate: entry.requestedDate,
+            requestedTime: entry.requestedTime,
+            changedAt: entry.changedAt.toISOString(),
+          })),
+        }
+      : undefined,
   };
 }
 
@@ -334,6 +501,50 @@ export class DefaultAdminInquiryService implements AdminInquiryService {
       "inquiry.status-changed",
       context,
     );
+  }
+
+  async updateViewingRequest(
+    id: string,
+    input: UpdateViewingRequestRequest,
+    context: InquiryMutationContext,
+  ) {
+    const current = await this.expectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (current.archivedAt)
+      throw new HttpError(409, "Restore this inquiry before updating it.");
+    if (current.status === "spam") {
+      throw new HttpError(409, "Restore this inquiry from spam before updating it.");
+    }
+    if (current.inquiryType !== "viewing" || !current.viewingRequest) {
+      throw new HttpError(409, "This inquiry is not a structured viewing request.");
+    }
+    const allowed = VIEWING_TRANSITIONS[current.viewingRequest.status] ?? [];
+    if (!allowed.includes(input.status)) {
+      throw new HttpError(
+        409,
+        `A ${current.viewingRequest.status} viewing cannot change to ${input.status}.`,
+      );
+    }
+    const nextInquiryStatus = synchronizedInquiryStatus(current.status, input.status);
+    const occurredAt = context.occurredAt ?? new Date();
+    const record = await this.repository.updateViewingRequest(
+      id,
+      input.expectedVersion,
+      current.viewingRequest.status,
+      input,
+      context.actorStaffIdentityId,
+      occurredAt,
+      current.status,
+      nextInquiryStatus,
+    );
+    if (!record) throw this.concurrencyConflict();
+    await this.recordAudit(
+      record,
+      `viewing.${input.status}` as import("../auth/auth.types.js").AuditAction,
+      context,
+      occurredAt,
+    );
+    return toDetail(record);
   }
 
   async markSpam(
@@ -519,11 +730,46 @@ export const mongooseAdminInquiryService = new DefaultAdminInquiryService(
   mongooseAuthStore,
 );
 
-export function honeypotResponse(inquiryId: string): CreateInquiryResponse {
+const VIEWING_TRANSITIONS: Record<
+  ViewingRequestStatus,
+  readonly ViewingRequestStatus[]
+> = {
+  requested: ["confirmed", "reschedule-requested", "canceled"],
+  "reschedule-requested": ["confirmed", "canceled"],
+  confirmed: ["reschedule-requested", "completed", "canceled"],
+  completed: [],
+  canceled: [],
+};
+
+function synchronizedInquiryStatus(
+  inquiryStatus: InquiryStatus,
+  viewingStatus: ViewingRequestStatus,
+): InquiryStatus {
+  if (
+    viewingStatus === "confirmed" &&
+    (inquiryStatus === "new" || inquiryStatus === "in-progress")
+  ) {
+    return "viewing-scheduled";
+  }
+  if (
+    inquiryStatus === "viewing-scheduled" &&
+    (viewingStatus === "reschedule-requested" ||
+      viewingStatus === "completed" ||
+      viewingStatus === "canceled")
+  ) {
+    return "in-progress";
+  }
+  return inquiryStatus;
+}
+
+export function honeypotResponse(
+  inquiryId: string,
+  inquiryType: InquiryType,
+): CreateInquiryResponse {
   return {
     inquiryId,
     status: "received",
-    message: RECEIVED_MESSAGE,
+    message: inquiryType === "viewing" ? VIEWING_RECEIVED_MESSAGE : RECEIVED_MESSAGE,
     createdAt: new Date().toISOString(),
   };
 }

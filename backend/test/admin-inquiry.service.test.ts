@@ -1,4 +1,9 @@
-import type { AdminInquiryListRequest, InquiryStatus } from "@rc/shared";
+import type {
+  AdminInquiryListRequest,
+  InquiryStatus,
+  UpdateViewingRequestRequest,
+  ViewingRequestStatus,
+} from "@rc/shared";
 import { describe, expect, it } from "vitest";
 import type { SecurityAuditEventInput } from "../src/modules/auth/auth.types.js";
 import { DefaultAdminInquiryService } from "../src/modules/inquiries/inquiry.service.js";
@@ -95,6 +100,63 @@ class MemoryInquiryAdminRepository implements InquiryAdminRepository {
         ...this.record.internalNotes,
         { _id: NOTE_ID, note, authorStaffIdentity: STAFF_ID, createdAt: occurredAt },
       ],
+      updatedAt: occurredAt,
+      __v: (this.record.__v ?? 0) + 1,
+    };
+    return this.record;
+  }
+
+  async updateViewingRequest(
+    id: string,
+    expectedVersion: number,
+    currentViewingStatus: ViewingRequestStatus,
+    input: Pick<
+      UpdateViewingRequestRequest,
+      "status" | "requestedDate" | "requestedTime"
+    >,
+    _actorStaffIdentityId: string,
+    occurredAt: Date,
+    currentInquiryStatus: InquiryStatus,
+    nextInquiryStatus: InquiryStatus,
+  ) {
+    if (
+      id !== INQUIRY_ID ||
+      !this.record?.viewingRequest ||
+      (this.record.__v ?? 0) !== expectedVersion ||
+      this.record.viewingRequest.status !== currentViewingStatus ||
+      this.record.status !== currentInquiryStatus
+    ) {
+      return null;
+    }
+    this.record = {
+      ...this.record,
+      status: nextInquiryStatus,
+      statusHistory:
+        nextInquiryStatus === currentInquiryStatus
+          ? this.record.statusHistory
+          : [
+              ...this.record.statusHistory,
+              {
+                fromStatus: currentInquiryStatus,
+                toStatus: nextInquiryStatus,
+                changedAt: occurredAt,
+              },
+            ],
+      viewingRequest: {
+        status: input.status,
+        requestedDate: input.requestedDate,
+        requestedTime: input.requestedTime,
+        statusHistory: [
+          ...this.record.viewingRequest.statusHistory,
+          {
+            fromStatus: currentViewingStatus,
+            toStatus: input.status,
+            requestedDate: input.requestedDate,
+            requestedTime: input.requestedTime,
+            changedAt: occurredAt,
+          },
+        ],
+      },
       updatedAt: occurredAt,
       __v: (this.record.__v ?? 0) + 1,
     };
@@ -255,5 +317,142 @@ describe("admin inquiry service", () => {
       ),
     ).resolves.toBeNull();
     expect(audits).toHaveLength(0);
+  });
+
+  it("tracks valid viewing transitions and synchronizes inquiry status narrowly", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record = fixture({
+      inquiryType: "viewing",
+      source: "viewing-page",
+      viewingRequest: {
+        status: "requested",
+        requestedDate: "2026-09-20",
+        requestedTime: "10:30",
+        statusHistory: [
+          {
+            toStatus: "requested",
+            requestedDate: "2026-09-20",
+            requestedTime: "10:30",
+            changedAt: NOW,
+          },
+        ],
+      },
+    });
+
+    const confirmed = await service.updateViewingRequest(
+      INQUIRY_ID,
+      {
+        status: "confirmed",
+        requestedDate: "2026-09-20",
+        requestedTime: "10:30",
+        expectedVersion: 0,
+      },
+      CONTEXT,
+    );
+    expect(confirmed).toMatchObject({
+      status: "viewing-scheduled",
+      viewingRequest: { status: "confirmed" },
+    });
+
+    const completed = await service.updateViewingRequest(
+      INQUIRY_ID,
+      {
+        status: "completed",
+        requestedDate: "2026-09-20",
+        requestedTime: "10:30",
+        expectedVersion: confirmed?.version ?? -1,
+      },
+      CONTEXT,
+    );
+    expect(completed).toMatchObject({
+      status: "in-progress",
+      viewingRequest: { status: "completed" },
+    });
+    expect(audits.map((event) => event.action)).toEqual([
+      "viewing.confirmed",
+      "viewing.completed",
+    ]);
+    expect(JSON.stringify(audits)).not.toContain("10:30");
+
+    await expect(
+      service.updateViewingRequest(
+        INQUIRY_ID,
+        {
+          status: "canceled",
+          requestedDate: "2026-09-20",
+          requestedTime: "10:30",
+          expectedVersion: completed?.version ?? -1,
+        },
+        CONTEXT,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("records reschedule and cancellation without overwriting unrelated inquiry state", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record = fixture({
+      inquiryType: "viewing",
+      source: "viewing-page",
+      status: "closed",
+      viewingRequest: {
+        status: "requested",
+        requestedDate: "2026-09-20",
+        requestedTime: "10:30",
+        statusHistory: [
+          {
+            toStatus: "requested",
+            requestedDate: "2026-09-20",
+            requestedTime: "10:30",
+            changedAt: NOW,
+          },
+        ],
+      },
+    });
+
+    const reschedule = await service.updateViewingRequest(
+      INQUIRY_ID,
+      {
+        status: "reschedule-requested",
+        requestedDate: "2026-09-21",
+        requestedTime: "14:00",
+        expectedVersion: 0,
+      },
+      CONTEXT,
+    );
+    const canceled = await service.updateViewingRequest(
+      INQUIRY_ID,
+      {
+        status: "canceled",
+        requestedDate: "2026-09-21",
+        requestedTime: "14:00",
+        expectedVersion: reschedule?.version ?? -1,
+      },
+      CONTEXT,
+    );
+
+    expect(canceled).toMatchObject({
+      status: "closed",
+      viewingRequest: {
+        status: "canceled",
+        requestedDate: "2026-09-21",
+        requestedTime: "14:00",
+      },
+    });
+    expect(audits.map((event) => event.action)).toEqual([
+      "viewing.reschedule-requested",
+      "viewing.canceled",
+    ]);
+    await expect(
+      service.updateViewingRequest(
+        INQUIRY_ID,
+        {
+          status: "confirmed",
+          requestedDate: "2026-09-22",
+          requestedTime: "10:00",
+          expectedVersion: 0,
+        },
+        CONTEXT,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
   });
 });

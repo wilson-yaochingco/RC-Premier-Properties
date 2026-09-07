@@ -475,6 +475,29 @@ export type InquiryWorkflowStatus = (typeof INQUIRY_WORKFLOW_STATUSES)[number];
 export const INQUIRY_STATUSES = [...INQUIRY_WORKFLOW_STATUSES, "spam"] as const;
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
 
+/** The appointment lifecycle embedded only on viewing inquiries. */
+export const VIEWING_REQUEST_STATUSES = [
+  "requested",
+  "confirmed",
+  "reschedule-requested",
+  "completed",
+  "canceled",
+] as const;
+export type ViewingRequestStatus = (typeof VIEWING_REQUEST_STATUSES)[number];
+
+/** Staff actions intentionally exclude the initial customer-created state. */
+export const VIEWING_STAFF_TRANSITION_STATUSES = [
+  "confirmed",
+  "reschedule-requested",
+  "completed",
+  "canceled",
+] as const;
+export type ViewingStaffTransitionStatus =
+  (typeof VIEWING_STAFF_TRANSITION_STATUSES)[number];
+
+/** Requested viewing times are interpreted in Philippine local time. */
+export const VIEWING_TIME_ZONE = "Asia/Manila" as const;
+
 export const ADMIN_INQUIRY_QUEUES = ["active", "spam", "archived", "all"] as const;
 export type AdminInquiryQueue = (typeof ADMIN_INQUIRY_QUEUES)[number];
 
@@ -487,7 +510,12 @@ export interface CreateInquiryRequest {
   source: InquirySource;
   propertyId?: string;
   subject?: string;
-  message: string;
+  /** Optional only for a structured viewing request. */
+  message?: string;
+  /** Required when `inquiryType` is `viewing`; `YYYY-MM-DD` in Philippine time. */
+  requestedDate?: string;
+  /** Required when `inquiryType` is `viewing`; 24-hour `HH:mm` Philippine time. */
+  requestedTime?: string;
   privacyConsent: true;
   /** Honeypot field. Legitimate clients leave it empty. */
   website?: string;
@@ -507,6 +535,21 @@ export interface AdminInquiryStatusHistoryEntry {
   changedAt: string;
 }
 
+export interface AdminViewingStatusHistoryEntry {
+  fromStatus?: ViewingRequestStatus;
+  toStatus: ViewingRequestStatus;
+  requestedDate: string;
+  requestedTime: string;
+  changedAt: string;
+}
+
+export interface AdminViewingRequest {
+  status: ViewingRequestStatus;
+  requestedDate: string;
+  requestedTime: string;
+  statusHistory: AdminViewingStatusHistoryEntry[];
+}
+
 export interface AdminInquiryNote {
   id: string;
   note: string;
@@ -523,6 +566,7 @@ export interface AdminInquirySummary {
   propertyId?: string;
   subject?: string;
   status: InquiryStatus;
+  viewingRequest?: Omit<AdminViewingRequest, "statusHistory">;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -531,10 +575,11 @@ export interface AdminInquirySummary {
 
 export interface AdminInquiryDetail extends AdminInquirySummary {
   phone?: string;
-  message: string;
+  message?: string;
   privacyConsentAt: string;
   internalNotes: AdminInquiryNote[];
   statusHistory: AdminInquiryStatusHistoryEntry[];
+  viewingRequest?: AdminViewingRequest;
 }
 
 export interface AdminInquiryListRequest {
@@ -543,6 +588,7 @@ export interface AdminInquiryListRequest {
   inquiryType?: InquiryType;
   source?: InquirySource;
   propertyId?: string;
+  viewingStatus?: ViewingRequestStatus;
   queue: AdminInquiryQueue;
   page: number;
   limit: number;
@@ -555,6 +601,13 @@ export interface AdminInquiryListResponse {
 
 export interface UpdateInquiryStatusRequest {
   status: InquiryWorkflowStatus;
+  expectedVersion: number;
+}
+
+export interface UpdateViewingRequestRequest {
+  status: ViewingStaffTransitionStatus;
+  requestedDate: string;
+  requestedTime: string;
   expectedVersion: number;
 }
 

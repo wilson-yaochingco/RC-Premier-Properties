@@ -22,6 +22,7 @@ import {
   parseCreateInquiryBody,
   parseInquiryIdempotencyKey,
   parseUpdateInquiryStatusBody,
+  parseUpdateViewingRequestBody,
 } from "./inquiry.validation.js";
 
 export function createInquiryController(
@@ -33,7 +34,14 @@ export function createInquiryController(
 
       // Return the normal success shape without persistence so bots cannot probe the trap.
       if (inquiry.isHoneypotSubmission) {
-        res.status(201).json(honeypotResponse(new Types.ObjectId().toHexString()));
+        res
+          .status(201)
+          .json(
+            honeypotResponse(
+              new Types.ObjectId().toHexString(),
+              inquiry.data.inquiryType,
+            ),
+          );
         return;
       }
 
@@ -79,6 +87,19 @@ export function createAdminInquiryController(
       const inquiry = await service.updateStatus(
         parseAdminInquiryId(req.params.id),
         parseUpdateInquiryStatusBody(req.body),
+        mutationContext(res),
+      );
+      if (!inquiry) throw new HttpError(404, "Inquiry not found.");
+      res.status(200).json(inquiry);
+    },
+
+    async updateViewingRequest(
+      req: Request<{ id: string }>,
+      res: Response<AdminInquiryDetail>,
+    ) {
+      const inquiry = await service.updateViewingRequest(
+        parseAdminInquiryId(req.params.id),
+        parseUpdateViewingRequestBody(req.body),
         mutationContext(res),
       );
       if (!inquiry) throw new HttpError(404, "Inquiry not found.");

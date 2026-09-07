@@ -70,8 +70,9 @@ Current:
 - [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
 
 The backend authentication foundation is documented as an architectural boundary. The
-first property-administration slice now has a feature specification; confirmed
-appointments and broader staff administration remain unimplemented.
+first property-administration slice now has a feature specification. Structured viewing
+requests and their lightweight staff lifecycle are implemented without a live calendar;
+broader CRM administration remains unimplemented.
 
 ### `api/`
 

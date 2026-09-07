@@ -41,6 +41,8 @@ const FIELD_LABELS: Record<string, string> = {
   propertyId: "Property ID",
   subject: "Subject",
   message: "Message",
+  requestedDate: "Requested date",
+  requestedTime: "Requested time",
   privacyConsent: "Privacy consent",
 };
 
@@ -59,6 +61,8 @@ export function InquiryForm({
   const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
+  const isViewingRequest =
+    defaultInquiryType === "viewing" && source === "viewing-page";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,12 +90,20 @@ export function InquiryForm({
       email: textValue(formData, "email"),
       inquiryType: textValue(formData, "inquiryType") as InquiryType,
       source,
-      message: textValue(formData, "message"),
       privacyConsent: true,
       website: textValue(formData, "website"),
       ...(phone ? { phone } : {}),
       ...(selectedPropertyId ? { propertyId: selectedPropertyId } : {}),
       ...(subject ? { subject } : {}),
+      ...(textValue(formData, "message")
+        ? { message: textValue(formData, "message") }
+        : {}),
+      ...(isViewingRequest
+        ? {
+            requestedDate: textValue(formData, "requestedDate"),
+            requestedTime: textValue(formData, "requestedTime"),
+          }
+        : {}),
     };
 
     setState({ kind: "pending" });
@@ -177,29 +189,36 @@ export function InquiryForm({
           />
         </div>
 
-        <div className={styles.field}>
-          <label htmlFor="inquiry-type">Inquiry type</label>
-          <select
-            id="inquiry-type"
-            name="inquiryType"
-            defaultValue={defaultInquiryType}
-            required
-            aria-invalid={invalidFields.has("inquiryType")}
-            aria-describedby={
-              invalidFields.has("inquiryType") ? "inquiry-errors" : undefined
-            }
-          >
-            {INQUIRY_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {TYPE_LABELS[type]}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isViewingRequest ? (
+          <input type="hidden" name="inquiryType" value="viewing" />
+        ) : (
+          <div className={styles.field}>
+            <label htmlFor="inquiry-type">Inquiry type</label>
+            <select
+              id="inquiry-type"
+              name="inquiryType"
+              defaultValue={defaultInquiryType}
+              required
+              aria-invalid={invalidFields.has("inquiryType")}
+              aria-describedby={
+                invalidFields.has("inquiryType") ? "inquiry-errors" : undefined
+              }
+            >
+              {INQUIRY_TYPES.filter((type) => type !== "viewing").map((type) => (
+                <option key={type} value={type}>
+                  {TYPE_LABELS[type]}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className={styles.field}>
           <label htmlFor="inquiry-property-id">
-            Property ID <span className={styles.optional}>(optional)</span>
+            Property ID{" "}
+            {!isViewingRequest ? (
+              <span className={styles.optional}>(optional)</span>
+            ) : null}
           </label>
           <input
             id="inquiry-property-id"
@@ -207,12 +226,51 @@ export function InquiryForm({
             defaultValue={propertyId}
             maxLength={40}
             autoComplete="off"
+            required={isViewingRequest}
             aria-invalid={invalidFields.has("propertyId")}
             aria-describedby={
               invalidFields.has("propertyId") ? "inquiry-errors" : undefined
             }
           />
         </div>
+
+        {isViewingRequest ? (
+          <>
+            <div className={styles.field}>
+              <label htmlFor="viewing-requested-date">Requested date</label>
+              <input
+                id="viewing-requested-date"
+                name="requestedDate"
+                type="date"
+                required
+                aria-invalid={invalidFields.has("requestedDate")}
+                aria-describedby={
+                  invalidFields.has("requestedDate")
+                    ? "inquiry-errors"
+                    : "viewing-time-note"
+                }
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="viewing-requested-time">Requested time</label>
+              <input
+                id="viewing-requested-time"
+                name="requestedTime"
+                type="time"
+                required
+                aria-invalid={invalidFields.has("requestedTime")}
+                aria-describedby={
+                  invalidFields.has("requestedTime")
+                    ? "inquiry-errors"
+                    : "viewing-time-note"
+                }
+              />
+              <p id="viewing-time-note" className={styles.optional}>
+                Philippine time. Staff confirmation is required.
+              </p>
+            </div>
+          </>
+        ) : null}
 
         <div className={styles.field}>
           <label htmlFor="inquiry-subject">
@@ -230,13 +288,18 @@ export function InquiryForm({
         </div>
 
         <div className={`${styles.field} ${styles.wide}`}>
-          <label htmlFor="inquiry-message">Message</label>
+          <label htmlFor="inquiry-message">
+            Message{" "}
+            {isViewingRequest ? (
+              <span className={styles.optional}>(optional)</span>
+            ) : null}
+          </label>
           <textarea
             id="inquiry-message"
             name="message"
             minLength={10}
             maxLength={2000}
-            required
+            required={!isViewingRequest}
             aria-invalid={invalidFields.has("message")}
             aria-describedby={
               invalidFields.has("message") ? "inquiry-errors" : undefined
@@ -268,7 +331,10 @@ export function InquiryForm({
 
       {state.kind === "success" && (
         <div className={styles.message} role="status" aria-live="polite">
-          <strong>Inquiry received.</strong> {state.message}
+          <strong>
+            {isViewingRequest ? "Viewing request received." : "Inquiry received."}
+          </strong>{" "}
+          {state.message}
           {state.inquiryId && (
             <>
               {" "}

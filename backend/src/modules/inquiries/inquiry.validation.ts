@@ -4,12 +4,15 @@ import {
   INQUIRY_STATUSES,
   INQUIRY_TYPES,
   INQUIRY_WORKFLOW_STATUSES,
+  VIEWING_REQUEST_STATUSES,
+  VIEWING_STAFF_TRANSITION_STATUSES,
   type AddInquiryNoteRequest,
   type AdminInquiryListRequest,
   type AdminInquiryTransitionRequest,
   type CreateInquiryRequest,
   type InquiryWorkflowStatus,
   type UpdateInquiryStatusRequest,
+  type UpdateViewingRequestRequest,
   type ValidationIssue,
 } from "@rc/shared";
 import { HttpError } from "../../middleware/errorHandler.js";
@@ -24,6 +27,8 @@ const ALLOWED_FIELDS = new Set([
   "propertyId",
   "subject",
   "message",
+  "requestedDate",
+  "requestedTime",
   "privacyConsent",
   "website",
 ]);
@@ -81,7 +86,7 @@ function enumField<const T extends readonly string[]>(
   return value;
 }
 
-export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
+export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedInquiry {
   if (!isPlainObject(body)) {
     throw new HttpError(400, "Invalid inquiry.", [
       { field: "body", message: "Must be a JSON object." },
@@ -109,8 +114,10 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
   const source = enumField(body, "source", INQUIRY_SOURCES, issues);
   const propertyId = stringField(body, "propertyId", issues, { max: 40 });
   const subject = stringField(body, "subject", issues, { max: 150 });
+  const requestedDate = stringField(body, "requestedDate", issues, { max: 10 });
+  const requestedTime = stringField(body, "requestedTime", issues, { max: 5 });
   const message = stringField(body, "message", issues, {
-    required: true,
+    required: body.inquiryType !== "viewing",
     min: 10,
     max: 3_000,
   });
@@ -135,7 +142,41 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
     });
   }
 
-  if (issues.length > 0 || !name || !email || !inquiryType || !source || !message) {
+  if (inquiryType === "viewing") {
+    if (source !== "viewing-page") {
+      issues.push({
+        field: "source",
+        message: "Viewing requests must come from the viewing page.",
+      });
+    }
+    if (!propertyId) {
+      issues.push({ field: "propertyId", message: "Select a property to view." });
+    }
+    validateViewingSchedule(requestedDate, requestedTime, issues, now, true);
+  } else {
+    if (source === "viewing-page") {
+      issues.push({
+        field: "inquiryType",
+        message: "The viewing page accepts viewing requests only.",
+      });
+    }
+    for (const [field, value] of [
+      ["requestedDate", requestedDate],
+      ["requestedTime", requestedTime],
+    ] as const) {
+      if (value)
+        issues.push({ field, message: "Only viewing requests use this field." });
+    }
+  }
+
+  if (
+    issues.length > 0 ||
+    !name ||
+    !email ||
+    !inquiryType ||
+    !source ||
+    (inquiryType !== "viewing" && !message)
+  ) {
     throw new HttpError(400, "Invalid inquiry.", issues);
   }
 
@@ -147,7 +188,9 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
     source,
     ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),
     ...(subject ? { subject } : {}),
-    message,
+    ...(message ? { message } : {}),
+    ...(requestedDate ? { requestedDate } : {}),
+    ...(requestedTime ? { requestedTime } : {}),
     privacyConsent: true,
   };
 
@@ -179,6 +222,7 @@ const ADMIN_LIST_FIELDS = new Set([
   "inquiryType",
   "source",
   "propertyId",
+  "viewingStatus",
   "queue",
   "page",
   "limit",
@@ -259,6 +303,12 @@ export function parseAdminInquiryListQuery(rawQuery: unknown): AdminInquiryListR
   const inquiryType = queryEnum(rawQuery, "inquiryType", INQUIRY_TYPES, issues);
   const source = queryEnum(rawQuery, "source", INQUIRY_SOURCES, issues);
   const propertyId = queryText(rawQuery, "propertyId", issues, 40);
+  const viewingStatus = queryEnum(
+    rawQuery,
+    "viewingStatus",
+    VIEWING_REQUEST_STATUSES,
+    issues,
+  );
   const queue = queryEnum(rawQuery, "queue", ADMIN_INQUIRY_QUEUES, issues) ?? "active";
   const page = positiveIntegerQuery(rawQuery, "page", 1, 10_000, issues);
   const limit = positiveIntegerQuery(rawQuery, "limit", 20, 100, issues);
@@ -278,6 +328,7 @@ export function parseAdminInquiryListQuery(rawQuery: unknown): AdminInquiryListR
     ...(inquiryType ? { inquiryType } : {}),
     ...(source ? { source } : {}),
     ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),
+    ...(viewingStatus ? { viewingStatus } : {}),
     queue,
     page,
     limit,
@@ -368,4 +419,96 @@ export function parseAdminInquiryTransitionBody(
 ): AdminInquiryTransitionRequest {
   const { expectedVersion } = versionedBody(rawBody, ["expectedVersion"]);
   return { expectedVersion };
+}
+
+const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+function validateViewingSchedule(
+  requestedDate: string | undefined,
+  requestedTime: string | undefined,
+  issues: ValidationIssue[],
+  now: Date,
+  requireFuture: boolean,
+): void {
+  if (!requestedDate) {
+    issues.push({ field: "requestedDate", message: "Select a requested date." });
+  }
+  if (!requestedTime) {
+    issues.push({ field: "requestedTime", message: "Select a requested time." });
+  }
+  const dateMatch = requestedDate?.match(DATE_PATTERN);
+  if (requestedDate && !dateMatch) {
+    issues.push({
+      field: "requestedDate",
+      message: "Use a valid date in YYYY-MM-DD format.",
+    });
+  }
+  if (dateMatch) {
+    const year = Number(dateMatch[1]);
+    const month = Number(dateMatch[2]);
+    const day = Number(dateMatch[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      issues.push({ field: "requestedDate", message: "Select a real calendar date." });
+    }
+  }
+  if (requestedTime && !TIME_PATTERN.test(requestedTime)) {
+    issues.push({
+      field: "requestedTime",
+      message: "Use a valid 24-hour time in HH:mm format.",
+    });
+  }
+  if (requireFuture && dateMatch && requestedTime && TIME_PATTERN.test(requestedTime)) {
+    const requestedAt = new Date(`${requestedDate}T${requestedTime}:00+08:00`);
+    if (requestedAt.getTime() <= now.getTime()) {
+      issues.push({
+        field: "requestedDate",
+        message: "Choose a future date and time in Philippine time.",
+      });
+    }
+  }
+}
+
+export function parseUpdateViewingRequestBody(
+  rawBody: unknown,
+  now = new Date(),
+): UpdateViewingRequestRequest {
+  const { body, expectedVersion } = versionedBody(rawBody, [
+    "status",
+    "requestedDate",
+    "requestedTime",
+    "expectedVersion",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const status =
+    typeof body.status === "string" &&
+    VIEWING_STAFF_TRANSITION_STATUSES.some((candidate) => candidate === body.status)
+      ? (body.status as UpdateViewingRequestRequest["status"])
+      : undefined;
+  if (!status) {
+    issues.push({
+      field: "status",
+      message: `Must be one of: ${VIEWING_STAFF_TRANSITION_STATUSES.join(", ")}.`,
+    });
+  }
+  const requestedDate =
+    typeof body.requestedDate === "string" ? body.requestedDate.trim() : undefined;
+  const requestedTime =
+    typeof body.requestedTime === "string" ? body.requestedTime.trim() : undefined;
+  validateViewingSchedule(
+    requestedDate,
+    requestedTime,
+    issues,
+    now,
+    status === "confirmed" || status === "reschedule-requested",
+  );
+  if (issues.length > 0 || !status || !requestedDate || !requestedTime) {
+    throw new HttpError(400, "Invalid viewing request update.", issues);
+  }
+  return { status, requestedDate, requestedTime, expectedVersion };
 }

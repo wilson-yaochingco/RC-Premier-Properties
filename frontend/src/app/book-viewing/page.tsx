@@ -19,8 +19,8 @@ export default async function BookViewingPage({
     <InquiryPage
       eyebrow="Viewing request"
       title="See the property with context."
-      description="Share the Property ID and your preferred timing in the message. The request will be stored for follow-up by the team."
-      note="This form requests a viewing; it does not confirm a date or guarantee current availability. Scheduling is complete only after direct confirmation."
+      description="Choose the property and the date and time you would prefer. The team will review your request and contact you about the schedule."
+      note="This is a request, not an instant booking. Your appointment is confirmed only after RC Premier Properties contacts you."
       formLabel="Request a viewing"
       inquiryType="viewing"
       source="viewing-page"

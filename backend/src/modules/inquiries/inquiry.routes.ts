@@ -84,6 +84,15 @@ export function createAdminInquiryRoutes(
     requireJson,
     controller.updateStatus,
   );
+  router.patch(
+    "/:id/viewing",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireUpdate,
+    requireJson,
+    controller.updateViewingRequest,
+  );
   for (const [path, handler] of [
     ["notes", controller.addNote],
     ["spam", controller.markSpam],

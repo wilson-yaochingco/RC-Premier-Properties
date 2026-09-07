@@ -7,6 +7,7 @@ import {
   INQUIRY_SOURCES,
   INQUIRY_STATUSES,
   INQUIRY_TYPES,
+  VIEWING_REQUEST_STATUSES,
   type AdminInquiryListRequest,
   type AdminInquiryListResponse,
 } from "@rc/shared";
@@ -27,9 +28,10 @@ function label(value: string): string {
   return value.replaceAll("-", " ").replace(/^./, (first) => first.toUpperCase());
 }
 
-export function AdminInquiryList() {
+export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolean }) {
   const { expireSession } = useAdminSession();
   const [request, setRequest] = useState<AdminInquiryListRequest>({
+    ...(viewingOnly ? { inquiryType: "viewing" } : {}),
     queue: "active",
     page: 1,
     limit: PAGE_SIZE,
@@ -71,15 +73,23 @@ export function AdminInquiryList() {
     const status = String(data.get("status") ?? "");
     const inquiryType = String(data.get("inquiryType") ?? "");
     const source = String(data.get("source") ?? "");
+    const viewingStatus = String(data.get("viewingStatus") ?? "");
     setState({ kind: "loading" });
     setRequest({
       ...(query ? { query } : {}),
       ...(propertyId ? { propertyId } : {}),
       ...(status ? { status: status as AdminInquiryListRequest["status"] } : {}),
-      ...(inquiryType
-        ? { inquiryType: inquiryType as AdminInquiryListRequest["inquiryType"] }
-        : {}),
+      ...(viewingOnly
+        ? { inquiryType: "viewing" as const }
+        : inquiryType
+          ? { inquiryType: inquiryType as AdminInquiryListRequest["inquiryType"] }
+          : {}),
       ...(source ? { source: source as AdminInquiryListRequest["source"] } : {}),
+      ...(viewingStatus
+        ? {
+            viewingStatus: viewingStatus as AdminInquiryListRequest["viewingStatus"],
+          }
+        : {}),
       queue: queue as AdminInquiryListRequest["queue"],
       page: 1,
       limit: PAGE_SIZE,
@@ -95,9 +105,17 @@ export function AdminInquiryList() {
     <section className={styles.page} aria-labelledby="admin-inquiries-title">
       <div className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>Staff inquiry management</p>
-          <h1 id="admin-inquiries-title">Inquiries</h1>
-          <p>Review leads, track follow-up, and keep spam outside the active queue.</p>
+          <p className={styles.eyebrow}>
+            {viewingOnly ? "Viewing appointment requests" : "Staff inquiry management"}
+          </p>
+          <h1 id="admin-inquiries-title">
+            {viewingOnly ? "Viewing requests" : "Inquiries"}
+          </h1>
+          <p>
+            {viewingOnly
+              ? "Review requested schedules and open a request to confirm, reschedule, or cancel it."
+              : "Review leads, track follow-up, and keep spam outside the active queue."}
+          </p>
         </div>
       </div>
 
@@ -144,13 +162,26 @@ export function AdminInquiryList() {
             ))}
           </select>
         </label>
+        {!viewingOnly ? (
+          <label>
+            Type
+            <select name="inquiryType" defaultValue={request.inquiryType ?? ""}>
+              <option value="">All inquiry types</option>
+              {INQUIRY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {label(type)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label>
-          Type
-          <select name="inquiryType" defaultValue={request.inquiryType ?? ""}>
-            <option value="">All inquiry types</option>
-            {INQUIRY_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {label(type)}
+          Viewing status
+          <select name="viewingStatus" defaultValue={request.viewingStatus ?? ""}>
+            <option value="">All viewing statuses</option>
+            {VIEWING_REQUEST_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {label(status)}
               </option>
             ))}
           </select>
@@ -218,7 +249,9 @@ export function AdminInquiryList() {
                   <th scope="col">Contact</th>
                   <th scope="col">Type</th>
                   <th scope="col">Property</th>
-                  <th scope="col">Status</th>
+                  <th scope="col">Viewing status</th>
+                  <th scope="col">Inquiry status</th>
+                  <th scope="col">Requested schedule</th>
                   <th scope="col">Received</th>
                   <th scope="col">
                     <span className={styles.srOnly}>Actions</span>
@@ -239,6 +272,15 @@ export function AdminInquiryList() {
                         : "Not property-specific"}
                     </td>
                     <td>
+                      {inquiry.viewingRequest ? (
+                        <span className={styles.statusBadge}>
+                          {label(inquiry.viewingRequest.status)}
+                        </span>
+                      ) : (
+                        "Not applicable"
+                      )}
+                    </td>
+                    <td>
                       <span
                         className={`${styles.statusBadge} ${
                           inquiry.status === "spam"
@@ -250,6 +292,11 @@ export function AdminInquiryList() {
                       >
                         {label(inquiry.status)}
                       </span>
+                    </td>
+                    <td>
+                      {inquiry.viewingRequest
+                        ? `${inquiry.viewingRequest.requestedDate} at ${inquiry.viewingRequest.requestedTime} (Philippine time)`
+                        : "Not a viewing request"}
                     </td>
                     <td>
                       {new Intl.DateTimeFormat("en-PH", {

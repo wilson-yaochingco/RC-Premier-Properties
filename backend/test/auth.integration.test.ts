@@ -588,6 +588,12 @@ function makeAdminInquiryService() {
         ? update(input.status)
         : null;
     },
+    async updateViewingRequest(id, input, context) {
+      mutations.push({ action: "viewing", context });
+      return id === inquiry.id && input.expectedVersion === inquiry.version
+        ? structuredClone(inquiry)
+        : null;
+    },
     async markSpam(id, input, context) {
       mutations.push({ action: "spam", context });
       if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
@@ -1693,6 +1699,14 @@ describe("staff inquiry management HTTP boundary", () => {
         .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
         .send({ status: "in-progress", expectedVersion: 0 }),
       request(app)
+        .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/viewing`)
+        .send({
+          status: "confirmed",
+          requestedDate: "2030-09-20",
+          requestedTime: "10:30",
+          expectedVersion: 0,
+        }),
+      request(app)
         .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
         .send({ note: "Private note", expectedVersion: 0 }),
       request(app)
@@ -1709,7 +1723,7 @@ describe("staff inquiry management HTTP boundary", () => {
         .send({ expectedVersion: 0 }),
     ]);
     expect(responses.map((response) => response.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401,
     ]);
   });
 

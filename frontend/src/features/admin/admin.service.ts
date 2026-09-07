@@ -15,6 +15,7 @@ import {
   type LogoutResponse,
   type UpdateDraftPropertyRequest,
   type UpdateInquiryStatusRequest,
+  type UpdateViewingRequestRequest,
 } from "@rc/shared";
 import { apiRequest } from "@/services/api-client";
 
@@ -64,6 +65,7 @@ export function getAdminInquiries(
   if (request.inquiryType) query.set("inquiryType", request.inquiryType);
   if (request.source) query.set("source", request.source);
   if (request.propertyId) query.set("propertyId", request.propertyId);
+  if (request.viewingStatus) query.set("viewingStatus", request.viewingStatus);
   return apiRequest<AdminInquiryListResponse>(
     `${API_PREFIX}/admin/inquiries?${query.toString()}`,
     authenticatedRequest(signal),
@@ -84,6 +86,17 @@ export function updateAdminInquiryStatus(
 ) {
   return apiRequest<AdminInquiryDetail>(
     `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}/status`,
+    { ...writeRequest(body, csrfToken), method: "PATCH" },
+  );
+}
+
+export function updateAdminViewingRequest(
+  id: string,
+  body: UpdateViewingRequestRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminInquiryDetail>(
+    `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}/viewing`,
     { ...writeRequest(body, csrfToken), method: "PATCH" },
   );
 }

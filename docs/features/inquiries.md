@@ -1,8 +1,8 @@
 # Inquiries
 
-Status: public intake and lightweight staff management implemented. Public Atlas
-persistence was verified on 2026-09-05; the staff workflow still requires the existing
-live Auth0/MongoDB acceptance pass.
+Status: public intake, structured viewing requests and lightweight staff management are
+implemented. Public Atlas persistence was verified on 2026-09-05; the viewing extension
+and staff workflow still require the existing live Auth0/MongoDB acceptance pass.
 
 ## Entry points
 
@@ -24,19 +24,46 @@ only claimed contact channel; the UI says so rather than inventing details.
 
 ## Form behaviour
 
-The form collects name, email, optional phone, inquiry type, optional Property ID,
-optional subject, message and explicit privacy consent. It has persistent labels, native
-input constraints, pending state, an accessible live success/error message and field
-issues returned by the API. A successful response shows the opaque inquiry reference.
+The general form collects name, email, optional phone, inquiry type, optional Property ID,
+optional subject, message and explicit privacy consent. The viewing form locks the type,
+requires a Property ID plus structured requested date and time, and makes the additional
+message optional. It has persistent labels, native input constraints, pending state, an
+accessible live success/error message and field issues returned by the API. A successful
+response shows the opaque inquiry reference.
 
 No account is created. Public seller inquiries do not accept identity, title or ownership
 documents. The submission is not a valuation, listing agreement, offer, approval or
 promise that the property will be published.
 
-The viewing route is intentionally named for the visitor's task, but its behaviour is a
-**request only**. It stores preferred timing in the message for follow-up; it does not
-check availability, reserve a slot or confirm an appointment. Scheduling and appointment
-management have not been implemented.
+The viewing route remains a **request only**. Times are interpreted in Philippine time.
+The backend verifies that the referenced sale property is published and not sold, but it does
+not expose or invent calendar availability. Submission creates `requested` state and the
+success copy explicitly says staff confirmation is still required.
+
+## Viewing lifecycle and inquiry relationship
+
+A structured viewing is embedded one-to-one inside its inquiry instead of duplicating
+the customer, consent, Property ID, notes, archive or concurrency data in another
+collection. Its separate status is one of `requested`, `confirmed`,
+`reschedule-requested`, `completed` or `canceled`:
+
+```text
+requested -> confirmed -> completed
+    |             |
+    +-> reschedule-requested -> confirmed
+    |             |
+    +-------------+-> canceled
+```
+
+`completed` and `canceled` are terminal. Reschedule updates retain the requested date and
+time in append-only viewing history. `no-show` is deliberately not modeled because the
+current operational requirement does not justify another terminal state.
+
+Viewing status describes the appointment request; inquiry status describes lead
+follow-up. Confirmation changes `new` or `in-progress` to `viewing-scheduled`.
+Reschedule, completion or cancellation changes `viewing-scheduled` back to
+`in-progress`. Other inquiry states, including staff-selected `closed` or `lost`, are
+preserved so appointment updates do not destroy staff intent.
 
 ## Validation and abuse controls
 
@@ -77,11 +104,13 @@ persistence without retaining test personal data.
 
 ## Staff workflow
 
-The protected admin UI provides a paginated inquiry queue, private details, search,
-queue/status/type/property filters, status history, internal notes, spam quarantine and
-recoverable archiving. It uses the established statuses `new`, `in-progress` and
-`closed`, extended only with `viewing-scheduled`, `lost` and `spam`. This avoids a second
-overlapping status system.
+The protected admin UI provides a paginated inquiry queue and a direct viewing-request
+queue, private details, search, queue/inquiry-status/viewing-status/type/property filters,
+status histories, internal notes, spam quarantine and recoverable archiving. Viewing
+details show the requested Philippine date/time and allow only valid confirmation,
+reschedule, completion or cancellation transitions. Cancellation requires explicit
+browser confirmation. The established inquiry statuses remain `new`, `in-progress`,
+`viewing-scheduled`, `closed`, `lost` and `spam`.
 
 Spam is excluded from the default active queue. Marking an inquiry as spam remembers its
 previous non-spam status; **Mark not spam** restores that status. Archived records leave
@@ -100,6 +129,11 @@ audit events with actor, inquiry database ID, request ID, action and timestamp. 
 events never contain names, contact details, message/subject text, note text, cookies,
 session values or authentication secrets.
 
+Viewing transitions emit `viewing.confirmed`, `viewing.reschedule-requested`,
+`viewing.completed` or `viewing.canceled` against the containing inquiry. The event does
+not contain customer details, message text, requested date or requested time; those
+values remain available only in the permission-protected record and its viewing history.
+
 There is no hard-delete endpoint. Archive is recoverable and records `archivedAt`, which
 makes the collection ready for a future retention job once the owner approves a
 retention period and legal/business deletion procedure. No automatic purge or retention
@@ -112,5 +146,6 @@ duration is invented in this level.
   provider has been selected beyond the implemented honeypot and rate limits.
 - Live inquiry reads and updates against the development Auth0 tenant and project
   MongoDB remain part of the existing manual admin acceptance gate.
-- A viewing submission is not a confirmed booking.
+- A requested time still requires staff confirmation; there is no live calendar or
+  availability provider.
 - Email delivery, notifications, uploads and external CRM handoff are not implemented.

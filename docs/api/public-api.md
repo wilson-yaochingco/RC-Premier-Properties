@@ -135,9 +135,11 @@ Accepts `CreateInquiryRequest` as JSON. The request must use an
 | `phone`          | optional, up to 30 characters, validated as a phone-like value             |
 | `inquiryType`    | required: `general`, `property`, `viewing` or `selling`                    |
 | `source`         | required: `contact-page`, `property-detail`, `viewing-page` or `sell-page` |
-| `propertyId`     | optional public reference, normalized to uppercase                         |
+| `propertyId`     | optional normally; viewing requires a published, not-sold sale property    |
 | `subject`        | optional, up to 150 characters                                             |
-| `message`        | required, 10–3,000 characters                                              |
+| `message`        | required normally; optional for viewing; 10–3,000 characters when supplied |
+| `requestedDate`  | viewing only; required real future `YYYY-MM-DD` Philippine date            |
+| `requestedTime`  | viewing only; required valid 24-hour `HH:mm` Philippine time               |
 | `privacyConsent` | must be the boolean `true`                                                 |
 | `website`        | optional honeypot; legitimate clients leave it empty                       |
 
@@ -154,8 +156,11 @@ retry with the same key returns the original acknowledgement and does not create
 second inquiry. The connected browser form generates and reuses this key across
 uncertain failures.
 
-A viewing inquiry is a request for follow-up only. The response does not confirm a date,
-availability or appointment.
+A viewing inquiry creates structured `requested` appointment state. Its source must be
+`viewing-page`, its date/time must be in the future, and its Property ID must identify a
+published sale property that is not sold. The acknowledgement explicitly says the requested
+schedule still needs staff confirmation; the endpoint does not expose calendar
+availability or confirm an appointment.
 
 ## Errors
 

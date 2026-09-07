@@ -310,11 +310,14 @@ const propertyService = {
 };
 
 const inquiryService = {
-  async create() {
+  async create(request) {
     return {
       inquiryId: "E2E-INQUIRY-001",
       status: "received",
-      message: "Your test inquiry has been received for fixture-only follow-up.",
+      message:
+        request.inquiryType === "viewing"
+          ? "Your viewing request was received. Staff must confirm the requested schedule."
+          : "Your test inquiry has been received for fixture-only follow-up.",
       createdAt: "2026-09-01T00:00:00.000Z",
     };
   },

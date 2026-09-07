@@ -29,13 +29,26 @@ const INQUIRY: AdminInquiryDetail = {
   name: "Maria Browser Fixture",
   email: "maria@example.test",
   phone: "+63 917 555 0101",
-  inquiryType: "property",
-  source: "property-detail",
+  inquiryType: "viewing",
+  source: "viewing-page",
   propertyId: "RCPP-E2E-DRAFT",
   subject: "Viewing follow-up",
   message: "This is a synthetic private inquiry used only by browser tests.",
   privacyConsentAt: "2026-09-07T08:00:00.000Z",
   status: "new",
+  viewingRequest: {
+    status: "requested",
+    requestedDate: "2030-09-20",
+    requestedTime: "10:30",
+    statusHistory: [
+      {
+        toStatus: "requested",
+        requestedDate: "2030-09-20",
+        requestedTime: "10:30",
+        changedAt: "2026-09-07T08:00:00.000Z",
+      },
+    ],
+  },
   statusHistory: [{ toStatus: "new", changedAt: "2026-09-07T08:00:00.000Z" }],
   internalNotes: [],
   version: 0,
@@ -104,17 +117,36 @@ test("staff can operate the inquiry queue without exposing session data", async 
     csrfHeaders.push(request.headers()["x-csrf-token"] ?? "");
     const body = request.postDataJSON() as {
       expectedVersion: number;
-      status?: AdminInquiryDetail["status"];
+      status?: string;
       note?: string;
+      requestedDate?: string;
+      requestedTime?: string;
     };
     expect(body.expectedVersion).toBe(inquiry.version);
     const previousStatus = inquiry.status;
-    if (path.endsWith("/status") && body.status) {
+    if (
+      path.endsWith("/viewing") &&
+      body.status === "confirmed" &&
+      body.requestedDate &&
+      body.requestedTime &&
+      inquiry.viewingRequest
+    ) {
+      actions.push("viewing");
+      inquiry.viewingRequest.statusHistory.push({
+        fromStatus: inquiry.viewingRequest.status,
+        toStatus: "confirmed",
+        requestedDate: body.requestedDate,
+        requestedTime: body.requestedTime,
+        changedAt: "2026-09-07T08:04:00.000Z",
+      });
+      inquiry.viewingRequest.status = "confirmed";
+      inquiry.status = "viewing-scheduled";
+    } else if (path.endsWith("/status") && body.status) {
       actions.push("status");
-      inquiry.status = body.status;
+      inquiry.status = body.status as AdminInquiryDetail["status"];
       inquiry.statusHistory.push({
         fromStatus: previousStatus,
-        toStatus: body.status,
+        toStatus: body.status as AdminInquiryDetail["status"],
         changedAt: "2026-09-07T08:05:00.000Z",
       });
     } else if (path.endsWith("/notes") && body.note) {
@@ -147,13 +179,25 @@ test("staff can operate the inquiry queue without exposing session data", async 
     await json(route, 200, inquiry);
   });
 
-  await page.goto("/admin/inquiries");
-  await expect(page.getByRole("heading", { name: "Inquiries" })).toBeVisible();
+  await page.goto("/admin/viewings");
+  await expect(page.getByRole("heading", { name: "Viewing requests" })).toBeVisible();
   await expect(page.getByText("Premier Property #RCPP-E2E-DRAFT")).toBeVisible();
   await page.getByRole("link", { name: "View details" }).click();
   await expect(
     page.getByText("This is a synthetic private inquiry used only by browser tests."),
   ).toBeVisible();
+
+  await expect(page.getByText(/Sep 20, 2030.*Philippine time/).first()).toBeVisible();
+  await page.getByLabel("Viewing status").selectOption("confirmed");
+  await page.getByRole("button", { name: "Update viewing request" }).click();
+  await expect(page.getByText("Viewing request changed to Confirmed.")).toBeVisible();
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("Cancel this viewing request");
+    await dialog.dismiss();
+  });
+  await page.getByLabel("Viewing status").selectOption("canceled");
+  await page.getByRole("button", { name: "Update viewing request" }).click();
+  expect(actions).toEqual(["viewing"]);
 
   await page.getByLabel("Status", { exact: true }).selectOption("in-progress");
   await page.getByRole("button", { name: "Update status" }).click();
@@ -174,8 +218,8 @@ test("staff can operate the inquiry queue without exposing session data", async 
   });
   await page.getByRole("button", { name: "Archive inquiry" }).click();
 
-  expect(actions).toEqual(["status", "note", "spam", "not-spam"]);
-  expect(csrfHeaders).toEqual(Array(4).fill(CSRF_TOKEN));
+  expect(actions).toEqual(["viewing", "status", "note", "spam", "not-spam"]);
+  expect(csrfHeaders).toEqual(Array(5).fill(CSRF_TOKEN));
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   await page.setViewportSize({ width: 320, height: 800 });
   expect(

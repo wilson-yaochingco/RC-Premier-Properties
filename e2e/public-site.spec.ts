@@ -203,6 +203,43 @@ test("contact form sends its typed payload and displays API success feedback", a
   expect(browserErrors).toEqual([]);
 });
 
+test("viewing form submits a structured unconfirmed appointment request", async ({
+  page,
+}) => {
+  await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+
+  await expect(
+    page.getByText("This is a request, not an instant booking."),
+  ).toBeVisible();
+  await expect(page.getByLabel(/^Property ID/)).toHaveValue("RCPP-E2E-001");
+  await page.getByLabel("Name").fill("Playwright Viewer");
+  await page.getByLabel("Email").fill("viewer@example.test");
+  await page.getByLabel("Requested date").fill("2030-09-20");
+  await page.getByLabel("Requested time").fill("10:30");
+  await page.getByRole("checkbox").check();
+
+  const [apiResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
+        response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "Request viewing" }).click(),
+  ]);
+
+  expect(apiResponse.status()).toBe(201);
+  expect(apiResponse.request().postDataJSON()).toMatchObject({
+    inquiryType: "viewing",
+    source: "viewing-page",
+    propertyId: "RCPP-E2E-001",
+    requestedDate: "2030-09-20",
+    requestedTime: "10:30",
+    privacyConsent: true,
+  });
+  await expect(page.getByRole("status")).toContainText("Viewing request received.");
+  await expect(page.getByRole("status")).toContainText("Staff must confirm");
+});
+
 test("mobile navigation closes on Escape and restores trigger focus", async ({
   page,
 }) => {

@@ -78,11 +78,19 @@ placeholder. This decision does not select an upload or storage provider.
 ## Inquiry
 
 An inquiry stores name, email, optional phone, inquiry type, optional property ID,
-optional subject, message, source, consent timestamp, workflow status and timestamps.
+optional subject, optional viewing message, source, consent timestamp, workflow status
+and timestamps.
 The initial status is `new`. Staff management adds append-only status history, bounded
 internal notes, a recoverable archive timestamp, the pre-spam status and an
 optimistic-concurrency version. Inquiry records contain personal information and never
 have an unauthenticated read endpoint.
+
+Viewing inquiries embed a one-to-one `viewingRequest` subdocument containing status,
+requested `YYYY-MM-DD` date, requested `HH:mm` Philippine time and append-only status
+history snapshots. This avoids duplicating customer and consent data in an appointment
+collection while keeping appointment state separate from inquiry follow-up state. The
+compound viewing-status/requested-date index supports the staff queue. The related
+Property ID is accepted only when it resolves to a published, not-sold sale property.
 
 The public API returns only a new opaque inquiry identifier, `received` acknowledgement
 and creation time. It never echoes the submitted personal data. Staff retrieval waits for
@@ -104,6 +112,8 @@ storing the raw key or suppressing legitimate repeat inquiries heuristically.
 - Property ID connects an inquiry to the listing the visitor selected.
 - Inquiry type and source route the request without behavioral tracking.
 - Message contains the visitor's request.
+- Requested date and time are collected only for a viewing and represent a preference,
+  not live availability or confirmation.
 - Consent timestamp records agreement to use the supplied details to answer that request.
 
 No identity documents, payment details or seller-ownership documents are accepted by the

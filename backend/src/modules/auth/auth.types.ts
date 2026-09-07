@@ -73,6 +73,10 @@ export const AUDIT_ACTIONS = [
   "inquiry.note-added",
   "inquiry.archived",
   "inquiry.restored",
+  "viewing.confirmed",
+  "viewing.reschedule-requested",
+  "viewing.completed",
+  "viewing.canceled",
   "staff.provisioned",
   "staff.deactivated",
 ] as const;

@@ -300,6 +300,47 @@ describe("Phase 2A public API", () => {
     expect(inquiries.submissions).toHaveLength(0);
   });
 
+  it("accepts a structured future viewing request and rejects malformed schedules", async () => {
+    const valid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
+      name: "Maria Santos",
+      email: "maria@example.com",
+      inquiryType: "viewing",
+      source: "viewing-page",
+      propertyId: "rc-100",
+      requestedDate: "2030-09-20",
+      requestedTime: "10:30",
+      privacyConsent: true,
+    });
+    expect(valid.status).toBe(201);
+    expect(inquiries.submissions).toContainEqual(
+      expect.objectContaining({
+        inquiryType: "viewing",
+        propertyId: "RC-100",
+        requestedDate: "2030-09-20",
+        requestedTime: "10:30",
+      }),
+    );
+
+    const invalid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
+      name: "Maria Santos",
+      email: "maria@example.com",
+      inquiryType: "viewing",
+      source: "viewing-page",
+      propertyId: "RC-100",
+      requestedDate: "2030-02-30",
+      requestedTime: "25:00",
+      privacyConsent: true,
+    });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "requestedDate" }),
+        expect.objectContaining({ field: "requestedTime" }),
+      ]),
+    );
+    expect(inquiries.submissions).toHaveLength(1);
+  });
+
   it("rejects malformed idempotency keys before persistence", async () => {
     const response = await request(app())
       .post(`${API_PREFIX}/inquiries`)

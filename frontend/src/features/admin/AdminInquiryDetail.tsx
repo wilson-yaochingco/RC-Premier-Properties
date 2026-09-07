@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   INQUIRY_WORKFLOW_STATUSES,
+  VIEWING_TIME_ZONE,
+  type ViewingRequestStatus,
+  type ViewingStaffTransitionStatus,
   type AdminInquiryDetail,
   type InquiryWorkflowStatus,
 } from "@rc/shared";
@@ -13,6 +16,7 @@ import {
   getAdminInquiry,
   transitionAdminInquiry,
   updateAdminInquiryStatus,
+  updateAdminViewingRequest,
 } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
 import styles from "./admin.module.css";
@@ -33,6 +37,25 @@ function dateTime(value: string): string {
     timeStyle: "short",
   }).format(new Date(value));
 }
+
+function viewingDateTime(date: string, time: string): string {
+  return `${new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: VIEWING_TIME_ZONE,
+  }).format(new Date(`${date}T${time}:00+08:00`))} (Philippine time)`;
+}
+
+const VIEWING_TRANSITIONS: Record<
+  ViewingRequestStatus,
+  readonly ViewingStaffTransitionStatus[]
+> = {
+  requested: ["confirmed", "reschedule-requested", "canceled"],
+  "reschedule-requested": ["confirmed", "canceled"],
+  confirmed: ["reschedule-requested", "completed", "canceled"],
+  completed: [],
+  canceled: [],
+};
 
 export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
   const { session, expireSession } = useAdminSession();
@@ -122,6 +145,44 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
       setNotice({ kind: "success", text: "Internal note added." });
     } catch (error) {
       handleError(error, "The internal note could not be added.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function changeViewingRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (state.kind !== "ready" || !state.inquiry.viewingRequest) return;
+    const data = new FormData(event.currentTarget);
+    const status = String(data.get("viewingStatus")) as ViewingStaffTransitionStatus;
+    if (
+      status === "canceled" &&
+      !window.confirm(
+        "Cancel this viewing request? The appointment will no longer be treated as scheduled.",
+      )
+    ) {
+      return;
+    }
+    setPending(true);
+    setNotice(undefined);
+    try {
+      const inquiry = await updateAdminViewingRequest(
+        inquiryId,
+        {
+          status,
+          requestedDate: String(data.get("requestedDate") ?? ""),
+          requestedTime: String(data.get("requestedTime") ?? ""),
+          expectedVersion: state.inquiry.version,
+        },
+        session.csrfToken,
+      );
+      setState({ kind: "ready", inquiry });
+      setNotice({
+        kind: "success",
+        text: `Viewing request changed to ${label(status)}.`,
+      });
+    } catch (error) {
+      handleError(error, "The viewing request could not be updated.");
     } finally {
       setPending(false);
     }
@@ -271,9 +332,30 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
               <dt>Consent recorded</dt>
               <dd>{dateTime(inquiry.privacyConsentAt)}</dd>
             </div>
+            {inquiry.viewingRequest ? (
+              <>
+                <div>
+                  <dt>Viewing status</dt>
+                  <dd>{label(inquiry.viewingRequest.status)}</dd>
+                </div>
+                <div>
+                  <dt>Requested schedule</dt>
+                  <dd>
+                    {viewingDateTime(
+                      inquiry.viewingRequest.requestedDate,
+                      inquiry.viewingRequest.requestedTime,
+                    )}
+                  </dd>
+                </div>
+              </>
+            ) : null}
           </dl>
-          <h3>Message</h3>
-          <p className={styles.privateMessage}>{inquiry.message}</p>
+          {inquiry.message ? (
+            <>
+              <h3>Message</h3>
+              <p className={styles.privateMessage}>{inquiry.message}</p>
+            </>
+          ) : null}
         </article>
 
         <aside className={styles.workflowCard} aria-label="Inquiry workflow">
@@ -287,6 +369,60 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
             <p className={styles.archiveNotice}>
               Archived {dateTime(inquiry.archivedAt)}
             </p>
+          ) : null}
+          {inquiry.viewingRequest ? (
+            <form
+              key={`${inquiry.viewingRequest.status}-${inquiry.viewingRequest.requestedDate}-${inquiry.viewingRequest.requestedTime}`}
+              className={styles.compactForm}
+              onSubmit={changeViewingRequest}
+            >
+              <h3>Viewing appointment</h3>
+              <p>Requested times remain unconfirmed until the status is Confirmed.</p>
+              <label htmlFor="viewing-request-date">Requested date</label>
+              <input
+                id="viewing-request-date"
+                name="requestedDate"
+                type="date"
+                defaultValue={inquiry.viewingRequest.requestedDate}
+                required
+                disabled={pending || locked || !canUpdate}
+              />
+              <label htmlFor="viewing-request-time">Requested time</label>
+              <input
+                id="viewing-request-time"
+                name="requestedTime"
+                type="time"
+                defaultValue={inquiry.viewingRequest.requestedTime}
+                required
+                disabled={pending || locked || !canUpdate}
+              />
+              {VIEWING_TRANSITIONS[inquiry.viewingRequest.status].length > 0 ? (
+                <>
+                  <label htmlFor="viewing-request-status">Viewing status</label>
+                  <select
+                    id="viewing-request-status"
+                    name="viewingStatus"
+                    defaultValue={VIEWING_TRANSITIONS[inquiry.viewingRequest.status][0]}
+                    disabled={pending || locked || !canUpdate}
+                  >
+                    {VIEWING_TRANSITIONS[inquiry.viewingRequest.status].map(
+                      (status) => (
+                        <option key={status} value={status}>
+                          {label(status)}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  <button type="submit" disabled={pending || locked || !canUpdate}>
+                    Update viewing request
+                  </button>
+                </>
+              ) : (
+                <p className={styles.archiveNotice}>
+                  This viewing lifecycle is complete and cannot be changed.
+                </p>
+              )}
+            </form>
           ) : null}
           <form className={styles.compactForm} onSubmit={changeStatus}>
             <label htmlFor="inquiry-status">Status</label>
@@ -396,6 +532,26 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
           ))}
         </ol>
       </section>
+
+      {inquiry.viewingRequest ? (
+        <section className={styles.detailCard} aria-labelledby="viewing-history-title">
+          <h2 id="viewing-history-title">Viewing history</h2>
+          <ol className={styles.timeline}>
+            {[...inquiry.viewingRequest.statusHistory].reverse().map((entry, index) => (
+              <li key={`${entry.changedAt}-${index}`}>
+                <time>{dateTime(entry.changedAt)}</time>
+                <p>
+                  {entry.fromStatus
+                    ? `${label(entry.fromStatus)} → ${label(entry.toStatus)}`
+                    : `Created as ${label(entry.toStatus)}`}
+                  {" · "}
+                  {viewingDateTime(entry.requestedDate, entry.requestedTime)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
     </section>
   );
 }

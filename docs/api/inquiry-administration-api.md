@@ -15,6 +15,7 @@ authorization control.
 | `GET`   | `/admin/inquiries`              | Search and paginate queues      |
 | `GET`   | `/admin/inquiries/:id`          | Read private inquiry details    |
 | `PATCH` | `/admin/inquiries/:id/status`   | Change workflow status          |
+| `PATCH` | `/admin/inquiries/:id/viewing`  | Transition a viewing request    |
 | `POST`  | `/admin/inquiries/:id/notes`    | Append an internal note         |
 | `POST`  | `/admin/inquiries/:id/spam`     | Move to spam quarantine         |
 | `POST`  | `/admin/inquiries/:id/not-spam` | Restore the pre-spam status     |
@@ -24,7 +25,7 @@ authorization control.
 ## List query
 
 `page` defaults to 1 and is capped at 10,000; `limit` defaults to 20 and is capped at 100. `queue` is `active` (default), `spam`, `archived` or `all`. Optional exact filters
-are `status`, `inquiryType`, `source` and normalized `propertyId`. `query` is a trimmed,
+are `status`, `viewingStatus`, `inquiryType`, `source` and normalized `propertyId`. `query` is a trimmed,
 escaped, maximum-100-character search over name, email, phone, Property ID and subject.
 Unknown, repeated/object-style or invalid parameters return `400` with field issues.
 
@@ -40,6 +41,15 @@ one of `new`, `in-progress`, `viewing-scheduled`, `closed` or `lost`. Spam uses 
 dedicated action so it can preserve and restore the previous status. Note bodies contain
 `note`, trimmed and limited to 1,000 characters.
 
+Viewing bodies contain `status`, `requestedDate`, `requestedTime` and `expectedVersion`.
+Confirmation and reschedule require a future real calendar date and valid `HH:mm`
+Philippine time. Completion and cancellation preserve and validate the recorded schedule
+but may occur after it. Invalid or terminal transitions return `409`.
+
+Viewing confirmation synchronizes inquiry status to `viewing-scheduled` only from `new`
+or `in-progress`. Reschedule, completion and cancellation return `viewing-scheduled` to
+`in-progress`; all other inquiry states are preserved.
+
 Archive is the deletion policy exposed by this API. There is no `DELETE` route. Archived
 records can be restored and are discoverable through the archive queue while an approved
 retention duration and purge process remain outstanding.
@@ -50,3 +60,7 @@ Successful mutations emit `inquiry.status-changed`, `inquiry.marked-spam`,
 `inquiry.restored-from-spam`, `inquiry.note-added`, `inquiry.archived` or
 `inquiry.restored`. Events include safe actor/entity/request metadata only; inquiry and
 note content is excluded.
+
+Viewing transitions emit `viewing.confirmed`, `viewing.reschedule-requested`,
+`viewing.completed` or `viewing.canceled`. Requested schedules and personal data are not
+copied into audit events.

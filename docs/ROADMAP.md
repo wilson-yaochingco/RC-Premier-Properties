@@ -542,6 +542,12 @@ Property → select date/time → contact details → booking request → admin 
 Do not assume instant confirmation. A viewing is a commitment of someone's time; default
 to admin review unless the business explicitly wants auto-confirmation.
 
+The requested Level 3 slice is implemented: the public route submits a structured
+Philippine date/time request against a published, not-sold sale property, and authorized staff
+can review, confirm, request rescheduling, complete or cancel it. It deliberately has no
+live calendar, slots or automatic confirmation. Viewing state is embedded in the related
+inquiry while remaining distinct from inquiry follow-up status.
+
 **Video tours** — where the business supplies them.
 
 **Production maps and nearby landmarks** — evaluate and select the production map
@@ -564,7 +570,7 @@ channels the business actually uses rather than adding all four.
 
 ### Security requirements
 
-- [ ] Booking requests rate-limited and validated; treat as personal data
+- [x] Booking requests rate-limited and validated; treat as personal data
 - [ ] Anonymous favorites never leak one visitor's data to another
 - [ ] Calculators run on inputs the user supplies; no server-side financial decisions
 - [ ] Any production or expanded map integration preserves the Phase 2A public/private
@@ -573,7 +579,7 @@ channels the business actually uses rather than adding all four.
 ### Testing requirements
 
 - [ ] Unit tests for calculator maths, including boundary values
-- [ ] Integration tests for booking creation and favorites persistence
+- [x] Integration tests for booking creation; favorites persistence remains deferred
 - [ ] Migration test if anonymous favorites transfer to accounts
 
 ### Documentation to update
@@ -583,8 +589,8 @@ channels the business actually uses rather than adding all four.
 ### Definition of Done
 
 - [ ] Favorites work, with the anonymous/authenticated strategy documented
-- [ ] Dedicated viewing scheduling requests can be submitted and reviewed; the existing
-      public form remains an inquiry request only
+- [x] Dedicated viewing scheduling requests can be submitted and reviewed without
+      pretending the requested schedule is automatically confirmed
 - [ ] Production map provider selected and configured, with any expanded map capabilities
       respecting location privacy
 - [ ] Mortgage calculator accurate and clearly labelled as an estimate
@@ -738,7 +744,8 @@ timeline.
 
 **Agents** — profile, contact information, listing assignments, lead assignments, status.
 
-**Bookings** — manage viewing requests from Phase 2B.
+**Bookings** — the lightweight viewing-request staff lifecycle from Phase 2B is
+implemented. Broader calendar, agent-assignment and CRM capabilities remain deferred.
 
 **Analytics** — candidate metrics: property views, popular listings, inquiry count,
 inquiry source, viewing requests, conversion rate. **Define precisely what each metric

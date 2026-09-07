@@ -9,7 +9,9 @@ import type {
   InquiryStatus,
   InquirySource,
   InquiryType,
+  UpdateViewingRequestRequest,
   UpdateInquiryStatusRequest,
+  ViewingRequestStatus,
 } from "@rc/shared";
 import type { SecurityAuditEventInput } from "../auth/auth.types.js";
 
@@ -27,6 +29,22 @@ export interface InquiryNoteEntity {
   createdAt: Date;
 }
 
+export interface ViewingStatusHistoryEntity {
+  fromStatus?: ViewingRequestStatus;
+  toStatus: ViewingRequestStatus;
+  requestedDate: string;
+  requestedTime: string;
+  changedByStaffIdentity?: unknown;
+  changedAt: Date;
+}
+
+export interface ViewingRequestEntity {
+  status: ViewingRequestStatus;
+  requestedDate: string;
+  requestedTime: string;
+  statusHistory: ViewingStatusHistoryEntity[];
+}
+
 export interface InquiryEntity {
   name: string;
   email: string;
@@ -35,7 +53,8 @@ export interface InquiryEntity {
   source: InquirySource;
   propertyId?: string;
   subject?: string;
-  message: string;
+  message?: string;
+  viewingRequest?: ViewingRequestEntity;
   privacyConsent: boolean;
   privacyConsentAt: Date;
   status: InquiryStatus;
@@ -62,6 +81,10 @@ export interface InquiryService {
   ): Promise<CreateInquiryResponse>;
 }
 
+export interface ViewingPropertyRepository {
+  isRequestablePropertyId(propertyId: string): Promise<boolean>;
+}
+
 export interface AdminInquiryRecord extends InquiryEntity {
   _id: unknown;
 }
@@ -79,6 +102,19 @@ export interface InquiryAdminRepository {
     actorStaffIdentityId: string,
     occurredAt: Date,
     statusBeforeSpam?: Exclude<InquiryStatus, "spam"> | null,
+  ): Promise<AdminInquiryRecord | null>;
+  updateViewingRequest(
+    id: string,
+    expectedVersion: number,
+    currentViewingStatus: ViewingRequestStatus,
+    input: Pick<
+      UpdateViewingRequestRequest,
+      "status" | "requestedDate" | "requestedTime"
+    >,
+    actorStaffIdentityId: string,
+    occurredAt: Date,
+    currentInquiryStatus: InquiryStatus,
+    nextInquiryStatus: InquiryStatus,
   ): Promise<AdminInquiryRecord | null>;
   addNote(
     id: string,
@@ -112,6 +148,11 @@ export interface AdminInquiryService {
   updateStatus(
     id: string,
     input: UpdateInquiryStatusRequest,
+    context: InquiryMutationContext,
+  ): Promise<AdminInquiryDetail | null>;
+  updateViewingRequest(
+    id: string,
+    input: UpdateViewingRequestRequest,
     context: InquiryMutationContext,
   ): Promise<AdminInquiryDetail | null>;
   markSpam(
