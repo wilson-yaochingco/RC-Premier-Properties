@@ -82,6 +82,14 @@ const publicMapPointSchema = new Schema<PublicMapPoint>(
   { _id: false },
 );
 
+const privateCoordinatesSchema = new Schema(
+  {
+    latitude: { type: Number, required: true, min: -90, max: 90 },
+    longitude: { type: Number, required: true, min: -180, max: 180 },
+  },
+  { _id: false },
+);
+
 const propertySchema = new Schema<PropertyEntity>(
   {
     propertyId: {
@@ -139,10 +147,7 @@ const propertySchema = new Schema<PropertyEntity>(
       },
       publicPoint: { type: publicMapPointSchema },
       privateAddress: { type: String, trim: true, maxlength: 240, select: false },
-      coordinates: {
-        latitude: { type: Number, min: -90, max: 90, select: false },
-        longitude: { type: Number, min: -180, max: 180, select: false },
-      },
+      coordinates: { type: privateCoordinatesSchema, select: false },
     },
     specifications: { type: specificationsSchema, required: true, default: () => ({}) },
     shortDescription: {

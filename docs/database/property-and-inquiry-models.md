@@ -1,8 +1,8 @@
 # Property and Inquiry Models
 
-Status: implemented Mongoose schemas and service contracts. Public persistence was
-verified against Atlas on 2026-09-05; staff inquiry extensions have automated coverage
-and still require the manual live acceptance pass. Last reviewed 2026-09-07.
+Status: implemented Mongoose schemas and service contracts, including protected location
+authoring. Public persistence was verified against Atlas on 2026-09-05; the Level 5
+location changes still require a live admin acceptance pass. Last reviewed 2026-09-08.
 
 The repository includes the models, indexes, projections and service queries described
 here. It does not include real listings or seed data. Automated tests verify query
@@ -64,6 +64,17 @@ separate point and precision were deliberately stored. The `exact` option exists
 explicitly approved future record; it does not make a private exact address public by
 default. See
 [`geographic-data-and-maps.md`](../architecture/geographic-data-and-maps.md).
+
+The private `coordinates` subdocument requires both numeric members whenever present.
+Latitude is bounded to `[-90, 90]` and longitude to `[-180, 180]`; API validation also
+rejects non-finite values, strings, malformed structures, and incomplete pairs before a
+Mongoose write. The subdocument and `privateAddress` use `select: false` and are added
+only to the authorized admin-detail projection. Admin list projections omit them.
+
+Existing documents need no migration. Missing private/public coordinates are valid,
+missing legacy precision is serialized as `city-only`, and no backfill derives or invents
+location data. No geospatial index is added because current queries filter administrative
+text and read explicitly approved points rather than querying by distance or bounds.
 
 Indexes follow actual Phase 2A access patterns: unique property ID and slug, published
 listing recency, published price, location/type filtering and featured listing lookup.
@@ -127,9 +138,9 @@ public Phase 2A forms.
 
 Authenticated administrators can search and paginate private property DTOs, create an
 available draft, preview it and edit content while the record is a draft or intentionally
-unpublished. The routes project only the
-fields needed by that editor and exclude private address, internal coordinates, owner
-reference and internal notes. Create assigns `publicationStatus: draft` and
+unpublished. Collection responses omit private address and internal coordinates; an
+authorized detail/edit response includes them because the existing editor manages those
+fields. Owner reference and internal notes remain excluded. Create assigns `publicationStatus: draft` and
 `availability: available`. Every mutation predicates on the returned `__v` value and
 increments it atomically, preventing a stale administrator view from overwriting newer
 work. Legacy records created before versioning are treated as version zero and acquire

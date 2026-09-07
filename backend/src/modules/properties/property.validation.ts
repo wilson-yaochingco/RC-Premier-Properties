@@ -414,6 +414,99 @@ function parsePrice(
     : undefined;
 }
 
+function coordinateNumber(
+  value: unknown,
+  field: string,
+  minimum: number,
+  maximum: number,
+  issues: ValidationIssue[],
+): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < minimum ||
+    value > maximum
+  ) {
+    issues.push({
+      field,
+      message: `Must be a finite number from ${minimum} to ${maximum}.`,
+    });
+    return undefined;
+  }
+  return value;
+}
+
+function parseCoordinateObject(
+  value: unknown,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["location"]["coordinates"] | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "location.coordinates", message: "Must be an object." });
+    return undefined;
+  }
+  unknownFields(value, ["latitude", "longitude"], "location.coordinates", issues);
+  const latitude = coordinateNumber(
+    value.latitude,
+    "location.coordinates.latitude",
+    -90,
+    90,
+    issues,
+  );
+  const longitude = coordinateNumber(
+    value.longitude,
+    "location.coordinates.longitude",
+    -180,
+    180,
+    issues,
+  );
+  return latitude !== undefined && longitude !== undefined
+    ? { latitude, longitude }
+    : undefined;
+}
+
+function parsePublicPoint(
+  value: unknown,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["location"]["publicPoint"] | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "location.publicPoint", message: "Must be an object." });
+    return undefined;
+  }
+  unknownFields(value, ["type", "coordinates"], "location.publicPoint", issues);
+  if (value.type !== "Point") {
+    issues.push({
+      field: "location.publicPoint.type",
+      message: 'Must be "Point".',
+    });
+  }
+  if (!Array.isArray(value.coordinates) || value.coordinates.length !== 2) {
+    issues.push({
+      field: "location.publicPoint.coordinates",
+      message: "Must contain exactly [longitude, latitude].",
+    });
+    return undefined;
+  }
+  const longitude = coordinateNumber(
+    value.coordinates[0],
+    "location.publicPoint.coordinates.0",
+    -180,
+    180,
+    issues,
+  );
+  const latitude = coordinateNumber(
+    value.coordinates[1],
+    "location.publicPoint.coordinates.1",
+    -90,
+    90,
+    issues,
+  );
+  return value.type === "Point" && longitude !== undefined && latitude !== undefined
+    ? { type: "Point", coordinates: [longitude, latitude] }
+    : undefined;
+}
+
 function parseLocation(
   value: unknown,
   required: boolean,
@@ -426,7 +519,16 @@ function parseLocation(
   }
   unknownFields(
     value,
-    ["province", "city", "barangay", "development", "publicPrecision"],
+    [
+      "province",
+      "city",
+      "barangay",
+      "development",
+      "publicPrecision",
+      "privateAddress",
+      "coordinates",
+      "publicPoint",
+    ],
     "location",
     issues,
   );
@@ -439,12 +541,20 @@ function parseLocation(
     140,
     issues,
   );
+  const privateAddress = optionalText(
+    value.privateAddress,
+    "location.privateAddress",
+    240,
+    issues,
+  );
   const publicPrecision = bodyEnum(
     value.publicPrecision,
     "location.publicPrecision",
     PUBLIC_LOCATION_PRECISIONS,
     issues,
   );
+  const coordinates = parseCoordinateObject(value.coordinates, issues);
+  const publicPoint = parsePublicPoint(value.publicPoint, issues);
   if (!province || !city || !publicPrecision) return undefined;
   return {
     province,
@@ -452,6 +562,9 @@ function parseLocation(
     ...(barangay ? { barangay } : {}),
     ...(development ? { development } : {}),
     publicPrecision,
+    ...(privateAddress ? { privateAddress } : {}),
+    ...(coordinates ? { coordinates } : {}),
+    ...(publicPoint ? { publicPoint } : {}),
   };
 }
 

@@ -57,9 +57,10 @@ npm run test:e2e
   permitted callers. They cover session rejection, exact-origin and session-bound CSRF
   enforcement, strict allowlisted validation, forced draft creation, draft-only edits,
   public invisibility and the shared error envelope without a live database or Auth0.
-- Admin-property service tests prove explicit field assignment and exact-once safe audit
-  metadata for successful creates and edits. Failed or non-draft edits emit no success
-  event.
+- Admin-property service tests prove explicit field assignment, stale-write rejection,
+  and exact-once safe audit metadata for successful creates and edits. Location coverage
+  confirms private addresses and coordinate values never enter audit metadata. Failed or
+  non-draft edits emit no success event.
 - Staff-inquiry HTTP tests prove anonymous and permission denial, authorized list/detail,
   bounded search/filter pagination, CSRF-protected status/spam/note/archive actions,
   invalid input and missing records. Service tests prove pre-spam restoration,
@@ -73,7 +74,8 @@ npm run test:e2e
   and accessible form feedback.
 - The protected admin browser fixture covers session bootstrap, the unauthenticated
   sign-in URL, no-index metadata, private list, draft create/edit, CSRF forwarding,
-  memory-only client state, forbidden and expired-session states. It intercepts the
+  private/public location authoring, memory-only client state, forbidden and
+  expired-session states. It intercepts the
   Auth0/session boundary and does not claim to test a live provider login.
 - The interactive map has browser coverage for deferred loading, shared URL filters,
   card/marker synchronization, approved-point privacy and isolated data failures.
@@ -131,6 +133,14 @@ behavior or logout against the live tenant; those remain explicit manual gates i
 [`auth0-setup.md`](auth0-setup.md). Production still requires validated `amr: mfa` and
 cannot use the development-only signed passkey assurance. Client accounts and broader
 administration remain later work.
+
+Level 5 location acceptance should use synthetic or verified staff-provided values only:
+edit a draft with both private and public pairs, confirm the protected detail returns the
+private pair, confirm every public list/detail/map response omits it, verify a no-point
+listing keeps textual location, force a stale version to receive `409`, and exercise the
+map at mobile/tablet/desktop sizes with tile attribution visible. Do not write a regional
+default or test coordinate into real inventory. This live post-change acceptance pass has
+not yet been recorded.
 
 ## CI
 

@@ -1381,6 +1381,22 @@ const ADMIN_CREATE_REQUEST: CreateDraftPropertyRequest = {
   features: [],
 };
 
+const ADMIN_LOCATION_UPDATE = {
+  expectedVersion: 0,
+  location: {
+    province: "Pampanga",
+    city: "Angeles City",
+    barangay: "Synthetic Barangay",
+    publicPrecision: "approximate" as const,
+    privateAddress: "99 Synthetic Test Street",
+    coordinates: { latitude: 15.101, longitude: 120.601 },
+    publicPoint: {
+      type: "Point" as const,
+      coordinates: [120.61, 15.15] as [number, number],
+    },
+  },
+};
+
 async function authenticatedAdmin(
   app: ReturnType<typeof buildApp>,
   auth: ReturnType<typeof makeAuth>,
@@ -1509,7 +1525,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
           .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
           .set("Cookie", first.cookie)
           .set("Origin", ORIGIN)
-          .send({ title: "CSRF test" }),
+          .send(ADMIN_LOCATION_UPDATE),
       () =>
         request(app)
           .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
@@ -1549,7 +1565,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Cookie", session.cookie)
         .set("Origin", "https://attacker.invalid")
         .set("X-CSRF-Token", session.csrfToken)
-        .send({ title: "Disallowed-origin edit" }),
+        .send(ADMIN_LOCATION_UPDATE),
       request(app)
         .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
         .set("Cookie", session.cookie)
@@ -1632,6 +1648,32 @@ describe("Phase 3A admin property HTTP boundary", () => {
       expectedVersion: 0,
     });
     expect(adminProperties.mediaUpdates[0]?.input.coverMediaId).toBe("media-http-0001");
+  });
+
+  it("returns private location only through the authenticated detail/edit workflow", async () => {
+    const auth = makeAuth();
+    const adminProperties = makeAdminPropertyService();
+    const app = buildApp(auth, { adminProperties });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+
+    const edited = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
+      .set(headers)
+      .send(ADMIN_LOCATION_UPDATE);
+    const detail = await request(app)
+      .get(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
+      .set("Cookie", session.cookie);
+
+    expect(edited.status).toBe(200);
+    expect(edited.headers["cache-control"]).toBe("no-store");
+    expect(edited.body.location).toEqual(ADMIN_LOCATION_UPDATE.location);
+    expect(detail.body.location).toEqual(ADMIN_LOCATION_UPDATE.location);
+    expect(adminProperties.updates[0]?.input).toEqual(ADMIN_LOCATION_UPDATE);
   });
 
   it("rejects unknown, invalid, lifecycle, and non-JSON write bodies", async () => {

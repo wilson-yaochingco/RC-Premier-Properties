@@ -228,6 +228,25 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await page.getByRole("button", { name: "Save property content" }).click();
   await expect(page.getByText("Property changes saved.")).toBeVisible();
   expect(editRequest).toEqual({ title: "E2E edited draft", expectedVersion: 0 });
+  await page.getByLabel("Public precision").selectOption("approximate");
+  await page.getByLabel("Private address (optional)").fill("99 Synthetic Test Street");
+  await page.getByLabel("Private exact latitude (optional)").fill("15.101");
+  await page.getByLabel("Private exact longitude (optional)").fill("120.601");
+  await page.getByLabel("Approved public latitude (optional)").fill("15.15");
+  await page.getByLabel("Approved public longitude (optional)").fill("120.61");
+  await page.getByRole("button", { name: "Save property content" }).click();
+  await expect(page.getByText("Property changes saved.")).toBeVisible();
+  expect(editRequest).toEqual({
+    expectedVersion: 1,
+    location: {
+      province: "Pampanga",
+      city: "Angeles City",
+      publicPrecision: "approximate",
+      privateAddress: "99 Synthetic Test Street",
+      coordinates: { latitude: 15.101, longitude: 120.601 },
+      publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+    },
+  });
   await page.getByText("Add licensed development sample").click();
   await page
     .getByRole("button", { name: /White modern house reflected in a swimming pool/ })
@@ -260,7 +279,13 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await page.getByRole("link", { name: "Back to properties" }).click();
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByText(/was published/i)).toBeVisible();
-  expect(writeCsrfHeaders).toEqual([CSRF_TOKEN, CSRF_TOKEN, CSRF_TOKEN, CSRF_TOKEN]);
+  expect(writeCsrfHeaders).toEqual([
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+  ]);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
 });
 

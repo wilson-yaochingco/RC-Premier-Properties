@@ -10,9 +10,16 @@ import {
   buildAdminPropertyFilter,
   buildPublishedPropertyDetailFilter,
   buildPublishedPropertyFilter,
+  toAdminPropertyDetail,
+  toAdminPropertySummary,
+  toPublicPropertyDetail,
+  toPublicPropertyMapItem,
   toPublicPropertySummary,
 } from "../src/modules/properties/property.service.js";
-import type { PublicPropertyRecord } from "../src/modules/properties/property.types.js";
+import type {
+  AdminPropertyRecord,
+  PublicPropertyRecord,
+} from "../src/modules/properties/property.types.js";
 import {
   parseAdminPropertyId,
   parseAdminPropertyAvailabilityBody,
@@ -331,6 +338,67 @@ describe("published property query construction", () => {
       disclosure: "general-area",
     });
   });
+
+  it("keeps private location in authorized detail only and out of every public shape", () => {
+    const privateAddress = "99 Synthetic Test Street";
+    const privateLatitude = 15.101;
+    const record = {
+      _id: "507f1f77bcf86cd799439011",
+      propertyId: "RCPP-LOCATION-BOUNDARY",
+      slug: "location-boundary-test",
+      title: "Location boundary test",
+      purpose: "sale",
+      propertyType: "house-and-lot",
+      availability: "available",
+      publicationStatus: "published",
+      featured: false,
+      price: { amount: 1_000_000, currency: "PHP", negotiable: false },
+      location: {
+        province: "Pampanga",
+        city: "Angeles City",
+        barangay: "Synthetic Barangay",
+        development: "Synthetic Development",
+        publicPrecision: "approximate",
+        publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+        privateAddress,
+        coordinates: { latitude: privateLatitude, longitude: 120.601 },
+      },
+      specifications: {},
+      shortDescription: "Test-only location boundary fixture.",
+      description: "Test-only location boundary fixture detail.",
+      highlights: [],
+      amenities: [],
+      features: [],
+      gallery: [],
+      publishedAt: new Date("2026-08-20T00:00:00.000Z"),
+      createdAt: new Date("2026-08-19T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-21T00:00:00.000Z"),
+      __v: 2,
+    } as unknown as AdminPropertyRecord;
+
+    expect(toAdminPropertySummary(record).location).not.toHaveProperty(
+      "privateAddress",
+    );
+    expect(toAdminPropertySummary(record).location).not.toHaveProperty("coordinates");
+    expect(toAdminPropertyDetail(record).location).toMatchObject({
+      privateAddress,
+      coordinates: { latitude: privateLatitude, longitude: 120.601 },
+      publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+    });
+
+    const publicRecord = record as unknown as PublicPropertyRecord;
+    const publicShapes = [
+      toPublicPropertySummary(publicRecord),
+      toPublicPropertyDetail(publicRecord),
+      toPublicPropertyMapItem(publicRecord),
+    ];
+    for (const shape of publicShapes) {
+      const serialized = JSON.stringify(shape);
+      expect(serialized).not.toContain(privateAddress);
+      expect(serialized).not.toContain(String(privateLatitude));
+      expect(shape?.location.publicPoint?.coordinates).toEqual([120.61, 15.15]);
+    }
+  });
 });
 
 describe("property public map point schema", () => {
@@ -375,6 +443,32 @@ describe("property public map point schema", () => {
       "Public map coordinates must be [longitude, latitude] within valid ranges.",
     );
   });
+
+  it("requires a complete, valid private exact coordinate pair", async () => {
+    const incomplete = new PropertyModel({
+      ...baseProperty,
+      location: {
+        province: "Pampanga",
+        city: "Angeles City",
+        coordinates: { latitude: 15.1 },
+      },
+    });
+    const outOfRange = new PropertyModel({
+      ...baseProperty,
+      location: {
+        province: "Pampanga",
+        city: "Angeles City",
+        coordinates: { latitude: -91, longitude: 120.6 },
+      },
+    });
+
+    await expect(incomplete.validate()).rejects.toThrow(
+      "location.coordinates.longitude",
+    );
+    await expect(outOfRange.validate()).rejects.toThrow(
+      "location.coordinates.latitude",
+    );
+  });
 });
 
 describe("admin property validation", () => {
@@ -408,6 +502,76 @@ describe("admin property validation", () => {
     ).toEqual(DRAFT_REQUEST);
   });
 
+  it("accepts verified private coordinates and a separately approved public point", () => {
+    const location = {
+      ...DRAFT_REQUEST.location,
+      privateAddress: "  Private test address  ",
+      coordinates: { latitude: 15.145, longitude: 120.588 },
+      publicPrecision: "approximate" as const,
+      publicPoint: { type: "Point" as const, coordinates: [120.59, 15.15] },
+    };
+
+    expect(parseUpdateDraftPropertyBody({ expectedVersion: 4, location })).toEqual({
+      expectedVersion: 4,
+      location: {
+        ...location,
+        privateAddress: "Private test address",
+      },
+    });
+  });
+
+  it.each([
+    [
+      "private latitude below -90",
+      { coordinates: { latitude: -90.01, longitude: 120 } },
+    ],
+    ["private latitude above 90", { coordinates: { latitude: 90.01, longitude: 120 } }],
+    [
+      "private longitude below -180",
+      { coordinates: { latitude: 15, longitude: -180.01 } },
+    ],
+    [
+      "private longitude above 180",
+      { coordinates: { latitude: 15, longitude: 180.01 } },
+    ],
+    ["private numeric string", { coordinates: { latitude: "15", longitude: 120 } }],
+    ["private NaN", { coordinates: { latitude: Number.NaN, longitude: 120 } }],
+    [
+      "private Infinity",
+      { coordinates: { latitude: 15, longitude: Number.POSITIVE_INFINITY } },
+    ],
+    ["private incomplete pair", { coordinates: { latitude: 15 } }],
+    [
+      "public latitude below -90",
+      { publicPoint: { type: "Point", coordinates: [120, -90.01] } },
+    ],
+    [
+      "public latitude above 90",
+      { publicPoint: { type: "Point", coordinates: [120, 90.01] } },
+    ],
+    [
+      "public longitude below -180",
+      { publicPoint: { type: "Point", coordinates: [-180.01, 15] } },
+    ],
+    [
+      "public longitude above 180",
+      { publicPoint: { type: "Point", coordinates: [180.01, 15] } },
+    ],
+    [
+      "public malformed point type",
+      { publicPoint: { type: "LineString", coordinates: [120, 15] } },
+    ],
+    ["public malformed pair", { publicPoint: { type: "Point", coordinates: [120] } }],
+    ["public incomplete object", { publicPoint: { type: "Point" } }],
+  ])("rejects %s", (_label, invalidLocation) => {
+    expect(() =>
+      parseUpdateDraftPropertyBody({
+        expectedVersion: 4,
+        location: { ...DRAFT_REQUEST.location, ...invalidLocation },
+      }),
+    ).toThrowError(expect.objectContaining({ status: 400 }));
+  });
+
   it.each([
     { ...DRAFT_REQUEST, publicationStatus: "published" },
     { ...DRAFT_REQUEST, availability: "sold" },
@@ -416,7 +580,7 @@ describe("admin property validation", () => {
     { ...DRAFT_REQUEST, price: { ...DRAFT_REQUEST.price, currency: "PHP" } },
     {
       ...DRAFT_REQUEST,
-      location: { ...DRAFT_REQUEST.location, privateAddress: "private" },
+      location: { ...DRAFT_REQUEST.location, internalNotes: "private" },
     },
     { ...DRAFT_REQUEST, propertyType: "castle" },
     { ...DRAFT_REQUEST, price: { amount: -1, negotiable: false } },

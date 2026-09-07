@@ -287,13 +287,30 @@ export interface AdminPropertyPriceInput {
   negotiable: boolean;
 }
 
+/** Exact internal coordinates visible only through authorized administration APIs. */
+export interface AdminPropertyCoordinates {
+  latitude: number;
+  longitude: number;
+}
+
 export interface AdminPropertyLocationInput {
   province: string;
   city: string;
   barangay?: string;
   development?: string;
   publicPrecision: PublicLocationPrecision;
+  /** Private operational address. Never serialized by a public property endpoint. */
+  privateAddress?: string;
+  /** Verified private point. Never used as a fallback for the public map point. */
+  coordinates?: AdminPropertyCoordinates;
+  /** Independently reviewed point intentionally approved for public disclosure. */
+  publicPoint?: PublicMapPoint;
 }
+
+export type AdminPropertyLocationSummary = Pick<
+  AdminPropertyLocationInput,
+  "province" | "city" | "barangay" | "development" | "publicPrecision"
+>;
 
 export interface AdminPropertyContentInput {
   propertyId: string;
@@ -347,14 +364,17 @@ export interface AdminPropertySummary {
     currency: PropertyCurrency;
     negotiable: boolean;
   };
-  location: AdminPropertyLocationInput;
+  /** Deliberately excludes private coordinates/address from collection responses. */
+  location: AdminPropertyLocationSummary;
   shortDescription: string;
   /** Optimistic-concurrency token. Send it back with every mutation. */
   version: number;
   updatedAt: string;
 }
 
-export interface AdminPropertyDetail extends AdminPropertySummary {
+export interface AdminPropertyDetail extends Omit<AdminPropertySummary, "location"> {
+  /** Full location authoring state, returned only by protected detail/mutation routes. */
+  location: AdminPropertyLocationInput;
   specifications: PublicPropertySpecifications;
   description: string;
   highlights: string[];

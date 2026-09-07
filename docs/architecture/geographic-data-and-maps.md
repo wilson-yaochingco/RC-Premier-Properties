@@ -1,7 +1,7 @@
 # Geographic Data and Public Maps
 
-Status: implemented Phase 2A public discovery baseline; production provider and expanded
-map capabilities remain deferred to Phase 2B. Last reviewed 2026-09-04.
+Status: public discovery and protected location administration implemented; production
+provider and expanded map capabilities remain deferred. Last reviewed 2026-09-08.
 
 The public map helps visitors understand where published properties are in Pampanga
 without turning an internal address or coordinate into public data. It is a discovery
@@ -18,8 +18,9 @@ The catalogue remains server-rendered and usable without JavaScript map support.
 adds a progressively enhanced view:
 
 1. The current URL supplies the canonical property filters.
-2. The already-fetched, server-rendered result page supplies markers for cards that have
-   an independently approved public point, keeping the visible list and pins identical.
+2. The already-fetched, server-rendered result page supplies an immediate safe marker
+   fallback. Once loaded, the bounded map endpoint supplies all matching approved pins
+   while the property list remains paginated.
 3. Selecting a city or municipality writes its name to the same `location` query
    parameter, clears pagination and refreshes both cards and map pins.
 4. Card hover/focus highlights the matching marker. Marker popups expose the public
@@ -109,7 +110,27 @@ data and are never production inventory.
 
 Exact disclosure is supported by the contract for a future explicitly authorized
 record, but it is never inferred from an internal exact address. Production listing
-entry needs a staff-facing review workflow before using it.
+entry still needs a business approval decision before staff use it on a real listing.
+
+## Protected location administration
+
+Location editing stays inside the existing draft/unpublished property form and the
+existing `property:write` mutation. There is no separate location route or permission.
+Authorized staff can manage province, city/municipality, optional barangay and
+development, the private address, a verified private latitude/longitude pair, public
+precision, and a separately reviewed public GeoJSON point.
+
+The form visually separates private fields from the public point and warns that a saved
+public point is returned by public property APIs. Latitude and longitude must be supplied
+together. Both browser constraints and the backend check latitude from -90 through 90
+and longitude from -180 through 180; the backend also rejects strings, non-finite values,
+wrong GeoJSON types, malformed arrays, extra nested fields, and incomplete pairs.
+
+Private fields are selected only for an authenticated property-detail/edit response.
+They remain absent from admin collection summaries. Updates use the property's existing
+optimistic-concurrency version, origin validation, CSRF token, and `property:write`
+authorization. The existing `property.edited` audit records only the changed top-level
+field name `location`, never the address or coordinate values.
 
 ## API and capacity boundary
 
@@ -121,23 +142,33 @@ point contribute to `matchingTotal` but never appear as pins.
 
 The endpoint returns a deliberately reduced marker/preview shape. It does not expose
 description, gallery, internal address, internal coordinates, owner references or notes.
-The current catalogue UI deliberately does not call this endpoint: it maps the nine-item
-result page so every marker always has a matching visible card. The bounded endpoint is
-available for a future dedicated full-results map or another public client. Such a UI
-should use viewport/bounds queries or a spatial index at greater scale rather than simply
-raising the cap.
+The catalogue requests it only after map activation and preserves its server-rendered,
+paginated list as the accessible source of results. A marker for the current page can
+highlight and reveal its card; every marker retains a concise popup and safe detail link.
+At greater scale the endpoint should gain viewport/bounds queries or a spatial index
+rather than simply raising the cap.
+
+## Existing-record and migration behavior
+
+All new location fields remain optional except province, city and public precision in a
+new admin request. Existing documents without coordinates remain valid and render text
+only. A missing legacy precision defaults to `city-only` during serialization and cannot
+release an orphan point. No migration, backfill, coordinate derivation, or new database
+index is required. Staff may add verified data during an ordinary version-checked edit;
+the application never writes a regional default into a listing.
 
 ## Verification and remaining blockers
 
 Automated tests verify the 22-area artifact, licence metadata, coordinate envelope,
-public/private serialization boundary, map query validation, lazy loading, URL/card/map
-synchronization, marker behaviour, responsive fallback, failure isolation and the
-absence of eager boundary requests on public entry routes.
+private/public authoring validation, protected location responses, value-free audit
+metadata, public list/detail/map serialization, map query validation, lazy loading,
+URL/card/map synchronization, marker behaviour, responsive fallback, failure isolation
+and the absence of eager boundary requests on public entry routes.
 
 The following remain external or deliberately deferred to Phase 2B or launch preparation:
 
 - production map-provider selection and its account/domain configuration;
 - production inventory with business-approved `publicPrecision` and `publicPoint` values;
 - a certified, licence-compatible barangay boundary source;
-- a verified project MongoDB persistence run; and
+- a post-change live MongoDB/admin acceptance run; and
 - nearby-landmark data and routing, which are not part of this public MVP map.

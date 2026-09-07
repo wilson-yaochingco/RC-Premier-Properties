@@ -1,7 +1,7 @@
 # Property Administration
 
-Status: Phase 3A property lifecycle and provider-neutral image administration implemented.
-Production upload remains blocked; inquiry administration is documented separately in
+Status: property lifecycle, provider-neutral image administration, and privacy-conscious
+location administration implemented. Production upload remains blocked; inquiry administration is documented separately in
 [`inquiries.md`](inquiries.md).
 
 ## Staff experience
@@ -32,6 +32,21 @@ availability: available -> reserved -> sold
 - Content is editable only while draft or unpublished.
 - Image references, ordering, cover selection, alt text, captions and removals are
   editable only while draft or unpublished. Staff unpublish before changing live media.
+- Location text, private address, verified exact coordinates, public disclosure precision,
+  and an independently approved public map point use the same draft/unpublished edit.
+
+## Location workflow
+
+The location fieldset explains which data is private and which can appear publicly.
+`privateAddress` and the internal latitude/longitude pair are returned only by protected
+detail/edit responses. Admin list summaries omit them. `publicPoint` is a separate
+GeoJSON `[longitude, latitude]` pair; it is never populated or derived from the private
+pair. Staff must intentionally supply a reviewed point and select its public precision.
+
+Both coordinate pairs are optional, but either pair must be complete. Server validation
+accepts only finite JSON numbers in valid latitude/longitude ranges. Invalid, malformed,
+partial, string, `NaN`, or infinite values are rejected. A property with no public point
+continues to expose useful precision-filtered text and has no public marker.
 
 Every mutation includes the version from the latest private read. The MongoDB update matches both ID and version, then increments the version atomically. A stale operation returns `409` and instructs staff to refresh.
 
@@ -51,7 +66,8 @@ Successful create, edit, media update, publish, unpublish, reserve, sold, genera
 availability change, archive, and restore actions emit allowlisted audit events. Events
 contain actor, property database ID, request ID, timestamp, outcome, and content field
 names when relevant; they contain no property values, media URLs, request body, cookies,
-CSRF data, or provider tokens.
+CSRF data, provider tokens, private addresses, or coordinate values. A location edit is
+recorded only as the changed top-level field `location`.
 
 Property persistence and audit insertion remain separate MongoDB writes, matching the documented session-audit limitation. A failed audit insert fails the HTTP request but does not roll back a completed property mutation.
 

@@ -16,6 +16,7 @@ import {
   PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentInput,
+  type AdminPropertyCoordinates,
   type AdminPropertyDetail,
   type CreateDraftPropertyRequest,
   type PropertyType,
@@ -117,6 +118,35 @@ function optionalNumber(data: FormData, name: string): number | undefined {
   return value === "" ? undefined : Number(value);
 }
 
+function coordinatePair(
+  data: FormData,
+  latitudeName: string,
+  longitudeName: string,
+): AdminPropertyCoordinates | undefined {
+  const latitude = textValue(data, latitudeName);
+  const longitude = textValue(data, longitudeName);
+  if (!latitude && !longitude) return undefined;
+  return {
+    latitude: latitude ? Number(latitude) : Number.NaN,
+    longitude: longitude ? Number(longitude) : Number.NaN,
+  };
+}
+
+function requireCoordinatePair(
+  form: HTMLFormElement | null,
+  latitudeName: string,
+  longitudeName: string,
+) {
+  if (!form) return;
+  const latitude = form.elements.namedItem(latitudeName);
+  const longitude = form.elements.namedItem(longitudeName);
+  if (!(latitude instanceof HTMLInputElement)) return;
+  if (!(longitude instanceof HTMLInputElement)) return;
+  const hasEither = Boolean(latitude.value.trim() || longitude.value.trim());
+  latitude.required = hasEither;
+  longitude.required = hasEither;
+}
+
 function lines(data: FormData, name: string): string[] {
   return textValue(data, name)
     .split(/\r?\n/)
@@ -128,6 +158,9 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
   const data = new FormData(form);
   const barangay = textValue(data, "barangay");
   const development = textValue(data, "development");
+  const privateAddress = textValue(data, "privateAddress");
+  const coordinates = coordinatePair(data, "privateLatitude", "privateLongitude");
+  const publicCoordinates = coordinatePair(data, "publicLatitude", "publicLongitude");
   const furnishing = textValue(data, "furnishing");
   const specifications = {
     bedrooms: optionalNumber(data, "bedrooms"),
@@ -161,6 +194,16 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
         data,
         "publicPrecision",
       ) as CreateDraftPropertyRequest["location"]["publicPrecision"],
+      ...(privateAddress ? { privateAddress } : {}),
+      ...(coordinates ? { coordinates } : {}),
+      ...(publicCoordinates
+        ? {
+            publicPoint: {
+              type: "Point",
+              coordinates: [publicCoordinates.longitude, publicCoordinates.latitude],
+            },
+          }
+        : {}),
     },
     specifications: Object.fromEntries(
       Object.entries(specifications).filter(([, value]) => value !== undefined),
@@ -548,6 +591,11 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         <fieldset disabled={submission.kind === "pending"}>
           <legend>Location and disclosure</legend>
           <div className={styles.formGrid}>
+            <p className={styles.locationNotice}>
+              Province, city and any permitted area names can appear publicly according
+              to the precision below. Private address and exact internal coordinates are
+              available only to authorized staff.
+            </p>
             <Field field="location.province" label="Province" issues={issues}>
               <input
                 id="location.province"
@@ -607,6 +655,118 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                   </option>
                 ))}
               </select>
+            </Field>
+            <p className={styles.locationNotice}>
+              Private location: store only verified operational information. These
+              values are never copied into public responses or used to create a map pin.
+            </p>
+            <Field
+              field="location.privateAddress"
+              label="Private address (optional)"
+              issues={issues}
+              wide
+            >
+              <input
+                id="location.privateAddress"
+                name="privateAddress"
+                defaultValue={content.location.privateAddress}
+                maxLength={240}
+                autoComplete="off"
+              />
+            </Field>
+            <Field
+              field="location.coordinates.latitude"
+              label="Private exact latitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.coordinates.latitude"
+                name="privateLatitude"
+                type="number"
+                min="-90"
+                max="90"
+                step="any"
+                defaultValue={content.location.coordinates?.latitude}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "privateLatitude",
+                    "privateLongitude",
+                  )
+                }
+              />
+            </Field>
+            <Field
+              field="location.coordinates.longitude"
+              label="Private exact longitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.coordinates.longitude"
+                name="privateLongitude"
+                type="number"
+                min="-180"
+                max="180"
+                step="any"
+                defaultValue={content.location.coordinates?.longitude}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "privateLatitude",
+                    "privateLongitude",
+                  )
+                }
+              />
+            </Field>
+            <p className={styles.locationWarning}>
+              Public map point: both values below are sent to public property APIs and
+              maps with the selected precision. Enter a deliberately reviewed public
+              point. Do not copy the private exact coordinates unless exact public
+              disclosure has been explicitly approved.
+            </p>
+            <Field
+              field="location.publicPoint.coordinates.1"
+              label="Approved public latitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.publicPoint.coordinates.1"
+                name="publicLatitude"
+                type="number"
+                min="-90"
+                max="90"
+                step="any"
+                defaultValue={content.location.publicPoint?.coordinates[1]}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "publicLatitude",
+                    "publicLongitude",
+                  )
+                }
+              />
+            </Field>
+            <Field
+              field="location.publicPoint.coordinates.0"
+              label="Approved public longitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.publicPoint.coordinates.0"
+                name="publicLongitude"
+                type="number"
+                min="-180"
+                max="180"
+                step="any"
+                defaultValue={content.location.publicPoint?.coordinates[0]}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "publicLatitude",
+                    "publicLongitude",
+                  )
+                }
+              />
             </Field>
           </div>
         </fieldset>

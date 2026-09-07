@@ -25,13 +25,21 @@ Every route requires a valid local staff session and returns `Cache-Control: no-
 
 `GET /admin/properties` accepts optional `query`, `publicationStatus`, and `availability` filters plus bounded `page` and `limit` values. Search is case-insensitive across Premier Property number, slug, title, and city. The default page size is 25 and maximum is 50. Unknown query parameters are rejected.
 
-List and detail responses include `version`. Lists exclude media; details include the
-ordered `gallery` and selected `coverMedia` for editing/preview. Both exclude private
-addresses, internal coordinates, owner references, and internal notes.
+List and detail responses include `version`. Lists exclude media and sensitive location
+details. Protected details include the ordered `gallery`, selected `coverMedia`, optional
+`privateAddress`, optional verified internal `coordinates`, and optional approved
+`publicPoint` for editing/preview. Owner references and internal notes remain excluded.
 
 ## Writes and concurrency
 
-Create accepts `CreateDraftPropertyRequest`, assigns `draft`, `available`, and PHP, and rejects lifecycle or private fields. Unique indexes protect both Premier Property number and slug; a collision returns `409`.
+Create accepts `CreateDraftPropertyRequest`, assigns `draft`, `available`, and PHP, and
+rejects lifecycle and unknown fields. Location authoring may include a private address,
+a complete private `{ latitude, longitude }` pair, public precision, and a separate
+GeoJSON `{ type: "Point", coordinates: [longitude, latitude] }` public point. Latitude is
+bounded to -90 through 90 and longitude to -180 through 180. Values must be finite JSON
+numbers; incomplete pairs, numeric strings, malformed objects, and extra nested fields
+return `400`. Unique indexes protect both Premier Property number and slug; a collision
+returns `409`.
 
 Every other write requires a non-negative integer `expectedVersion` from the latest private response. Content updates include it alongside at least one allowlisted content field. Transition bodies contain only `expectedVersion`. Availability bodies contain `expectedVersion` and `availability`. Unknown fields are rejected.
 
@@ -65,3 +73,5 @@ Successful actions emit `property.created`, `property.edited`,
 `property.reserved`, `property.sold`, `property.availability-changed`,
 `property.archived`, or `property.restored`. Audit details never contain listing values,
 media URLs, raw data, or authentication secrets.
+Location edits reuse `property.edited` with `changedFields: ["location"]`; audit records
+never include a private address or any coordinate value.

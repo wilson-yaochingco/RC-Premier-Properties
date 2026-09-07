@@ -252,6 +252,71 @@ describe("admin property service", () => {
     expect(serialized).not.toContain(request.description);
   });
 
+  it("updates private/public location state without putting sensitive values in audit metadata", async () => {
+    const { audits, repository, service } = makeService();
+    const location = {
+      province: "Pampanga",
+      city: "Angeles City",
+      barangay: "Synthetic Barangay",
+      publicPrecision: "approximate" as const,
+      privateAddress: "99 Synthetic Test Street",
+      coordinates: { latitude: 15.101, longitude: 120.601 },
+      publicPoint: {
+        type: "Point" as const,
+        coordinates: [120.61, 15.15] as [number, number],
+      },
+    };
+
+    const result = await service.updateDraft(
+      PROPERTY_ID,
+      { expectedVersion: 0, location },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "request-location-edit",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(repository.updated).toEqual({ location });
+    expect(result?.location).toEqual(location);
+    expect(audits).toEqual([
+      expect.objectContaining({
+        action: "property.edited",
+        changedFields: ["location"],
+      }),
+    ]);
+    const serializedAudit = JSON.stringify(audits);
+    expect(serializedAudit).not.toContain(location.privateAddress);
+    expect(serializedAudit).not.toContain(String(location.coordinates.latitude));
+    expect(serializedAudit).not.toContain(String(location.coordinates.longitude));
+  });
+
+  it("rejects a stale location edit before persistence or audit", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record.__v = 2;
+
+    await expect(
+      service.updateDraft(
+        PROPERTY_ID,
+        {
+          expectedVersion: 1,
+          location: {
+            province: "Pampanga",
+            city: "Angeles City",
+            publicPrecision: "city-only",
+          },
+        },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-stale-location",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(repository.updated).toBeUndefined();
+    expect(audits).toHaveLength(0);
+  });
+
   it("does not audit an edit when no draft transitions", async () => {
     const { audits, repository, service } = makeService();
     repository.updateResult = null;

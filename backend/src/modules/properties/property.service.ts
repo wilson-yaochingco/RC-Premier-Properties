@@ -100,6 +100,13 @@ const ADMIN_PROPERTY_PROJECTION = [
   "updatedAt",
 ].join(" ");
 
+const ADMIN_PROPERTY_DETAIL_PROJECTION = [
+  ADMIN_PROPERTY_PROJECTION,
+  "location.publicPoint",
+  "+location.privateAddress",
+  "+location.coordinates",
+].join(" ");
+
 const MAP_RESULT_LIMIT = 200;
 const BARANGAY_PUBLIC_PRECISIONS: PublicLocationPrecision[] = [
   "exact",
@@ -257,6 +264,20 @@ function validPublicPoint(point: PublicMapPoint | undefined): point is PublicMap
   );
 }
 
+function validPrivateCoordinates(
+  coordinates: AdminPropertyRecord["location"]["coordinates"],
+): coordinates is { latitude: number; longitude: number } {
+  return Boolean(
+    coordinates &&
+    Number.isFinite(coordinates.latitude) &&
+    coordinates.latitude >= -90 &&
+    coordinates.latitude <= 90 &&
+    Number.isFinite(coordinates.longitude) &&
+    coordinates.longitude >= -180 &&
+    coordinates.longitude <= 180,
+  );
+}
+
 function publicLocation(record: PublicPropertyRecord): PublicPropertyLocation {
   const configuredPrecision = record.location.publicPrecision;
   const configuredPoint = record.location.publicPoint;
@@ -314,7 +335,7 @@ export function toPublicPropertySummary(
   };
 }
 
-function toPublicPropertyMapItem(
+export function toPublicPropertyMapItem(
   record: PublicPropertyRecord,
 ): PublicPropertyMapItem | undefined {
   const summary = toPublicPropertySummary(record);
@@ -335,7 +356,9 @@ function toPublicPropertyMapItem(
   };
 }
 
-function toPublicPropertyDetail(record: PublicPropertyRecord): PublicPropertyDetail {
+export function toPublicPropertyDetail(
+  record: PublicPropertyRecord,
+): PublicPropertyDetail {
   return {
     ...toPublicPropertySummary(record),
     description: record.description,
@@ -379,8 +402,34 @@ export function toAdminPropertySummary(
 export function toAdminPropertyDetail(
   record: AdminPropertyRecord,
 ): AdminPropertyDetail {
+  const summary = toAdminPropertySummary(record);
   return {
-    ...toAdminPropertySummary(record),
+    ...summary,
+    location: {
+      ...summary.location,
+      ...(record.location.privateAddress
+        ? { privateAddress: record.location.privateAddress }
+        : {}),
+      ...(validPrivateCoordinates(record.location.coordinates)
+        ? {
+            coordinates: {
+              latitude: record.location.coordinates.latitude,
+              longitude: record.location.coordinates.longitude,
+            },
+          }
+        : {}),
+      ...(validPublicPoint(record.location.publicPoint)
+        ? {
+            publicPoint: {
+              type: "Point",
+              coordinates: [
+                record.location.publicPoint.coordinates[0],
+                record.location.publicPoint.coordinates[1],
+              ],
+            },
+          }
+        : {}),
+    },
     specifications: record.specifications,
     description: record.description,
     highlights: record.highlights,
@@ -565,7 +614,7 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
   async findById(id: string): Promise<AdminPropertyRecord | null> {
     return this.model
       .findById(id)
-      .select(ADMIN_PROPERTY_PROJECTION)
+      .select(ADMIN_PROPERTY_DETAIL_PROJECTION)
       .lean<AdminPropertyRecord | null>();
   }
 
@@ -595,7 +644,7 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
         { $set: input, $inc: { __v: 1 } },
         { new: true, runValidators: true },
       )
-      .select(ADMIN_PROPERTY_PROJECTION)
+      .select(ADMIN_PROPERTY_DETAIL_PROJECTION)
       .lean<AdminPropertyRecord | null>();
   }
 
@@ -623,7 +672,7 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
         },
         { new: true, runValidators: true },
       )
-      .select(ADMIN_PROPERTY_PROJECTION)
+      .select(ADMIN_PROPERTY_DETAIL_PROJECTION)
       .lean<AdminPropertyRecord | null>();
   }
 
@@ -654,7 +703,7 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
         },
         { new: true, runValidators: true },
       )
-      .select(ADMIN_PROPERTY_PROJECTION)
+      .select(ADMIN_PROPERTY_DETAIL_PROJECTION)
       .lean<AdminPropertyRecord | null>();
   }
 }

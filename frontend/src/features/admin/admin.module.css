@@ -629,6 +629,22 @@
   gap: 1.5rem;
 }
 
+.locationNotice,
+.locationWarning {
+  grid-column: 1 / -1;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--brand-primary);
+  background: #f5f3ee;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.locationWarning {
+  border-left-color: var(--brand-secondary);
+  background: #fff7de;
+  color: var(--brand-primary);
+}
+
 .field {
   min-width: 0;
 }
