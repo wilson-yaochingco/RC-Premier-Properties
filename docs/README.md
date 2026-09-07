@@ -85,6 +85,8 @@ Current:
 
 - [`conventions.md`](api/conventions.md) — cross-endpoint rules
 - [`public-api.md`](api/public-api.md) — implemented public endpoints and parameters
+- [`inquiry-administration-api.md`](api/inquiry-administration-api.md) — protected staff
+  queue, workflow, spam and archive operations
 - [`authentication-api.md`](api/authentication-api.md) — staff login, current-session and
   logout contract
 - [`property-administration-api.md`](api/property-administration-api.md) — protected

@@ -3,11 +3,11 @@
 This records decisions that are **already in force** and verifiable in the code. It is
 not a plan for future work.
 
-Status: the public MVP vertical slice, Phase 3A authentication foundation, and first
-property-administration slice are implemented. The API exposes health, published reads,
-inquiry creation, staff login/session/logout, private property reads and draft
-create/edit. Publishing, availability transitions, media and inquiry administration
-remain outside the implemented system.
+Status: the public MVP vertical slice, Phase 3A authentication foundation, property
+lifecycle administration and lightweight staff inquiry management are implemented. The
+API exposes health, published reads, inquiry creation, staff login/session/logout,
+private property lifecycle operations and private inquiry operations. Media and the
+audit-read UI/API remain outside the implemented system.
 
 ---
 
@@ -186,10 +186,10 @@ returns an opaque acknowledgement without echoing personal data. There is delibe
 no public inquiry read endpoint. A viewing submission is a request for staff follow-up,
 not a booking or confirmed appointment.
 
-The authentication/session boundary now protects private property list/detail and draft
-create/edit endpoints. Reads require `property:read-private`; writes require
-`property:write`, exact origin and session-bound CSRF. Publication, availability,
-inquiry-read and audit-read APIs remain unimplemented. The approved company logo,
+The authentication/session boundary protects private property and inquiry endpoints.
+Reads require their named read permission; writes require the relevant named permission,
+exact origin and session-bound CSRF. Publication, availability and inquiry operations
+are implemented; audit-read remains unavailable. The approved company logo,
 production media, public contact details and actual listings have also not been supplied;
 the public UI represents those gaps explicitly instead of inventing data.
 

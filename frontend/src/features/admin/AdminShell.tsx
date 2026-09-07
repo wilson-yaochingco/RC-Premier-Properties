@@ -153,6 +153,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
           <nav aria-label="Administration navigation">
             <Link href="/admin/properties">Properties</Link>
+            <Link href="/admin/inquiries">Inquiries</Link>
             <Link href="/admin/properties/new">Create draft</Link>
           </nav>
           <button type="button" onClick={handleLogout} disabled={loggingOut}>

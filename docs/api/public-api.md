@@ -148,6 +148,12 @@ acknowledgement without creating a record. Invalid fields are still rejected bef
 honeypot decision. The route is limited to 5 submissions per IP per 15 minutes in
 addition to the general API budget.
 
+Clients may send an `Idempotency-Key` header containing 16–200 allowlisted ASCII
+characters. The backend stores only its SHA-256 hash under a unique sparse index. A
+retry with the same key returns the original acknowledgement and does not create a
+second inquiry. The connected browser form generates and reuses this key across
+uncertain failures.
+
 A viewing inquiry is a request for follow-up only. The response does not confirm a date,
 availability or appointment.
 
@@ -176,7 +182,8 @@ limit returns `413`; and an unsupported inquiry content type returns `415`.
 HTTP integration tests cover routing, normalization, published-only disclosure,
 precision-aware map serialization and query limits, validation, content/body errors,
 otherwise-valid honeypot behaviour, throttling and the absence of inquiry reads by
-injecting test services. The Mongoose schemas and services are wired, but an end-to-end
-create/read run against a real project MongoDB instance has not yet been verified.
+injecting test services. The public Mongoose create/read/delete path was verified against
+the project Atlas database on 2026-09-05; the new staff workflow still requires its
+manual live acceptance pass.
 Database-backed endpoints require a working `MONGODB_URI`; they do not fall back to
 fixture data.

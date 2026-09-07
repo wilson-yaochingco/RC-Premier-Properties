@@ -60,6 +60,13 @@ npm run test:e2e
 - Admin-property service tests prove explicit field assignment and exact-once safe audit
   metadata for successful creates and edits. Failed or non-draft edits emit no success
   event.
+- Staff-inquiry HTTP tests prove anonymous and permission denial, authorized list/detail,
+  bounded search/filter pagination, CSRF-protected status/spam/note/archive actions,
+  invalid input and missing records. Service tests prove pre-spam restoration,
+  optimistic concurrency, status history, recoverable archive and audit metadata free of
+  inquiry/note content. Public tests cover request-key validation and duplicate-key retry
+  recovery. The protected browser fixture covers queue/detail rendering, status, notes,
+  spam restoration, CSRF forwarding, memory-only session state and 320-pixel overflow.
 - Mongoose query builders are tested for the published-only predicate and sanitised user
   input. Real persistence remains a separate integration gate that needs MongoDB.
 - A public user journey has a browser test for navigation, URL state, responsive overflow

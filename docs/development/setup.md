@@ -371,9 +371,9 @@ also needs in `shared/src/api.ts`.
 The public API currently provides health, published property list/facet/detail reads and
 inquiry creation. There are no public property writes or inquiry reads. The protected
 staff boundary provides an admin shell plus private property list/detail and draft
-create/edit operations. Publishing, availability transitions, media management, inquiry
-administration and confirmed appointments remain unimplemented; a viewing submission is
-only a request for follow-up.
+create/edit operations, lifecycle transitions and lightweight inquiry management. Media
+management and confirmed appointments remain unimplemented; a viewing submission is only
+a request for follow-up.
 
 ---
 

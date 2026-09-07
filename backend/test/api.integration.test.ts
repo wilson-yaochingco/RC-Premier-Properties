@@ -90,6 +90,7 @@ function makePropertyService() {
 
 function makeInquiryService() {
   const submissions: Array<Omit<CreateInquiryRequest, "website">> = [];
+  const idempotencyKeys: Array<string | undefined> = [];
   const response: CreateInquiryResponse = {
     inquiryId: "507f191e810c19729de860ea",
     status: "received",
@@ -97,12 +98,13 @@ function makeInquiryService() {
     createdAt: "2026-09-01T00:00:00.000Z",
   };
   const service: InquiryService = {
-    async create(inquiry) {
+    async create(inquiry, idempotencyKey) {
       submissions.push(inquiry);
+      idempotencyKeys.push(idempotencyKey);
       return response;
     },
   };
-  return { response, service, submissions };
+  return { idempotencyKeys, response, service, submissions };
 }
 
 describe("Phase 2A public API", () => {
@@ -239,18 +241,21 @@ describe("Phase 2A public API", () => {
   });
 
   it("persists a normalized inquiry and exposes no public read route", async () => {
-    const response = await request(app()).post(`${API_PREFIX}/inquiries`).send({
-      name: "  Maria Santos ",
-      email: " MARIA@EXAMPLE.COM ",
-      phone: "+63 917 555 1234",
-      inquiryType: "property",
-      source: "property-detail",
-      propertyId: "rc-100",
-      subject: "Viewing request",
-      message: "I would like to learn more about this property.",
-      privacyConsent: true,
-      website: "",
-    });
+    const response = await request(app())
+      .post(`${API_PREFIX}/inquiries`)
+      .set("Idempotency-Key", "public-form-request-0001")
+      .send({
+        name: "  Maria Santos ",
+        email: " MARIA@EXAMPLE.COM ",
+        phone: "+63 917 555 1234",
+        inquiryType: "property",
+        source: "property-detail",
+        propertyId: "rc-100",
+        subject: "Viewing request",
+        message: "I would like to learn more about this property.",
+        privacyConsent: true,
+        website: "",
+      });
     const readResponse = await request(app()).get(`${API_PREFIX}/inquiries`);
 
     expect(response.status).toBe(201);
@@ -268,6 +273,7 @@ describe("Phase 2A public API", () => {
         privacyConsent: true,
       },
     ]);
+    expect(inquiries.idempotencyKeys).toEqual(["public-form-request-0001"]);
     expect(readResponse.status).toBe(404);
   });
 
@@ -290,6 +296,26 @@ describe("Phase 2A public API", () => {
         expect.objectContaining({ field: "privacyConsent" }),
         expect.objectContaining({ field: "$where" }),
       ]),
+    );
+    expect(inquiries.submissions).toHaveLength(0);
+  });
+
+  it("rejects malformed idempotency keys before persistence", async () => {
+    const response = await request(app())
+      .post(`${API_PREFIX}/inquiries`)
+      .set("Idempotency-Key", "too-short")
+      .send({
+        name: "Maria Santos",
+        email: "maria@example.com",
+        inquiryType: "general",
+        source: "contact-page",
+        message: "Please contact me about your property services.",
+        privacyConsent: true,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.issues).toContainEqual(
+      expect.objectContaining({ field: "Idempotency-Key" }),
     );
     expect(inquiries.submissions).toHaveLength(0);
   });

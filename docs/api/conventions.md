@@ -150,8 +150,9 @@ real client IPs rather than the proxy's.
 
 The public API can read published properties and create inquiries. The auth API only
 establishes and revokes staff sessions; it does not create public registration. Private
-property reads and draft content writes are separate named-permission-protected routes.
-Publishing, availability changes and inquiry reads remain unavailable.
+property and inquiry operations are separate named-permission-protected routes.
+Authenticated writes also require an exact allowed origin and session-bound CSRF token.
+Public inquiry reads remain unavailable.
 
 ---
 

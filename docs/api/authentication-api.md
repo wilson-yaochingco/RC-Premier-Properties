@@ -100,9 +100,10 @@ and one named permission. The initial local `admin` role receives:
 Permission checks deny by default. Anonymous access returns `401`; an authenticated
 identity missing a required permission returns `403`; a service may return the common
 protected-resource `404 Resource not found.` response when revealing existence would
-disclose protected information. The implemented private property routes use the first
-two permissions; publication, availability and inquiry administration remain
-unimplemented. See [`property-administration-api.md`](property-administration-api.md).
+disclose protected information. The property routes use all four property permissions,
+and inquiry administration uses `inquiry:read` and `inquiry:update`. Audit-read remains
+unimplemented. See [`property-administration-api.md`](property-administration-api.md)
+and [`inquiry-administration-api.md`](inquiry-administration-api.md).
 
 ## Error and audit boundary
 

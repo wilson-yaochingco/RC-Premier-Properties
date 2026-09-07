@@ -296,6 +296,201 @@
   font-size: 0.85rem;
 }
 
+.inquiryFilters {
+  grid-template-columns: minmax(15rem, 2fr) repeat(5, minmax(9rem, 1fr)) auto;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--line);
+  background: #f5f3ee;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.status_spam {
+  border-color: #9b3030;
+  background: #fff0f0;
+  color: #7b2020;
+}
+
+.status_closed,
+.status_lost {
+  color: var(--text-muted);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.detailCard,
+.workflowCard {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+}
+
+.detailCard h2,
+.workflowCard h2 {
+  font-family: var(--font-editorial);
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.detailCard h3 {
+  margin-top: 2rem;
+  font-family: var(--font-editorial);
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.detailHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+}
+
+.detailList div {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.detailList dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.detailList dd {
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.privateMessage {
+  margin-top: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.workflowCard {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.compactForm,
+.noteForm {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.compactForm label,
+.noteForm label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compactForm select,
+.noteForm textarea {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+}
+
+.compactForm button,
+.noteForm button,
+.workflowActions button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--brand-white);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.compactForm button:disabled,
+.noteForm button:disabled,
+.workflowActions button:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.workflowActions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.workflowActions button:last-child {
+  background: var(--brand-white);
+  color: var(--brand-primary);
+}
+
+.archiveNotice {
+  padding: 0.75rem;
+  background: #fff7de;
+}
+
+.noteForm {
+  max-width: 48rem;
+  margin-block: 1.5rem;
+}
+
+.noteForm textarea {
+  resize: vertical;
+}
+
+.noteForm button {
+  justify-self: start;
+}
+
+.timeline {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+
+.timeline li {
+  padding-left: 0.5rem;
+}
+
+.timeline time {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.timeline p {
+  margin-top: 0.25rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .rowActions {
   display: flex;
   flex-wrap: wrap;
@@ -530,6 +725,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .inquiryFilters,
+  .detailGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inquiryFilters label:first-child,
+  .inquiryFilters button {
+    grid-column: auto;
+  }
+
   .filters label:first-child,
   .filters button {
     grid-column: 1 / -1;
@@ -563,6 +768,10 @@
   }
 
   .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailList {
     grid-template-columns: minmax(0, 1fr);
   }
 

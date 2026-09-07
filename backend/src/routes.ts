@@ -8,8 +8,14 @@ import type {
   AdminPropertyService,
   PropertyService,
 } from "./modules/properties/property.types.js";
-import { createInquiryRoutes } from "./modules/inquiries/inquiry.routes.js";
-import type { InquiryService } from "./modules/inquiries/inquiry.types.js";
+import {
+  createAdminInquiryRoutes,
+  createInquiryRoutes,
+} from "./modules/inquiries/inquiry.routes.js";
+import type {
+  AdminInquiryService,
+  InquiryService,
+} from "./modules/inquiries/inquiry.types.js";
 import {
   createAuthRoutes,
   resolveAuthRouteDependencies,
@@ -32,6 +38,9 @@ export interface ApiDependencies {
   adminPropertyPublishPermission?: RequestHandler;
   adminPropertyAvailabilityPermission?: RequestHandler;
   inquiryService?: InquiryService;
+  adminInquiryService?: AdminInquiryService;
+  adminInquiryReadPermission?: RequestHandler;
+  adminInquiryUpdatePermission?: RequestHandler;
   inquiryRateLimit?: RequestHandler;
   auth?: AuthRouteDependencies;
 }
@@ -64,6 +73,21 @@ export function createApiRouter(dependencies: ApiDependencies = {}): Router {
     }),
   );
   router.use("/properties", createPropertyRoutes(dependencies.propertyService));
+  router.use(
+    "/admin/inquiries",
+    createAdminInquiryRoutes({
+      auth,
+      ...(dependencies.adminInquiryService
+        ? { service: dependencies.adminInquiryService }
+        : {}),
+      ...(dependencies.adminInquiryReadPermission
+        ? { readPermission: dependencies.adminInquiryReadPermission }
+        : {}),
+      ...(dependencies.adminInquiryUpdatePermission
+        ? { updatePermission: dependencies.adminInquiryUpdatePermission }
+        : {}),
+    }),
+  );
   router.use(
     "/inquiries",
     createInquiryRoutes({

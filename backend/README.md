@@ -2,9 +2,9 @@
 
 Node.js + Express 5 + TypeScript (ESM) + Mongoose.
 
-The API exposes the public MVP plus the Phase 3A backend staff authentication foundation.
-It has no property-management or inquiry-management endpoint, no public property writes
-and no public inquiry reads.
+The API exposes the public MVP plus staff authentication, property lifecycle management
+and lightweight inquiry management. It has no public property writes or public inquiry
+reads.
 
 > Architecture and API conventions live in [`/docs`](../docs/README.md), not here.
 > See [architecture overview](../docs/architecture/overview.md) and
@@ -74,6 +74,10 @@ under `modules/<domain>/`. Create a module when its feature begins — not befor
 
 See the [public API reference](../docs/api/public-api.md) for parameters, validation and
 disclosure rules.
+
+Protected administration endpoints are documented in
+[property-administration-api.md](../docs/api/property-administration-api.md) and
+[inquiry-administration-api.md](../docs/api/inquiry-administration-api.md).
 
 ## Staff authentication endpoints
 

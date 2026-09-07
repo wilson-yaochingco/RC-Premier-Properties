@@ -462,6 +462,22 @@ export const INQUIRY_SOURCES = [
 ] as const;
 export type InquirySource = (typeof INQUIRY_SOURCES)[number];
 
+/** Lightweight staff workflow. Spam is quarantined outside the active queue. */
+export const INQUIRY_WORKFLOW_STATUSES = [
+  "new",
+  "in-progress",
+  "viewing-scheduled",
+  "closed",
+  "lost",
+] as const;
+export type InquiryWorkflowStatus = (typeof INQUIRY_WORKFLOW_STATUSES)[number];
+
+export const INQUIRY_STATUSES = [...INQUIRY_WORKFLOW_STATUSES, "spam"] as const;
+export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
+
+export const ADMIN_INQUIRY_QUEUES = ["active", "spam", "archived", "all"] as const;
+export type AdminInquiryQueue = (typeof ADMIN_INQUIRY_QUEUES)[number];
+
 /** Body accepted by `POST /api/v1/inquiries`. */
 export interface CreateInquiryRequest {
   name: string;
@@ -483,4 +499,70 @@ export interface CreateInquiryResponse {
   status: "received";
   message: string;
   createdAt: string;
+}
+
+export interface AdminInquiryStatusHistoryEntry {
+  fromStatus?: InquiryStatus;
+  toStatus: InquiryStatus;
+  changedAt: string;
+}
+
+export interface AdminInquiryNote {
+  id: string;
+  note: string;
+  createdAt: string;
+}
+
+/** Private list shape: enough personal data to identify a lead, without message bodies. */
+export interface AdminInquirySummary {
+  id: string;
+  name: string;
+  email: string;
+  inquiryType: InquiryType;
+  source: InquirySource;
+  propertyId?: string;
+  subject?: string;
+  status: InquiryStatus;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string;
+}
+
+export interface AdminInquiryDetail extends AdminInquirySummary {
+  phone?: string;
+  message: string;
+  privacyConsentAt: string;
+  internalNotes: AdminInquiryNote[];
+  statusHistory: AdminInquiryStatusHistoryEntry[];
+}
+
+export interface AdminInquiryListRequest {
+  query?: string;
+  status?: InquiryStatus;
+  inquiryType?: InquiryType;
+  source?: InquirySource;
+  propertyId?: string;
+  queue: AdminInquiryQueue;
+  page: number;
+  limit: number;
+}
+
+export interface AdminInquiryListResponse {
+  items: AdminInquirySummary[];
+  pagination: PaginationMeta;
+}
+
+export interface UpdateInquiryStatusRequest {
+  status: InquiryWorkflowStatus;
+  expectedVersion: number;
+}
+
+export interface AddInquiryNoteRequest {
+  note: string;
+  expectedVersion: number;
+}
+
+export interface AdminInquiryTransitionRequest {
+  expectedVersion: number;
 }

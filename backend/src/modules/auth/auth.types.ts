@@ -67,6 +67,12 @@ export const AUDIT_ACTIONS = [
   "property.sold",
   "property.archived",
   "property.restored",
+  "inquiry.status-changed",
+  "inquiry.marked-spam",
+  "inquiry.restored-from-spam",
+  "inquiry.note-added",
+  "inquiry.archived",
+  "inquiry.restored",
   "staff.provisioned",
   "staff.deactivated",
 ] as const;
@@ -100,7 +106,7 @@ export type AuditReason = (typeof AUDIT_REASONS)[number];
 export interface SecurityAuditEventInput {
   actorStaffIdentityId?: string;
   action: AuditAction;
-  entityType: "authentication" | "property" | "session" | "staff-identity";
+  entityType: "authentication" | "property" | "inquiry" | "session" | "staff-identity";
   entityId?: string;
   outcome: AuditOutcome;
   requestId: string;

@@ -1,7 +1,8 @@
 # Property and Inquiry Models
 
-Status: implemented Mongoose schema and service contract with live Atlas persistence
-verified. Last reviewed 2026-09-05.
+Status: implemented Mongoose schemas and service contracts. Public persistence was
+verified against Atlas on 2026-09-05; staff inquiry extensions have automated coverage
+and still require the manual live acceptance pass. Last reviewed 2026-09-07.
 
 The repository includes the models, indexes, projections and service queries described
 here. It does not include real listings or seed data. Automated tests verify query
@@ -9,8 +10,8 @@ construction and the HTTP layer with injected services. On 2026-09-05, live Atla
 verified a connected health response, temporary inquiry write/read/delete, and temporary
 published-property create/public-read/delete with private fields excluded.
 
-Phase 3A authentication collections and the first property-administration routes now
-exist; no inquiry-read route has been added. Their schemas and retention rules are documented in
+Phase 3A authentication collections plus property and inquiry administration routes now
+exist. Authentication schema and retention rules are documented in
 [`authentication-models.md`](authentication-models.md).
 
 ## Property taxonomy
@@ -78,8 +79,10 @@ placeholder. This decision does not select an upload or storage provider.
 
 An inquiry stores name, email, optional phone, inquiry type, optional property ID,
 optional subject, message, source, consent timestamp, workflow status and timestamps.
-The initial status is `new`. Inquiry records contain personal information and never have
-an unauthenticated read endpoint.
+The initial status is `new`. Staff management adds append-only status history, bounded
+internal notes, a recoverable archive timestamp, the pre-spam status and an
+optimistic-concurrency version. Inquiry records contain personal information and never
+have an unauthenticated read endpoint.
 
 The public API returns only a new opaque inquiry identifier, `received` acknowledgement
 and creation time. It never echoes the submitted personal data. Staff retrieval waits for
@@ -88,6 +91,10 @@ authenticated, authorized administration.
 The hidden honeypot value is not persisted. An otherwise-valid request with a populated
 honeypot is acknowledged without creating a record so automated senders cannot tune
 around the control. Invalid fields are rejected before the honeypot decision.
+
+Public clients may supply an `Idempotency-Key`. Only its SHA-256 hash is stored under a
+unique sparse index, allowing a retry to recover the original acknowledgement without
+storing the raw key or suppressing legitimate repeat inquiries heuristically.
 
 ## Form data purpose
 
@@ -120,5 +127,10 @@ permission-protected endpoints. Archived records retain whether they should rest
 availability state. There is no hard-delete property endpoint: archiving is
 the recoverable deletion policy and preserves inquiry and audit references.
 
-There is still no public create/update/delete route and no public inquiry read. Media
-and inquiry administration remain deferred.
+Inquiry list queries use indexes on status/creation, Property ID/creation and
+archive/creation. The default active queue excludes spam and archived records. Archived
+records are retained and restorable; `archivedAt` is the future retention-selection
+boundary, but no retention duration or hard-delete job exists until policy is approved.
+
+There is still no public update/delete route and no public inquiry read. Media
+administration remains deferred.

@@ -1,5 +1,7 @@
 import express, { type RequestHandler } from "express";
 import type {
+  AdminInquiryDetail,
+  AdminInquiryListRequest,
   AdminPropertyDetail,
   AdminPropertyListRequest,
   CreateDraftPropertyRequest,
@@ -38,6 +40,10 @@ import type {
   VerifiedOidcIdentity,
 } from "../src/modules/auth/auth.types.js";
 import type {
+  AdminInquiryService,
+  InquiryMutationContext,
+} from "../src/modules/inquiries/inquiry.types.js";
+import type {
   AdminPropertyService,
   PropertyMutationContext,
   PropertyService,
@@ -50,6 +56,7 @@ const RETURN_URL = "http://localhost:3000/admin";
 const ORIGIN = "http://localhost:3000";
 const SECRET = "test-only-auth-session-secret-32-characters";
 const ADMIN_PROPERTY_ID = "507f1f77bcf86cd799439011";
+const ADMIN_INQUIRY_ID = "507f191e810c19729de860ea";
 const passThrough: RequestHandler = (_req, _res, next) => next();
 
 function cloneStaff(staff: StaffIdentityRecord): StaffIdentityRecord {
@@ -509,6 +516,129 @@ function makeAdminPropertyService() {
   return { creates, listRequests, service, updates };
 }
 
+const ADMIN_INQUIRY: AdminInquiryDetail = {
+  id: ADMIN_INQUIRY_ID,
+  name: "Maria Inquiry",
+  email: "maria@example.test",
+  phone: "+63 917 555 0101",
+  inquiryType: "property",
+  source: "property-detail",
+  propertyId: "RCPP-ADMIN-001",
+  subject: "Private inquiry fixture",
+  message: "Private inquiry message used only by the integration suite.",
+  privacyConsentAt: NOW.toISOString(),
+  status: "new",
+  statusHistory: [{ toStatus: "new", changedAt: NOW.toISOString() }],
+  internalNotes: [],
+  version: 0,
+  createdAt: NOW.toISOString(),
+  updatedAt: NOW.toISOString(),
+};
+
+function makeAdminInquiryService() {
+  const listRequests: AdminInquiryListRequest[] = [];
+  const mutations: Array<{ action: string; context: InquiryMutationContext }> = [];
+  let inquiry = structuredClone(ADMIN_INQUIRY);
+  let preSpamStatus: Exclude<AdminInquiryDetail["status"], "spam"> = "new";
+  const update = (status: AdminInquiryDetail["status"]) => {
+    const previous = inquiry.status;
+    inquiry = {
+      ...inquiry,
+      status,
+      statusHistory: [
+        ...inquiry.statusHistory,
+        { fromStatus: previous, toStatus: status, changedAt: NOW.toISOString() },
+      ],
+      version: inquiry.version + 1,
+    };
+    return structuredClone(inquiry);
+  };
+  const service: AdminInquiryService = {
+    async list(request) {
+      listRequests.push(request);
+      const {
+        phone,
+        message,
+        privacyConsentAt,
+        internalNotes,
+        statusHistory,
+        ...summary
+      } = inquiry;
+      void phone;
+      void message;
+      void privacyConsentAt;
+      void internalNotes;
+      void statusHistory;
+      return {
+        items: [summary],
+        pagination: {
+          page: request.page,
+          limit: request.limit,
+          total: 1,
+          totalPages: 1,
+        },
+      };
+    },
+    async detail(id) {
+      return id === inquiry.id ? structuredClone(inquiry) : null;
+    },
+    async updateStatus(id, input, context) {
+      mutations.push({ action: "status", context });
+      return id === inquiry.id && input.expectedVersion === inquiry.version
+        ? update(input.status)
+        : null;
+    },
+    async markSpam(id, input, context) {
+      mutations.push({ action: "spam", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      if (inquiry.status !== "spam") preSpamStatus = inquiry.status;
+      return update("spam");
+    },
+    async markNotSpam(id, input, context) {
+      mutations.push({ action: "not-spam", context });
+      return id === inquiry.id && input.expectedVersion === inquiry.version
+        ? update(preSpamStatus)
+        : null;
+    },
+    async addNote(id, input, context) {
+      mutations.push({ action: "note", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      inquiry = {
+        ...inquiry,
+        internalNotes: [
+          ...inquiry.internalNotes,
+          {
+            id: "507f191e810c19729de860eb",
+            note: input.note,
+            createdAt: NOW.toISOString(),
+          },
+        ],
+        version: inquiry.version + 1,
+      };
+      return structuredClone(inquiry);
+    },
+    async archive(id, input, context) {
+      mutations.push({ action: "archive", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      inquiry = {
+        ...inquiry,
+        archivedAt: NOW.toISOString(),
+        version: inquiry.version + 1,
+      };
+      return structuredClone(inquiry);
+    },
+    async restore(id, input, context) {
+      mutations.push({ action: "restore", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      const { archivedAt, ...restored } = inquiry;
+      void archivedAt;
+      inquiry = { ...restored, version: inquiry.version + 1 };
+      return structuredClone(inquiry);
+    },
+  };
+  return { listRequests, mutations, service };
+}
+
 function buildApp(
   auth: ReturnType<typeof makeAuth>,
   options: {
@@ -517,6 +647,9 @@ function buildApp(
     writePermission?: RequestHandler;
     publishPermission?: RequestHandler;
     availabilityPermission?: RequestHandler;
+    adminInquiries?: ReturnType<typeof makeAdminInquiryService>;
+    inquiryReadPermission?: RequestHandler;
+    inquiryUpdatePermission?: RequestHandler;
   } = {},
 ) {
   return createApp({
@@ -539,6 +672,14 @@ function buildApp(
       : {}),
     ...(options.availabilityPermission
       ? { adminPropertyAvailabilityPermission: options.availabilityPermission }
+      : {}),
+    adminInquiryService:
+      options.adminInquiries?.service ?? makeAdminInquiryService().service,
+    ...(options.inquiryReadPermission
+      ? { adminInquiryReadPermission: options.inquiryReadPermission }
+      : {}),
+    ...(options.inquiryUpdatePermission
+      ? { adminInquiryUpdatePermission: options.inquiryUpdatePermission }
       : {}),
     inquiryRateLimit: passThrough,
   });
@@ -1540,4 +1681,205 @@ describe("Phase 3A admin property HTTP boundary", () => {
       expect(response.status).toBe(401);
     },
   );
+});
+
+describe("staff inquiry management HTTP boundary", () => {
+  it("rejects anonymous access to every private inquiry operation", async () => {
+    const app = buildApp(makeAuth());
+    const responses = await Promise.all([
+      request(app).get(`${API_PREFIX}/admin/inquiries`),
+      request(app).get(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}`),
+      request(app)
+        .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
+        .send({ status: "in-progress", expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
+        .send({ note: "Private note", expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/not-spam`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/archive`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/restore`)
+        .send({ expectedVersion: 0 }),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual([
+      401, 401, 401, 401, 401, 401, 401, 401,
+    ]);
+  });
+
+  it("enforces read and update permissions after authentication", async () => {
+    const auth = makeAuth();
+    const deny: RequestHandler = (_req, _res, next) =>
+      next(new HttpError(403, "Permission denied."));
+    const app = buildApp(auth, {
+      inquiryReadPermission: deny,
+      inquiryUpdatePermission: deny,
+    });
+    const session = await authenticatedAdmin(app, auth);
+    const read = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries`)
+      .set("Cookie", session.cookie);
+    const write = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .set("X-CSRF-Token", session.csrfToken)
+      .send({ expectedVersion: 0 });
+    expect(read.status).toBe(403);
+    expect(write.status).toBe(403);
+  });
+
+  it("returns authorized list/detail and normalizes bounded search filters", async () => {
+    const auth = makeAuth();
+    const adminInquiries = makeAdminInquiryService();
+    const app = buildApp(auth, { adminInquiries });
+    const session = await authenticatedAdmin(app, auth);
+    const list = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries`)
+      .query({
+        query: " Maria ",
+        status: "new",
+        inquiryType: "property",
+        source: "property-detail",
+        propertyId: "rcpp-admin-001",
+        queue: "all",
+        page: "2",
+        limit: "25",
+      })
+      .set("Cookie", session.cookie);
+    const detail = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}`)
+      .set("Cookie", session.cookie);
+
+    expect(list.status).toBe(200);
+    expect(list.headers["cache-control"]).toBe("no-store");
+    expect(list.body.items[0]).not.toHaveProperty("message");
+    expect(detail.status).toBe(200);
+    expect(detail.body).toMatchObject({
+      id: ADMIN_INQUIRY_ID,
+      propertyId: "RCPP-ADMIN-001",
+      status: "new",
+    });
+    expect(adminInquiries.listRequests).toEqual([
+      {
+        query: "Maria",
+        status: "new",
+        inquiryType: "property",
+        source: "property-detail",
+        propertyId: "RCPP-ADMIN-001",
+        queue: "all",
+        page: 2,
+        limit: 25,
+      },
+    ]);
+  });
+
+  it("updates workflow, spam quarantine, notes, and archive using CSRF-protected actions", async () => {
+    const auth = makeAuth();
+    const adminInquiries = makeAdminInquiryService();
+    const app = buildApp(auth, { adminInquiries });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+    const status = await request(app)
+      .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
+      .set(headers)
+      .send({ status: "in-progress", expectedVersion: 0 });
+    const spam = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+      .set(headers)
+      .send({ expectedVersion: 1 });
+    const notSpam = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/not-spam`)
+      .set(headers)
+      .send({ expectedVersion: 2 });
+    const note = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
+      .set(headers)
+      .send({ note: "Followed up by phone.", expectedVersion: 3 });
+    const archived = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/archive`)
+      .set(headers)
+      .send({ expectedVersion: 4 });
+    const restored = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/restore`)
+      .set(headers)
+      .send({ expectedVersion: 5 });
+
+    expect(status.body).toMatchObject({ status: "in-progress", version: 1 });
+    expect(spam.body).toMatchObject({ status: "spam", version: 2 });
+    expect(notSpam.body).toMatchObject({ status: "in-progress", version: 3 });
+    expect(note.body.internalNotes).toHaveLength(1);
+    expect(archived.body).toHaveProperty("archivedAt");
+    expect(restored.body).not.toHaveProperty("archivedAt");
+    expect(adminInquiries.mutations.map((mutation) => mutation.action)).toEqual([
+      "status",
+      "spam",
+      "not-spam",
+      "note",
+      "archive",
+      "restore",
+    ]);
+    expect(adminInquiries.mutations[0]?.context.actorStaffIdentityId).toMatch(
+      /^staff-/,
+    );
+  });
+
+  it("rejects unsafe pagination, operator input, invalid writes, missing CSRF, and missing records", async () => {
+    const auth = makeAuth();
+    const adminInquiries = makeAdminInquiryService();
+    const app = buildApp(auth, { adminInquiries });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+    const responses = await Promise.all([
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries?limit=101`)
+        .set("Cookie", session.cookie),
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries?query%5B%24ne%5D=x`)
+        .set("Cookie", session.cookie),
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries/not-an-id`)
+        .set("Cookie", session.cookie),
+      request(app)
+        .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
+        .set(headers)
+        .send({ status: "spam", expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
+        .set(headers)
+        .send({ note: "x".repeat(1_001), expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/archive`)
+        .set(headers)
+        .send({}),
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries/507f191e810c19729de860ff`)
+        .set("Cookie", session.cookie),
+    ]);
+    const noCsrf = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .send({ expectedVersion: 0 });
+
+    expect(responses.map((response) => response.status)).toEqual([
+      400, 400, 400, 400, 400, 400, 404,
+    ]);
+    expect(noCsrf.status).toBe(403);
+    expect(adminInquiries.mutations).toHaveLength(0);
+  });
 });

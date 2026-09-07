@@ -17,7 +17,7 @@ import {
 export interface SecurityAuditEventEntity {
   actorStaffIdentity?: Types.ObjectId;
   action: AuditAction;
-  entityType: "authentication" | "property" | "session" | "staff-identity";
+  entityType: "authentication" | "property" | "inquiry" | "session" | "staff-identity";
   entityId?: string;
   outcome: AuditOutcome;
   requestId: string;
@@ -46,7 +46,7 @@ const securityAuditEventSchema = new Schema<SecurityAuditEventEntity>(
     action: { type: String, enum: AUDIT_ACTIONS, required: true },
     entityType: {
       type: String,
-      enum: ["authentication", "property", "session", "staff-identity"],
+      enum: ["authentication", "property", "inquiry", "session", "staff-identity"],
       required: true,
     },
     entityId: { type: String, trim: true, maxlength: 255 },

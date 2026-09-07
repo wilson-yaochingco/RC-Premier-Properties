@@ -7,11 +7,13 @@ Full-stack real estate web application for Angeles City and the wider Pampanga m
 > **Status: public MVP vertical slice implemented.** The site includes a responsive
 > public experience, published-property search and detail pages, and connected inquiry,
 > seller and viewing-request forms. Property and inquiry persistence are implemented with
-> Mongoose, but persistence has not yet been verified against a real project MongoDB
-> instance and no production inventory or seed data is supplied.
+> Mongoose; temporary synthetic public records passed the documented Atlas verification.
+> Staff inquiry management still requires its manual live acceptance pass, and no
+> production inventory or seed data is supplied.
 
-Staff authentication and the property lifecycle administration slice are implemented;
-production Auth0 assurance still requires its documented manual acceptance pass. Public
+Staff authentication, property lifecycle administration and lightweight staff inquiry
+management are implemented; production Auth0 assurance still requires its documented
+manual acceptance pass. Public
 inquiry reads, confirmed appointment booking, uploads, favorites, payments and
 notifications are not implemented. The current viewing
 flow records a request only. The approved logo, real media and public business contact

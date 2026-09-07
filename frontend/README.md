@@ -54,9 +54,10 @@ src/
 Feature-specific components, hooks, services and types belong in `features/<name>/`,
 not in the global directories. Create a feature folder when that feature begins.
 
-Implemented feature folders are `features/properties/` for API-backed discovery/detail
-UI and `features/inquiries/` for the connected public forms. Shared layout and UI
-primitives stay under `components/`.
+Implemented feature folders are `features/properties/` for API-backed discovery/detail,
+`features/inquiries/` for connected public forms and `features/admin/` for protected
+property and inquiry operations. Shared layout and UI primitives stay under
+`components/`.
 
 ## Public routes
 
@@ -69,6 +70,9 @@ primitives stay under `components/`.
 | `/contact`           | General or Property-ID-aware inquiry                                     |
 | `/sell`              | Seller inquiry; no public document upload                                |
 | `/book-viewing`      | Viewing request only; no appointment is confirmed                        |
+
+Protected `/admin/properties` and `/admin/inquiries` routes use the backend application
+session and keep the session-bound CSRF token in memory.
 
 ## Talking to the backend
 

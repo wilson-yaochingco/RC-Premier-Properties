@@ -650,7 +650,8 @@ Create, edit, preview, draft, publish, unpublish, archive, mark reserved and mar
 - [x] Automated HTTP, service and browser-fixture coverage passes without live Auth0
 - [ ] Live `/admin` session bootstrap, protected MongoDB writes, CSRF rejection and
       logout verified manually with the development tenant
-- [ ] Media and inquiry administration implemented
+- [ ] Media administration implemented
+- [x] Lightweight inquiry administration implemented
 
 ### Media management
 
@@ -667,6 +668,12 @@ lifecycle, pending business validation:
 new → contacted → qualified → viewing scheduled → closed / lost
 ```
 
+The implemented lightweight workflow preserves the existing `new`, `in-progress` and
+`closed` terms and adds `viewing-scheduled`, `lost` and quarantined `spam`. Staff can
+search/filter/paginate, read details, add follow-up notes, restore legitimate spam,
+archive/restore records and review status history. Business vocabulary can still be
+refined later without introducing a second status field.
+
 ### Audit trail
 
 Record actor, action, entity, entity ID, timestamp and relevant change metadata for
@@ -682,7 +689,7 @@ changed, not the personal data it contained.
       executed
 - [ ] Login rate limiting and lockout in place
 - [x] Sessions expire; logout genuinely invalidates
-- [ ] Audit trail captures sensitive changes without capturing sensitive values
+- [x] Inquiry and property audit events capture sensitive actions without sensitive values
 - [x] Admin routes excluded from public search indexing
 
 ### Testing requirements
@@ -705,8 +712,8 @@ changed, not the personal data it contained.
 - [ ] Role-based authorization enforced server-side on every sensitive action
 - [ ] Authorization tests pass for every role/endpoint combination
 - [ ] Media upload secure, validated and working
-- [ ] Inquiry management usable by staff
-- [ ] Audit trail recording sensitive changes
+- [x] Inquiry management usable by staff
+- [x] Audit trail records property and inquiry changes without sensitive values
 - [ ] Tests pass; security requirements verified
 - [ ] Documentation updated
 

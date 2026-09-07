@@ -1,6 +1,7 @@
 # Property Administration
 
-Status: Phase 3A property lifecycle slice implemented. Media and inquiry administration remain deferred.
+Status: Phase 3A property lifecycle slice implemented. Media remains deferred; inquiry
+administration is documented separately in [`inquiries.md`](inquiries.md).
 
 ## Staff experience
 
@@ -45,4 +46,7 @@ Property persistence and audit insertion remain separate MongoDB writes, matchin
 
 ## Deferred boundaries
 
-Media upload/management, inquiry administration, staff management, and hard deletion are not part of this level. The Auth0 development tenant still requires the manual end-to-end acceptance steps in [auth0-setup.md](../development/auth0-setup.md).
+Media upload/management, staff management, and hard deletion are not part of this level.
+Inquiry administration was added in the next scoped level. The Auth0 development tenant
+still requires the manual end-to-end acceptance steps in
+[auth0-setup.md](../development/auth0-setup.md).

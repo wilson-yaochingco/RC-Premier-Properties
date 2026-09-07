@@ -56,6 +56,7 @@ export function InquiryForm({
   submitLabel = "Send inquiry",
 }: InquiryFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
 
@@ -94,9 +95,15 @@ export function InquiryForm({
     };
 
     setState({ kind: "pending" });
+    idempotencyKeyRef.current ??= crypto.randomUUID();
 
     try {
-      const response = await createInquiry(payload, controller.signal);
+      const response = await createInquiry(
+        payload,
+        idempotencyKeyRef.current,
+        controller.signal,
+      );
+      idempotencyKeyRef.current = null;
       formRef.current?.reset();
       setState({
         kind: "success",
@@ -105,6 +112,9 @@ export function InquiryForm({
       });
     } catch (error) {
       if (error instanceof ApiClientError) {
+        if (error.statusCode >= 400 && error.statusCode < 500) {
+          idempotencyKeyRef.current = null;
+        }
         setState({
           kind: "error",
           message: error.message,

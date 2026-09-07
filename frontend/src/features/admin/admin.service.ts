@@ -1,5 +1,10 @@
 import {
   API_PREFIX,
+  type AddInquiryNoteRequest,
+  type AdminInquiryDetail,
+  type AdminInquiryListRequest,
+  type AdminInquiryListResponse,
+  type AdminInquiryTransitionRequest,
   type AdminPropertyAvailabilityRequest,
   type AdminPropertyDetail,
   type AdminPropertyListRequest,
@@ -9,6 +14,7 @@ import {
   type CurrentSessionResponse,
   type LogoutResponse,
   type UpdateDraftPropertyRequest,
+  type UpdateInquiryStatusRequest,
 } from "@rc/shared";
 import { apiRequest } from "@/services/api-client";
 
@@ -41,6 +47,67 @@ export function getAdminProperties(
   return apiRequest<AdminPropertyListResponse>(
     `${API_PREFIX}/admin/properties?${query.toString()}`,
     authenticatedRequest(signal),
+  );
+}
+
+export function getAdminInquiries(
+  request: AdminInquiryListRequest,
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({
+    queue: request.queue,
+    page: String(request.page),
+    limit: String(request.limit),
+  });
+  if (request.query) query.set("query", request.query);
+  if (request.status) query.set("status", request.status);
+  if (request.inquiryType) query.set("inquiryType", request.inquiryType);
+  if (request.source) query.set("source", request.source);
+  if (request.propertyId) query.set("propertyId", request.propertyId);
+  return apiRequest<AdminInquiryListResponse>(
+    `${API_PREFIX}/admin/inquiries?${query.toString()}`,
+    authenticatedRequest(signal),
+  );
+}
+
+export function getAdminInquiry(id: string, signal?: AbortSignal) {
+  return apiRequest<AdminInquiryDetail>(
+    `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}`,
+    authenticatedRequest(signal),
+  );
+}
+
+export function updateAdminInquiryStatus(
+  id: string,
+  body: UpdateInquiryStatusRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminInquiryDetail>(
+    `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}/status`,
+    { ...writeRequest(body, csrfToken), method: "PATCH" },
+  );
+}
+
+export function addAdminInquiryNote(
+  id: string,
+  body: AddInquiryNoteRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminInquiryDetail>(
+    `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}/notes`,
+    { ...writeRequest(body, csrfToken), method: "POST" },
+  );
+}
+
+export function transitionAdminInquiry(
+  id: string,
+  action: "spam" | "not-spam" | "archive" | "restore",
+  body: AdminInquiryTransitionRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminInquiryDetail>(
+    `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}/${action}`,
+    { ...writeRequest(body, csrfToken), method: "POST" },
   );
 }
 

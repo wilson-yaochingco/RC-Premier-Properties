@@ -1,7 +1,15 @@
 import {
+  ADMIN_INQUIRY_QUEUES,
   INQUIRY_SOURCES,
+  INQUIRY_STATUSES,
   INQUIRY_TYPES,
+  INQUIRY_WORKFLOW_STATUSES,
+  type AddInquiryNoteRequest,
+  type AdminInquiryListRequest,
+  type AdminInquiryTransitionRequest,
   type CreateInquiryRequest,
+  type InquiryWorkflowStatus,
+  type UpdateInquiryStatusRequest,
   type ValidationIssue,
 } from "@rc/shared";
 import { HttpError } from "../../middleware/errorHandler.js";
@@ -144,4 +152,220 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
   };
 
   return { data, isHoneypotSubmission: website !== undefined };
+}
+
+export function parseInquiryIdempotencyKey(raw: unknown): string | undefined {
+  if (raw === undefined) return undefined;
+  if (
+    typeof raw !== "string" ||
+    raw.length < 16 ||
+    raw.length > 200 ||
+    !IDEMPOTENCY_KEY_PATTERN.test(raw)
+  ) {
+    throw new HttpError(400, "Invalid inquiry idempotency key.", [
+      {
+        field: "Idempotency-Key",
+        message:
+          "Must be 16 to 200 letters, numbers, periods, underscores, colons, or hyphens.",
+      },
+    ]);
+  }
+  return raw;
+}
+
+const ADMIN_LIST_FIELDS = new Set([
+  "query",
+  "status",
+  "inquiryType",
+  "source",
+  "propertyId",
+  "queue",
+  "page",
+  "limit",
+]);
+const OBJECT_ID_PATTERN = /^[0-9a-fA-F]{24}$/;
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]+$/;
+
+function queryText(
+  query: Record<string, unknown>,
+  field: string,
+  issues: ValidationIssue[],
+  maximum: number,
+): string | undefined {
+  const raw = query[field];
+  if (raw === undefined || raw === "") return undefined;
+  if (typeof raw !== "string") {
+    issues.push({ field, message: "Must be a single text value." });
+    return undefined;
+  }
+  const value = raw.trim();
+  if (!value) return undefined;
+  if (value.length > maximum) {
+    issues.push({ field, message: `Must be at most ${maximum} characters.` });
+  }
+  return value;
+}
+
+function queryEnum<const T extends readonly string[]>(
+  query: Record<string, unknown>,
+  field: string,
+  allowed: T,
+  issues: ValidationIssue[],
+): T[number] | undefined {
+  const value = queryText(query, field, issues, 40);
+  if (value === undefined) return undefined;
+  if (!allowed.includes(value)) {
+    issues.push({ field, message: `Must be one of: ${allowed.join(", ")}.` });
+    return undefined;
+  }
+  return value as T[number];
+}
+
+function positiveIntegerQuery(
+  query: Record<string, unknown>,
+  field: string,
+  fallback: number,
+  maximum: number,
+  issues: ValidationIssue[],
+): number {
+  const raw = query[field];
+  if (raw === undefined || raw === "") return fallback;
+  if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
+    issues.push({ field, message: "Must be a positive integer." });
+    return fallback;
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    issues.push({ field, message: `Must be between 1 and ${maximum}.` });
+    return fallback;
+  }
+  return value;
+}
+
+export function parseAdminInquiryListQuery(rawQuery: unknown): AdminInquiryListRequest {
+  if (!isPlainObject(rawQuery)) {
+    throw new HttpError(400, "Invalid inquiry list parameters.", [
+      { field: "query", message: "Must be query parameters." },
+    ]);
+  }
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(rawQuery)) {
+    if (!ADMIN_LIST_FIELDS.has(field)) {
+      issues.push({ field, message: "Unknown query parameter." });
+    }
+  }
+  const query = queryText(rawQuery, "query", issues, 100);
+  const status = queryEnum(rawQuery, "status", INQUIRY_STATUSES, issues);
+  const inquiryType = queryEnum(rawQuery, "inquiryType", INQUIRY_TYPES, issues);
+  const source = queryEnum(rawQuery, "source", INQUIRY_SOURCES, issues);
+  const propertyId = queryText(rawQuery, "propertyId", issues, 40);
+  const queue = queryEnum(rawQuery, "queue", ADMIN_INQUIRY_QUEUES, issues) ?? "active";
+  const page = positiveIntegerQuery(rawQuery, "page", 1, 10_000, issues);
+  const limit = positiveIntegerQuery(rawQuery, "limit", 20, 100, issues);
+
+  if (propertyId && !PROPERTY_ID_PATTERN.test(propertyId)) {
+    issues.push({
+      field: "propertyId",
+      message: "May contain only letters, numbers, hyphens, and underscores.",
+    });
+  }
+  if (issues.length > 0) {
+    throw new HttpError(400, "Invalid inquiry list parameters.", issues);
+  }
+  return {
+    ...(query ? { query } : {}),
+    ...(status ? { status } : {}),
+    ...(inquiryType ? { inquiryType } : {}),
+    ...(source ? { source } : {}),
+    ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),
+    queue,
+    page,
+    limit,
+  };
+}
+
+export function parseAdminInquiryId(rawId: unknown): string {
+  if (typeof rawId !== "string" || !OBJECT_ID_PATTERN.test(rawId)) {
+    throw new HttpError(400, "Invalid inquiry identifier.", [
+      { field: "id", message: "Must be a valid inquiry identifier." },
+    ]);
+  }
+  return rawId.toLowerCase();
+}
+
+function versionedBody(
+  rawBody: unknown,
+  allowedFields: readonly string[],
+): { body: Record<string, unknown>; expectedVersion: number } {
+  if (!isPlainObject(rawBody)) {
+    throw new HttpError(400, "Invalid inquiry update.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(rawBody)) {
+    if (!allowedFields.includes(field)) {
+      issues.push({ field, message: "Unknown field." });
+    }
+  }
+  const expectedVersion = rawBody.expectedVersion;
+  if (
+    typeof expectedVersion !== "number" ||
+    !Number.isSafeInteger(expectedVersion) ||
+    expectedVersion < 0
+  ) {
+    issues.push({
+      field: "expectedVersion",
+      message: "Must be a non-negative integer.",
+    });
+  }
+  if (issues.length > 0 || typeof expectedVersion !== "number") {
+    throw new HttpError(400, "Invalid inquiry update.", issues);
+  }
+  return { body: rawBody, expectedVersion };
+}
+
+export function parseUpdateInquiryStatusBody(
+  rawBody: unknown,
+): UpdateInquiryStatusRequest {
+  const { body, expectedVersion } = versionedBody(rawBody, [
+    "status",
+    "expectedVersion",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const status =
+    typeof body.status === "string" &&
+    INQUIRY_WORKFLOW_STATUSES.some((candidate) => candidate === body.status)
+      ? (body.status as InquiryWorkflowStatus)
+      : undefined;
+  if (!status) {
+    issues.push({
+      field: "status",
+      message: `Must be one of: ${INQUIRY_WORKFLOW_STATUSES.join(", ")}.`,
+    });
+  }
+  if (!status) throw new HttpError(400, "Invalid inquiry update.", issues);
+  return { status, expectedVersion };
+}
+
+export function parseAddInquiryNoteBody(rawBody: unknown): AddInquiryNoteRequest {
+  const { body, expectedVersion } = versionedBody(rawBody, ["note", "expectedVersion"]);
+  const issues: ValidationIssue[] = [];
+  const note = typeof body.note === "string" ? body.note.trim() : undefined;
+  if (!note) {
+    issues.push({ field: "note", message: "This field is required." });
+  } else if (note.length > 1_000) {
+    issues.push({ field: "note", message: "Must be at most 1000 characters." });
+  }
+  if (issues.length > 0 || !note) {
+    throw new HttpError(400, "Invalid inquiry update.", issues);
+  }
+  return { note, expectedVersion };
+}
+
+export function parseAdminInquiryTransitionBody(
+  rawBody: unknown,
+): AdminInquiryTransitionRequest {
+  const { expectedVersion } = versionedBody(rawBody, ["expectedVersion"]);
+  return { expectedVersion };
 }

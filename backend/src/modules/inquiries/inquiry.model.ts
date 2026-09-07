@@ -1,6 +1,34 @@
 import mongoose, { Schema, type Model } from "mongoose";
-import { INQUIRY_SOURCES, INQUIRY_TYPES } from "@rc/shared";
-import { INQUIRY_STATUSES, type InquiryEntity } from "./inquiry.types.js";
+import {
+  INQUIRY_SOURCES,
+  INQUIRY_STATUSES,
+  INQUIRY_TYPES,
+  INQUIRY_WORKFLOW_STATUSES,
+} from "@rc/shared";
+import type { InquiryEntity } from "./inquiry.types.js";
+
+const statusHistorySchema = new Schema(
+  {
+    fromStatus: { type: String, enum: INQUIRY_STATUSES },
+    toStatus: { type: String, enum: INQUIRY_STATUSES, required: true },
+    changedByStaffIdentity: { type: Schema.Types.ObjectId, ref: "StaffIdentity" },
+    changedAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
+const inquiryNoteSchema = new Schema(
+  {
+    note: { type: String, required: true, trim: true, maxlength: 1_000 },
+    authorStaffIdentity: {
+      type: Schema.Types.ObjectId,
+      ref: "StaffIdentity",
+      required: true,
+    },
+    createdAt: { type: Date, required: true },
+  },
+  { _id: true },
+);
 
 const inquirySchema = new Schema<InquiryEntity>(
   {
@@ -57,10 +85,20 @@ const inquirySchema = new Schema<InquiryEntity>(
       required: true,
       default: "new",
     },
+    statusBeforeSpam: { type: String, enum: INQUIRY_WORKFLOW_STATUSES },
+    statusHistory: { type: [statusHistorySchema], default: [] },
+    internalNotes: { type: [inquiryNoteSchema], default: [], select: false },
+    archivedAt: { type: Date },
+    archivedByStaffIdentity: { type: Schema.Types.ObjectId, ref: "StaffIdentity" },
+    idempotencyKeyHash: {
+      type: String,
+      select: false,
+      maxlength: 64,
+    },
   },
   {
     timestamps: true,
-    versionKey: false,
+    versionKey: "__v",
   },
 );
 
@@ -68,6 +106,8 @@ inquirySchema.index({ createdAt: -1 });
 inquirySchema.index({ email: 1, createdAt: -1 });
 inquirySchema.index({ propertyId: 1, createdAt: -1 });
 inquirySchema.index({ status: 1, createdAt: -1 });
+inquirySchema.index({ archivedAt: 1, createdAt: -1 });
+inquirySchema.index({ idempotencyKeyHash: 1 }, { unique: true, sparse: true });
 
 export const InquiryModel: Model<InquiryEntity> =
   (mongoose.models.Inquiry as Model<InquiryEntity> | undefined) ??

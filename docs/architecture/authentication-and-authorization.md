@@ -80,8 +80,7 @@ It does not add:
 - favorites, confirmed viewing appointments or seller accounts;
 - a full CRM or user-management dashboard;
 - email, SMS or notification providers;
-- property publication, availability changes, media management, inquiry management or
-  audit-read endpoints.
+- media management or audit-read endpoints.
 
 ## Trust boundaries
 
