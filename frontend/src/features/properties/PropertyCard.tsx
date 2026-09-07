@@ -6,6 +6,7 @@ import {
   propertyTypeLabel,
   visibleSpecifications,
 } from "./property-format";
+import { resolvePropertyMedia } from "./development-sample-media";
 import { PropertyMedia } from "./PropertyMedia";
 import styles from "./properties.module.css";
 
@@ -15,6 +16,7 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const specifications = visibleSpecifications(property.specifications).slice(0, 3);
+  const media = resolvePropertyMedia(property.coverMedia, property.id);
 
   return (
     <article className={styles.card} data-property-card data-property-id={property.id}>
@@ -24,7 +26,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         aria-label={`View ${property.title}`}
       >
         <PropertyMedia
-          media={property.coverMedia}
+          media={media}
           label="PROPERTY IMAGE"
           className={styles.cardMedia}
         />

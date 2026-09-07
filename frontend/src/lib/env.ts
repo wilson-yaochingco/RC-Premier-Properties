@@ -17,6 +17,12 @@ const rawNodeEnv = process.env.NODE_ENV;
 /** Whether the frontend is running as an optimized production build. */
 export const IS_PRODUCTION = rawNodeEnv === "production";
 
+/**
+ * Presentation-only sample property media is deliberately limited to `next dev`.
+ * Optimized builds, test builds and production runtimes retain neutral placeholders.
+ */
+export const DEVELOPMENT_SAMPLE_MEDIA_ENABLED = rawNodeEnv === "development";
+
 /** Base URL of the backend API, without a trailing slash. */
 export const API_BASE_URL = (rawApiUrl ?? "http://localhost:5000").replace(/\/+$/, "");
 

@@ -15,9 +15,11 @@ Staff authentication, property lifecycle administration and lightweight staff in
 management are implemented, including structured property viewing requests and a staff
 confirmation/reschedule/cancellation/completion lifecycle; production Auth0 assurance
 still requires its documented manual acceptance pass. Public inquiry reads, instant or
-calendar-backed appointment booking, uploads, favorites, payments and notifications are
-not implemented. A requested viewing becomes confirmed only through staff action. The
-approved logo, real media and public business contact details still need to be supplied.
+calendar-backed appointment booking, binary media uploads, favorites, payments and
+notifications are not implemented. Authorized property image-reference management and
+public galleries are implemented; provider-backed upload remains blocked. A requested
+viewing becomes confirmed only through staff action. The approved logo, real media and
+public business contact details still need to be supplied.
 
 ## Stack
 

@@ -15,6 +15,7 @@ import {
   type LogoutResponse,
   type UpdateDraftPropertyRequest,
   type UpdateInquiryStatusRequest,
+  type UpdatePropertyMediaRequest,
   type UpdateViewingRequestRequest,
 } from "@rc/shared";
 import { apiRequest } from "@/services/api-client";
@@ -195,6 +196,20 @@ export function updateDraftProperty(
     {
       ...writeRequest(body, csrfToken),
       method: "PATCH",
+    },
+  );
+}
+
+export function updatePropertyMedia(
+  id: string,
+  body: UpdatePropertyMediaRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminPropertyDetail>(
+    `${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/media`,
+    {
+      ...writeRequest(body, csrfToken),
+      method: "PUT",
     },
   );
 }

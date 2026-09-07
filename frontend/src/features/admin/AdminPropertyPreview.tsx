@@ -9,6 +9,7 @@ import {
   visibleSpecifications,
 } from "@/features/properties/property-format";
 import { ApiClientError } from "@/services/api-client";
+import { PropertyGallery } from "@/features/properties/PropertyGallery";
 import { getAdminProperty } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
 import styles from "./admin.module.css";
@@ -94,6 +95,12 @@ export function AdminPropertyPreview({ propertyId }: { propertyId: string }) {
         <span>Availability: {property.availability}</span>
         <span>Version: {property.version}</span>
       </div>
+
+      <PropertyGallery
+        coverMedia={property.coverMedia}
+        gallery={property.gallery}
+        propertyIdentifier={property.id}
+      />
 
       <article className={styles.preview}>
         <p className={styles.eyebrow}>

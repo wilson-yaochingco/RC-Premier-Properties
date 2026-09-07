@@ -94,7 +94,8 @@ not weaken this published-only boundary. See
 The stable public route uses the listing slug. The page provides:
 
 - breadcrumbs, title, Property ID, purpose, type, price and general location;
-- up to three gallery positions with explicit fallbacks;
+- an ordered, keyboard-operable image gallery with captions/provenance and explicit
+  fallbacks;
 - the full description and only the specifications supplied by the record;
 - deduplicated highlights, amenities and features when present;
 - an interactive map for a separately approved public point, otherwise a stable
@@ -107,12 +108,19 @@ viewing-request form for staff follow-up.
 
 ## Media behaviour
 
-When media is absent or its URL is not a local `/...` path, property cards and galleries
-render labelled placeholders with stable aspect ratios. The current `PropertyMedia`
-renderer supports approved local image paths through `next/image`; it does not yet render
-video or floor-plan viewers even though the data contract reserves those media kinds.
-See the [media replacement guide](../development/media-replacement.md) before adding
-assets.
+Assigned media always wins. When a property has no assigned media, `next dev` selects a
+deterministic, presentation-only Unsplash sample from the centralized catalogue using the
+property identifier. This value is never posted to the API or written to MongoDB. Cards,
+featured-property cards, property detail galleries and protected admin previews all use
+the same rule. Every sample is visibly identified as not being the listing.
+
+Optimized production and test builds do not activate the automatic sample fallback;
+properties without media render labelled neutral placeholders with stable aspect ratios.
+The current `PropertyMedia` renderer supports approved local raster paths and narrowly
+allowlisted Unsplash development samples through `next/image`. Only the detail hero is
+preloaded; other gallery images retain lazy loading. Video and floor-plan viewers remain
+unimplemented even though the data contract reserves those future kinds. See the
+[media replacement guide](../development/media-replacement.md) before adding assets.
 
 ## Current blockers and exclusions
 
@@ -126,5 +134,5 @@ assets.
 - No certified, licence-compatible barangay boundary dataset has been approved.
 - No production listing has a business-reviewed public precision or public point; only
   clearly synthetic browser fixtures exercise markers.
-- The first auth/admin draft-management slice is implemented; publishing, availability
-  transitions and media management remain open Phase 3A work.
+- Property lifecycle and image-reference administration are implemented. Production
+  binary upload remains blocked on storage-provider approval.

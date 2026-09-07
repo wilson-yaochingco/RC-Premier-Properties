@@ -1,4 +1,5 @@
 import type {
+  AdminPropertyMediaInput,
   CreateDraftPropertyRequest,
   UpdateDraftPropertyRequest,
 } from "@rc/shared";
@@ -92,6 +93,23 @@ class MemoryAdminPropertyRepository implements PropertyAdminRepository {
       ...this.updateResult,
       ...this.updated,
       __v: (this.updateResult.__v ?? 0) + 1,
+    };
+    return this.record;
+  }
+
+  async updateMedia(
+    _id: string,
+    expectedVersion: number,
+    media: AdminPropertyMediaInput[],
+    coverMedia?: AdminPropertyMediaInput,
+  ) {
+    if ((this.record.__v ?? 0) !== expectedVersion) return null;
+    this.record = {
+      ...this.record,
+      gallery: structuredClone(media),
+      coverMedia: coverMedia ? structuredClone(coverMedia) : undefined,
+      __v: (this.record.__v ?? 0) + 1,
+      updatedAt: NOW,
     };
     return this.record;
   }
@@ -250,6 +268,65 @@ describe("admin property service", () => {
       ),
     ).rejects.toMatchObject({ status: 409 });
     expect(audits).toHaveLength(0);
+  });
+
+  it("atomically orders images, selects the cover, removes media, and audits no URLs", async () => {
+    const { audits, repository, service } = makeService();
+    const media: AdminPropertyMediaInput[] = [
+      {
+        id: "media-second-0002",
+        kind: "image",
+        url: "/media/properties/second.webp",
+        alt: "Second gallery image",
+        source: "production",
+      },
+      {
+        id: "media-first-0001",
+        kind: "image",
+        url: "/media/properties/first.jpg",
+        alt: "First gallery image",
+        source: "production",
+      },
+    ];
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "request-media",
+      occurredAt: NOW,
+    };
+
+    const saved = await service.updateMedia(
+      PROPERTY_ID,
+      { expectedVersion: 0, media, coverMediaId: "media-first-0001" },
+      context,
+    );
+    expect(saved).toMatchObject({
+      version: 1,
+      coverMedia: { id: "media-first-0001" },
+      gallery: [{ id: "media-second-0002" }, { id: "media-first-0001" }],
+    });
+
+    const removed = await service.updateMedia(
+      PROPERTY_ID,
+      { expectedVersion: 1, media: [] },
+      context,
+    );
+    expect(removed?.gallery).toEqual([]);
+    expect(removed?.coverMedia).toBeUndefined();
+    expect(audits.map((event) => event.action)).toEqual([
+      "property.media-updated",
+      "property.media-updated",
+    ]);
+    expect(JSON.stringify(audits)).not.toContain("/media/properties/");
+
+    await service.publish(PROPERTY_ID, { expectedVersion: 2 }, context);
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 3, media, coverMediaId: "media-first-0001" },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(repository.record.publicationStatus).toBe("published");
   });
 
   it("publishes, unpublishes, archives, and restores only valid states", async () => {

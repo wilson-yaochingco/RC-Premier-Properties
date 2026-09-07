@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { ApiClientError } from "@/services/api-client";
-import { PropertyMedia } from "@/features/properties/PropertyMedia";
+import { PropertyGallery } from "@/features/properties/PropertyGallery";
 import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
 import {
   formatLocation,
@@ -64,7 +64,6 @@ export default async function PropertyDetailPage({
 
   const location = formatLocation(property.location);
   const specifications = visibleSpecifications(property.specifications);
-  const gallery = property.gallery.slice(0, 3);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -130,28 +129,11 @@ export default async function PropertyDetailPage({
       </section>
 
       <Container>
-        <section className={styles.gallery} aria-label="Property gallery">
-          <div className={styles.galleryMain}>
-            <PropertyMedia
-              media={gallery[0] ?? property.coverMedia}
-              label="PROPERTY GALLERY IMAGE 01"
-              priority
-              sizes="(max-width: 768px) 100vw, 72vw"
-            />
-          </div>
-          <div className={styles.gallerySide}>
-            <PropertyMedia
-              media={gallery[1]}
-              label="PROPERTY GALLERY IMAGE 02"
-              sizes="28vw"
-            />
-            <PropertyMedia
-              media={gallery[2]}
-              label="PROPERTY GALLERY IMAGE 03"
-              sizes="28vw"
-            />
-          </div>
-        </section>
+        <PropertyGallery
+          coverMedia={property.coverMedia}
+          gallery={property.gallery}
+          propertyIdentifier={property.id}
+        />
       </Container>
 
       <section className={styles.contentSection}>

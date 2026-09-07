@@ -1534,7 +1534,7 @@ video {
   }
 }
 
-/* Data-backed media is limited to approved local public assets until a provider is chosen. */
+/* Property media accepts local production paths and the one documented sample host. */
 .property-media {
   position: relative;
   min-height: 1px;
@@ -1544,6 +1544,22 @@ video {
 
 .property-media img {
   object-fit: cover;
+}
+
+.property-media__sample-label {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 1;
+  max-width: calc(100% - 1.2rem);
+  padding: 0.35rem 0.5rem;
+  background: rgb(32 38 48 / 88%);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
 }
 
 .route-state {

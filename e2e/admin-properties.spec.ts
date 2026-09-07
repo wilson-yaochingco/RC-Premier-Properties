@@ -48,6 +48,7 @@ const DRAFT: AdminPropertyDetail = {
   highlights: [],
   amenities: [],
   features: [],
+  gallery: [],
   createdAt: "2026-09-06T08:00:00.000Z",
   updatedAt: "2026-09-06T08:00:00.000Z",
 };
@@ -56,7 +57,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": FRONTEND_ORIGIN,
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Headers": "Content-Type, X-CSRF-Token",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, OPTIONS",
 };
 
 async function json(route: Route, status: number, body: unknown) {
@@ -78,10 +79,21 @@ async function mockSession(page: Page, status = 200) {
 test("the protected admin property flow lists, creates, and edits a draft", async ({
   page,
 }) => {
+  await page.route("**/_next/image?*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   await mockSession(page);
   let property = structuredClone(DRAFT);
   let createRequest: Record<string, unknown> | undefined;
   let editRequest: Record<string, unknown> | undefined;
+  let mediaRequest: Record<string, unknown> | undefined;
   const writeCsrfHeaders: string[] = [];
 
   await page.route(`**${API_PREFIX}/admin/properties**`, async (route) => {
@@ -92,7 +104,9 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     }
     const path = new URL(request.url()).pathname;
     writeCsrfHeaders.push(
-      ...(request.method() === "POST" || request.method() === "PATCH"
+      ...(request.method() === "POST" ||
+      request.method() === "PUT" ||
+      request.method() === "PATCH"
         ? [request.headers()["x-csrf-token"] ?? ""]
         : []),
     );
@@ -103,6 +117,8 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
         highlights,
         amenities,
         features,
+        coverMedia,
+        gallery,
         createdAt,
         publishedAt,
         ...summary
@@ -112,6 +128,8 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       void highlights;
       void amenities;
       void features;
+      void coverMedia;
+      void gallery;
       void createdAt;
       void publishedAt;
       await json(route, 200, {
@@ -146,6 +164,20 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
         publicationStatus: "published",
         publishedAt: "2026-09-06T08:10:00.000Z",
         version: property.version + 1,
+      };
+      await json(route, 200, property);
+      return;
+    }
+    if (request.method() === "PUT" && path.endsWith("/media")) {
+      mediaRequest = request.postDataJSON() as Record<string, unknown>;
+      const gallery = mediaRequest.media as AdminPropertyDetail["gallery"];
+      const coverMedia = gallery.find((item) => item.id === mediaRequest?.coverMediaId);
+      property = {
+        ...property,
+        gallery,
+        ...(coverMedia ? { coverMedia } : { coverMedia: undefined }),
+        version: property.version + 1,
+        updatedAt: "2026-09-06T08:07:00.000Z",
       };
       await json(route, 200, property);
       return;
@@ -196,12 +228,39 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await page.getByRole("button", { name: "Save property content" }).click();
   await expect(page.getByText("Property changes saved.")).toBeVisible();
   expect(editRequest).toEqual({ title: "E2E edited draft", expectedVersion: 0 });
+  await page.getByText("Add licensed development sample").click();
+  await page
+    .getByRole("button", { name: /White modern house reflected in a swimming pool/ })
+    .click();
+  await page
+    .getByRole("button", { name: /Contemporary patio beside a swimming pool/ })
+    .click();
+  await page.getByRole("radio", { name: "Cover image" }).nth(1).check();
+  await page.getByRole("button", { name: "Move up" }).nth(1).click();
+  await page.getByRole("button", { name: "Save property media" }).click();
+  await expect(page.getByText("Property media saved.")).toBeVisible();
+  expect(mediaRequest?.coverMediaId).toEqual(
+    (mediaRequest?.media as Array<{ id: string }>)[0]?.id,
+  );
+  for (const width of [360, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        document: document.documentElement.scrollWidth,
+        body: document.body.scrollWidth,
+      })),
+    ).toMatchObject({ viewport: width, document: width, body: width });
+  }
   await page.getByRole("link", { name: "Preview property" }).last().click();
   await expect(page.getByText("Private property preview")).toBeVisible();
+  await expect(
+    page.getByText("Development sample — not this listing").first(),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Back to properties" }).click();
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByText(/was published/i)).toBeVisible();
-  expect(writeCsrfHeaders).toEqual([CSRF_TOKEN, CSRF_TOKEN, CSRF_TOKEN]);
+  expect(writeCsrfHeaders).toEqual([CSRF_TOKEN, CSRF_TOKEN, CSRF_TOKEN, CSRF_TOKEN]);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
 });
 

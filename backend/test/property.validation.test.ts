@@ -22,6 +22,7 @@ import {
   parsePropertyMapQuery,
   parsePropertySearchQuery,
   parseUpdateDraftPropertyBody,
+  parseUpdatePropertyMediaBody,
 } from "../src/modules/properties/property.validation.js";
 
 const DRAFT_REQUEST: CreateDraftPropertyRequest = {
@@ -506,6 +507,141 @@ describe("admin property validation", () => {
     expect(filter.$or).toHaveLength(4);
     expect(String((filter.$or?.[0] as { propertyId: RegExp }).propertyId)).toBe(
       "/RCPP-001/i",
+    );
+  });
+});
+
+describe("property media validation", () => {
+  it("accepts an ordered local image list and explicit cover", () => {
+    expect(
+      parseUpdatePropertyMediaBody({
+        expectedVersion: 4,
+        media: [
+          {
+            id: "media-exterior-0001",
+            kind: "image",
+            url: "/media/properties/rcpp-01/exterior.webp",
+            alt: "Front exterior of the listed house",
+            caption: "Front elevation",
+            source: "production",
+          },
+          {
+            id: "media-interior-0002",
+            kind: "image",
+            url: "/media/properties/rcpp-01/living-room.jpg",
+            alt: "Living room with large windows",
+            source: "production",
+          },
+        ],
+        coverMediaId: "media-interior-0002",
+      }),
+    ).toEqual({
+      expectedVersion: 4,
+      media: [
+        {
+          id: "media-exterior-0001",
+          kind: "image",
+          url: "/media/properties/rcpp-01/exterior.webp",
+          alt: "Front exterior of the listed house",
+          caption: "Front elevation",
+          source: "production",
+        },
+        {
+          id: "media-interior-0002",
+          kind: "image",
+          url: "/media/properties/rcpp-01/living-room.jpg",
+          alt: "Living room with large windows",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-interior-0002",
+    });
+  });
+
+  it("accepts only attributed Unsplash development samples", () => {
+    expect(
+      parseUpdatePropertyMediaBody({
+        expectedVersion: 0,
+        media: [
+          {
+            id: "media-sample-0001",
+            kind: "image",
+            url: "https://images.unsplash.com/photo-1695593116063-843e813fee6f?auto=format&q=80&w=2000",
+            alt: "White modern house reflected in a pool",
+            source: "development-sample",
+            sourceUrl: "https://unsplash.com/photos/GvOcpTNAHFo",
+            attribution: "Photo by Damien Schneider on Unsplash",
+          },
+        ],
+        coverMediaId: "media-sample-0001",
+      }),
+    ).toMatchObject({
+      media: [{ source: "development-sample", attribution: expect.any(String) }],
+    });
+  });
+
+  it.each([
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-invalid-0001",
+          kind: "video",
+          url: "/media/properties/tour.mp4",
+          alt: "Tour",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-invalid-0001",
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-invalid-0002",
+          kind: "image",
+          url: "https://attacker.invalid/property.svg",
+          alt: "Unsafe remote image",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-invalid-0002",
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-duplicate-0001",
+          kind: "image",
+          url: "/media/properties/one.jpg",
+          alt: "One",
+          source: "production",
+        },
+        {
+          id: "media-duplicate-0001",
+          kind: "image",
+          url: "/media/properties/two.jpg",
+          alt: "Two",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-duplicate-0001",
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-no-cover-0001",
+          kind: "image",
+          url: "/media/properties/one.jpg",
+          alt: "One",
+          source: "production",
+        },
+      ],
+    },
+  ])("rejects unsupported, unsafe, duplicate, or coverless media", (body) => {
+    expect(() => parseUpdatePropertyMediaBody(body)).toThrowError(
+      expect.objectContaining({ status: 400 }),
     );
   });
 });

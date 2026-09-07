@@ -656,14 +656,21 @@ Create, edit, preview, draft, publish, unpublish, archive, mark reserved and mar
 - [x] Automated HTTP, service and browser-fixture coverage passes without live Auth0
 - [ ] Live `/admin` session bootstrap, protected MongoDB writes, CSRF rejection and
       logout verified manually with the development tenant
-- [ ] Media administration implemented
+- [x] Provider-neutral image metadata administration, ordering, cover selection,
+      preview, removal, authorization and audit coverage implemented
+- [ ] Production binary upload/storage implemented (blocked on provider approval)
 - [x] Lightweight inquiry administration implemented
 
 ### Media management
 
-Drag-and-drop upload, multiple images, reordering, cover selection, compression, modern
-formats, file size limits, **MIME validation**, secure upload handling, and deletion.
-_Storage provider to be evaluated/selected during this phase._
+Multiple-image metadata, reordering, cover selection, replacement, safe removal, public
+gallery rendering and clearly marked licensed development samples are implemented. Empty
+development listings receive a deterministic presentation-only sample without changing
+their stored media; optimized production builds retain neutral placeholders. The
+production binary path—drag-and-drop upload, compression, modern-format generation, byte
+and MIME validation, secure provider storage and provider-side deletion—remains blocked
+until a storage provider and threat model are approved. See
+[`architecture/property-media.md`](architecture/property-media.md).
 
 ### Inquiry management
 

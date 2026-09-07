@@ -93,6 +93,15 @@ export function createAdminPropertyRoutes(
     requireJson,
     controller.update,
   );
+  router.put(
+    "/:id/media",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireWrite,
+    requireJson,
+    controller.updateMedia,
+  );
   for (const [action, handler] of [
     ["publish", controller.publish],
     ["unpublish", controller.unpublish],

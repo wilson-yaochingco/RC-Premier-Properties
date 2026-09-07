@@ -53,6 +53,8 @@ Current:
   visual system, information architecture and public-experience rules
 - [`geographic-data-and-maps.md`](architecture/geographic-data-and-maps.md) — Leaflet
   loading, tile/boundary attribution, map filtering and listing-location privacy
+- [`property-media.md`](architecture/property-media.md) — ordered image metadata,
+  development-sample policy, rendering boundary and production-storage blocker
 
 ### `features/`
 
@@ -66,7 +68,7 @@ Current:
 - [`properties.md`](features/properties.md) — published catalogue, filters and property
   detail behaviour
 - [`property-administration.md`](features/property-administration.md) — protected admin
-  shell, private property reads and draft content workflow
+  shell, property lifecycle, draft content and image-reference workflow
 - [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
 
 The backend authentication foundation is documented as an architectural boundary. The

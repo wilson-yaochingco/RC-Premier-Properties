@@ -694,6 +694,201 @@
   opacity: 0.55;
 }
 
+.mediaManager {
+  display: grid;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+}
+
+.mediaManagerHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mediaManagerHeader h2,
+.mediaEmpty h3 {
+  margin-block: 0.35rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  font-weight: 400;
+}
+
+.mediaManagerHeader p,
+.mediaEmpty p {
+  max-width: 46rem;
+  color: var(--text-muted);
+}
+
+.mediaEmpty {
+  display: grid;
+  grid-template-columns: minmax(10rem, 18rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1rem;
+  background: #f5f3ee;
+}
+
+.mediaEmpty > :first-child {
+  aspect-ratio: 4 / 3;
+}
+
+.mediaList {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+}
+
+.mediaItem {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.7fr) minmax(15rem, 1.8fr) minmax(9rem, 0.55fr);
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: #f5f3ee;
+}
+
+.mediaPreview {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.mediaPreview > :first-child,
+.samplePicker :global(.property-media) {
+  aspect-ratio: 4 / 3;
+}
+
+.mediaFields,
+.mediaActions {
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+}
+
+.mediaFields label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mediaFields input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mediaFields input[aria-invalid="true"] {
+  border-color: #9b3030;
+}
+
+.mediaFields small {
+  color: #7b2020;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sampleDetails {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #fff7de;
+  font-size: 0.78rem;
+}
+
+.sampleDetails a {
+  text-decoration: underline;
+}
+
+.productionMediaLabel {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mediaActions label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mediaActions button,
+.mediaAddActions > button,
+.mediaAddActions summary,
+.samplePicker button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-white);
+  color: var(--brand-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mediaActions button:last-child {
+  border-color: #9b3030;
+  color: #7b2020;
+}
+
+.mediaActions button:disabled,
+.mediaAddActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.mediaAddActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 1rem;
+}
+
+.mediaAddActions details {
+  flex: 1 1 24rem;
+}
+
+.mediaAddActions summary {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.samplePicker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.samplePicker button {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  text-align: left;
+}
+
 .srOnly {
   position: absolute;
   width: 1px;
@@ -744,6 +939,15 @@
   .wide {
     grid-column: auto;
   }
+
+  .mediaItem {
+    grid-template-columns: minmax(9rem, 0.7fr) minmax(0, 1.3fr);
+  }
+
+  .mediaActions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 30rem) {
@@ -774,6 +978,22 @@
 
   .detailList {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaManagerHeader,
+  .mediaAddActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mediaEmpty,
+  .mediaItem,
+  .mediaActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaActions {
+    grid-column: auto;
   }
 
   .filters label:first-child,

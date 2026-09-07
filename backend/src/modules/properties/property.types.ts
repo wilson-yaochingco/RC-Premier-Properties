@@ -4,10 +4,12 @@ import type {
   AdminPropertyListRequest,
   AdminPropertyListResponse,
   AdminPropertyTransitionRequest,
+  AdminPropertyMediaInput,
   CreateDraftPropertyRequest,
   ListingPurpose,
   PropertyAvailability,
   PropertyMediaKind,
+  PropertyMediaSource,
   PropertyPublicationStatus,
   PropertyType,
   PublicLocationPrecision,
@@ -16,13 +18,19 @@ import type {
   PublicPropertyDetail,
   PublicPropertySummary,
   UpdateDraftPropertyRequest,
+  UpdatePropertyMediaRequest,
 } from "@rc/shared";
 import type { SecurityAuditEventInput } from "../auth/auth.types.js";
 
 export interface PropertyMediaEntity {
+  id?: string;
   kind: PropertyMediaKind;
   url?: string;
   alt: string;
+  caption?: string;
+  source?: PropertyMediaSource;
+  sourceUrl?: string;
+  attribution?: string;
 }
 
 export interface PropertyLocationEntity {
@@ -130,6 +138,12 @@ export interface PropertyAdminRepository {
     expectedVersion: number,
     input: Partial<PropertyContentPersistenceInput>,
   ): Promise<AdminPropertyRecord | null>;
+  updateMedia(
+    id: string,
+    expectedVersion: number,
+    media: AdminPropertyMediaInput[],
+    coverMedia?: AdminPropertyMediaInput,
+  ): Promise<AdminPropertyRecord | null>;
   transition(
     id: string,
     expectedVersion: number,
@@ -164,6 +178,11 @@ export interface AdminPropertyService {
   updateDraft(
     id: string,
     input: UpdateDraftPropertyRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  updateMedia(
+    id: string,
+    input: UpdatePropertyMediaRequest,
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail | null>;
   publish(

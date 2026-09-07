@@ -11,6 +11,7 @@ import type {
   PropertyMapResponse,
   PropertySearchResponse,
   UpdateDraftPropertyRequest,
+  UpdatePropertyMediaRequest,
 } from "@rc/shared";
 import { API_PREFIX, AUTH_PERMISSIONS } from "@rc/shared";
 import request from "supertest";
@@ -393,6 +394,7 @@ const ADMIN_PROPERTY: AdminPropertyDetail = {
   highlights: [],
   amenities: [],
   features: [],
+  gallery: [],
   createdAt: NOW.toISOString(),
   updatedAt: NOW.toISOString(),
 };
@@ -408,6 +410,11 @@ function makeAdminPropertyService() {
     input: UpdateDraftPropertyRequest;
     context: PropertyMutationContext;
   }> = [];
+  const mediaUpdates: Array<{
+    id: string;
+    input: UpdatePropertyMediaRequest;
+    context: PropertyMutationContext;
+  }> = [];
   let property = structuredClone(ADMIN_PROPERTY);
   const service: AdminPropertyService = {
     async listPrivate(listRequest) {
@@ -418,6 +425,8 @@ function makeAdminPropertyService() {
         highlights,
         amenities,
         features,
+        coverMedia,
+        gallery,
         createdAt,
         publishedAt,
         ...summary
@@ -427,6 +436,8 @@ function makeAdminPropertyService() {
       void highlights;
       void amenities;
       void features;
+      void coverMedia;
+      void gallery;
       void createdAt;
       void publishedAt;
       return {
@@ -462,6 +473,20 @@ function makeAdminPropertyService() {
         ...(input.price ? { price: { ...input.price, currency: "PHP" } } : {}),
         availability: property.availability,
         publicationStatus: property.publicationStatus,
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async updateMedia(id, input, context) {
+      mediaUpdates.push({ id, input, context });
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      const coverMedia = input.coverMediaId
+        ? input.media.find((item) => item.id === input.coverMediaId)
+        : undefined;
+      property = {
+        ...property,
+        gallery: structuredClone(input.media),
+        coverMedia: coverMedia ? structuredClone(coverMedia) : undefined,
         version: property.version + 1,
       };
       return structuredClone(property);
@@ -513,7 +538,7 @@ function makeAdminPropertyService() {
       return structuredClone(property);
     },
   };
-  return { creates, listRequests, service, updates };
+  return { creates, listRequests, mediaUpdates, service, updates };
 }
 
 const ADMIN_INQUIRY: AdminInquiryDetail = {
@@ -1383,6 +1408,9 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
         .send({ title: "Anonymous edit" }),
       request(app)
+        .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+        .send({ expectedVersion: 0, media: [] }),
+      request(app)
         .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
         .send({ expectedVersion: 0 }),
       request(app)
@@ -1400,7 +1428,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
     ]);
 
     expect(responses.map((response) => response.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ]);
     for (const response of responses) {
       expect(response.body).toMatchObject({ status: "error", statusCode: 401 });
@@ -1437,6 +1465,12 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", ORIGIN)
         .set("X-CSRF-Token", session.csrfToken)
         .send({ title: "Denied edit" }),
+      request(app)
+        .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, media: [] }),
       request(app)
         .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
         .set("Cookie", session.cookie)
@@ -1476,6 +1510,12 @@ describe("Phase 3A admin property HTTP boundary", () => {
           .set("Cookie", first.cookie)
           .set("Origin", ORIGIN)
           .send({ title: "CSRF test" }),
+      () =>
+        request(app)
+          .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+          .set("Cookie", first.cookie)
+          .set("Origin", ORIGIN)
+          .send({ expectedVersion: 0, media: [] }),
     ];
 
     for (const write of writes) {
@@ -1489,6 +1529,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
     }
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
+    expect(adminProperties.mediaUpdates).toHaveLength(0);
   });
 
   it("rejects a disallowed origin on every write", async () => {
@@ -1509,11 +1550,18 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", "https://attacker.invalid")
         .set("X-CSRF-Token", session.csrfToken)
         .send({ title: "Disallowed-origin edit" }),
+      request(app)
+        .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+        .set("Cookie", session.cookie)
+        .set("Origin", "https://attacker.invalid")
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, media: [] }),
     ]);
 
-    expect(responses.map((response) => response.status)).toEqual([403, 403]);
+    expect(responses.map((response) => response.status)).toEqual([403, 403, 403]);
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
+    expect(adminProperties.mediaUpdates).toHaveLength(0);
   });
 
   it("allows administrators to list, read, create, and edit drafts", async () => {
@@ -1541,6 +1589,24 @@ describe("Phase 3A admin property HTTP boundary", () => {
       .set("Origin", ORIGIN)
       .set("X-CSRF-Token", session.csrfToken)
       .send({ title: "Edited private draft", expectedVersion: 0 });
+    const media = await request(app)
+      .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .set("X-CSRF-Token", session.csrfToken)
+      .send({
+        expectedVersion: 1,
+        media: [
+          {
+            id: "media-http-0001",
+            kind: "image",
+            url: "/media/properties/http-test.webp",
+            alt: "HTTP boundary test image",
+            source: "production",
+          },
+        ],
+        coverMediaId: "media-http-0001",
+      });
 
     expect(list.status).toBe(200);
     expect(list.headers["cache-control"]).toBe("no-store");
@@ -1553,12 +1619,19 @@ describe("Phase 3A admin property HTTP boundary", () => {
     });
     expect(edited.status).toBe(200);
     expect(edited.body.title).toBe("Edited private draft");
+    expect(media.status).toBe(200);
+    expect(media.body).toMatchObject({
+      coverMedia: { id: "media-http-0001" },
+      gallery: [{ id: "media-http-0001" }],
+      version: 2,
+    });
     expect(adminProperties.creates[0]?.input).not.toHaveProperty("publicationStatus");
     expect(adminProperties.creates[0]?.context.actorStaffIdentityId).toMatch(/^staff-/);
     expect(adminProperties.updates[0]?.input).toEqual({
       title: "Edited private draft",
       expectedVersion: 0,
     });
+    expect(adminProperties.mediaUpdates[0]?.input.coverMediaId).toBe("media-http-0001");
   });
 
   it("rejects unknown, invalid, lifecycle, and non-JSON write bodies", async () => {

@@ -8,6 +8,7 @@ import {
   type AdminPropertyListResponse,
   type AdminPropertySummary,
   type AdminPropertyTransitionRequest,
+  type AdminPropertyMediaInput,
   type CreateDraftPropertyRequest,
   type PropertyMapResponse,
   type PropertyFacetsResponse,
@@ -21,6 +22,7 @@ import {
   type PublicPropertyLocation,
   type PublicPropertySummary,
   type UpdateDraftPropertyRequest,
+  type UpdatePropertyMediaRequest,
 } from "@rc/shared";
 import type { Model, QueryFilter, SortOrder } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
@@ -89,6 +91,8 @@ const ADMIN_PROPERTY_PROJECTION = [
   "highlights",
   "amenities",
   "features",
+  "coverMedia",
+  "gallery",
   "publishedAt",
   "archiveRestoreStatus",
   "__v",
@@ -382,6 +386,8 @@ export function toAdminPropertyDetail(
     highlights: record.highlights,
     amenities: record.amenities,
     features: record.features,
+    ...(record.coverMedia ? { coverMedia: record.coverMedia } : {}),
+    gallery: record.gallery,
     createdAt: record.createdAt.toISOString(),
     ...(record.publishedAt ? { publishedAt: record.publishedAt.toISOString() } : {}),
   };
@@ -593,6 +599,34 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
       .lean<AdminPropertyRecord | null>();
   }
 
+  async updateMedia(
+    id: string,
+    expectedVersion: number,
+    media: AdminPropertyMediaInput[],
+    coverMedia?: AdminPropertyMediaInput,
+  ): Promise<AdminPropertyRecord | null> {
+    const versionFilter =
+      expectedVersion === 0
+        ? { $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+        : { __v: expectedVersion };
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: id,
+          ...versionFilter,
+          publicationStatus: { $in: ["draft", "unpublished"] },
+        },
+        {
+          $set: { gallery: media, ...(coverMedia ? { coverMedia } : {}) },
+          ...(!coverMedia ? { $unset: { coverMedia: 1 } } : {}),
+          $inc: { __v: 1 },
+        },
+        { new: true, runValidators: true },
+      )
+      .select(ADMIN_PROPERTY_PROJECTION)
+      .lean<AdminPropertyRecord | null>();
+  }
+
   async transition(
     id: string,
     expectedVersion: number,
@@ -773,6 +807,41 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       }
       throw error;
     }
+  }
+
+  async updateMedia(
+    id: string,
+    input: UpdatePropertyMediaRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (!["draft", "unpublished"].includes(current.publicationStatus)) {
+      throw new HttpError(
+        409,
+        "Unpublish or restore this property before editing media.",
+      );
+    }
+    const coverMedia = input.coverMediaId
+      ? input.media.find((item) => item.id === input.coverMediaId)
+      : undefined;
+    const record = await this.repository.updateMedia(
+      id,
+      input.expectedVersion,
+      input.media,
+      coverMedia,
+    );
+    if (!record) throw this.concurrencyConflict();
+    await this.audit.recordAudit({
+      actorStaffIdentityId: context.actorStaffIdentityId,
+      action: "property.media-updated",
+      entityType: "property",
+      entityId: String(record._id),
+      outcome: "succeeded",
+      requestId: context.requestId,
+      occurredAt: context.occurredAt ?? new Date(),
+    });
+    return toAdminPropertyDetail(record);
   }
 
   async publish(

@@ -29,6 +29,7 @@ import {
   updateDraftProperty,
 } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
+import { AdminPropertyMediaManager } from "./AdminPropertyMediaManager";
 import styles from "./admin.module.css";
 
 interface AdminPropertyFormProps {
@@ -728,6 +729,17 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               : "Save property content"}
         </button>
       </form>
+      {load.property ? (
+        <AdminPropertyMediaManager
+          property={load.property}
+          onSaved={(property) => setLoad({ kind: "ready", property })}
+        />
+      ) : (
+        <div className={styles.panel}>
+          <h2>Property media</h2>
+          <p>Create the private draft first, then add and arrange its images.</p>
+        </div>
+      )}
     </section>
   );
 }

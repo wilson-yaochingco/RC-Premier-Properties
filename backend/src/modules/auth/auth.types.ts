@@ -60,6 +60,7 @@ export const AUDIT_ACTIONS = [
   "auth.access.denied",
   "property.created",
   "property.edited",
+  "property.media-updated",
   "property.published",
   "property.unpublished",
   "property.availability-changed",

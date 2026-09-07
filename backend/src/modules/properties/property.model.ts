@@ -1,9 +1,12 @@
 import mongoose, { Schema, type Model } from "mongoose";
+import { randomUUID } from "node:crypto";
 import {
   LISTING_PURPOSES,
   PROPERTY_AVAILABILITY,
   PROPERTY_PUBLICATION_STATUSES,
   PROPERTY_TYPES,
+  PROPERTY_MEDIA_KINDS,
+  PROPERTY_MEDIA_SOURCES,
   PUBLIC_LOCATION_PRECISIONS,
   type PublicMapPoint,
 } from "@rc/shared";
@@ -11,13 +14,23 @@ import type { PropertyEntity } from "./property.types.js";
 
 const mediaSchema = new Schema(
   {
+    id: { type: String, required: true, default: randomUUID, maxlength: 80 },
     kind: {
       type: String,
-      enum: ["image", "video", "floor-plan"],
+      enum: PROPERTY_MEDIA_KINDS,
       required: true,
     },
-    url: { type: String, trim: true },
+    url: { type: String, trim: true, required: true, maxlength: 2_048 },
     alt: { type: String, trim: true, required: true, maxlength: 240 },
+    caption: { type: String, trim: true, maxlength: 500 },
+    source: {
+      type: String,
+      enum: PROPERTY_MEDIA_SOURCES,
+      required: true,
+      default: "production",
+    },
+    sourceUrl: { type: String, trim: true, maxlength: 2_048 },
+    attribution: { type: String, trim: true, maxlength: 160 },
   },
   { _id: false },
 );

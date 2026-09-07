@@ -184,16 +184,52 @@ export interface PublicPropertySpecifications {
   furnishing?: string;
 }
 
-export type PropertyMediaKind = "image" | "video" | "floor-plan";
+export const PROPERTY_MEDIA_KINDS = ["image", "video", "floor-plan"] as const;
+export type PropertyMediaKind = (typeof PROPERTY_MEDIA_KINDS)[number];
+
+export const PROPERTY_MEDIA_SOURCES = ["production", "development-sample"] as const;
+export type PropertyMediaSource = (typeof PROPERTY_MEDIA_SOURCES)[number];
+
+/** Deliberately bounded so a property document and admin form stay practical. */
+export const MAX_PROPERTY_IMAGES = 24;
 
 /**
  * Public media metadata. URLs stay optional while the media provider is intentionally
  * unselected; the frontend renders an explicit replacement placeholder when absent.
  */
 export interface PublicPropertyMedia {
+  /** Stable identifier used by cover selection and admin reordering. */
+  id?: string;
   kind: PropertyMediaKind;
   url?: string;
   alt: string;
+  caption?: string;
+  /** Legacy records may omit this; newly managed media always supplies it. */
+  source?: PropertyMediaSource;
+  /** Public provenance page required for development samples. */
+  sourceUrl?: string;
+  attribution?: string;
+}
+
+/** Current Level 4 media administration accepts image references only. */
+export interface AdminPropertyMediaInput {
+  id: string;
+  kind: "image";
+  url: string;
+  alt: string;
+  caption?: string;
+  source: PropertyMediaSource;
+  sourceUrl?: string;
+  attribution?: string;
+}
+
+/** Body accepted by `PUT /api/v1/admin/properties/:id/media`. */
+export interface UpdatePropertyMediaRequest {
+  expectedVersion: number;
+  /** Array order is the public display order. */
+  media: AdminPropertyMediaInput[];
+  /** Required when `media` is non-empty and omitted when it is empty. */
+  coverMediaId?: string;
 }
 
 export interface PublicPropertySummary {
@@ -324,6 +360,8 @@ export interface AdminPropertyDetail extends AdminPropertySummary {
   highlights: string[];
   amenities: string[];
   features: string[];
+  coverMedia?: PublicPropertyMedia;
+  gallery: PublicPropertyMedia[];
   createdAt: string;
   publishedAt?: string;
 }

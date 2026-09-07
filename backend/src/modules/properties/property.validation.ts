@@ -1,13 +1,16 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   LISTING_PURPOSES,
+  MAX_PROPERTY_IMAGES,
   PROPERTY_AVAILABILITY,
+  PROPERTY_MEDIA_SOURCES,
   PROPERTY_PUBLICATION_STATUSES,
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
   PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPES,
   type AdminPropertyContentInput,
+  type AdminPropertyMediaInput,
   type AdminPropertyAvailabilityRequest,
   type AdminPropertyListRequest,
   type AdminPropertyTransitionRequest,
@@ -15,6 +18,7 @@ import {
   type PropertySearchFilters,
   type PropertySearchRequest,
   type UpdateDraftPropertyRequest,
+  type UpdatePropertyMediaRequest,
   type ValidationIssue,
 } from "@rc/shared";
 import { Types } from "mongoose";
@@ -49,6 +53,11 @@ const MAX_ROOM_COUNT = 100;
 const MAX_AREA_SQM = 100_000_000;
 const MAX_ADMIN_LIST_LIMIT = 50;
 const MAX_LIST_ITEMS = 50;
+const MEDIA_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{7,79}$/;
+const LOCAL_PROPERTY_IMAGE_PATTERN =
+  /^\/media\/properties\/[a-zA-Z0-9][a-zA-Z0-9/_-]*\.(?:avif|jpe?g|png|webp)$/i;
+const UNSPLASH_IMAGE_PATH_PATTERN = /^\/photo-[a-zA-Z0-9-]+$/;
+const UNSPLASH_SOURCE_PATH_PATTERN = /^\/photos\/[a-zA-Z0-9_-]+(?:\/)?$/;
 
 type RawQuery = Record<string, unknown>;
 
@@ -744,4 +753,209 @@ export function parseAdminPropertyId(rawId: unknown): string {
     ]);
   }
   return rawId;
+}
+
+function mediaUrl(
+  value: unknown,
+  source: AdminPropertyMediaInput["source"] | undefined,
+  field: string,
+  issues: ValidationIssue[],
+): string | undefined {
+  const normalized = requiredText(value, field, 2_048, issues);
+  if (!normalized || !source) return undefined;
+
+  if (source === "production") {
+    if (
+      !LOCAL_PROPERTY_IMAGE_PATTERN.test(normalized) ||
+      normalized.includes("..") ||
+      normalized.includes("\\")
+    ) {
+      issues.push({
+        field,
+        message:
+          "Production media must use a local /media/properties/ image path until a storage provider is approved.",
+      });
+      return undefined;
+    }
+    return normalized;
+  }
+
+  try {
+    const url = new URL(normalized);
+    const allowedQuery = new Set(["auto", "fit", "fm", "ixid", "ixlib", "q", "w"]);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "images.unsplash.com" ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      !UNSPLASH_IMAGE_PATH_PATTERN.test(url.pathname) ||
+      [...url.searchParams.keys()].some((key) => !allowedQuery.has(key))
+    ) {
+      throw new Error("unsupported sample URL");
+    }
+    return url.toString();
+  } catch {
+    issues.push({
+      field,
+      message:
+        "Development samples must use an approved images.unsplash.com photo URL.",
+    });
+    return undefined;
+  }
+}
+
+function sampleSourceUrl(
+  value: unknown,
+  source: AdminPropertyMediaInput["source"] | undefined,
+  field: string,
+  issues: ValidationIssue[],
+): string | undefined {
+  if (source !== "development-sample") {
+    if (value !== undefined && value !== "") {
+      issues.push({ field, message: "Only development samples use a source URL." });
+    }
+    return undefined;
+  }
+  const normalized = requiredText(value, field, 2_048, issues);
+  if (!normalized) return undefined;
+  try {
+    const url = new URL(normalized);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "unsplash.com" ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !UNSPLASH_SOURCE_PATH_PATTERN.test(url.pathname)
+    ) {
+      throw new Error("unsupported source URL");
+    }
+    return url.toString();
+  } catch {
+    issues.push({
+      field,
+      message:
+        "Development sample provenance must link to its unsplash.com photo page.",
+    });
+    return undefined;
+  }
+}
+
+/** Validates one atomic ordered-gallery replacement. No binary upload is accepted here. */
+export function parseUpdatePropertyMediaBody(
+  rawBody: unknown,
+): UpdatePropertyMediaRequest {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(rawBody)) {
+    throw new HttpError(400, "Invalid property media request.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  unknownFields(rawBody, ["expectedVersion", "media", "coverMediaId"], "", issues);
+  const expectedVersion = boundedBodyNumber(
+    rawBody.expectedVersion,
+    "expectedVersion",
+    Number.MAX_SAFE_INTEGER,
+    issues,
+    true,
+  );
+
+  const parsedMedia: AdminPropertyMediaInput[] = [];
+  if (!Array.isArray(rawBody.media) || rawBody.media.length > MAX_PROPERTY_IMAGES) {
+    issues.push({
+      field: "media",
+      message: `Must be a list with at most ${MAX_PROPERTY_IMAGES} images.`,
+    });
+  } else {
+    for (const [index, rawMedia] of rawBody.media.entries()) {
+      const prefix = `media.${index}`;
+      if (!isRecord(rawMedia)) {
+        issues.push({ field: prefix, message: "Must be an image metadata object." });
+        continue;
+      }
+      unknownFields(
+        rawMedia,
+        ["id", "kind", "url", "alt", "caption", "source", "sourceUrl", "attribution"],
+        prefix,
+        issues,
+      );
+      const id = requiredText(rawMedia.id, `${prefix}.id`, 80, issues);
+      if (id && !MEDIA_ID_PATTERN.test(id)) {
+        issues.push({
+          field: `${prefix}.id`,
+          message:
+            "Must be a stable identifier using letters, numbers, hyphens, or underscores.",
+        });
+      }
+      const kind = bodyEnum(
+        rawMedia.kind,
+        `${prefix}.kind`,
+        ["image"] as const,
+        issues,
+      );
+      const source = bodyEnum(
+        rawMedia.source,
+        `${prefix}.source`,
+        PROPERTY_MEDIA_SOURCES,
+        issues,
+      );
+      const url = mediaUrl(rawMedia.url, source, `${prefix}.url`, issues);
+      const alt = requiredText(rawMedia.alt, `${prefix}.alt`, 240, issues);
+      const caption = optionalText(rawMedia.caption, `${prefix}.caption`, 500, issues);
+      const sourceUrl = sampleSourceUrl(
+        rawMedia.sourceUrl,
+        source,
+        `${prefix}.sourceUrl`,
+        issues,
+      );
+      const attribution =
+        source === "development-sample"
+          ? requiredText(rawMedia.attribution, `${prefix}.attribution`, 160, issues)
+          : optionalText(rawMedia.attribution, `${prefix}.attribution`, 160, issues);
+
+      if (id && kind && source && url && alt) {
+        parsedMedia.push({
+          id,
+          kind,
+          url,
+          alt,
+          ...(caption ? { caption } : {}),
+          source,
+          ...(sourceUrl ? { sourceUrl } : {}),
+          ...(attribution ? { attribution } : {}),
+        });
+      }
+    }
+  }
+
+  const ids = parsedMedia.map((item) => item.id);
+  if (new Set(ids).size !== ids.length) {
+    issues.push({ field: "media", message: "Every image identifier must be unique." });
+  }
+  const coverMediaId = optionalText(rawBody.coverMediaId, "coverMediaId", 80, issues);
+  if (parsedMedia.length > 0 && (!coverMediaId || !ids.includes(coverMediaId))) {
+    issues.push({
+      field: "coverMediaId",
+      message: "Choose one of the listed images as the cover image.",
+    });
+  }
+  if (parsedMedia.length === 0 && coverMediaId) {
+    issues.push({
+      field: "coverMediaId",
+      message: "Must be omitted when the media list is empty.",
+    });
+  }
+
+  if (issues.length > 0 || expectedVersion === undefined) {
+    throw new HttpError(400, "Invalid property media request.", issues);
+  }
+  return {
+    expectedVersion,
+    media: parsedMedia,
+    ...(coverMediaId ? { coverMediaId } : {}),
+  };
 }

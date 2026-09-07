@@ -1,6 +1,6 @@
 # Public API Reference
 
-Status: implemented public MVP contract. Last reviewed 2026-09-05.
+Status: implemented public MVP contract. Last reviewed 2026-09-07.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. Request
 and response types live in [`shared/src/api.ts`](../../shared/src/api.ts); this document
@@ -122,6 +122,12 @@ The public detail uses the same precision-aware location projection as the list.
 listing with a valid approved `publicPoint` can render the interactive map; otherwise the
 detail retains a general-area placeholder. Internal address/coordinate fields are never
 used as a fallback.
+
+Summary responses may contain `coverMedia`; detail responses additionally contain the
+ordered `gallery`. Media entries carry image metadata and production/sample provenance.
+The frontend renders only supported image URLs and keeps its stable fallback for missing
+or unapproved entries. Development samples are always visibly marked as not depicting
+the listing. See [`property-media.md`](../architecture/property-media.md).
 
 ## `POST /inquiries`
 

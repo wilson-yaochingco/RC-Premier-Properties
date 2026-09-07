@@ -47,7 +47,7 @@ before production administration is built.
 | Internal exact location | private street address and internal latitude/longitude    | excluded from normal selection and public serialization |
 | Specifications          | beds, baths, parking, lot/floor area, storeys, furnishing | public when supplied                                    |
 | Content                 | short/full descriptions, highlights, amenities, features  | public when published                                   |
-| Public media metadata   | approved URL, kind and alt text                           | public when supplied                                    |
+| Public media metadata   | ID, kind, URL, alt, optional caption, source/provenance   | public when supplied                                    |
 | Workflow                | publication status, internal timestamps                   | internal; selected only as needed                       |
 | Ownership               | owner details, private notes, internal references         | never serialized publicly                               |
 
@@ -72,8 +72,12 @@ No owner or CRM schema is introduced by this phase.
 ## Media
 
 Media metadata is embedded because the public read pattern loads it with the property.
-The URL is optional while storage is unselected, so missing media produces an explicit UI
-placeholder. This decision does not select an upload or storage provider.
+Gallery array order is display order. Each newly managed entry has a stable ID, kind,
+provider-neutral URL/reference, alt text, optional caption, and production/sample source
+classification. Sample records additionally carry a public source page and attribution.
+`coverMedia` is the selected gallery entry copied for efficient list/map summaries; the
+authorized service updates both fields atomically. Legacy URL-less entries still produce
+an explicit UI placeholder. This decision does not select an upload or storage provider.
 
 ## Inquiry
 
@@ -142,5 +146,6 @@ archive/creation. The default active queue excludes spam and archived records. A
 records are retained and restorable; `archivedAt` is the future retention-selection
 boundary, but no retention duration or hard-delete job exists until policy is approved.
 
-There is still no public update/delete route and no public inquiry read. Media
-administration remains deferred.
+There is still no public update/delete route and no public inquiry read. Authorized image
+metadata administration exists; production binary upload remains blocked on storage
+provider approval.

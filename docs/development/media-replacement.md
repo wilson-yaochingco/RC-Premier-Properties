@@ -1,11 +1,15 @@
 # Media and Brand Asset Replacement
 
-Status: all production assets are still external blockers. Last reviewed 2026-09-05.
+Status: property image-reference workflow implemented; all production assets and binary
+storage/upload remain external blockers. Last reviewed 2026-09-07.
 
-The repository intentionally ships no photographs, videos, downloaded stock media or
-AI-generated property imagery. The supplied project attachment contains requirements but
-no usable RC Premier Properties logo or media files. Public contact details and real
-listing records were not supplied either.
+The repository ships no downloaded photographs, videos, or AI-generated property
+imagery. It includes four centralized remote Unsplash references for conspicuously
+labelled development use only. During `next dev`, property surfaces select one of them as
+a deterministic, presentation-only fallback only when the property has no assigned
+media. The supplied project attachment contains requirements but no usable RC Premier
+Properties logo or media files. Public contact details and real listing records were not
+supplied either.
 
 This guide identifies every current replacement point without treating placeholder
 content as finished media.
@@ -47,22 +51,36 @@ one requires environment, host allow-list, privacy and operational decisions fir
 
 `frontend/src/components/ui/MediaPlaceholder.tsx` owns the neutral placeholder
 presentation. Do not remove it globally after adding one asset: it remains the correct
-fallback for listings whose media is absent or withheld.
+production fallback for listings whose media is absent or withheld.
 
 ## Property-record media
 
-The shared property contract supports `coverMedia` and `gallery` entries with `kind`,
-optional `url` and `alt`. The current `PropertyMedia` implementation renders only safe
-local `/...` URLs through `next/image`; absent, protocol-relative, remote or otherwise
-unsupported URLs remain placeholders.
+The shared property contract supports an ordered gallery and selected cover with stable
+ID, kind, URL, alt, optional caption and production/sample provenance. `PropertyMedia`
+renders safe local `/media/properties/...` raster paths and the narrowly configured
+Unsplash development-sample host through `next/image`; absent, protocol-relative,
+unapproved remote, executable, or otherwise unsupported URLs remain placeholders.
+
+The automatic sample fallback never mutates the property response, calls the media API,
+or persists metadata. It is enabled only when Next.js reports the development runtime.
+The property ID produces a stable catalogue index, so a listing does not change images
+between renders. Assigned media bypasses this fallback immediately. Optimized production
+builds keep the neutral placeholder when media is absent.
 
 Although the schema reserves `video` and `floor-plan` kinds, no video player or floor-plan
 viewer is implemented. Add explicit rendering and accessibility behaviour before storing
 those URLs in real records. Do not label a video URL as an image to bypass the boundary.
 
-No real listings or seed data are provided. Live MongoDB persistence is verified. Media
-metadata should be introduced through a future authorized property-management workflow
-or a carefully reviewed migration—not an unauthenticated endpoint.
+No real listings or seed data are provided. Live MongoDB persistence is verified. Staff
+introduce media metadata through the authorized, CSRF-protected property editor. Add
+actual files below `frontend/public/media/properties/<property>/` and enter their
+root-relative paths, or replace references after an approved provider integration. Never
+reclassify a sample as production; replace its URL, alt/caption and source metadata with
+the verified RC asset.
+
+The sample picker and exact provenance are documented in
+[`property-media.md`](../architecture/property-media.md). No AI-generated property image
+was created for this level.
 
 ## Map and contact dependencies
 
@@ -83,5 +101,7 @@ office hours, messaging links and address to publish.
 - Video has a poster/fallback, does not require sound and respects reduced motion.
 - Alternative text describes the specific asset rather than its visual placeholder.
 - Property cards and detail pages still have a working missing-media fallback.
+- Development samples appear only in development, remain visibly labelled, and disappear
+  as soon as assigned media exists.
 - Maps disclose only approved location precision.
 - Production build and responsive browser checks pass after asset replacement.

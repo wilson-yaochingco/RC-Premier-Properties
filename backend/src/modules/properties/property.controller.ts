@@ -25,6 +25,7 @@ import {
   parsePropertySearchQuery,
   parsePropertySlug,
   parseUpdateDraftPropertyBody,
+  parseUpdatePropertyMediaBody,
 } from "./property.validation.js";
 
 export function createPropertyController(
@@ -102,6 +103,19 @@ export function createAdminPropertyController(
       const property = await service.updateDraft(
         parseAdminPropertyId(req.params.id),
         parseUpdateDraftPropertyBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async updateMedia(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ): Promise<void> {
+      const property = await service.updateMedia(
+        parseAdminPropertyId(req.params.id),
+        parseUpdatePropertyMediaBody(req.body),
         mutationContext(res),
       );
       if (!property) throw new HttpError(404, "Property not found.");

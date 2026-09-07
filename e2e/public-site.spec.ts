@@ -147,6 +147,17 @@ test("property detail renders public data and carries its ID into inquiry links"
   expect(browserErrors).toEqual([]);
 });
 
+test("production rendering keeps neutral placeholders when property media is absent", async ({
+  page,
+}) => {
+  await page.goto("/properties/mabalacat-skyline-condominium");
+
+  const gallery = page.getByRole("region", { name: "Property gallery" });
+  await expect(gallery).toBeVisible();
+  await expect(gallery.getByText("PROPERTY GALLERY IMAGE 01")).toBeVisible();
+  await expect(page.getByText("Development sample — not this listing")).toHaveCount(0);
+});
+
 test("malformed and missing property slugs render the public not-found state", async ({
   page,
 }) => {

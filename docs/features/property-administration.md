@@ -1,7 +1,8 @@
 # Property Administration
 
-Status: Phase 3A property lifecycle slice implemented. Media remains deferred; inquiry
-administration is documented separately in [`inquiries.md`](inquiries.md).
+Status: Phase 3A property lifecycle and provider-neutral image administration implemented.
+Production upload remains blocked; inquiry administration is documented separately in
+[`inquiries.md`](inquiries.md).
 
 ## Staff experience
 
@@ -29,6 +30,8 @@ availability: available -> reserved -> sold
 - Restore returns a never-published record to draft and a previously public record to unpublished. It never republishes automatically.
 - Availability changes are accepted only while published. Available may become reserved or sold, reserved may return to available or become sold, and sold is terminal.
 - Content is editable only while draft or unpublished.
+- Image references, ordering, cover selection, alt text, captions and removals are
+  editable only while draft or unpublished. Staff unpublish before changing live media.
 
 Every mutation includes the version from the latest private read. The MongoDB update matches both ID and version, then increments the version atomically. A stale operation returns `409` and instructs staff to refresh.
 
@@ -38,15 +41,25 @@ There is no property hard-delete endpoint. Staff archive a record after an expli
 
 ## Authorization and auditing
 
-Private reads and preview require `property:read-private`. Create/edit require `property:write`. Publish, unpublish, archive, and restore require `property:publish`. Availability transitions require `property:change-availability`. Every write also requires the configured origin, session-bound CSRF token, and JSON content.
+Private reads and preview require `property:read-private`. Create, content edit and media
+management require `property:write`. Publish, unpublish, archive, and restore require
+`property:publish`. Availability transitions require `property:change-availability`.
+Every write also requires the configured origin, session-bound CSRF token, and JSON
+content.
 
-Successful create, edit, publish, unpublish, reserve, sold, general availability change, archive, and restore actions emit allowlisted audit events. Events contain actor, property database ID, request ID, timestamp, outcome, and content field names when relevant; they contain no property values, request body, cookies, CSRF data, or provider tokens.
+Successful create, edit, media update, publish, unpublish, reserve, sold, general
+availability change, archive, and restore actions emit allowlisted audit events. Events
+contain actor, property database ID, request ID, timestamp, outcome, and content field
+names when relevant; they contain no property values, media URLs, request body, cookies,
+CSRF data, or provider tokens.
 
 Property persistence and audit insertion remain separate MongoDB writes, matching the documented session-audit limitation. A failed audit insert fails the HTTP request but does not roll back a completed property mutation.
 
 ## Deferred boundaries
 
-Media upload/management, staff management, and hard deletion are not part of this level.
+Production binary upload/provider deletion, staff management, and hard deletion remain
+deferred or blocked. Image-reference management is implemented without an upload facade;
+see [`property-media.md`](../architecture/property-media.md).
 Inquiry administration was added in the next scoped level. The Auth0 development tenant
 still requires the manual end-to-end acceptance steps in
 [auth0-setup.md](../development/auth0-setup.md).
