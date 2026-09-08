@@ -8,8 +8,9 @@ Full-stack real estate web application for Angeles City and the wider Pampanga m
 > public experience, published-property search and detail pages, and connected inquiry,
 > seller and viewing-request forms. Property and inquiry persistence are implemented with
 > Mongoose; temporary synthetic public records passed the documented Atlas verification.
-> Staff inquiry and viewing-request management still require their manual live acceptance pass, and no
-> production inventory or seed data is supplied.
+> Staff inquiry and viewing-request management still require their manual live acceptance
+> pass, and no production inventory or seed data is supplied. Level 11 deployment
+> engineering is provider-neutral; no live staging/production environment is claimed.
 
 Staff authentication, property lifecycle administration and lightweight staff inquiry
 management are implemented, including structured property viewing requests and a staff
@@ -18,8 +19,9 @@ still requires its documented manual acceptance pass. Public inquiry reads, inst
 calendar-backed appointment booking, binary media uploads, favorites, payments and
 notifications are not implemented. Authorized property image-reference management and
 public galleries are implemented; provider-backed upload remains blocked. A requested
-viewing becomes confirmed only through staff action. The approved logo, real media and
-public business contact details still need to be supplied.
+viewing becomes confirmed only through staff action. The approved brand and public
+business contact details are present; production inventory and listing media remain
+external inputs.
 
 ## Stack
 
@@ -79,32 +81,36 @@ step-by-step VS Code guide with prerequisites, MongoDB options and troubleshooti
 
 All run from the repository root.
 
-| Command                | What it does                           |
-| ---------------------- | -------------------------------------- |
-| `npm run dev:backend`  | API in watch mode                      |
-| `npm run dev:frontend` | Web app in watch mode                  |
-| `npm run dev:shared`   | Rebuild the shared contract on save    |
-| `npm run lint`         | ESLint across backend + frontend       |
-| `npm run typecheck`    | TypeScript across all three workspaces |
-| `npm test`             | Vitest unit and API integration tests  |
-| `npm run test:e2e`     | Playwright browser acceptance tests    |
-| `npm run build`        | Build shared → backend → frontend      |
-| `npm run format`       | Apply Prettier                         |
-| `npm run format:check` | Verify formatting (what CI runs)       |
+| Command                    | What it does                           |
+| -------------------------- | -------------------------------------- |
+| `npm run dev:backend`      | API in watch mode                      |
+| `npm run dev:frontend`     | Web app in watch mode                  |
+| `npm run dev:shared`       | Rebuild the shared contract on save    |
+| `npm run lint`             | ESLint across backend + frontend       |
+| `npm run typecheck`        | TypeScript across all three workspaces |
+| `npm test`                 | Vitest unit and API integration tests  |
+| `npm run test:e2e`         | Playwright browser acceptance tests    |
+| `npm run smoke:deployment` | Read-only live deployment smoke checks |
+| `npm run build:deployment` | Strict staging/production build        |
+| `npm run build`            | Build shared → backend → frontend      |
+| `npm run format`           | Apply Prettier                         |
+| `npm run format:check`     | Verify formatting (what CI runs)       |
 
 ## Environment variables
 
 Real `.env` / `.env.local` files are git-ignored. The committed `.env.example` files are
 the templates — **never put real credentials in the repository.**
 
-| App      | Variable               | Purpose                                  |
-| -------- | ---------------------- | ---------------------------------------- |
-| frontend | `NEXT_PUBLIC_API_URL`  | Base URL of the backend API              |
-| frontend | `NEXT_PUBLIC_SITE_URL` | Public frontend origin for metadata      |
-| backend  | `PORT`                 | Port the API listens on (default `5000`) |
-| backend  | `NODE_ENV`             | `development` / `test` / `production`    |
-| backend  | `MONGODB_URI`          | MongoDB connection string (**required**) |
-| backend  | `CORS_ORIGIN`          | Origin allowed to call the API           |
+| App      | Variable                     | Purpose                                  |
+| -------- | ---------------------------- | ---------------------------------------- |
+| frontend | `NEXT_PUBLIC_DEPLOYMENT_ENV` | Development/test/staging/production gate |
+| frontend | `NEXT_PUBLIC_API_URL`        | Exact public backend origin              |
+| frontend | `NEXT_PUBLIC_SITE_URL`       | Public frontend origin for metadata      |
+| backend  | `PORT`                       | Port the API listens on (default `5000`) |
+| backend  | `NODE_ENV`                   | `development` / `test` / `production`    |
+| backend  | `MONGODB_URI`                | MongoDB connection string (**required**) |
+| backend  | `CORS_ORIGIN`                | Exact browser origin allowed by CORS     |
+| backend  | `API_PUBLIC_ORIGIN`          | Exact public API/Auth0 callback origin   |
 
 ## Documentation
 
@@ -123,7 +129,8 @@ Useful implementation references include the
 [public API reference](docs/api/public-api.md), the
 [property feature contract](docs/features/properties.md), the
 [inquiry feature contract](docs/features/inquiries.md), and the
-[media replacement guide](docs/development/media-replacement.md).
+[media replacement guide](docs/development/media-replacement.md), and the
+[staging/production release runbook](docs/development/deployment-and-release.md).
 
 Contributors and AI agents should read [`AGENTS.md`](AGENTS.md) before writing code.
 

@@ -35,6 +35,19 @@ export interface HealthResponse {
   uptime: number;
   environment: Environment;
   database: DatabaseStatus;
+  /** Optional non-secret deployment identifier supplied by the release platform. */
+  buildId?: string;
+}
+
+/** Body of `GET /api/v1/health/ready`. */
+export interface ReadinessResponse {
+  status: "ready" | "not-ready";
+  service: string;
+  /** ISO 8601 timestamp. */
+  timestamp: string;
+  environment: Environment;
+  database: DatabaseStatus;
+  buildId?: string;
 }
 
 /** A field-level validation issue safe to show to an API consumer. */

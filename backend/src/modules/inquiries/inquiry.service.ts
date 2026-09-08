@@ -143,6 +143,9 @@ export class MongooseInquiryService implements InquiryService {
     } catch {
       // Persistence is the source of truth. Notification failure must never reject or
       // roll back an inquiry that has already been accepted into MongoDB.
+      console.error(
+        `[inquiry-notification] delivery failed for persisted inquiry ${inquiryId}`,
+      );
     }
     return createResponse(inquiryId, inquiry.createdAt, inquiry.inquiryType);
   }

@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from "express";
-import healthRoutes from "./modules/health/health.routes.js";
+import { createHealthRoutes } from "./modules/health/health.routes.js";
+import type { HealthDependencies } from "./modules/health/health.controller.js";
 import {
   createAdminPropertyRoutes,
   createPropertyRoutes,
@@ -31,6 +32,7 @@ import {
  * then add its router below.
  */
 export interface ApiDependencies {
+  health?: HealthDependencies;
   propertyService?: PropertyService;
   adminPropertyService?: AdminPropertyService;
   adminPropertyReadPermission?: RequestHandler;
@@ -49,7 +51,7 @@ export function createApiRouter(dependencies: ApiDependencies = {}): Router {
   const router = Router();
   const auth = resolveAuthRouteDependencies(dependencies.auth);
 
-  router.use("/health", healthRoutes);
+  router.use("/health", createHealthRoutes(dependencies.health));
   router.use("/auth", createAuthRoutes(dependencies.auth, auth));
   router.use(
     "/admin/properties",

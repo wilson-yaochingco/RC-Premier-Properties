@@ -16,5 +16,5 @@ export const apiRateLimit = rateLimit({
     statusCode: 429,
     message: "Too many requests, please try again later.",
   },
-  skip: (req) => req.path === "/health",
+  skip: (req) => req.path === "/health" || req.path === "/health/ready",
 });

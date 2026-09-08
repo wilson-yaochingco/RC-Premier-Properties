@@ -6,6 +6,7 @@ import type {
 } from "@rc/shared";
 import type { Metadata } from "next";
 import { absoluteSiteUrl, buildPageMetadata, SITE_NAME } from "../../lib/seo";
+import { isApprovedProductionMediaUrl } from "../../lib/env";
 import { propertyTypeLabel } from "./property-format";
 import type { RawSearchParams } from "./property-query";
 
@@ -100,20 +101,11 @@ export function publicPropertyImageUrl(
   if (media?.kind !== "image" || !media.url || media.source === "development-sample") {
     return undefined;
   }
-  if (
-    /^\/media\/properties\/[a-zA-Z0-9][a-zA-Z0-9/_-]*\.(?:avif|jpe?g|png|webp)$/i.test(
-      media.url,
-    )
-  ) {
+  if (!isApprovedProductionMediaUrl(media.url)) return undefined;
+  if (media.url.startsWith("/")) {
     return absoluteSiteUrl(media.url);
   }
-  try {
-    const url = new URL(media.url);
-    if (url.protocol !== "https:" || url.username || url.password) return undefined;
-    return url.toString();
-  } catch {
-    return undefined;
-  }
+  return media.url;
 }
 
 function propertyImageUrls(property: PublicPropertyDetail): string[] {

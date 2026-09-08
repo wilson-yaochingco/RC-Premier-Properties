@@ -4,7 +4,10 @@ import Image from "next/image";
 import { useState } from "react";
 import type { PublicPropertyMedia } from "@rc/shared";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
-import { DEVELOPMENT_SAMPLE_MEDIA_ENABLED } from "@/lib/env";
+import {
+  DEVELOPMENT_SAMPLE_MEDIA_ENABLED,
+  isApprovedProductionMediaUrl,
+} from "@/lib/env";
 
 interface PropertyMediaProps {
   media?: PublicPropertyMedia;
@@ -13,16 +16,6 @@ interface PropertyMediaProps {
   className?: string;
   sizes?: string;
   fit?: "cover" | "contain";
-}
-
-function isLocalMediaUrl(url: string | undefined): url is string {
-  return Boolean(
-    url &&
-    /^\/media\/properties\/[a-zA-Z0-9][a-zA-Z0-9/_-]*\.(?:avif|jpe?g|png|webp)$/i.test(
-      url,
-    ) &&
-    !url.includes(".."),
-  );
 }
 
 function isDevelopmentSampleUrl(media: PublicPropertyMedia | undefined): boolean {
@@ -55,7 +48,11 @@ export function PropertyMedia({
   const [failedUrl, setFailedUrl] = useState<string>();
   const sample = isDevelopmentSampleUrl(media);
   const mediaUrl = media?.url;
-  if (media?.kind !== "image" || !mediaUrl || (!isLocalMediaUrl(mediaUrl) && !sample)) {
+  if (
+    media?.kind !== "image" ||
+    !mediaUrl ||
+    (!isApprovedProductionMediaUrl(mediaUrl) && !sample)
+  ) {
     return (
       <MediaPlaceholder
         label={label}

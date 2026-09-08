@@ -60,6 +60,13 @@ real provider still requires approved credentials/bucket topology, an exact deli
 hostname, signed-upload/lifecycle decisions, retention/orphan policy, CDN caching, and
 live acceptance. No provider or credential has been invented.
 
+Level 11 adds one optional exact delivery-origin boundary. Backend
+`MEDIA_PUBLIC_ORIGIN` governs accepted production image references; frontend
+`NEXT_PUBLIC_MEDIA_ORIGIN` must match it and drives rendering, Next Image, metadata, and
+CSP allowlisting. Both require HTTPS in a public deployment. With no configured origin,
+external production URLs remain rejected rather than widening to arbitrary hosts.
+Uploads continue through Express, so object storage needs no browser write CORS.
+
 ## Public rendering
 
 `next/image` reserves the media ratio and emits responsive formats. Focal points affect

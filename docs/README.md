@@ -55,6 +55,8 @@ Current:
   loading, tile/boundary attribution, map filtering and listing-location privacy
 - [`property-media.md`](architecture/property-media.md) — ordered image metadata,
   development-sample policy, rendering boundary and production-storage blocker
+- [`deployment-topology.md`](architecture/deployment-topology.md) — Level 11 public edge,
+  same-site session, proxy, provider, CSP, and deployment trust boundaries
 
 ### `features/`
 
@@ -141,6 +143,9 @@ Current:
   production configuration gate, staff disable/revocation and recovery procedure
 - [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
   agent-placeholder replacement guide plus map/contact launch dependencies
+- [`deployment-and-release.md`](development/deployment-and-release.md) — Level 11 audit,
+  environment matrix, build/start behavior, staging acceptance, production checklist,
+  rollback, external blockers, and Level 12 handoff
 
 ---
 

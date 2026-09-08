@@ -14,14 +14,24 @@ import {
   type PublicPropertyMapItem,
   type PublicPropertySummary,
 } from "@rc/shared";
-import { MAP_TILE_URL } from "@/lib/env";
+import { MAP_ATTRIBUTION_TEXT, MAP_ATTRIBUTION_URL, MAP_TILE_URL } from "@/lib/env";
 import { apiRequest } from "@/services/api-client";
 import { formatLocation, formatPrice } from "./property-format";
 import styles from "./property-map.module.css";
 
 const BOUNDARY_URL = "/geo/pampanga-admin3.geojson";
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 const TILE_ATTRIBUTION =
-  '&copy; <a href="https://stadiamaps.com/attribution/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> | Boundaries: <a href="https://data.humdata.org/dataset/cod-ab-phl" target="_blank" rel="noopener noreferrer">OCHA/NAMRIA/PSA</a>, <a href="https://creativecommons.org/licenses/by/3.0/igo/" target="_blank" rel="noopener noreferrer">CC BY 3.0 IGO</a>';
+  `&copy; <a href="${escapeHtml(MAP_ATTRIBUTION_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(MAP_ATTRIBUTION_TEXT)}</a>` +
+  ' | Boundaries: <a href="https://data.humdata.org/dataset/cod-ab-phl" target="_blank" rel="noopener noreferrer">OCHA/NAMRIA/PSA</a>, <a href="https://creativecommons.org/licenses/by/3.0/igo/" target="_blank" rel="noopener noreferrer">CC BY 3.0 IGO</a>';
 
 interface RegionProperties {
   name: string;

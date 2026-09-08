@@ -8,14 +8,15 @@ explains behavior and intentionally does not create a second TypeScript contract
 
 ## Endpoint summary
 
-| Method | Path                 | Purpose                                             | Success |
-| ------ | -------------------- | --------------------------------------------------- | ------- |
-| `GET`  | `/health`            | Process and MongoDB connection health               | `200`   |
-| `GET`  | `/properties`        | Search published properties                         | `200`   |
-| `GET`  | `/properties/facets` | Values derived from published inventory             | `200`   |
-| `GET`  | `/properties/map`    | Filtered, approved public property pins for the map | `200`   |
-| `GET`  | `/properties/:slug`  | Read one published property                         | `200`   |
-| `POST` | `/inquiries`         | Store a public inquiry or viewing request           | `201`   |
+| Method | Path                 | Purpose                                             | Success   |
+| ------ | -------------------- | --------------------------------------------------- | --------- |
+| `GET`  | `/health`            | Process and MongoDB connection health               | `200`     |
+| `GET`  | `/health/ready`      | MongoDB-backed deployment traffic readiness         | `200/503` |
+| `GET`  | `/properties`        | Search published properties                         | `200`     |
+| `GET`  | `/properties/facets` | Values derived from published inventory             | `200`     |
+| `GET`  | `/properties/map`    | Filtered, approved public property pins for the map | `200`     |
+| `GET`  | `/properties/:slug`  | Read one published property                         | `200`     |
+| `POST` | `/inquiries`         | Store a public inquiry or viewing request           | `201`     |
 
 There are no public property writes and no public inquiry reads. Staff authentication
 uses a separate backend session boundary documented in
@@ -26,12 +27,19 @@ public visibility rules below.
 
 ## `GET /health`
 
-Returns the service name, ISO timestamp, process uptime, validated environment and the
-current readable Mongoose connection state. The HTTP status remains `200` when the
-development server has started with MongoDB disconnected; callers must inspect
-`database.status` rather than infer database health from the HTTP code.
+This liveness endpoint returns the service name, ISO timestamp, process uptime, validated
+environment, and current readable Mongoose state. It is `no-store` and may include an
+optional sanitized deployment `buildId`. HTTP remains `200` when MongoDB is disconnected;
+traffic routing must use readiness below.
 
 The connected Atlas response was verified through this endpoint on 2026-09-05.
+
+## `GET /health/ready`
+
+Returns `200` with `status: "ready"` only while Mongoose is actively connected. It
+returns `503` with `status: "not-ready"` while MongoDB is connecting, disconnected,
+disconnecting, or unknown. The response is `no-store`, is exempt from API rate limiting,
+and exposes no URI, credential, or private infrastructure detail.
 
 ## `GET /properties`
 

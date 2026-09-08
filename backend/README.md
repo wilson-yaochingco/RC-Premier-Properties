@@ -22,6 +22,9 @@ npm run dev:backend          # at the repo root → http://localhost:5000
 
 Verify: `curl http://localhost:5000/api/v1/health`
 
+Deployment traffic readiness is separate at `/api/v1/health/ready`; see the
+[staging/production runbook](../docs/development/deployment-and-release.md).
+
 Full setup instructions: [`docs/development/setup.md`](../docs/development/setup.md).
 Auth0 development-tenant setup and administrator provisioning:
 [`docs/development/auth0-setup.md`](../docs/development/auth0-setup.md).
@@ -70,6 +73,7 @@ under `modules/<domain>/`. Create a module when its feature begins — not befor
 | Method | Path                        | Behavior                                        |
 | ------ | --------------------------- | ----------------------------------------------- |
 | `GET`  | `/api/v1/health`            | Process/environment/database status             |
+| `GET`  | `/api/v1/health/ready`      | Database-backed traffic readiness               |
 | `GET`  | `/api/v1/properties`        | Validated, published-only search and pagination |
 | `GET`  | `/api/v1/properties/facets` | Facets derived from published inventory         |
 | `GET`  | `/api/v1/properties/:slug`  | One published public projection                 |

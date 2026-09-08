@@ -41,7 +41,11 @@ property results remain usable.
 The local/test evaluation default is Stadia Maps' Alidade Smooth raster style. The map
 visibly attributes Stadia Maps, OpenMapTiles and OpenStreetMap as required by that style.
 The public template URL is configured through `NEXT_PUBLIC_MAP_TILE_URL`; it contains no
-secret client credential. This default is not the selected production provider.
+secret client credential. This default is not the selected production provider. Level 11
+also pairs the URL with `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT` and
+`NEXT_PUBLIC_MAP_ATTRIBUTION_URL`, escaping the plain-text value before Leaflet renders
+it. Staging and production fail their build unless all three approved HTTPS provider
+values are supplied; the evaluation defaults are development/test only.
 
 Local evaluation is not production authorization. Commercial production use requires an
 appropriate Stadia Maps plan and registration of the deployed frontend domain. That

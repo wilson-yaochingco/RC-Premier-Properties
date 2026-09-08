@@ -25,6 +25,11 @@ function optional(name: string, fallback: string): string {
   return value && value.trim() !== "" ? value.trim() : fallback;
 }
 
+function optionalValue(name: string): string | undefined {
+  const value = process.env[name];
+  return value && value.trim() !== "" ? value.trim() : undefined;
+}
+
 function environment(name: string, fallback: Environment): Environment {
   const value = optional(name, fallback);
 
@@ -60,6 +65,18 @@ function positiveInteger(name: string, fallback: number): number {
   return parsed;
 }
 
+function boundedPositiveInteger(
+  name: string,
+  fallback: number,
+  maximum: number,
+): number {
+  const parsed = positiveInteger(name, fallback);
+  if (parsed > maximum) {
+    throw new Error(`${name} cannot exceed ${maximum}.`);
+  }
+  return parsed;
+}
+
 /** Parse the exact number of trusted reverse-proxy hops; zero means trust none. */
 export function normalizeTrustProxyHops(value: string | undefined): number {
   if (!value || value.trim() === "") return 0;
@@ -70,6 +87,29 @@ export function normalizeTrustProxyHops(value: string | undefined): number {
     );
   }
   return parsed;
+}
+
+function productionTrustProxyHops(
+  nodeEnv: Environment,
+  value: string | undefined,
+): number {
+  if (nodeEnv === "production" && (!value || value.trim() === "")) {
+    throw new Error(
+      "TRUST_PROXY_HOPS must be explicitly set in production; use 0 only for a verified direct connection.",
+    );
+  }
+  return normalizeTrustProxyHops(value);
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "127.0.0.1" ||
+    normalized === "[::1]" ||
+    normalized === "::1"
+  );
 }
 
 /** Validate and normalize the single browser origin allowed by CORS. */
@@ -101,6 +141,82 @@ export function normalizeCorsOrigin(value: string): string {
   }
 
   return parsed.origin;
+}
+
+/** Production browser/API/media origins must be HTTPS and publicly routable. */
+export function validateProductionOrigin(
+  nodeEnv: Environment,
+  name: string,
+  origin: string,
+): string {
+  if (nodeEnv !== "production") return origin;
+  const parsed = new URL(origin);
+  if (parsed.protocol !== "https:" || isLoopbackHostname(parsed.hostname)) {
+    throw new Error(`${name} must be a non-local HTTPS origin in production.`);
+  }
+  return origin;
+}
+
+function configuredPublicOrigin(
+  nodeEnv: Environment,
+  name: string,
+  value: string | undefined,
+  requiredInProduction: boolean,
+): string | undefined {
+  if (!value) {
+    if (nodeEnv === "production" && requiredInProduction) {
+      throw new Error(`Missing required production environment variable: ${name}.`);
+    }
+    return undefined;
+  }
+  let normalized: string;
+  try {
+    normalized = normalizeCorsOrigin(value);
+  } catch {
+    throw new Error(
+      `${name} must be one exact HTTP(S) origin without credentials, a path, query, or fragment.`,
+    );
+  }
+  return validateProductionOrigin(nodeEnv, name, normalized);
+}
+
+/** Require encrypted, non-local MongoDB connectivity and an explicit database in production. */
+export function validateMongoDbUri(nodeEnv: Environment, value: string): string {
+  if (nodeEnv !== "production") return value;
+
+  try {
+    const parsed = new URL(value);
+    const encryptedSrv = parsed.protocol === "mongodb+srv:";
+    const encryptedStandard =
+      parsed.protocol === "mongodb:" &&
+      [parsed.searchParams.get("tls"), parsed.searchParams.get("ssl")].some(
+        (setting) => setting?.toLowerCase() === "true",
+      );
+    const databaseName = parsed.pathname.replace(/^\//, "");
+    if (
+      (!encryptedSrv && !encryptedStandard) ||
+      isLoopbackHostname(parsed.hostname) ||
+      !databaseName ||
+      databaseName.includes("/")
+    ) {
+      throw new Error("unsafe");
+    }
+  } catch {
+    throw new Error(
+      "MONGODB_URI must identify an encrypted, non-local MongoDB deployment and an explicit database in production.",
+    );
+  }
+  return value;
+}
+
+function buildId(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value)) {
+    throw new Error(
+      "APP_BUILD_ID must contain only letters, numbers, dots, underscores, or hyphens.",
+    );
+  }
+  return value;
 }
 
 export function normalizeAuthIssuerUrl(value: string): string {
@@ -196,6 +312,7 @@ export function validateAuthTransportSecurity(
   corsOrigin: string,
   callbackUrl: string,
   returnUrls: readonly string[],
+  publicApiOrigin?: string,
 ): void {
   if (nodeEnv !== "production") return;
 
@@ -203,6 +320,11 @@ export function validateAuthTransportSecurity(
   if (urls.some((value) => new URL(value).protocol !== "https:")) {
     throw new Error(
       "Production authentication requires HTTPS CORS, callback, and return URLs.",
+    );
+  }
+  if (publicApiOrigin && new URL(callbackUrl).origin !== publicApiOrigin) {
+    throw new Error(
+      "Production AUTH0_CALLBACK_URL must use the configured API_PUBLIC_ORIGIN.",
     );
   }
 }
@@ -243,6 +365,7 @@ function validateProductionAuthPolicy(config: AuthEnvironmentConfig): void {
 function authEnvironment(
   nodeEnv: Environment,
   corsOrigin: string,
+  publicApiOrigin: string | undefined,
 ): AuthEnvironmentConfig | null {
   const requiredNames = [
     "AUTH0_ISSUER_URL",
@@ -281,7 +404,13 @@ function authEnvironment(
     required("AUTH_ALLOWED_RETURN_URLS"),
     corsOrigin,
   );
-  validateAuthTransportSecurity(nodeEnv, corsOrigin, callbackUrl, allowedReturnUrls);
+  validateAuthTransportSecurity(
+    nodeEnv,
+    corsOrigin,
+    callbackUrl,
+    allowedReturnUrls,
+    publicApiOrigin,
+  );
 
   const config: AuthEnvironmentConfig = {
     issuerUrl,
@@ -305,15 +434,33 @@ const nodeEnv = environment("NODE_ENV", "development");
 const corsOrigin = normalizeCorsOrigin(
   optional("CORS_ORIGIN", "http://localhost:3000"),
 );
+validateProductionOrigin(nodeEnv, "CORS_ORIGIN", corsOrigin);
+const publicApiOrigin = configuredPublicOrigin(
+  nodeEnv,
+  "API_PUBLIC_ORIGIN",
+  optionalValue("API_PUBLIC_ORIGIN"),
+  true,
+);
+const mediaPublicOrigin = configuredPublicOrigin(
+  nodeEnv,
+  "MEDIA_PUBLIC_ORIGIN",
+  optionalValue("MEDIA_PUBLIC_ORIGIN"),
+  false,
+);
+const mongodbUri = validateMongoDbUri(nodeEnv, required("MONGODB_URI"));
 
 export const env = Object.freeze({
   NODE_ENV: nodeEnv,
   IS_PRODUCTION: nodeEnv === "production",
   PORT: port("PORT", 5000),
-  TRUST_PROXY_HOPS: normalizeTrustProxyHops(process.env.TRUST_PROXY_HOPS),
-  MONGODB_URI: required("MONGODB_URI"),
+  TRUST_PROXY_HOPS: productionTrustProxyHops(nodeEnv, process.env.TRUST_PROXY_HOPS),
+  SHUTDOWN_GRACE_SECONDS: boundedPositiveInteger("SHUTDOWN_GRACE_SECONDS", 30, 120),
+  APP_BUILD_ID: buildId(optionalValue("APP_BUILD_ID")),
+  MONGODB_URI: mongodbUri,
   CORS_ORIGIN: corsOrigin,
-  AUTH: authEnvironment(nodeEnv, corsOrigin),
+  API_PUBLIC_ORIGIN: publicApiOrigin,
+  MEDIA_PUBLIC_ORIGIN: mediaPublicOrigin,
+  AUTH: authEnvironment(nodeEnv, corsOrigin, publicApiOrigin),
 });
 
 export type Env = typeof env;

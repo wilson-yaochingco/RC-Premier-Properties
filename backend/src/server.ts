@@ -27,16 +27,24 @@ async function start(): Promise<void> {
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     console.log(
-      `[server] rc-premier-backend listening on http://localhost:${env.PORT} (${env.NODE_ENV})`,
+      `[server] rc-premier-backend listening on port ${env.PORT} (${env.NODE_ENV})`,
     );
-    console.log(
-      `[server] health check: http://localhost:${env.PORT}${API_PREFIX}/health`,
-    );
+    console.log(`[server] liveness: ${API_PREFIX}/health`);
+    console.log(`[server] readiness: ${API_PREFIX}/health/ready`);
+    if (env.APP_BUILD_ID) console.log(`[server] build: ${env.APP_BUILD_ID}`);
   });
 
+  let shutdownStarted = false;
+  let shutdownFinished = false;
+
   const shutdown = (signal: string): void => {
-    console.log(`\n[server] ${signal} received, shutting down`);
-    server.close(() => {
+    if (shutdownStarted) return;
+    shutdownStarted = true;
+    console.log(`[server] ${signal} received, shutting down`);
+
+    const finish = (exitCode: number): void => {
+      if (shutdownFinished) return;
+      shutdownFinished = true;
       void disconnectDatabase()
         .catch((error: unknown) =>
           console.error(
@@ -44,8 +52,26 @@ async function start(): Promise<void> {
             safeErrorMessage(error, [env.MONGODB_URI]),
           ),
         )
-        .finally(() => process.exit(0));
+        .finally(() => process.exit(exitCode));
+    };
+
+    const forceTimer = setTimeout(() => {
+      console.error(
+        `[server] shutdown exceeded ${env.SHUTDOWN_GRACE_SECONDS} seconds; closing remaining connections`,
+      );
+      server.closeAllConnections();
+      finish(1);
+    }, env.SHUTDOWN_GRACE_SECONDS * 1_000);
+    forceTimer.unref();
+
+    server.close((error) => {
+      clearTimeout(forceTimer);
+      if (error) {
+        console.error("[server] HTTP close failed:", safeErrorMessage(error));
+      }
+      finish(error ? 1 : 0);
     });
+    server.closeIdleConnections();
   };
 
   process.on("SIGINT", () => shutdown("SIGINT"));

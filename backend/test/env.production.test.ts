@@ -21,12 +21,21 @@ function configureProductionAuth(): void {
   );
 }
 
+function configureProductionBase(): void {
+  vi.stubEnv(
+    "MONGODB_URI",
+    "mongodb+srv://application:credential@cluster.example.test/rc_premier",
+  );
+  vi.stubEnv("CORS_ORIGIN", "https://properties.example.test");
+  vi.stubEnv("API_PUBLIC_ORIGIN", "https://api.example.test");
+  vi.stubEnv("TRUST_PROXY_HOPS", "1");
+}
+
 describe("production authentication environment", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("MONGODB_URI", "mongodb://127.0.0.1/production-test");
-    vi.stubEnv("CORS_ORIGIN", "https://properties.example.test");
+    configureProductionBase();
     for (const name of AUTH_VARIABLES) vi.stubEnv(name, "");
   });
 
@@ -43,7 +52,6 @@ describe("production authentication environment", () => {
 
   it("hard-disables development passkey-only assurance", async () => {
     configureProductionAuth();
-    vi.stubEnv("TRUST_PROXY_HOPS", "1");
 
     const { env } = await import("../src/config/env.js");
     expect(env.AUTH).toMatchObject({
@@ -63,5 +71,26 @@ describe("production authentication environment", () => {
     configureProductionAuth();
     vi.stubEnv(name, value);
     await expect(import("../src/config/env.js")).rejects.toThrow(name);
+  });
+
+  it.each([
+    ["CORS_ORIGIN", "http://properties.example.test", /CORS_ORIGIN/],
+    ["CORS_ORIGIN", "https://localhost", /CORS_ORIGIN/],
+    ["API_PUBLIC_ORIGIN", "", /API_PUBLIC_ORIGIN/],
+    ["TRUST_PROXY_HOPS", "", /TRUST_PROXY_HOPS/],
+    ["MONGODB_URI", "mongodb://127.0.0.1/rc_premier", /MONGODB_URI/],
+  ])("rejects unsafe production %s", async (name, value, expected) => {
+    configureProductionAuth();
+    vi.stubEnv(name, value);
+    await expect(import("../src/config/env.js")).rejects.toThrow(expected);
+  });
+
+  it("pins the Auth0 callback to the configured public API origin", async () => {
+    configureProductionAuth();
+    vi.stubEnv(
+      "AUTH0_CALLBACK_URL",
+      "https://other-api.example.test/api/v1/auth/callback",
+    );
+    await expect(import("../src/config/env.js")).rejects.toThrow(/API_PUBLIC_ORIGIN/);
   });
 });

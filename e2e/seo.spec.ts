@@ -4,6 +4,20 @@ const SITE_ORIGIN = "http://127.0.0.1:3100";
 const FACEBOOK_URL =
   "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/";
 
+test("optimized frontend sends the reviewed provider-aware CSP", async ({ page }) => {
+  const response = await page.goto("/");
+  const policy = response?.headers()["content-security-policy"] ?? "";
+
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).toContain("connect-src 'self' http://127.0.0.1:5051");
+  expect(policy).toContain("https://tiles.stadiamaps.com");
+  expect(policy).toContain("frame-src https://www.youtube-nocookie.com");
+  expect(policy).toContain("frame-ancestors 'none'");
+  expect(policy).not.toContain("unsafe-eval");
+  expect(policy).not.toContain("https://hostile.invalid");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
 test("public pages render canonical and social metadata", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("RC Premier Properties | Houses for Sale in Pampanga");

@@ -36,6 +36,12 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # This verifies optimized artifacts without claiming a live deployment.
+          # Staging/production use their real HTTPS origins and provider configuration.
+          NEXT_PUBLIC_DEPLOYMENT_ENV: test
+          NEXT_PUBLIC_API_URL: https://api.ci.example.test
+          NEXT_PUBLIC_SITE_URL: https://site.ci.example.test
 
       - name: Browser acceptance tests
         run: npm run test:e2e

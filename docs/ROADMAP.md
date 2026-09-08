@@ -971,6 +971,14 @@ HTTPS, secure hosting, CDN, WAF, DDoS protection, backups, restore procedures,
 environment isolation, secret storage. _Providers to be evaluated/selected during this
 phase._
 
+The provider-neutral Level 11 deployment architecture, strict environment gates,
+readiness endpoint, release smoke test, production checklist, and rollback procedure are
+documented in
+[`development/deployment-and-release.md`](development/deployment-and-release.md). This
+does not complete Phase 6: the final domain/host, Auth0 MFA, Atlas production controls,
+storage/CDN, email, map provider, staging acceptance, monitoring, and recovery remain
+external or later gates.
+
 ### Testing
 
 Unit tests for important business logic. Integration tests for API and database

@@ -22,6 +22,7 @@ import {
   type ValidationIssue,
 } from "@rc/shared";
 import { Types } from "mongoose";
+import { env } from "../../config/env.js";
 import { HttpError } from "../../middleware/errorHandler.js";
 
 const ALLOWED_QUERY_FIELDS = new Set([
@@ -879,18 +880,34 @@ function mediaUrl(
 
   if (source === "production") {
     if (
-      !LOCAL_PROPERTY_IMAGE_PATTERN.test(normalized) ||
-      normalized.includes("..") ||
-      normalized.includes("\\")
+      LOCAL_PROPERTY_IMAGE_PATTERN.test(normalized) &&
+      !normalized.includes("..") &&
+      !normalized.includes("\\")
     ) {
+      return normalized;
+    }
+
+    try {
+      const url = new URL(normalized);
+      if (
+        !env.MEDIA_PUBLIC_ORIGIN ||
+        url.protocol !== "https:" ||
+        url.origin !== env.MEDIA_PUBLIC_ORIGIN ||
+        url.username ||
+        url.password ||
+        url.hash
+      ) {
+        throw new Error("unapproved media origin");
+      }
+      return url.toString();
+    } catch {
       issues.push({
         field,
         message:
-          "Production media must use a local /media/properties/ image path until a storage provider is approved.",
+          "Production media must use managed local storage or the configured public media origin.",
       });
       return undefined;
     }
-    return normalized;
   }
 
   try {
