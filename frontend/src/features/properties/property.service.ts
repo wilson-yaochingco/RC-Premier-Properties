@@ -33,6 +33,7 @@ export function getFeaturedProperties(
 ): Promise<PropertySearchResponse> {
   const query = new URLSearchParams({
     featured: "true",
+    purpose: "sale",
     sort: "newest",
     page: "1",
     limit: "3",

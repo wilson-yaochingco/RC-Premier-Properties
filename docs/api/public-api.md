@@ -4,7 +4,7 @@ Status: implemented public MVP contract. Last reviewed 2026-09-07.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. Request
 and response types live in [`shared/src/api.ts`](../../shared/src/api.ts); this document
-explains behaviour and intentionally does not create a second TypeScript contract.
+explains behavior and intentionally does not create a second TypeScript contract.
 
 ## Endpoint summary
 
@@ -35,11 +35,11 @@ The connected Atlas response was verified through this endpoint on 2026-09-05.
 
 ## `GET /properties`
 
-Only records with `publicationStatus: "published"` are eligible. Publication status is
-not a user-controlled filter. Private addresses, internal coordinates, owner references
-and internal notes are excluded from the public projection. An optional public point is
-a separate, explicitly approved field governed by `publicPrecision`; it is never derived
-from an internal coordinate.
+Only records with `publicationStatus: "published"` and `purpose: "sale"` are eligible.
+Neither boundary is user-controlled. Private addresses, internal coordinates, owner
+references and internal notes are excluded from the public projection. An optional public
+point is a separate, explicitly approved field governed by `publicPrecision`; it is never
+derived from an internal coordinate.
 
 ### Query parameters
 
@@ -49,10 +49,10 @@ from an internal coordinate.
 | `propertyId`                 | Exact public reference                                             | up to 40 letters, numbers, hyphens or underscores       |
 | `location`                   | Partial province, city, barangay or development match              | up to 120 characters                                    |
 | `propertyType`               | Listing category                                                   | one of `PROPERTY_TYPES`                                 |
-| `purpose`                    | Sale or rent                                                       | `sale` or `rent`                                        |
+| `purpose`                    | Compatibility input; public inventory remains sales-only           | `sale`; `rent` returns no public matches                |
 | `minPrice`, `maxPrice`       | Inclusive PHP price range                                          | 0–1,000,000,000,000; minimum cannot exceed maximum      |
 | `bedrooms`, `bathrooms`      | Minimum room count                                                 | whole number from 0 to 100                              |
-| `minLotArea`, `minFloorArea` | Inclusive minimum square metres                                    | 0–100,000,000                                           |
+| `minLotArea`, `minFloorArea` | Inclusive minimum square meters                                    | 0–100,000,000                                           |
 | `featured`                   | Featured state                                                     | literal `true` or `false`                               |
 | `sort`                       | Ordering                                                           | `newest`, `price-asc` or `price-desc`; default `newest` |
 | `page`                       | One-based page                                                     | whole number from 1–100,000; default 1                  |
@@ -98,7 +98,7 @@ The response contains:
 - `mappableTotal` — matching records with approved public points;
 - `returned` and `truncated` — the actual item count and whether the 200-item cap was
   reached; and
-- `appliedFilters` — normalized filters shared with the catalogue URL state.
+- `appliedFilters` — normalized filters shared with the catalog URL state.
 
 The endpoint is requested only after the progressive map experience loads. It is not an
 unbounded replacement for the paginated property list.
@@ -150,21 +150,21 @@ Accepts `CreateInquiryRequest` as JSON. The request must use an
 | `website`        | optional honeypot; legitimate clients leave it empty                       |
 
 Unknown fields are rejected. A valid request returns only an opaque inquiry identifier,
-`received` status, acknowledgement text and creation time; submitted personal data is
+`received` status, acknowledgment text and creation time; submitted personal data is
 not echoed. An otherwise-valid request with a populated honeypot receives the normal
-acknowledgement without creating a record. Invalid fields are still rejected before the
+acknowledgment without creating a record. Invalid fields are still rejected before the
 honeypot decision. The route is limited to 5 submissions per IP per 15 minutes in
 addition to the general API budget.
 
 Clients may send an `Idempotency-Key` header containing 16–200 allowlisted ASCII
 characters. The backend stores only its SHA-256 hash under a unique sparse index. A
-retry with the same key returns the original acknowledgement and does not create a
+retry with the same key returns the original acknowledgment and does not create a
 second inquiry. The connected browser form generates and reuses this key across
 uncertain failures.
 
 A viewing inquiry creates structured `requested` appointment state. Its source must be
 `viewing-page`, its date/time must be in the future, and its Property ID must identify a
-published sale property that is not sold. The acknowledgement explicitly says the requested
+published sale property that is not sold. The acknowledgment explicitly says the requested
 schedule still needs staff confirmation; the endpoint does not expose calendar
 availability or confirm an appointment.
 
@@ -192,7 +192,7 @@ limit returns `413`; and an unsupported inquiry content type returns `415`.
 
 HTTP integration tests cover routing, normalization, published-only disclosure,
 precision-aware map serialization and query limits, validation, content/body errors,
-otherwise-valid honeypot behaviour, throttling and the absence of inquiry reads by
+otherwise-valid honeypot behavior, throttling and the absence of inquiry reads by
 injecting test services. The public Mongoose create/read/delete path was verified against
 the project Atlas database on 2026-09-05; the new staff workflow still requires its
 manual live acceptance pass.

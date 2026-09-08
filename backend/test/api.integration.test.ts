@@ -403,7 +403,7 @@ describe("Phase 2A public API", () => {
     expect(oversized.body).toMatchObject({
       status: "error",
       statusCode: 413,
-      message: "Request body exceeds the 1 MB limit.",
+      message: "Request body exceeds the configured limit.",
     });
     expect(inquiries.submissions).toHaveLength(0);
   });

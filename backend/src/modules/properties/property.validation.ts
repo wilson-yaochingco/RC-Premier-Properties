@@ -992,7 +992,17 @@ export function parseUpdatePropertyMediaBody(
       }
       unknownFields(
         rawMedia,
-        ["id", "kind", "url", "alt", "caption", "source", "sourceUrl", "attribution"],
+        [
+          "id",
+          "kind",
+          "url",
+          "alt",
+          "caption",
+          "source",
+          "sourceUrl",
+          "attribution",
+          "focalPoint",
+        ],
         prefix,
         issues,
       );
@@ -1029,6 +1039,37 @@ export function parseUpdatePropertyMediaBody(
         source === "development-sample"
           ? requiredText(rawMedia.attribution, `${prefix}.attribution`, 160, issues)
           : optionalText(rawMedia.attribution, `${prefix}.attribution`, 160, issues);
+      let focalPoint: { x: number; y: number } | undefined;
+      if (rawMedia.focalPoint !== undefined) {
+        if (!isRecord(rawMedia.focalPoint)) {
+          issues.push({
+            field: `${prefix}.focalPoint`,
+            message: "Must contain x and y percentages.",
+          });
+        } else {
+          unknownFields(
+            rawMedia.focalPoint,
+            ["x", "y"],
+            `${prefix}.focalPoint`,
+            issues,
+          );
+          const x = boundedBodyNumber(
+            rawMedia.focalPoint.x,
+            `${prefix}.focalPoint.x`,
+            100,
+            issues,
+            true,
+          );
+          const y = boundedBodyNumber(
+            rawMedia.focalPoint.y,
+            `${prefix}.focalPoint.y`,
+            100,
+            issues,
+            true,
+          );
+          if (x !== undefined && y !== undefined) focalPoint = { x, y };
+        }
+      }
 
       if (id && kind && source && url && alt) {
         parsedMedia.push({
@@ -1040,6 +1081,7 @@ export function parseUpdatePropertyMediaBody(
           source,
           ...(sourceUrl ? { sourceUrl } : {}),
           ...(attribution ? { attribution } : {}),
+          ...(focalPoint ? { focalPoint } : {}),
         });
       }
     }

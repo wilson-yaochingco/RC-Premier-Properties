@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   MAX_PROPERTY_IMAGES,
   type AdminPropertyDetail,
@@ -8,10 +8,9 @@ import {
   type ValidationIssue,
 } from "@rc/shared";
 import { PropertyMedia } from "@/features/properties/PropertyMedia";
-import { DEVELOPMENT_SAMPLE_MEDIA } from "@/features/properties/development-sample-media";
 import { ApiClientError } from "@/services/api-client";
 import { useAdminSession } from "./AdminShell";
-import { updatePropertyMedia } from "./admin.service";
+import { updatePropertyMedia, uploadPropertyImage } from "./admin.service";
 import styles from "./admin.module.css";
 
 function editableMedia(property: AdminPropertyDetail): AdminPropertyMediaInput[] {
@@ -27,6 +26,7 @@ function editableMedia(property: AdminPropertyDetail): AdminPropertyMediaInput[]
             source: item.source ?? "production",
             ...(item.sourceUrl ? { sourceUrl: item.sourceUrl } : {}),
             ...(item.attribution ? { attribution: item.attribution } : {}),
+            ...(item.focalPoint ? { focalPoint: item.focalPoint } : {}),
           },
         ]
       : [],
@@ -49,6 +49,17 @@ function issueFor(issues: ValidationIssue[], index: number, field: string) {
   return issues.find((issue) => issue.field === `media.${index}.${field}`)?.message;
 }
 
+interface PendingUpload {
+  id: string;
+  file: File;
+  previewUrl: string;
+  alt: string;
+  caption: string;
+  state: "ready" | "uploading" | "success" | "error";
+  progress: number;
+  error?: string;
+}
+
 export function AdminPropertyMediaManager({
   property,
   onSaved,
@@ -67,11 +78,110 @@ export function AdminPropertyMediaManager({
     message?: string;
     issues?: ValidationIssue[];
   }>({ kind: "idle" });
+  const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const uploadsRef = useRef<PendingUpload[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (state.kind === "error") errorRef.current?.focus();
   }, [state.kind]);
+
+  useEffect(() => {
+    uploadsRef.current = uploads;
+  }, [uploads]);
+
+  useEffect(
+    () => () =>
+      uploadsRef.current.forEach((upload) => URL.revokeObjectURL(upload.previewUrl)),
+    [],
+  );
+
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
+
+  function addFiles(files: FileList | File[]) {
+    const queued = uploads.filter((upload) => upload.state !== "success").length;
+    const available = Math.max(0, MAX_PROPERTY_IMAGES - media.length - queued);
+    const next = Array.from(files)
+      .slice(0, available)
+      .map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        alt: "",
+        caption: "",
+        state: "ready" as const,
+        progress: 0,
+      }));
+    setUploads((items) => [...items, ...next]);
+  }
+
+  function updateUpload(id: string, update: Partial<PendingUpload>) {
+    setUploads((items) =>
+      items.map((item) => (item.id === id ? { ...item, ...update } : item)),
+    );
+  }
+
+  async function uploadFiles() {
+    if (dirty) {
+      setState({
+        kind: "error",
+        message: "Save the current media edits before uploading new photos.",
+      });
+      return;
+    }
+    let currentVersion = property.version;
+    let successfulProperty = property;
+    for (const upload of uploads.filter((item) => item.state !== "success")) {
+      if (!upload.alt.trim()) {
+        updateUpload(upload.id, {
+          state: "error",
+          error: "Alternative text is required.",
+        });
+        continue;
+      }
+      updateUpload(upload.id, { state: "uploading", progress: 0, error: undefined });
+      try {
+        successfulProperty = await uploadPropertyImage(
+          property.id,
+          currentVersion,
+          upload.file,
+          upload.alt.trim(),
+          upload.caption,
+          session.csrfToken,
+          (progress) => updateUpload(upload.id, { progress }),
+        );
+        currentVersion = successfulProperty.version;
+        updateUpload(upload.id, { state: "success", progress: 100 });
+        const savedMedia = editableMedia(successfulProperty);
+        setMedia(savedMedia);
+        setCoverMediaId(initialCoverId(successfulProperty, savedMedia));
+        onSaved(successfulProperty);
+      } catch (error) {
+        if (error instanceof ApiClientError && error.statusCode === 401) {
+          expireSession();
+          return;
+        }
+        updateUpload(upload.id, {
+          state: "error",
+          error:
+            error instanceof ApiClientError ? error.message : "Image upload failed.",
+        });
+      }
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragging(false);
+    addFiles(event.dataTransfer.files);
+  }
 
   function updateItem(index: number, update: Partial<AdminPropertyMediaInput>) {
     setMedia((items) =>
@@ -80,6 +190,7 @@ export function AdminPropertyMediaManager({
       ),
     );
     setState({ kind: "idle" });
+    setDirty(true);
   }
 
   function addProductionImage() {
@@ -91,14 +202,7 @@ export function AdminPropertyMediaManager({
     ]);
     if (!coverMediaId) setCoverMediaId(id);
     setState({ kind: "idle" });
-  }
-
-  function addSample(sample: AdminPropertyMediaInput) {
-    if (media.length >= MAX_PROPERTY_IMAGES) return;
-    const id = `media-${crypto.randomUUID()}`;
-    setMedia((items) => [...items, { ...sample, id }]);
-    if (!coverMediaId) setCoverMediaId(id);
-    setState({ kind: "idle" });
+    setDirty(true);
   }
 
   function move(index: number, direction: -1 | 1) {
@@ -111,6 +215,7 @@ export function AdminPropertyMediaManager({
       return next;
     });
     setState({ kind: "idle" });
+    setDirty(true);
   }
 
   function remove(index: number) {
@@ -121,6 +226,7 @@ export function AdminPropertyMediaManager({
     setMedia(next);
     if (item.id === coverMediaId) setCoverMediaId(next[0]?.id ?? "");
     setState({ kind: "idle" });
+    setDirty(true);
   }
 
   async function save() {
@@ -139,6 +245,7 @@ export function AdminPropertyMediaManager({
       setMedia(savedMedia);
       setCoverMediaId(initialCoverId(updated, savedMedia));
       onSaved(updated);
+      setDirty(false);
       setState({ kind: "success", message: "Property media saved." });
     } catch (error) {
       if (error instanceof ApiClientError && error.statusCode === 401) {
@@ -165,8 +272,9 @@ export function AdminPropertyMediaManager({
           <p className={styles.eyebrow}>Property media</p>
           <h2 id="property-media-title">Images and cover</h2>
           <p>
-            Array order controls the gallery. Production references are limited to safe
-            local image paths until a storage provider is approved.
+            Upload real photos from your device, then arrange the gallery, choose a
+            cover, and set focal points. Development uploads use isolated local storage;
+            production storage remains provider-gated.
           </p>
         </div>
         <span>
@@ -193,6 +301,116 @@ export function AdminPropertyMediaManager({
         <div className={styles.successMessage} role="status">
           <strong>{state.message}</strong>
         </div>
+      ) : null}
+
+      <div
+        className={`${styles.uploadZone} ${dragging ? styles.uploadZoneDragging : ""}`}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+      >
+        <div>
+          <strong>Upload Photos</strong>
+          <p>Choose PNG, JPEG, or WebP images up to 12 MB each, or drop files here.</p>
+        </div>
+        <label className={styles.uploadPicker}>
+          Choose Photos
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            onChange={(event) => {
+              if (event.target.files) addFiles(event.target.files);
+              event.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+
+      {uploads.length > 0 ? (
+        <ol className={styles.uploadList}>
+          {uploads.map((upload) => (
+            <li key={upload.id}>
+              {/* Browser-created preview only; the server still validates the bytes. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={upload.previewUrl} alt="" />
+              <div>
+                <strong>{upload.file.name}</strong>
+                <label>
+                  <span>Alternative text</span>
+                  <input
+                    value={upload.alt}
+                    maxLength={240}
+                    disabled={
+                      upload.state === "uploading" || upload.state === "success"
+                    }
+                    onChange={(event) =>
+                      updateUpload(upload.id, {
+                        alt: event.target.value,
+                        state: "ready",
+                        error: undefined,
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Caption (optional)</span>
+                  <input
+                    value={upload.caption}
+                    maxLength={500}
+                    disabled={
+                      upload.state === "uploading" || upload.state === "success"
+                    }
+                    onChange={(event) =>
+                      updateUpload(upload.id, { caption: event.target.value })
+                    }
+                  />
+                </label>
+                <progress max="100" value={upload.progress}>
+                  {upload.progress}%
+                </progress>
+                <span role="status">
+                  {upload.state === "ready"
+                    ? "Ready"
+                    : upload.state === "uploading"
+                      ? `Uploading ${upload.progress}%`
+                      : upload.state === "success"
+                        ? "Uploaded"
+                        : upload.error}
+                </span>
+              </div>
+              {upload.state !== "uploading" && upload.state !== "success" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    URL.revokeObjectURL(upload.previewUrl);
+                    setUploads((items) =>
+                      items.filter((item) => item.id !== upload.id),
+                    );
+                  }}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+
+      {uploads.some((upload) => upload.state !== "success") ? (
+        <button
+          type="button"
+          className={styles.submit}
+          disabled={dirty}
+          onClick={uploadFiles}
+        >
+          {uploads.some((upload) => upload.state === "error")
+            ? "Retry Uploads"
+            : "Upload Photos"}
+        </button>
       ) : null}
 
       {media.length === 0 ? (
@@ -251,6 +469,43 @@ export function AdminPropertyMediaManager({
                       }
                     />
                   </label>
+                  <fieldset className={styles.focalPoint}>
+                    <legend>Card focal point</legend>
+                    <label>
+                      <span>Horizontal {Math.round(item.focalPoint?.x ?? 50)}%</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={item.focalPoint?.x ?? 50}
+                        onChange={(event) =>
+                          updateItem(index, {
+                            focalPoint: {
+                              x: Number(event.target.value),
+                              y: item.focalPoint?.y ?? 50,
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Vertical {Math.round(item.focalPoint?.y ?? 50)}%</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={item.focalPoint?.y ?? 50}
+                        onChange={(event) =>
+                          updateItem(index, {
+                            focalPoint: {
+                              x: item.focalPoint?.x ?? 50,
+                              y: Number(event.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                  </fieldset>
                   {item.source === "development-sample" ? (
                     <div className={styles.sampleDetails}>
                       <strong>Development sample — never actual listing media</strong>
@@ -305,24 +560,6 @@ export function AdminPropertyMediaManager({
         >
           Add production image reference
         </button>
-        <details>
-          <summary>Add licensed development sample</summary>
-          <div className={styles.samplePicker}>
-            {DEVELOPMENT_SAMPLE_MEDIA.map((sample) => (
-              <button
-                key={sample.id}
-                type="button"
-                disabled={
-                  media.length >= MAX_PROPERTY_IMAGES || state.kind === "pending"
-                }
-                onClick={() => addSample(sample)}
-              >
-                <PropertyMedia media={sample} sizes="9rem" />
-                <span>{sample.alt}</span>
-              </button>
-            ))}
-          </div>
-        </details>
       </div>
 
       <button

@@ -1,37 +1,40 @@
 # Public Properties
 
 Status: implemented public read and Phase 2A interactive-map experience. Live Atlas
-persistence verified; real inventory remains unsupplied. Last reviewed 2026-09-05.
+persistence verified; real inventory remains unsupplied. Last reviewed 2026-09-08.
 
 ## Purpose and routes
 
 The property feature lets a visitor discover and evaluate published listings without
 exposing internal records:
 
-- `/properties` — searchable, sortable, paginated catalogue
+- `/properties` — searchable, sortable, paginated catalog
 - `/properties/[slug]` — one published listing with specifications, content, gallery
   slots, general-area location and inquiry actions
-- `/` — five-field search entry, property-category links and up to three featured
-  published listings
+- `/` — sales-focused entry, up to three featured published listings, and
+  inventory-derived location links/counts
 
 The browser renders API data only. There is no decorative property array, seed command
 or production listing bundled with the repository. An empty database therefore produces
 honest empty states rather than invented inventory.
 
-## Catalogue behaviour
+## Catalog behavior
 
-The prominent search surface supports the required Property ID, location, property type,
-minimum price and maximum price fields. A progressively disclosed region adds keyword,
-sale/rent purpose, minimum bedrooms, minimum bathrooms, minimum lot/floor areas and sort.
+The search surface supports Property ID, location, property type, minimum price and
+maximum price fields. A progressively disclosed region adds keyword, minimum bedrooms,
+minimum bathrooms, minimum lot/floor areas and sort. The public experience is sales-only:
+the frontend always requests `purpose=sale`, and public backend filters independently
+enforce `purpose: sale`. The stable internal purpose vocabulary remains available to
+administration to avoid a needless schema migration.
 
 Search state lives in the URL, so filtered pages can be linked, reloaded and traversed
 with normal browser controls. The frontend keeps only documented scalar keys before
-calling the API. The catalogue requests nine items per page and retains active filters
+calling the API. The catalog requests nine items per page and retains active filters
 when pagination links change pages.
 
 Facet data augments the location suggestions. If facets fail, the search remains usable
 with the core Angeles City/Pampanga suggestions. A facet failure never substitutes
-property results. Catalogue outcomes are distinct:
+property results. Catalog outcomes are distinct:
 
 - published matches render responsive cards and a live result count;
 - zero matches render a clear-filters action;
@@ -43,9 +46,9 @@ Cards expose only fields supplied by the public summary: reference, location, ty
 purpose, price, availability and up to three available specifications. Missing values
 are omitted rather than guessed.
 
-## Map discovery behaviour
+## Map discovery behavior
 
-The map is progressive enhancement around the same URL-backed catalogue, not a second
+The map is progressive enhancement around the same URL-backed catalog, not a second
 search state. Selecting one of the 22 city/municipality areas writes its public name to
 the `location` query parameter, resets the page and updates both cards and the map-wide
 pin request. Clearing the map location removes that same filter. Card hover/focus
@@ -56,12 +59,12 @@ views and wide desktop layouts use a split surface. The area selector provides a
 keyboard/screen-reader path independent of polygon clicking. Pins cluster when close.
 
 Leaflet, the boundary artifact and `GET /properties/map` are dynamically/lazily loaded;
-public entry routes do not eagerly request the boundary file. The catalogue maps only the
+public entry routes do not eagerly request the boundary file. The catalog maps only the
 already-fetched nine-item result page, so each marker always corresponds to a visible
 card. The separate public map endpoint applies allowlisted filters to all published
 inventory, returns only records with separately approved points, caps output at 200 and
 reports both matching and mappable totals; it is retained for future dedicated map
-clients but is not consumed by the current catalogue UI. Boundary and tile failures do
+clients but is not consumed by the current catalog UI. Boundary and tile failures do
 not remove the listing cards.
 
 The checked-in boundary layer contains approximate city/municipality geometry only.
@@ -89,7 +92,7 @@ uses separate authenticated private-read and draft create/edit routes; those rou
 not weaken this published-only boundary. See
 [`property-administration.md`](property-administration.md).
 
-## Property detail behaviour
+## Property detail behavior
 
 The stable public route uses the listing slug. The page provides:
 
@@ -106,10 +109,10 @@ The stable public route uses the listing slug. The page provides:
 The viewing action creates no appointment by itself. It carries the Property ID into the
 viewing-request form for staff follow-up.
 
-## Media behaviour
+## Media behavior
 
 Assigned media always wins. When a property has no assigned media, `next dev` selects a
-deterministic, presentation-only Unsplash sample from the centralized catalogue using the
+deterministic, presentation-only Unsplash sample from the centralized catalog using the
 property identifier. This value is never posted to the API or written to MongoDB. Cards,
 featured-property cards, property detail galleries and protected admin previews all use
 the same rule. Every sample is visibly identified as not being the listing.
@@ -127,12 +130,13 @@ unimplemented even though the data contract reserves those future kinds. See the
 - No real listings or seed data have been supplied.
 - Live MongoDB create/public-read persistence and private-field exclusion are verified
   with a temporary synthetic record; no real inventory has been supplied.
-- No approved logo, property imagery or agent profiles have been supplied.
+- Approved website design photography and branding are integrated. Real listing inventory,
+  listing-specific photos, and agent profiles remain user/provider supplied.
 - Production map-provider selection remains deferred to Phase 2B. Retaining the current
   evaluation tiles would require an appropriate Stadia Maps plan and registered frontend
   domain.
-- No certified, licence-compatible barangay boundary dataset has been approved.
+- No certified, license-compatible barangay boundary dataset has been approved.
 - No production listing has a business-reviewed public precision or public point; only
   clearly synthetic browser fixtures exercise markers.
-- Property lifecycle and image-reference administration are implemented. Production
-  binary upload remains blocked on storage-provider approval.
+- Device upload and development storage are implemented on the existing property media
+  model. Production object storage/CDN remains blocked on provider approval.

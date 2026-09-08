@@ -11,10 +11,10 @@ aid, not cadastral, survey, title or legal-boundary evidence.
 
 The map uses Leaflet with `leaflet.markercluster`. The Leaflet canvas, boundary GeoJSON
 and map-wide property request are all deferred until the map is near the viewport or a
-visitor explicitly chooses the Map view. Home and ordinary catalogue rendering therefore
+visitor explicitly chooses the Map view. Home and ordinary catalog rendering therefore
 do not download map geometry or initialize Leaflet.
 
-The catalogue remains server-rendered and usable without JavaScript map support. The map
+The catalog remains server-rendered and usable without JavaScript map support. The map
 adds a progressively enhanced view:
 
 1. The current URL supplies the canonical property filters.
@@ -68,7 +68,7 @@ a separate highly urbanized-city scope.
 | License                              | Creative Commons Attribution 3.0 IGO (`CC BY 3.0 IGO`)                                                                                        |
 | Local transformation                 | extract 22 reviewed features, replace source properties with the application name/PSGC crosswalk, retain the source's web-simplified geometry |
 
-The artifact embeds its source URL, revision, PSA crosswalk source/date, licence URL,
+The artifact embeds its source URL, revision, PSA crosswalk source/date, license URL,
 transformation note and disclaimer as top-level metadata. `scripts/build-pampanga-boundaries.mjs`
 reproduces it from the pinned source and fails if the expected area match is ambiguous.
 Regeneration requires network access and must be followed by review of the artifact diff
@@ -83,7 +83,7 @@ change.
 No certified, redistributable barangay boundary set has been approved for this project.
 Consequently, the implementation stops at city/municipality boundaries and does not draw
 invented barangay polygons. A barangay layer may be added only after its source,
-effective date, identifiers, licence and topology have been verified; it should remain a
+effective date, identifiers, license and topology have been verified; it should remain a
 separately lazy-loaded layer.
 
 ## Listing-location privacy
@@ -142,7 +142,7 @@ point contribute to `matchingTotal` but never appear as pins.
 
 The endpoint returns a deliberately reduced marker/preview shape. It does not expose
 description, gallery, internal address, internal coordinates, owner references or notes.
-The catalogue requests it only after map activation and preserves its server-rendered,
+The catalog requests it only after map activation and preserves its server-rendered,
 paginated list as the accessible source of results. A marker for the current page can
 highlight and reveal its card; every marker retains a concise popup and safe detail link.
 At greater scale the endpoint should gain viewport/bounds queries or a spatial index
@@ -159,16 +159,16 @@ the application never writes a regional default into a listing.
 
 ## Verification and remaining blockers
 
-Automated tests verify the 22-area artifact, licence metadata, coordinate envelope,
+Automated tests verify the 22-area artifact, license metadata, coordinate envelope,
 private/public authoring validation, protected location responses, value-free audit
 metadata, public list/detail/map serialization, map query validation, lazy loading,
-URL/card/map synchronization, marker behaviour, responsive fallback, failure isolation
+URL/card/map synchronization, marker behavior, responsive fallback, failure isolation
 and the absence of eager boundary requests on public entry routes.
 
 The following remain external or deliberately deferred to Phase 2B or launch preparation:
 
 - production map-provider selection and its account/domain configuration;
 - production inventory with business-approved `publicPrecision` and `publicPoint` values;
-- a certified, licence-compatible barangay boundary source;
+- a certified, license-compatible barangay boundary source;
 - a post-change live MongoDB/admin acceptance run; and
 - nearby-landmark data and routing, which are not part of this public MVP map.

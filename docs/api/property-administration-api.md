@@ -6,20 +6,21 @@ All paths are relative to `API_PREFIX` from `@rc/shared`. Request and response s
 
 ## Routes and permissions
 
-| Method  | Path                                 | Permission                     | Purpose                             |
-| ------- | ------------------------------------ | ------------------------------ | ----------------------------------- |
-| `GET`   | `/admin/properties`                  | `property:read-private`        | Search and paginate private records |
-| `GET`   | `/admin/properties/:id`              | `property:read-private`        | Read private detail / preview data  |
-| `POST`  | `/admin/properties`                  | `property:write`               | Create an available draft           |
-| `PATCH` | `/admin/properties/:id`              | `property:write`               | Edit draft or unpublished content   |
-| `PUT`   | `/admin/properties/:id/media`        | `property:write`               | Replace ordered image metadata      |
-| `POST`  | `/admin/properties/:id/publish`      | `property:publish`             | Publish                             |
-| `POST`  | `/admin/properties/:id/unpublish`    | `property:publish`             | Withdraw from public reads          |
-| `POST`  | `/admin/properties/:id/archive`      | `property:publish`             | Archive safely                      |
-| `POST`  | `/admin/properties/:id/restore`      | `property:publish`             | Restore privately                   |
-| `PATCH` | `/admin/properties/:id/availability` | `property:change-availability` | Change market state                 |
+| Method  | Path                                  | Permission                     | Purpose                               |
+| ------- | ------------------------------------- | ------------------------------ | ------------------------------------- |
+| `GET`   | `/admin/properties`                   | `property:read-private`        | Search and paginate private records   |
+| `GET`   | `/admin/properties/:id`               | `property:read-private`        | Read private detail / preview data    |
+| `POST`  | `/admin/properties`                   | `property:write`               | Create an available draft             |
+| `PATCH` | `/admin/properties/:id`               | `property:write`               | Edit draft or unpublished content     |
+| `PUT`   | `/admin/properties/:id/media`         | `property:write`               | Replace ordered image metadata        |
+| `POST`  | `/admin/properties/:id/media/uploads` | `property:write`               | Validate, store, and attach one image |
+| `POST`  | `/admin/properties/:id/publish`       | `property:publish`             | Publish                               |
+| `POST`  | `/admin/properties/:id/unpublish`     | `property:publish`             | Withdraw from public reads            |
+| `POST`  | `/admin/properties/:id/archive`       | `property:publish`             | Archive safely                        |
+| `POST`  | `/admin/properties/:id/restore`       | `property:publish`             | Restore privately                     |
+| `PATCH` | `/admin/properties/:id/availability`  | `property:change-availability` | Change market state                   |
 
-Every route requires a valid local staff session and returns `Cache-Control: no-store` plus `X-Robots-Tag: noindex, nofollow`. Every write additionally requires the exact configured `Origin`, JSON content, and the session token in `X-CSRF-Token`.
+Every route requires a valid local staff session and returns `Cache-Control: no-store` plus `X-Robots-Tag: noindex, nofollow`. Every write additionally requires the exact configured `Origin` and the session token in `X-CSRF-Token`. Writes use JSON except the raw-byte upload route.
 
 ## Private list
 
@@ -56,15 +57,28 @@ and a source classification. A non-empty list requires `coverMediaId` matching o
 IDs; an empty list omits the cover. The gallery and denormalized cover are updated in one
 version-matched MongoDB operation.
 
-Production references currently accept only safe raster paths below
-`/media/properties/`. Development samples accept only the documented Unsplash image host
-and require source-page provenance plus attribution. Unknown hosts, SVG/executable paths,
-future media kinds, duplicate IDs, malformed metadata, stale versions and media changes
-to published/archived records are rejected. This JSON endpoint never accepts file bytes.
+Production references accept only safe raster paths below `/media/properties/`.
+Development samples remain fixture-only and cannot be saved in production. Unknown hosts,
+SVG/executable paths, future media kinds, duplicate IDs, malformed metadata, stale
+versions and media changes to published/archived records are rejected. This JSON endpoint
+never accepts file bytes.
+
+## Device image upload
+
+`POST /admin/properties/:id/media/uploads` accepts one raw PNG, JPEG, or WebP body up to
+12 MB. `expectedVersion` and required `alt` plus optional `caption` are query parameters;
+unknown parameters are rejected. Declared MIME must match the bytes, the image must decode
+as one frame, and dimensions are bounded. The server generates the storage ID and ignores
+no client filename because filenames are not accepted at all. A successful storage write
+and version-matched gallery update returns the updated private property with status 201.
+If MongoDB persistence fails, the newly written development object is removed.
+
+Development retains the original privately and serves an optimized WebP derivative.
+Production returns 503 until an object-storage/CDN adapter is selected.
 
 ## Visibility and deletion
 
-Public property endpoints always impose `publicationStatus: published`. Draft, unpublished, and archived records cannot be read publicly. No hard-delete route exists; archive/restore is the safe retention policy.
+Public property endpoints always impose `publicationStatus: published` and `purpose: sale`. Draft, unpublished, archived, and rental records cannot be read publicly. No hard-delete route exists; archive/restore is the safe retention policy.
 
 ## Audit events
 

@@ -48,8 +48,16 @@ const PRIMARY_FIXTURES = [
     amenities: ["Fixture garden"],
     features: ["Two-storey layout", "Covered parking"],
     gallery: [
-      { kind: "image", alt: "Synthetic fixture residence exterior" },
-      { kind: "image", alt: "Synthetic fixture residence living area" },
+      {
+        id: "fixture-media-001",
+        kind: "image",
+        alt: "Synthetic fixture residence exterior",
+      },
+      {
+        id: "fixture-media-002",
+        kind: "image",
+        alt: "Synthetic fixture residence living area",
+      },
       { kind: "floor-plan", alt: "Synthetic fixture residence floor plan" },
     ],
     publishedAt: "2026-08-20T08:00:00.000Z",
@@ -286,23 +294,34 @@ const propertyService = {
     return mapFixtureProperties(request);
   },
   async findPublishedBySlug(slug) {
-    return TEST_PROPERTIES.find((property) => property.slug === slug) ?? null;
+    return (
+      TEST_PROPERTIES.find(
+        (property) => property.slug === slug && property.purpose === "sale",
+      ) ?? null
+    );
   },
   async getFacets() {
+    const saleProperties = TEST_PROPERTIES.filter(
+      (property) => property.purpose === "sale",
+    );
+    const locationCounts = Object.entries(
+      saleProperties.reduce((counts, property) => {
+        const location = `${property.location.city}, ${property.location.province}`;
+        counts[location] = (counts[location] ?? 0) + 1;
+        return counts;
+      }, {}),
+    )
+      .map(([location, count]) => ({ location, count }))
+      .sort((left, right) => left.location.localeCompare(right.location));
     return {
-      locations: [
-        ...new Set(
-          TEST_PROPERTIES.map(
-            (property) => `${property.location.city}, ${property.location.province}`,
-          ),
-        ),
-      ].sort((left, right) => left.localeCompare(right)),
+      locations: locationCounts.map(({ location }) => location),
+      locationCounts,
       propertyTypes: PROPERTY_TYPES.filter((type) =>
-        TEST_PROPERTIES.some((property) => property.propertyType === type),
+        saleProperties.some((property) => property.propertyType === type),
       ),
       priceRange: {
-        min: Math.min(...TEST_PROPERTIES.map((property) => property.price.amount)),
-        max: Math.max(...TEST_PROPERTIES.map((property) => property.price.amount)),
+        min: Math.min(...saleProperties.map((property) => property.price.amount)),
+        max: Math.max(...saleProperties.map((property) => property.price.amount)),
         currency: "PHP",
       },
     };

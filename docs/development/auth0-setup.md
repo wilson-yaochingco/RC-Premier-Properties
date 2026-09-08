@@ -266,9 +266,9 @@ property operations or logout work. Perform these remaining checks:
    shared `403` envelope. If this is checked manually, alter only a disposable local test
    fixture and restore it immediately; do not invent or persist a production role.
 
-The `/admin` shell now includes the implemented property lifecycle, media-reference and
-lightweight inquiry/viewing workflows. Production binary uploads and broader CRM remain
-outside this runbook and retain their roadmap gates.
+The `/admin` shell now includes the implemented property lifecycle, validated device media
+upload, and lightweight inquiry/viewing workflows. Production object storage/CDN and
+broader CRM remain outside this runbook and retain their roadmap gates.
 
 Official configuration references:
 

@@ -106,13 +106,13 @@ Its synthetic map points are explicitly approved test points; they are not deriv
 real addresses. Browser coverage verifies home and primary navigation, all required
 property search fields, URL-backed results and empty states, property detail/inquiry
 links, a successful inquiry payload, lazy map/filter/card interaction, mobile-menu
-keyboard behaviour, semantic page shells and horizontal overflow at 320, 360, 375, 390,
+keyboard behavior, semantic page shells and horizontal overflow at 320, 360, 375, 390,
 412, 430, 768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 pixels. Captures and failure
 traces stay under the configured ignored Playwright output directory.
 
 The performance spec currently enforces practical fixture-environment ceilings of CLS
 `<= 0.1`, longest observed main-thread task `< 500 ms`, initial encoded JavaScript below
-1 MB and fewer than 1,500 initial DOM nodes on the home/catalogue mobile entry routes. It
+1 MB and fewer than 1,500 initial DOM nodes on the home/catalog mobile entry routes. It
 also proves those entries make no eager boundary request. These figures are deliberately
 coarse cross-environment guards; production Core Web Vitals need real-user or controlled
 Lighthouse measurement after hosting, media and analytics are selected.
@@ -121,7 +121,7 @@ Lighthouse measurement after hosting, media and analytics are selected.
 
 Neither Vitest nor Playwright connects to the project database or Auth0. The backend HTTP
 tests inject service doubles, the OIDC protocol tests use a loopback signed issuer, and
-the browser tests use the explicit fixture API. They prove application behaviour without
+the browser tests use the explicit fixture API. They prove application behavior without
 pretending to prove external connectivity or persistence.
 
 The project Atlas environment passed this persistence gate on 2026-09-05: the real health

@@ -1,5 +1,4 @@
 import {
-  LISTING_PURPOSES,
   PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPES,
   type ListingPurpose,
@@ -47,7 +46,6 @@ function oneOf<T extends string>(value: string, options: readonly T[]): value is
 
 export function propertyFormValues(searchParams: RawSearchParams): PropertyFormValues {
   const propertyType = firstValue(searchParams.propertyType);
-  const purpose = firstValue(searchParams.purpose);
   const sort = firstValue(searchParams.sort);
 
   return {
@@ -55,7 +53,7 @@ export function propertyFormValues(searchParams: RawSearchParams): PropertyFormV
     propertyId: firstValue(searchParams.propertyId),
     location: firstValue(searchParams.location),
     propertyType: oneOf(propertyType, PROPERTY_TYPES) ? propertyType : "",
-    purpose: oneOf(purpose, LISTING_PURPOSES) ? purpose : "",
+    purpose: "sale",
     minPrice: firstValue(searchParams.minPrice),
     maxPrice: firstValue(searchParams.maxPrice),
     bedrooms: firstValue(searchParams.bedrooms),
@@ -79,7 +77,7 @@ export function propertyApiSearchParams(
   }
 
   if (values.propertyType) output.set("propertyType", values.propertyType);
-  if (values.purpose) output.set("purpose", values.purpose);
+  output.set("purpose", "sale");
 
   for (const key of NUMBER_FILTERS) {
     if (values[key]) output.set(key, values[key]);

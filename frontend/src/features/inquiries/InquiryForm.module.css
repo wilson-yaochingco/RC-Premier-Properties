@@ -30,6 +30,12 @@
   text-transform: none;
 }
 
+.counter {
+  justify-self: end;
+  color: color-mix(in srgb, var(--color-ink, #3a424f) 65%, white);
+  font-size: 0.7rem;
+}
+
 .field input,
 .field select,
 .field textarea {

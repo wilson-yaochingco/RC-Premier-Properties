@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { BrandLogo } from "./BrandLogo";
 import { MobileNavigation } from "./MobileNavigation";
 
 const navigation = [
   { href: "/", label: "Home" },
   { href: "/properties", label: "Properties" },
+  { href: "/#locations", label: "Locations" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ] as const;
@@ -14,15 +16,7 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <Container className="site-header__inner">
-        <Link
-          href="/"
-          className="brand-name-slot"
-          aria-label="RC Premier Properties home"
-          data-brand-slot="text"
-        >
-          <span>RC Premier</span>
-          <span>Properties</span>
-        </Link>
+        <BrandLogo />
 
         <nav className="desktop-navigation" aria-label="Primary navigation">
           <ul>
@@ -34,8 +28,8 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <Button href="/contact" variant="outline" className="site-header__cta">
-          Enquire
+        <Button href="/book-viewing" variant="outline" className="site-header__cta">
+          Book a Viewing
         </Button>
 
         <MobileNavigation items={navigation} />

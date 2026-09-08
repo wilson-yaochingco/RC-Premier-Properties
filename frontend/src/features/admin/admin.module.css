@@ -34,6 +34,12 @@
   text-transform: uppercase;
 }
 
+.shellHeader .viewWebsite {
+  padding-inline: 0.85rem;
+  border: 1px solid var(--brand-secondary-light);
+  color: var(--brand-secondary-light);
+}
+
 .shellHeader button {
   padding-inline: 1rem;
   border: 1px solid var(--line-light);
@@ -780,8 +786,146 @@
   aspect-ratio: 4 / 3;
 }
 
+.uploadZone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border: 1px dashed var(--brand-primary);
+  background: #fff;
+}
+
+.uploadZoneDragging {
+  border-color: var(--brand-secondary);
+  background: #fff8e8;
+}
+
+.uploadZone p {
+  margin-top: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.uploadPicker {
+  min-height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--brand-primary);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.uploadPicker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.uploadList {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.uploadList > li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.uploadList img {
+  width: 8rem;
+  height: 10rem;
+  object-fit: contain;
+  background: var(--surface-soft);
+}
+
+.uploadList > li > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.uploadList strong {
+  overflow-wrap: anywhere;
+}
+
+.uploadList label,
+.focalPoint label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.uploadList label span,
+.focalPoint span,
+.focalPoint legend {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.uploadList input:not([type="range"]) {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+}
+
+.uploadList progress {
+  width: 100%;
+}
+
+.focalPoint {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  border: 0;
+}
+
+.focalPoint legend {
+  grid-column: 1 / -1;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 40rem) {
+  .uploadList > li {
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+
+  .uploadList img {
+    width: 6rem;
+    height: 8rem;
+  }
+
+  .uploadList > li > button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .focalPoint {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .mediaFields,
 .mediaActions {
+  min-width: 0;
   display: grid;
   align-content: start;
   gap: 0.85rem;

@@ -287,6 +287,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
   );
   const [submission, setSubmission] = useState<SubmissionState>({ kind: "idle" });
   const [attempt, setAttempt] = useState(0);
+  const [dirty, setDirty] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -322,6 +323,25 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
   useEffect(() => {
     if (submission.kind === "error") errorRef.current?.focus();
   }, [submission]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    const beforeLink = (event: MouseEvent) => {
+      const link =
+        event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (link && !window.confirm("Leave without saving your property changes?")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", beforeLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", beforeLink, true);
+    };
+  }, [dirty]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -359,6 +379,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               session.csrfToken,
             );
       if (mode === "edit") setLoad({ kind: "ready", property });
+      setDirty(false);
       setSubmission({
         kind: "success",
         message:
@@ -447,7 +468,9 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         <div>
           <p className={styles.eyebrow}>Property administration</p>
           <h1 id="property-form-title">
-            {mode === "create" ? "Create a draft property" : "Edit property content"}
+            {mode === "create"
+              ? "Create a draft property"
+              : `Editing PREMIER PROPERTY #${load.property?.propertyId ?? ""}`}
           </h1>
           <p>
             Save content here, then preview and manage lifecycle from the property list.
@@ -503,6 +526,10 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         key={load.property?.updatedAt ?? "new"}
         className={styles.form}
         onSubmit={handleSubmit}
+        onChange={() => {
+          setDirty(true);
+          if (submission.kind === "success") setSubmission({ kind: "idle" });
+        }}
       >
         <fieldset disabled={submission.kind === "pending"}>
           <legend>Listing identity</legend>

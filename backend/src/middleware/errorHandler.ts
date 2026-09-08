@@ -22,7 +22,7 @@ function requestBodyError(error: unknown): { status: number; message: string } |
     return { status: 400, message: "Malformed JSON request body." };
   }
   if (error.type === "entity.too.large") {
-    return { status: 413, message: "Request body exceeds the 1 MB limit." };
+    return { status: 413, message: "Request body exceeds the configured limit." };
   }
   return null;
 }

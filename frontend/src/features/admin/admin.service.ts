@@ -18,7 +18,8 @@ import {
   type UpdatePropertyMediaRequest,
   type UpdateViewingRequestRequest,
 } from "@rc/shared";
-import { apiRequest } from "@/services/api-client";
+import { API_BASE_URL } from "@/lib/env";
+import { ApiClientError, apiRequest } from "@/services/api-client";
 
 const authenticatedRequest = (signal?: AbortSignal): RequestInit => ({
   credentials: "include",
@@ -212,6 +213,65 @@ export function updatePropertyMedia(
       method: "PUT",
     },
   );
+}
+
+export function uploadPropertyImage(
+  id: string,
+  expectedVersion: number,
+  file: File,
+  alt: string,
+  caption: string,
+  csrfToken: string,
+  onProgress: (percent: number) => void,
+): Promise<AdminPropertyDetail> {
+  const query = new URLSearchParams({ expectedVersion: String(expectedVersion), alt });
+  if (caption.trim()) query.set("caption", caption.trim());
+  const url = `${API_BASE_URL}${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/media/uploads?${query.toString()}`;
+
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", url);
+    request.withCredentials = true;
+    request.setRequestHeader("Accept", "application/json");
+    request.setRequestHeader("Content-Type", file.type);
+    request.setRequestHeader("X-CSRF-Token", csrfToken);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+    request.onerror = () =>
+      reject(
+        new ApiClientError({
+          status: "error",
+          statusCode: 0,
+          message: "Unable to reach the API.",
+        }),
+      );
+    request.onload = () => {
+      let body: unknown;
+      try {
+        body = JSON.parse(request.responseText) as unknown;
+      } catch {
+        body = undefined;
+      }
+      if (request.status >= 200 && request.status < 300 && body) {
+        resolve(body as AdminPropertyDetail);
+        return;
+      }
+      const error = body as { statusCode?: unknown; message?: unknown } | undefined;
+      reject(
+        new ApiClientError({
+          status: "error",
+          statusCode:
+            typeof error?.statusCode === "number" ? error.statusCode : request.status,
+          message:
+            typeof error?.message === "string" ? error.message : "Image upload failed.",
+        }),
+      );
+    };
+    request.send(file);
+  });
 }
 
 export function logout(csrfToken: string) {

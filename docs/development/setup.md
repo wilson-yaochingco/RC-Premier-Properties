@@ -207,7 +207,7 @@ Expected output:
 
 Open **http://localhost:3000**. You should see the RC Premier Properties public home page.
 Visit `/properties`, `/about`, `/contact`, `/sell` and `/book-viewing` to exercise the
-implemented routes. With no published records, the catalogue and featured section show
+implemented routes. With no published records, the catalog and featured section show
 intentional empty states; the repository contains no seed or sample inventory.
 
 When Auth0 is configured, start a staff login at

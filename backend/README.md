@@ -67,13 +67,13 @@ under `modules/<domain>/`. Create a module when its feature begins — not befor
 
 ## Public endpoints
 
-| Method | Path                        | Behaviour                                       |
+| Method | Path                        | Behavior                                        |
 | ------ | --------------------------- | ----------------------------------------------- |
 | `GET`  | `/api/v1/health`            | Process/environment/database status             |
 | `GET`  | `/api/v1/properties`        | Validated, published-only search and pagination |
 | `GET`  | `/api/v1/properties/facets` | Facets derived from published inventory         |
 | `GET`  | `/api/v1/properties/:slug`  | One published public projection                 |
-| `POST` | `/api/v1/inquiries`         | Validated create-only inquiry acknowledgement   |
+| `POST` | `/api/v1/inquiries`         | Validated create-only inquiry acknowledgment    |
 
 See the [public API reference](../docs/api/public-api.md) for parameters, validation and
 disclosure rules.
@@ -84,7 +84,7 @@ Protected administration endpoints are documented in
 
 ## Staff authentication endpoints
 
-| Method | Path                    | Behaviour                                       |
+| Method | Path                    | Behavior                                        |
 | ------ | ----------------------- | ----------------------------------------------- |
 | `GET`  | `/api/v1/auth/login`    | Starts Auth0 Authorization Code + PKCE login    |
 | `GET`  | `/api/v1/auth/callback` | Validates callback and issues the local session |

@@ -23,7 +23,7 @@ now_.
 | Directory                        | Put this here                                                       |
 | -------------------------------- | ------------------------------------------------------------------- |
 | [`architecture/`](architecture/) | Long-lived architecture and the decisions behind it                 |
-| [`features/`](features/)         | One spec per feature: purpose, rules, behaviour, responsibilities   |
+| [`features/`](features/)         | One spec per feature: purpose, rules, behavior, responsibilities    |
 | [`api/`](api/)                   | Endpoint conventions, request/response formats, versioning          |
 | [`database/`](database/)         | Data models, relationships, indexes, schema and migration decisions |
 | [`development/`](development/)   | Setup, environment variables, workflow, deployment                  |
@@ -59,17 +59,19 @@ Current:
 ### `features/`
 
 One document per feature, written when that feature is being designed or implemented —
-not before. A feature spec should cover purpose, requirements, user-facing behaviour,
+not before. A feature spec should cover purpose, requirements, user-facing behavior,
 business rules, important edge cases, and the split of responsibility between frontend
 and backend.
 
 Current:
 
-- [`properties.md`](features/properties.md) — published catalogue, filters and property
-  detail behaviour
+- [`properties.md`](features/properties.md) — published catalog, filters and property
+  detail behavior
 - [`property-administration.md`](features/property-administration.md) — protected admin
   shell, property lifecycle, draft content and image-reference workflow
-- [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
+- [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behavior
+- [`production-content-and-media.md`](features/production-content-and-media.md) — approved
+  Level 7 business content, supplied design media, device uploads and provider gates
 
 The backend authentication foundation is documented as an architectural boundary. The
 first property-administration slice now has a feature specification. Structured viewing
@@ -134,11 +136,11 @@ Current:
 
 ## Rules
 
-1. **Check `/docs` before changing behaviour.** Existing architectural decisions are
+1. **Check `/docs` before changing behavior.** Existing architectural decisions are
    binding until deliberately revisited.
-2. **Update documentation when behaviour or architecture materially changes** — in the
+2. **Update documentation when behavior or architecture materially changes** — in the
    same change, not later.
-3. **Document decisions, contracts and behaviour** — not things the code already makes
+3. **Document decisions, contracts and behavior** — not things the code already makes
    obvious. If a paragraph only restates a function, delete it.
 4. **Do not create a document to fill a directory.** An empty directory with a clear
    purpose is better than a page of speculation.

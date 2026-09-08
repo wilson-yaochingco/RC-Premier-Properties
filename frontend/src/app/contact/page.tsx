@@ -18,7 +18,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
       eyebrow="Contact"
       title="Let’s talk about your next move."
       description="Tell us what you are looking for, or share the Property ID that brought you here. Submit the form to request a direct follow-up."
-      note="RC Premier Properties is focused on Angeles City and the wider Pampanga market. Approved phone, email and office details have not yet been supplied, so this connected form is the current contact channel."
+      note="Email rcpremierph@gmail.com, call +63 918 429 1873, or use the connected form. Accepted inquiries are saved for staff follow-up."
       formLabel="Start a conversation"
       inquiryType={propertyId ? "property" : "general"}
       source="contact-page"

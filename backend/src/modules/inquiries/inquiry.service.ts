@@ -20,6 +20,11 @@ import { mongooseAuthStore } from "../auth/auth.store.js";
 import { PropertyModel } from "../properties/property.model.js";
 import type { PropertyEntity } from "../properties/property.types.js";
 import { InquiryModel } from "./inquiry.model.js";
+import {
+  buildInquiryNotification,
+  inquiryNotifier,
+  type InquiryNotifier,
+} from "./inquiry.notification.js";
 import type {
   AdminInquiryRecord,
   AdminInquiryService,
@@ -32,7 +37,7 @@ import type {
 } from "./inquiry.types.js";
 
 const RECEIVED_MESSAGE =
-  "Thank you. Your inquiry has been received and our team will be in touch.";
+  "Thank you for contacting RC Premier Properties. We have received your inquiry and will get back to you using your preferred contact method.";
 const VIEWING_RECEIVED_MESSAGE =
   "Your viewing request has been received. Our team will contact you to confirm the requested schedule; it is not yet an appointment.";
 
@@ -55,6 +60,7 @@ export class MongooseInquiryService implements InquiryService {
   constructor(
     private readonly model: Model<InquiryEntity> = InquiryModel,
     private readonly properties: ViewingPropertyRepository = new MongooseViewingPropertyRepository(),
+    private readonly notifier: InquiryNotifier = inquiryNotifier,
   ) {}
 
   async create(
@@ -129,7 +135,16 @@ export class MongooseInquiryService implements InquiryService {
       );
     }
 
-    return createResponse(String(inquiry._id), inquiry.createdAt, inquiry.inquiryType);
+    const inquiryId = String(inquiry._id);
+    try {
+      await this.notifier.send(
+        buildInquiryNotification(inquiryId, request, inquiry.createdAt),
+      );
+    } catch {
+      // Persistence is the source of truth. Notification failure must never reject or
+      // roll back an inquiry that has already been accepted into MongoDB.
+    }
+    return createResponse(inquiryId, inquiry.createdAt, inquiry.inquiryType);
   }
 
   private findIdempotentInquiry(idempotencyKeyHash: string) {

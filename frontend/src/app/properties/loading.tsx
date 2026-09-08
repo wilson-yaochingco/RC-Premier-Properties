@@ -7,7 +7,7 @@ export default function PropertiesLoading() {
       aria-busy="true"
       aria-live="polite"
     >
-      <p className="eyebrow">Property catalogue</p>
+      <p className="eyebrow">Property catalog</p>
       <h1>Preparing published listings…</h1>
       <div className="loading-rule" aria-hidden="true" />
     </main>

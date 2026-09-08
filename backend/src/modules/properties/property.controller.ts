@@ -27,6 +27,7 @@ import {
   parseUpdateDraftPropertyBody,
   parseUpdatePropertyMediaBody,
 } from "./property.validation.js";
+import { parseImageUploadQuery } from "./property-media.validation.js";
 
 export function createPropertyController(
   service: PropertyService = mongoosePropertyService,
@@ -120,6 +121,24 @@ export function createAdminPropertyController(
       );
       if (!property) throw new HttpError(404, "Property not found.");
       res.status(200).json(property);
+    },
+
+    async uploadImage(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ): Promise<void> {
+      if (!service.uploadImage) {
+        throw new HttpError(503, "Property image upload is not configured.");
+      }
+      const property = await service.uploadImage(
+        parseAdminPropertyId(req.params.id),
+        parseImageUploadQuery(req.query as Record<string, unknown>),
+        Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0),
+        req.get("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase(),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(201).json(property);
     },
 
     async publish(req: Request<{ id: string }>, res: Response<AdminPropertyDetail>) {

@@ -41,8 +41,8 @@ make ownership and dependencies visible without treating skipped UI work as comp
 **Phase 0 is Complete. Phases 1, 2A and 3A are In Progress.** The Atlas connection and
 live health response were verified on 2026-09-05. Repository-admin branch protection is
 an accepted follow-up rather than a Phase 0 completion gate; until it is enabled, the
-documented pull-request workflow remains enforced by convention. Phase 1 still needs the
-approved logo asset and business validation of lifecycle vocabulary. Phase 2A is built
+documented pull-request workflow remains enforced by convention. Phase 1 now has the
+approved logo asset and still needs business validation of lifecycle vocabulary. Phase 2A is built
 and tested, including live synthetic inquiry and published-property persistence checks,
 but cannot pass its real-inventory gates without supplied listings. A directory existing
 is not evidence that a capability works.
@@ -78,7 +78,7 @@ Before implementing any roadmap item:
 4. Plan the change and agree the scope.
 5. Implement only the requested scope.
 6. Test it.
-7. Update documentation when behaviour or architecture materially changes.
+7. Update documentation when behavior or architecture materially changes.
 
 Conventions for where code belongs are in the root [`AGENTS.md`](../AGENTS.md).
 
@@ -296,7 +296,7 @@ dashboard product.
 
 ### Target audience
 
-Document each group and what it needs: buyers, renters, investors, sellers, existing
+Document each group and what it needs: buyers, investors, sellers, existing
 clients, and internal agents/admin staff. Account for Philippine market expectations,
 including how buyers actually search and which communication channels they expect.
 
@@ -372,7 +372,7 @@ their implementation phase approaches.
 ### Definition of Done
 
 - [x] Public-MVP colors, typography, spacing, iconography and motion direction documented
-- [ ] Approved RC Premier Properties logo asset supplied and integrated
+- [x] Approved RC Premier Properties logo and favicon assets supplied and integrated
 - [x] Target audiences documented
 - [x] Property taxonomy agreed and justified for the public MVP
 - [x] Property data model planned field by field, including public/private classification
@@ -404,14 +404,14 @@ usable version of RC Premier Properties.
 RC Premier Properties, selling CTA, viewing CTA, trust signals, contact CTA. Final
 sections follow the Phase 1 designs, not this list.
 
-**Listings** — the discovery surface. Filters: keyword, location, sale/rent, property
+**Listings** — the discovery surface. Filters: keyword, location, property
 type, min/max price, bedrooms, bathrooms, lot area, floor area. Sorting: newest, price
 ascending, price descending. Filters belong in the URL so results are shareable and
-back-button behaviour is correct. Plan a scalable result strategy (pagination or
+back-button behavior is correct. Plan a scalable result strategy (pagination or
 equivalent) plus empty, loading and error states, and a mobile filter UX that is not a
 desktop panel squeezed onto a phone.
 
-**Listing cards** — cover image, price, sale/rent, type, location, bedrooms, bathrooms,
+**Listing cards** — cover image, price, for-sale status, type, location, bedrooms, bathrooms,
 area, status. Keep them visually clean; a card that shows everything communicates nothing.
 
 **Property details** — gallery, price, location, specifications, description, highlights,
@@ -508,7 +508,7 @@ market, not an afterthought.
 - [ ] Automated overflow checks pass from 320px through 1920px, but the required manual
       visual acceptance pass across mobile, tablet and desktop is still open
 - [x] SEO foundation in place: metadata, sitemap, robots, canonical URLs, structured data
-- [ ] Semantic structure, skip navigation, keyboard menu behaviour, focus restoration and
+- [ ] Semantic structure, skip navigation, keyboard menu behavior, focus restoration and
       accessible form feedback are tested; a complete accessibility audit is still open
 - [x] Unit and HTTP integration tests pass; implemented security requirements are covered
 - [x] Feature, API, database, architecture, testing and setup documentation updated
@@ -666,18 +666,18 @@ Create, edit, preview, draft, publish, unpublish, archive, mark reserved and mar
       logout verified manually with the development tenant
 - [x] Provider-neutral image metadata administration, ordering, cover selection,
       preview, removal, authorization and audit coverage implemented
-- [ ] Production binary upload/storage implemented (blocked on provider approval)
+- [x] Device upload, byte validation, optimization and isolated development storage implemented
+- [ ] Production object storage/CDN implemented (blocked on provider approval)
 - [x] Lightweight inquiry administration implemented
 
 ### Media management
 
-Multiple-image metadata, reordering, cover selection, replacement, safe removal, public
-gallery rendering and clearly marked licensed development samples are implemented. Empty
-development listings receive a deterministic presentation-only sample without changing
-their stored media; optimized production builds retain neutral placeholders. The
-production binary path—drag-and-drop upload, compression, modern-format generation, byte
-and MIME validation, secure provider storage and provider-side deletion—remains blocked
-until a storage provider and threat model are approved. See
+Multiple-image metadata, device upload, reordering, focal points, cover selection,
+replacement, safe removal, and portrait-safe public gallery rendering are implemented.
+Development uses isolated local source retention and optimized WebP delivery; production
+fails closed until a storage provider, CDN, and lifecycle policy are approved. The normal
+admin UI no longer offers development samples, and optimized builds refuse to render them
+as listing media. See
 [`architecture/property-media.md`](architecture/property-media.md).
 
 ### Inquiry management
@@ -898,7 +898,7 @@ listings.
 
 ### 5D — AI lead qualification
 
-Budget, location, property type, timeline, purchase/rental intent, payment method. Store
+Budget, location, property type, timeline, purchase intent, payment method. Store
 structured answers against the lead record.
 
 ### 5E — Recommendations
@@ -1008,7 +1008,7 @@ guidance.
 ### Monitoring
 
 Application and backend errors, failed login spikes, permission failures, suspicious
-behaviour, availability, performance, and critical admin actions. _Provider to be
+behavior, availability, performance, and critical admin actions. _Provider to be
 evaluated/selected during this phase._
 
 ### Backup recovery
@@ -1077,7 +1077,7 @@ search engines.
 **Observability.** Production systems need sufficient logging and monitoring to diagnose
 problems without reproducing them locally.
 
-**Documentation.** Significant architectural or behavioural changes update `/docs` in the
+**Documentation.** Significant architectural or behavioral changes update `/docs` in the
 same change.
 
 ---

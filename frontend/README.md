@@ -2,7 +2,7 @@
 
 Next.js (App Router) + React + TypeScript + Tailwind CSS.
 
-The public MVP includes the home, property catalogue/detail, about, contact, seller and
+The public MVP includes the home, property catalog/detail, about, contact, seller and
 viewing-request routes. It renders only API-backed property records and shows explicit
 empty/error states when inventory or the backend is unavailable.
 
@@ -61,7 +61,7 @@ property and inquiry operations. Shared layout and UI primitives stay under
 
 ## Public routes
 
-| Route                | Behaviour                                                                |
+| Route                | Behavior                                                                 |
 | -------------------- | ------------------------------------------------------------------------ |
 | `/`                  | Editorial home, five-field property search and API-backed featured state |
 | `/properties`        | URL-driven filters, sort, results, empty/error states and pagination     |

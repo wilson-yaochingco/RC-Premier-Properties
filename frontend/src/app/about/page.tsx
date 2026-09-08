@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import aboutImage from "@/assets/site/about.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Learn about the positioning and property focus of RC Premier Properties in Angeles City and Pampanga.",
+    "Learn about RC Premier Properties and its residential property focus in Pampanga.",
   alternates: { canonical: "/about" },
 };
 
@@ -49,14 +50,22 @@ export default function AboutPage() {
                 deserve room to think.
               </span>
             }
-            intro="RC Premier Properties is centered on a clear, considered property experience for Angeles City and the wider Pampanga area."
+            intro="RC Premier Properties offers houses and residential properties for sale in Pampanga."
           />
 
           <div className="about-hero__media-wrap">
-            <MediaPlaceholder label="ABOUT IMAGE" ratio="hero" tone="violet" />
+            <figure className="about-hero__image">
+              <Image
+                src={aboutImage}
+                alt="Contemporary residence with a bright open-air entrance courtyard"
+                fill
+                priority
+                sizes="(max-width: 800px) 100vw, 70vw"
+              />
+            </figure>
             <p>
-              A future home for supplied brand photography. The layout preserves the
-              final media proportions without substituting stock imagery.
+              Browse available listings, explore locations, inquire about properties,
+              and schedule a viewing to find a home that suits your needs.
             </p>
           </div>
         </Container>
@@ -129,15 +138,14 @@ export default function AboutPage() {
                 within wider Pampanga.
               </span>
             }
-            intro="The map area below is intentionally a placeholder until final location data and a map provider are supplied."
+            intro="Explore connected, published listings across the project’s primary service area."
           />
 
           <div className="about-location">
-            <MediaPlaceholder
-              label="PAMPANGA LOCATION MAP"
-              ratio="map"
-              tone="neutral"
-            />
+            <div className="about-location__area" aria-hidden="true">
+              <span>Angeles City</span>
+              <span>Pampanga</span>
+            </div>
             <div className="about-location__content">
               <p className="eyebrow">Primary context</p>
               <h3>Angeles City, Pampanga, Philippines</h3>

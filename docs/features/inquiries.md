@@ -18,11 +18,11 @@ One connected form supports the public entry points currently exposed by the UI:
 `/contact` and `/book-viewing` accept `propertyId` in the URL and prefill the form. The
 form remains editable so a visitor can correct a mistyped reference.
 
-The repository contains no approved phone number, email address, messaging account or
-office address. Until those business details are supplied, the connected form is the
-only claimed contact channel; the UI says so rather than inventing details.
+Approved public contact details are `rcpremierph@gmail.com`, `+63 918 429 1873`, and the
+official RC Premier Properties Facebook Page. The repository contains no approved office
+address, business hours, or additional social account, so none is displayed.
 
-## Form behaviour
+## Form behavior
 
 The general form collects name, email, optional phone, inquiry type, optional Property ID,
 optional subject, message and explicit privacy consent. The viewing form locks the type,
@@ -72,7 +72,7 @@ normalizes email and Property ID casing, rejects unknown fields and returns the 
 field-issue envelope for invalid input. Privacy consent must be the boolean `true`.
 
 An off-screen `website` honeypot is left empty by legitimate clients. An otherwise-valid
-request with a filled honeypot receives the normal acknowledgement but is not persisted,
+request with a filled honeypot receives the normal acknowledgment but is not persisted,
 preventing bots from learning the trap; invalid fields are still rejected first. Inquiry
 creation also has a five-per-IP, 15-minute limit in addition to the general API limit.
 The route accepts JSON only and rejects malformed, oversized or unsupported body formats
@@ -80,7 +80,7 @@ through the common API error contract.
 
 The browser supplies a random `Idempotency-Key` for each submission attempt and retains
 it across uncertain network/server failures. The backend stores only its SHA-256 hash.
-A retry with the same key returns the original opaque acknowledgement instead of creating
+A retry with the same key returns the original opaque acknowledgment instead of creating
 a duplicate inquiry. Validation failures clear the key so corrected input can be
 submitted normally; there is no heuristic matching that might discard a legitimate
 second inquiry from the same person.
@@ -89,13 +89,14 @@ second inquiry from the same person.
 
 Valid submissions are written through the Mongoose inquiry service with a consent
 timestamp and initial `new` status. The API response returns only an identifier,
-`received` acknowledgement and creation time; it never echoes personal data.
+`received` acknowledgment and creation time; it never echoes personal data.
 
 There is deliberately no `GET /inquiries` or other public read route. Staff reads and
 updates live only under `/admin/inquiries` and require backend authentication plus the
 named `inquiry:read` or `inquiry:update` permission. There is likewise no public
-update/delete route and no email, messaging or external CRM integration that the UI
-pretends is active.
+update/delete route and no external CRM or messaging service that the UI pretends is
+active. A provider-neutral email notification is constructed only after persistence;
+its disabled adapter performs no delivery until a production provider is approved.
 
 The schema, service and HTTP workflow are implemented and covered with injected-service
 tests. On 2026-09-05, a temporary synthetic inquiry was written to the project Atlas
@@ -139,13 +140,16 @@ makes the collection ready for a future retention job once the owner approves a
 retention period and legal/business deletion procedure. No automatic purge or retention
 duration is invented in this level.
 
-## Current blockers and exclusions
+## Notification boundary and current blockers
 
-- Public business contact details and response expectations have not been supplied.
 - Production abuse-control review is still required; no CAPTCHA or step-up challenge
   provider has been selected beyond the implemented honeypot and rate limits.
 - Live inquiry reads and updates against the development Auth0 tenant and project
   MongoDB remain part of the existing manual admin acceptance gate.
 - A requested time still requires staff confirmation; there is no live calendar or
   availability provider.
-- Email delivery, notifications, uploads and external CRM handoff are not implemented.
+- MongoDB/Admin Inquiries remain authoritative. After persistence, the application builds
+  a provider-neutral notification for `rcpremierph@gmail.com`. Delivery failure is caught
+  and cannot roll back the accepted inquiry.
+- A production transactional-mail provider and credentials are not selected. The current
+  disabled adapter performs no external delivery and embeds no Gmail password.

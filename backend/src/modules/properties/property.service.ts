@@ -1,5 +1,6 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
+  MAX_PROPERTY_IMAGES,
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentField,
   type AdminPropertyDetail,
@@ -23,11 +24,18 @@ import {
   type PublicPropertySummary,
   type UpdateDraftPropertyRequest,
   type UpdatePropertyMediaRequest,
+  type UploadPropertyImageRequest,
 } from "@rc/shared";
 import type { Model, QueryFilter, SortOrder } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
+import { env } from "../../config/env.js";
 import { mongooseAuthStore } from "../auth/auth.store.js";
 import { PropertyModel } from "./property.model.js";
+import { inspectPropertyImage } from "./property-media.validation.js";
+import {
+  propertyMediaStorage,
+  type PropertyMediaStorage,
+} from "./property-media.storage.js";
 import type {
   AdminPropertyRecord,
   AdminPropertyService,
@@ -157,12 +165,15 @@ function cityProvinceFacetMatch(
 export function buildPublishedPropertyFilter(
   request: PropertySearchRequest,
 ): QueryFilter<PropertyEntity> {
-  const filter: QueryFilter<PropertyEntity> = { publicationStatus: "published" };
+  const filter: QueryFilter<PropertyEntity> = {
+    publicationStatus: "published",
+    purpose: "sale",
+  };
 
   if (request.propertyId) filter.propertyId = request.propertyId.toUpperCase();
   if (request.area) filter["location.city"] = request.area;
   if (request.propertyType) filter.propertyType = request.propertyType;
-  if (request.purpose) filter.purpose = request.purpose;
+  if (request.purpose === "rent") filter._id = { $exists: false };
   if (request.featured !== undefined) filter.featured = request.featured;
 
   if (request.minPrice !== undefined || request.maxPrice !== undefined) {
@@ -229,7 +240,7 @@ export function buildPublishedPropertyFilter(
 export function buildPublishedPropertyDetailFilter(
   slug: string,
 ): QueryFilter<PropertyEntity> {
-  return { publicationStatus: "published", slug };
+  return { publicationStatus: "published", purpose: "sale", slug };
 }
 
 function sortFor(sort: PropertySort): Record<string, SortOrder> {
@@ -450,6 +461,11 @@ interface FacetAggregate {
   propertyTypes: PropertyFacetsResponse["propertyTypes"];
 }
 
+interface LocationCountAggregate {
+  _id: string;
+  count: number;
+}
+
 export class MongoosePropertyService implements PropertyService {
   constructor(private readonly model: Model<PropertyEntity> = PropertyModel) {}
 
@@ -531,30 +547,47 @@ export class MongoosePropertyService implements PropertyService {
   }
 
   async getFacets(): Promise<PropertyFacetsResponse> {
-    const [result] = await this.model.aggregate<FacetAggregate>([
-      { $match: { publicationStatus: "published" } },
-      {
-        $project: {
-          price: "$price.amount",
-          propertyType: 1,
-          location: {
-            $concat: ["$location.city", ", ", "$location.province"],
+    const [facetResults, locationCounts] = await Promise.all([
+      this.model.aggregate<FacetAggregate>([
+        { $match: { publicationStatus: "published", purpose: "sale" } },
+        {
+          $project: {
+            price: "$price.amount",
+            propertyType: 1,
+            location: {
+              $concat: ["$location.city", ", ", "$location.province"],
+            },
           },
         },
-      },
-      {
-        $group: {
-          _id: null,
-          min: { $min: "$price" },
-          max: { $max: "$price" },
-          locations: { $addToSet: "$location" },
-          propertyTypes: { $addToSet: "$propertyType" },
+        {
+          $group: {
+            _id: null,
+            min: { $min: "$price" },
+            max: { $max: "$price" },
+            locations: { $addToSet: "$location" },
+            propertyTypes: { $addToSet: "$propertyType" },
+          },
         },
-      },
+      ]),
+      this.model.aggregate<LocationCountAggregate>([
+        { $match: { publicationStatus: "published", purpose: "sale" } },
+        {
+          $group: {
+            _id: { $concat: ["$location.city", ", ", "$location.province"] },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
     ]);
+    const result = facetResults[0];
 
     return {
       locations: result ? result.locations.sort((a, b) => a.localeCompare(b)) : [],
+      locationCounts: locationCounts.map((item) => ({
+        location: item._id,
+        count: item.count,
+      })),
       propertyTypes: result
         ? result.propertyTypes.sort((a, b) => a.localeCompare(b))
         : [],
@@ -775,6 +808,7 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
   constructor(
     private readonly repository: PropertyAdminRepository,
     private readonly audit: PropertyAuditRecorder,
+    private readonly mediaStorage: PropertyMediaStorage = propertyMediaStorage,
   ) {}
 
   async listPrivate(
@@ -871,6 +905,15 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
         "Unpublish or restore this property before editing media.",
       );
     }
+    if (
+      env.IS_PRODUCTION &&
+      input.media.some((item) => item.source === "development-sample")
+    ) {
+      throw new HttpError(
+        400,
+        "Development sample media cannot be saved in production.",
+      );
+    }
     const coverMedia = input.coverMediaId
       ? input.media.find((item) => item.id === input.coverMediaId)
       : undefined;
@@ -890,7 +933,88 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       requestId: context.requestId,
       occurredAt: context.occurredAt ?? new Date(),
     });
+    const retainedUrls = new Set(input.media.map((item) => item.url));
+    await Promise.allSettled(
+      current.gallery
+        .map((item) => item.url)
+        .filter(
+          (url): url is string => Boolean(url) && !retainedUrls.has(url as string),
+        )
+        .map((url) => this.mediaStorage.remove(url)),
+    );
     return toAdminPropertyDetail(record);
+  }
+
+  async uploadImage(
+    id: string,
+    input: UploadPropertyImageRequest,
+    bytes: Buffer,
+    declaredMimeType: string | undefined,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (!["draft", "unpublished"].includes(current.publicationStatus)) {
+      throw new HttpError(
+        409,
+        "Unpublish or restore this property before uploading media.",
+      );
+    }
+    if (current.gallery.length >= MAX_PROPERTY_IMAGES) {
+      throw new HttpError(
+        409,
+        `This property already has ${MAX_PROPERTY_IMAGES} images.`,
+      );
+    }
+    const image = await inspectPropertyImage(bytes, declaredMimeType);
+    const stored = await this.mediaStorage.store(bytes, image);
+    const existingMedia: AdminPropertyMediaInput[] = current.gallery.map(
+      (item, index) => ({
+        id: item.id ?? `legacy-${index}-${String(current._id)}`,
+        kind: "image",
+        url: item.url ?? "",
+        alt: item.alt,
+        ...(item.caption ? { caption: item.caption } : {}),
+        source: item.source ?? "production",
+        ...(item.sourceUrl ? { sourceUrl: item.sourceUrl } : {}),
+        ...(item.attribution ? { attribution: item.attribution } : {}),
+        ...(item.focalPoint ? { focalPoint: item.focalPoint } : {}),
+      }),
+    );
+    const uploaded: AdminPropertyMediaInput = {
+      id: stored.id,
+      kind: "image",
+      url: stored.url,
+      alt: input.alt,
+      ...(input.caption ? { caption: input.caption } : {}),
+      source: "production",
+      focalPoint: { x: 50, y: 50 },
+    };
+    const nextMedia = [...existingMedia, uploaded];
+    const currentCoverId = current.coverMedia?.id ?? existingMedia[0]?.id;
+    const cover = nextMedia.find((item) => item.id === currentCoverId) ?? uploaded;
+    try {
+      const record = await this.repository.updateMedia(
+        id,
+        input.expectedVersion,
+        nextMedia,
+        cover,
+      );
+      if (!record) throw this.concurrencyConflict();
+      await this.audit.recordAudit({
+        actorStaffIdentityId: context.actorStaffIdentityId,
+        action: "property.media-updated",
+        entityType: "property",
+        entityId: String(record._id),
+        outcome: "succeeded",
+        requestId: context.requestId,
+        occurredAt: context.occurredAt ?? new Date(),
+      });
+      return toAdminPropertyDetail(record);
+    } catch (error) {
+      await this.mediaStorage.remove(stored.url);
+      throw error;
+    }
   }
 
   async publish(

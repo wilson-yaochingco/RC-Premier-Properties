@@ -65,6 +65,29 @@
   padding-top: 1.25rem;
 }
 
+.directContact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.25rem;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.directContact a {
+  border-bottom: 1px solid currentColor;
+}
+
+.image {
+  position: relative;
+  min-height: clamp(22rem, 42vw, 38rem);
+  margin: 2rem 0 0;
+  overflow: hidden;
+}
+
+.image img {
+  object-fit: cover;
+}
+
 .formPanel {
   background: #fff;
   box-shadow: 0 1.5rem 4rem rgb(58 66 79 / 8%);

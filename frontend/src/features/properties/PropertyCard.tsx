@@ -12,16 +12,19 @@ import styles from "./properties.module.css";
 
 interface PropertyCardProps {
   property: PublicPropertySummary;
+  resultsHref?: string;
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, resultsHref }: PropertyCardProps) {
   const specifications = visibleSpecifications(property.specifications).slice(0, 3);
   const media = resolvePropertyMedia(property.coverMedia, property.id);
+
+  const detailHref = `/properties/${property.slug}${resultsHref ? `?from=${encodeURIComponent(resultsHref)}` : ""}`;
 
   return (
     <article className={styles.card} data-property-card data-property-id={property.id}>
       <Link
-        href={`/properties/${property.slug}`}
+        href={detailHref}
         className={styles.cardMediaLink}
         aria-label={`View ${property.title}`}
       >
@@ -42,7 +45,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </div>
         <p className={styles.cardLocation}>{formatLocation(property.location)}</p>
         <h3 className={styles.cardTitle}>
-          <Link href={`/properties/${property.slug}`}>{property.title}</Link>
+          <Link href={detailHref}>{property.title}</Link>
         </h3>
         <p className={styles.cardPrice}>
           {formatPrice(property.price.amount, property.price.currency)}
@@ -62,7 +65,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
         <div className={styles.cardFooter}>
           <span className={styles.availability}>{property.availability}</span>
-          <Link href={`/properties/${property.slug}`} className={styles.cardLink}>
+          <Link href={detailHref} className={styles.cardLink}>
             View property <span aria-hidden="true">↗</span>
           </Link>
         </div>

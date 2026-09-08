@@ -163,6 +163,7 @@ describe("published property query construction", () => {
     expect(serialized).toContain("pool\\.\\*\\$where");
     expect(buildPublishedPropertyDetailFilter("stable-slug")).toEqual({
       publicationStatus: "published",
+      purpose: "sale",
       slug: "stable-slug",
     });
   });
@@ -803,9 +804,26 @@ describe("property media validation", () => {
         },
       ],
     },
-  ])("rejects unsupported, unsafe, duplicate, or coverless media", (body) => {
-    expect(() => parseUpdatePropertyMediaBody(body)).toThrowError(
-      expect.objectContaining({ status: 400 }),
-    );
-  });
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-invalid-focal-point",
+          kind: "image",
+          url: "/media/properties/focal.webp",
+          alt: "Image with an invalid focal point",
+          source: "production",
+          focalPoint: { x: 101, y: 50 },
+        },
+      ],
+      coverMediaId: "media-invalid-focal-point",
+    },
+  ])(
+    "rejects unsupported, unsafe, duplicate, coverless, or invalid focal-point media",
+    (body) => {
+      expect(() => parseUpdatePropertyMediaBody(body)).toThrowError(
+        expect.objectContaining({ status: 400 }),
+      );
+    },
+  );
 });

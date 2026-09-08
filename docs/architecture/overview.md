@@ -151,7 +151,7 @@ the templates.
 
 ---
 
-## MongoDB connection behaviour
+## MongoDB connection behavior
 
 `config/database.ts` connects with a 5-second server-selection timeout and exposes
 `getDatabaseStatus()`, derived from `mongoose.connection.readyState`.
@@ -170,7 +170,7 @@ connection before exiting.
 The schemas, query builders and service wiring are implemented, but real MongoDB
 persistence has not yet been verified with project credentials. Automated API tests
 inject services and therefore prove routing, normalization, validation and disclosure
-behaviour without claiming that external persistence works. No seed records are shipped.
+behavior without claiming that external persistence works. No seed records are shipped.
 
 ---
 
@@ -182,16 +182,17 @@ owner references and internal notes. Property reads are available as list, facet
 slug-detail endpoints. There are no public property write endpoints.
 
 Inquiry creation accepts contact, property, seller and viewing-request submissions. It
-returns an opaque acknowledgement without echoing personal data. There is deliberately
+returns an opaque acknowledgment without echoing personal data. There is deliberately
 no public inquiry read endpoint. A viewing submission is a request for staff follow-up,
 not a booking or confirmed appointment.
 
 The authentication/session boundary protects private property and inquiry endpoints.
 Reads require their named read permission; writes require the relevant named permission,
 exact origin and session-bound CSRF. Publication, availability and inquiry operations
-are implemented; audit-read remains unavailable. The approved company logo,
-production media, public contact details and actual listings have also not been supplied;
-the public UI represents those gaps explicitly instead of inventing data.
+are implemented; audit-read remains unavailable. The official logo, favicon,
+website-design photography, and public contact details are integrated. Actual listing
+inventory, listing-specific media, and production storage/mail providers remain
+unsupplied; the UI and provider boundaries represent those gaps without inventing data.
 
 ---
 

@@ -47,7 +47,7 @@ test("the heavy map stays lazy and mobile List/Map discovery shares URL filters"
   await expect(page.locator(".leaflet-container")).toBeVisible();
   await expect(page.getByLabel("Browse an area")).toBeVisible();
   await expect(
-    page.getByText(/3 approved public pins for 11 matching properties/),
+    page.getByText(/2 approved public pins for 10 matching properties/),
   ).toBeVisible();
 
   await page.getByLabel("Browse an area").selectOption("City of San Fernando");
@@ -107,7 +107,5 @@ test("property detail loads only its separately approved public pin", async ({
   await expect(
     page.getByText("1 approved public pin on this results page."),
   ).toBeVisible();
-  await expect(
-    page.getByText(/public precision setting \(approximate\)/),
-  ).toBeVisible();
+  await expect(page.getByText(/Approximate location shown for privacy/)).toBeVisible();
 });

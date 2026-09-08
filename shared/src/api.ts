@@ -192,6 +192,13 @@ export type PropertyMediaSource = (typeof PROPERTY_MEDIA_SOURCES)[number];
 
 /** Deliberately bounded so a property document and admin form stay practical. */
 export const MAX_PROPERTY_IMAGES = 24;
+export const MAX_PROPERTY_IMAGE_BYTES = 12 * 1024 * 1024;
+
+export interface UploadPropertyImageRequest {
+  expectedVersion: number;
+  alt: string;
+  caption?: string;
+}
 
 /**
  * Public media metadata. URLs stay optional while the media provider is intentionally
@@ -209,9 +216,11 @@ export interface PublicPropertyMedia {
   /** Public provenance page required for development samples. */
   sourceUrl?: string;
   attribution?: string;
+  /** Non-destructive subject position used when a fixed-ratio crop is necessary. */
+  focalPoint?: { x: number; y: number };
 }
 
-/** Current Level 4 media administration accepts image references only. */
+/** Ordered image metadata used by both uploaded and provider-backed production media. */
 export interface AdminPropertyMediaInput {
   id: string;
   kind: "image";
@@ -221,6 +230,7 @@ export interface AdminPropertyMediaInput {
   source: PropertyMediaSource;
   sourceUrl?: string;
   attribution?: string;
+  focalPoint?: { x: number; y: number };
 }
 
 /** Body accepted by `PUT /api/v1/admin/properties/:id/media`. */
@@ -501,6 +511,8 @@ export interface PropertyMapResponse {
 /** Body of `GET /api/v1/properties/facets`. */
 export interface PropertyFacetsResponse {
   locations: string[];
+  /** Published-inventory counts keyed by the same public location labels. */
+  locationCounts?: Array<{ location: string; count: number }>;
   propertyTypes: PropertyType[];
   priceRange: {
     min: number | null;

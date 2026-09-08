@@ -420,6 +420,7 @@ function makeAdminPropertyService() {
     input: UpdatePropertyMediaRequest;
     context: PropertyMutationContext;
   }> = [];
+  const mediaUploads: Array<{ id: string; byteLength: number }> = [];
   let property = structuredClone(ADMIN_PROPERTY);
   const service: AdminPropertyService = {
     async listPrivate(listRequest) {
@@ -496,6 +497,10 @@ function makeAdminPropertyService() {
       };
       return structuredClone(property);
     },
+    async uploadImage(id, _input, bytes) {
+      mediaUploads.push({ id, byteLength: bytes.length });
+      return structuredClone(property);
+    },
     async publish(id, input) {
       if (id !== property.id || input.expectedVersion !== property.version) return null;
       property = {
@@ -543,7 +548,7 @@ function makeAdminPropertyService() {
       return structuredClone(property);
     },
   };
-  return { creates, listRequests, mediaUpdates, service, updates };
+  return { creates, listRequests, mediaUpdates, mediaUploads, service, updates };
 }
 
 const ADMIN_INQUIRY: AdminInquiryDetail = {
@@ -1566,6 +1571,11 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
         .send({ expectedVersion: 0, media: [] }),
       request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+        .query({ expectedVersion: "0", alt: "Exterior" })
+        .set("Content-Type", "image/png")
+        .send(Buffer.from("image")),
+      request(app)
         .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
         .send({ expectedVersion: 0 }),
       request(app)
@@ -1583,7 +1593,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
     ]);
 
     expect(responses.map((response) => response.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ]);
     for (const response of responses) {
       expect(response.body).toMatchObject({ status: "error", statusCode: 401 });
@@ -1626,6 +1636,14 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", ORIGIN)
         .set("X-CSRF-Token", session.csrfToken)
         .send({ expectedVersion: 0, media: [] }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+        .query({ expectedVersion: "0", alt: "Exterior" })
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .set("Content-Type", "image/png")
+        .send(Buffer.from("image")),
       request(app)
         .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
         .set("Cookie", session.cookie)
@@ -1671,6 +1689,14 @@ describe("Phase 3A admin property HTTP boundary", () => {
           .set("Cookie", first.cookie)
           .set("Origin", ORIGIN)
           .send({ expectedVersion: 0, media: [] }),
+      () =>
+        request(app)
+          .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+          .query({ expectedVersion: "0", alt: "Exterior" })
+          .set("Cookie", first.cookie)
+          .set("Origin", ORIGIN)
+          .set("Content-Type", "image/png")
+          .send(Buffer.from("image")),
     ];
 
     for (const write of writes) {
@@ -1685,6 +1711,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
     expect(adminProperties.mediaUpdates).toHaveLength(0);
+    expect(adminProperties.mediaUploads).toHaveLength(0);
   });
 
   it("rejects a disallowed origin on every write", async () => {
@@ -1711,12 +1738,21 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", "https://attacker.invalid")
         .set("X-CSRF-Token", session.csrfToken)
         .send({ expectedVersion: 0, media: [] }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+        .query({ expectedVersion: "0", alt: "Exterior" })
+        .set("Cookie", session.cookie)
+        .set("Origin", "https://attacker.invalid")
+        .set("X-CSRF-Token", session.csrfToken)
+        .set("Content-Type", "image/png")
+        .send(Buffer.from("image")),
     ]);
 
-    expect(responses.map((response) => response.status)).toEqual([403, 403, 403]);
+    expect(responses.map((response) => response.status)).toEqual([403, 403, 403, 403]);
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
     expect(adminProperties.mediaUpdates).toHaveLength(0);
+    expect(adminProperties.mediaUploads).toHaveLength(0);
   });
 
   it("allows administrators to list, read, create, and edit drafts", async () => {
@@ -1762,6 +1798,14 @@ describe("Phase 3A admin property HTTP boundary", () => {
         ],
         coverMediaId: "media-http-0001",
       });
+    const upload = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+      .query({ expectedVersion: "2", alt: "Portrait exterior" })
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .set("X-CSRF-Token", session.csrfToken)
+      .set("Content-Type", "image/png")
+      .send(Buffer.from("mock-image-bytes"));
 
     expect(list.status).toBe(200);
     expect(list.headers["cache-control"]).toBe("no-store");
@@ -1780,6 +1824,10 @@ describe("Phase 3A admin property HTTP boundary", () => {
       gallery: [{ id: "media-http-0001" }],
       version: 2,
     });
+    expect(upload.status).toBe(201);
+    expect(adminProperties.mediaUploads).toEqual([
+      { id: ADMIN_PROPERTY_ID, byteLength: Buffer.byteLength("mock-image-bytes") },
+    ]);
     expect(adminProperties.creates[0]?.input).not.toHaveProperty("publicationStatus");
     expect(adminProperties.creates[0]?.context.actorStaffIdentityId).toMatch(/^staff-/);
     expect(adminProperties.updates[0]?.input).toEqual({

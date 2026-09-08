@@ -37,6 +37,10 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# Development-only property uploads and retained sources
+frontend/public/media/properties/
+frontend/.local-media-sources/
+
 # Editors
 # .vscode is committed on purpose -- shared team settings live there.
 # Ignore only the personal, machine-specific files inside it.

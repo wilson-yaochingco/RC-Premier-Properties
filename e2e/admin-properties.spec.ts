@@ -94,6 +94,9 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   let createRequest: Record<string, unknown> | undefined;
   let editRequest: Record<string, unknown> | undefined;
   let mediaRequest: Record<string, unknown> | undefined;
+  let uploadRequest:
+    | { alt: string | null; contentType: string | undefined; byteLength: number }
+    | undefined;
   const writeCsrfHeaders: string[] = [];
 
   await page.route(`**${API_PREFIX}/admin/properties**`, async (route) => {
@@ -140,6 +143,30 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     }
     if (request.method() === "GET") {
       await json(route, 200, property);
+      return;
+    }
+    if (request.method() === "POST" && path.endsWith("/media/uploads")) {
+      const requestUrl = new URL(request.url());
+      const uploaded: AdminPropertyDetail["gallery"][number] = {
+        id: "media-server-uploaded",
+        kind: "image",
+        url: "/media/properties/server-uploaded.webp",
+        alt: requestUrl.searchParams.get("alt") ?? "",
+        source: "production",
+        focalPoint: { x: 50, y: 50 },
+      };
+      uploadRequest = {
+        alt: requestUrl.searchParams.get("alt"),
+        contentType: request.headers()["content-type"],
+        byteLength: request.postDataBuffer()?.byteLength ?? 0,
+      };
+      property = {
+        ...property,
+        gallery: [...property.gallery, uploaded],
+        coverMedia: property.coverMedia ?? uploaded,
+        version: property.version + 1,
+      };
+      await json(route, 201, property);
       return;
     }
     if (request.method() === "POST" && path.endsWith("/admin/properties")) {
@@ -203,6 +230,24 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     "content",
     /noindex.*nofollow/,
   );
+  await expect(page.locator("header")).toHaveCount(1);
+  const adminNavigation = page.getByRole("navigation", {
+    name: "Administration navigation",
+  });
+  for (const [name, href] of [
+    ["Dashboard", "/admin"],
+    ["Properties", "/admin/properties"],
+    ["Inquiries", "/admin/inquiries"],
+    ["Viewings", "/admin/viewings"],
+    ["Create draft", "/admin/properties/new"],
+  ]) {
+    await expect(
+      adminNavigation.getByRole("link", { name, exact: true }),
+    ).toHaveAttribute("href", href);
+  }
+  await expect(
+    adminNavigation.getByRole("link", { name: "View Website" }),
+  ).toHaveAttribute("href", "/");
 
   await page.getByRole("link", { name: "Create draft", exact: true }).last().click();
   await page.getByLabel("Property ID").fill("RCPP-E2E-NEW");
@@ -222,7 +267,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
 
   await page.getByRole("link", { name: "Edit the new draft" }).click();
   await expect(
-    page.getByRole("heading", { name: "Edit property content" }),
+    page.getByRole("heading", { name: "Editing PREMIER PROPERTY #RCPP-E2E-NEW" }),
   ).toBeVisible();
   await page.getByLabel("Title").fill("E2E edited draft");
   await page.getByRole("button", { name: "Save property content" }).click();
@@ -247,13 +292,33 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
     },
   });
-  await page.getByText("Add licensed development sample").click();
+  await expect(page.getByText("Add licensed development sample")).toHaveCount(0);
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "portrait-home.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await page.getByLabel("Alternative text").fill("Uploaded portrait test home");
+  await page.getByRole("button", { name: "Upload Photos" }).click();
+  await expect(page.getByText("Uploaded", { exact: true })).toBeVisible();
+  expect(uploadRequest).toMatchObject({
+    alt: "Uploaded portrait test home",
+    contentType: "image/png",
+  });
+  expect(uploadRequest?.byteLength).toBeGreaterThan(0);
+
+  await page.getByRole("button", { name: "Add production image reference" }).click();
   await page
-    .getByRole("button", { name: /White modern house reflected in a swimming pool/ })
-    .click();
+    .getByLabel("Image URL / storage reference")
+    .nth(1)
+    .fill("https://media.example.test/property-living-room.webp");
   await page
-    .getByRole("button", { name: /Contemporary patio beside a swimming pool/ })
-    .click();
+    .getByLabel("Alternative text")
+    .last()
+    .fill("Living room of the synthetic test property");
   await page.getByRole("radio", { name: "Cover image" }).nth(1).check();
   await page.getByRole("button", { name: "Move up" }).nth(1).click();
   await page.getByRole("button", { name: "Save property media" }).click();
@@ -273,13 +338,12 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   }
   await page.getByRole("link", { name: "Preview property" }).last().click();
   await expect(page.getByText("Private property preview")).toBeVisible();
-  await expect(
-    page.getByText("Development sample — not this listing").first(),
-  ).toBeVisible();
+  await expect(page.getByText("Development sample — not this listing")).toHaveCount(0);
   await page.getByRole("link", { name: "Back to properties" }).click();
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByText(/was published/i)).toBeVisible();
   expect(writeCsrfHeaders).toEqual([
+    CSRF_TOKEN,
     CSRF_TOKEN,
     CSRF_TOKEN,
     CSRF_TOKEN,

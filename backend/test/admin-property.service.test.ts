@@ -4,8 +4,10 @@ import type {
   UpdateDraftPropertyRequest,
 } from "@rc/shared";
 import { describe, expect, it } from "vitest";
+import sharp from "sharp";
 import type { SecurityAuditEventInput } from "../src/modules/auth/auth.types.js";
 import { DefaultAdminPropertyService } from "../src/modules/properties/property.service.js";
+import type { PropertyMediaStorage } from "../src/modules/properties/property-media.storage.js";
 import type {
   AdminPropertyRecord,
   DraftPropertyPersistenceInput,
@@ -144,18 +146,100 @@ class MemoryAdminPropertyRepository implements PropertyAdminRepository {
   }
 }
 
-function makeService() {
+function makeService(mediaStorage?: PropertyMediaStorage) {
   const repository = new MemoryAdminPropertyRepository();
   const audits: SecurityAuditEventInput[] = [];
-  const service = new DefaultAdminPropertyService(repository, {
-    async recordAudit(event) {
+  const audit = {
+    async recordAudit(event: SecurityAuditEventInput) {
       audits.push(event);
     },
-  });
+  };
+  const service = mediaStorage
+    ? new DefaultAdminPropertyService(repository, audit, mediaStorage)
+    : new DefaultAdminPropertyService(repository, audit);
   return { audits, repository, service };
 }
 
 describe("admin property service", () => {
+  it("stores a validated device upload under a server-controlled name and persists its metadata", async () => {
+    const stored = {
+      id: "media-server-generated",
+      url: "/media/properties/server-generated.webp",
+    };
+    const mediaStorage: PropertyMediaStorage = {
+      store: async () => stored,
+      remove: async () => undefined,
+    };
+    const { service, repository, audits } = makeService(mediaStorage);
+    const bytes = await sharp({
+      create: { width: 640, height: 800, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    const result = await service.uploadImage?.(
+      PROPERTY_ID,
+      { expectedVersion: 0, alt: "Portrait exterior", caption: "Front view" },
+      bytes,
+      "image/png",
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "upload-request",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(result).toMatchObject({
+      version: 1,
+      coverMedia: stored,
+      gallery: [
+        {
+          ...stored,
+          alt: "Portrait exterior",
+          caption: "Front view",
+          focalPoint: { x: 50, y: 50 },
+        },
+      ],
+    });
+    expect(repository.record.gallery[0]?.url).toBe(stored.url);
+    expect(audits).toHaveLength(1);
+    expect(JSON.stringify(audits)).not.toContain(stored.url);
+  });
+
+  it("rejects another upload when the existing media maximum is reached", async () => {
+    let storeCalled = false;
+    const mediaStorage: PropertyMediaStorage = {
+      store: async () => {
+        storeCalled = true;
+        return { id: "media-unexpected", url: "/media/properties/unexpected.webp" };
+      },
+      remove: async () => undefined,
+    };
+    const { service, repository } = makeService(mediaStorage);
+    repository.record.gallery = Array.from({ length: 24 }, (_, index) => ({
+      id: `media-existing-${index}`,
+      kind: "image" as const,
+      url: `/media/properties/existing-${index}.webp`,
+      alt: `Existing property image ${index + 1}`,
+      source: "production" as const,
+    }));
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "One image too many" },
+        Buffer.alloc(0),
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "upload-limit-request",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(storeCalled).toBe(false);
+  });
+
   it("creates only an available draft and emits one value-free audit event", async () => {
     const { audits, repository, service } = makeService();
 

@@ -1,4 +1,5 @@
-import { Router, type RequestHandler } from "express";
+import { Router, raw, type RequestHandler } from "express";
+import { MAX_PROPERTY_IMAGE_BYTES } from "@rc/shared";
 import { HttpError } from "../../middleware/errorHandler.js";
 import {
   noStore,
@@ -101,6 +102,18 @@ export function createAdminPropertyRoutes(
     requireWrite,
     requireJson,
     controller.updateMedia,
+  );
+  router.post(
+    "/:id/media/uploads",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireWrite,
+    raw({
+      type: ["image/png", "image/jpeg", "image/webp"],
+      limit: MAX_PROPERTY_IMAGE_BYTES,
+    }),
+    controller.uploadImage,
   );
   for (const [action, handler] of [
     ["publish", controller.publish],

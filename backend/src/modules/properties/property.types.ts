@@ -19,6 +19,7 @@ import type {
   PublicPropertySummary,
   UpdateDraftPropertyRequest,
   UpdatePropertyMediaRequest,
+  UploadPropertyImageRequest,
 } from "@rc/shared";
 import type { SecurityAuditEventInput } from "../auth/auth.types.js";
 
@@ -31,6 +32,7 @@ export interface PropertyMediaEntity {
   source?: PropertyMediaSource;
   sourceUrl?: string;
   attribution?: string;
+  focalPoint?: { x: number; y: number };
 }
 
 export interface PropertyLocationEntity {
@@ -183,6 +185,13 @@ export interface AdminPropertyService {
   updateMedia(
     id: string,
     input: UpdatePropertyMediaRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  uploadImage?(
+    id: string,
+    input: UploadPropertyImageRequest,
+    bytes: Buffer,
+    declaredMimeType: string | undefined,
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail | null>;
   publish(

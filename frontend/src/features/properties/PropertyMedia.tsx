@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { PublicPropertyMedia } from "@rc/shared";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
+import { DEVELOPMENT_SAMPLE_MEDIA_ENABLED } from "@/lib/env";
 
 interface PropertyMediaProps {
   media?: PublicPropertyMedia;
@@ -8,6 +9,7 @@ interface PropertyMediaProps {
   preload?: boolean;
   className?: string;
   sizes?: string;
+  fit?: "cover" | "contain";
 }
 
 function isLocalMediaUrl(url: string | undefined): url is string {
@@ -21,7 +23,12 @@ function isLocalMediaUrl(url: string | undefined): url is string {
 }
 
 function isDevelopmentSampleUrl(media: PublicPropertyMedia | undefined): boolean {
-  if (media?.source !== "development-sample" || !media.url) return false;
+  if (
+    !DEVELOPMENT_SAMPLE_MEDIA_ENABLED ||
+    media?.source !== "development-sample" ||
+    !media.url
+  )
+    return false;
   try {
     const url = new URL(media.url);
     return (
@@ -40,6 +47,7 @@ export function PropertyMedia({
   preload = false,
   className = "",
   sizes = "(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw",
+  fit = "cover",
 }: PropertyMediaProps) {
   const sample = isDevelopmentSampleUrl(media);
   const mediaUrl = media?.url;
@@ -48,7 +56,7 @@ export function PropertyMedia({
       <MediaPlaceholder
         label={label}
         ratio="landscape"
-        tone="violet"
+        tone="neutral"
         className={className}
       />
     );
@@ -62,7 +70,12 @@ export function PropertyMedia({
         fill
         preload={preload}
         sizes={sizes}
-        style={{ objectFit: "cover" }}
+        style={{
+          objectFit: fit,
+          objectPosition: media.focalPoint
+            ? `${media.focalPoint.x}% ${media.focalPoint.y}%`
+            : "50% 50%",
+        }}
       />
       {sample ? (
         <span className="property-media__sample-label">

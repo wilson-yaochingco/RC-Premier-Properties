@@ -31,6 +31,15 @@ const mediaSchema = new Schema(
     },
     sourceUrl: { type: String, trim: true, maxlength: 2_048 },
     attribution: { type: String, trim: true, maxlength: 160 },
+    focalPoint: {
+      type: new Schema(
+        {
+          x: { type: Number, required: true, min: 0, max: 100 },
+          y: { type: Number, required: true, min: 0, max: 100 },
+        },
+        { _id: false },
+      ),
+    },
   },
   { _id: false },
 );

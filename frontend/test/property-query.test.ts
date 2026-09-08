@@ -17,7 +17,7 @@ describe("property query URLs", () => {
     });
 
     expect(query.toString()).toBe(
-      "keyword=family+home&propertyType=house-and-lot&sort=price-desc&page=2&limit=9",
+      "keyword=family+home&propertyType=house-and-lot&purpose=sale&sort=price-desc&page=2&limit=9",
     );
   });
 
@@ -35,13 +35,13 @@ describe("property query URLs", () => {
     );
 
     expect(href).toBe(
-      "/properties?keyword=house&location=Mabalacat+City&maxPrice=15000000&sort=price-asc",
+      "/properties?keyword=house&location=Mabalacat+City&purpose=sale&maxPrice=15000000&sort=price-asc",
     );
   });
 
   it("keeps implementation-only page size out of browser pagination URLs", () => {
     expect(paginationHref({ location: "Apalit" }, 2)).toBe(
-      "/properties?location=Apalit&sort=newest&page=2",
+      "/properties?location=Apalit&purpose=sale&sort=newest&page=2",
     );
   });
 
@@ -53,6 +53,6 @@ describe("property query URLs", () => {
         sort: "price-desc",
         page: "3",
       }).toString(),
-    ).toBe("location=Angeles+City&propertyType=commercial");
+    ).toBe("location=Angeles+City&propertyType=commercial&purpose=sale");
   });
 });

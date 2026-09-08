@@ -1,7 +1,7 @@
 # Brand and Public Experience
 
-Status: implemented design direction for the public MVP; approved logo and production
-media remain external inputs. Last reviewed 2026-09-04.
+Status: approved branding and supplied website photography integrated; production listing
+inventory remains external. Last reviewed 2026-09-08.
 
 This decision turns the supplied RC Premier Properties brief into durable rules for the
 public website. It intentionally records no claims about company history, awards,
@@ -36,7 +36,7 @@ system.
 | Canvas            | `--brand-white` / `#ffffff`           | the dominant page background                                 |
 | Soft surface      | `--surface-soft` / `#f4f2ed`          | low-contrast section separation                              |
 | Warm surface      | `--surface-warm` / `#e9e3d8`          | warmer editorial section contrast                            |
-| Media placeholder | `--surface-violet` / `#665d70`        | explicit, replaceable media slots                            |
+| Legacy media tone | `--surface-violet` / `#665d70`        | intentional dark compositions, not missing-image fallback    |
 
 The accent is not used for normal-size white text because that pairing does not provide
 enough contrast. The derived `--brand-secondary-text` token darkens gold-toned text to
@@ -58,22 +58,20 @@ removed under `prefers-reduced-motion: reduce`.
 
 ## Media and logo rules
 
-No photographs or video files ship with the MVP. Every required slot uses the shared
-`MediaPlaceholder` presentation and a precise label such as `[HOME HERO VIDEO]` or
-`[PROPERTY GALLERY IMAGE]`. Its aspect ratio and container behavior are the replacement
-contract for future media.
+Approved RC Premier Properties design photography fills the public editorial
+compositions. Listing records without assigned photos retain a restrained neutral
+fallback; no design photo, random web photo, or agent identity is substituted as listing
+media.
 
-The requested RC Premier Properties logo asset is not present in the repository or the
-supplied attachment. The header therefore renders the company name as text in a clearly
-isolated brand slot; it is not a newly designed logo. Replace that slot when the approved
-asset is supplied. The complete placeholder inventory and replacement constraints live
-in [`development/media-replacement.md`](../development/media-replacement.md).
+The public shell uses the supplied official logo and favicon. Source PNGs are retained;
+display copies only trim transparent outer margins. Assignments and optimization rules
+are documented in
+[`../features/production-content-and-media.md`](../features/production-content-and-media.md).
 
 ## Audiences and their primary needs
 
 - Buyers need fast filtering, transparent prices, useful specifications and a direct
   route to ask about a listing.
-- Renters need the same discovery path with sale/rent intent clearly separated.
 - Investors need comparable location, type, price and area information without invented
   returns or financial promises.
 - Sellers need a clear route to start a confidential listing conversation without an
@@ -147,6 +145,7 @@ future asset purpose; future images require property-specific alternative text.
 
 ## External decisions still open
 
-The production domain, real logo/media, company contact details, production map provider,
-analytics and monitoring providers remain unselected or unsupplied. Their absence must
-be shown honestly and never filled with invented values.
+The production domain, production listing inventory/media, production map provider,
+analytics, and monitoring providers remain unselected or unsupplied. The official logo,
+favicon, website-design photography, email, phone, and Facebook Page were supplied for
+Level 7. Remaining gaps must be shown honestly and never filled with invented values.

@@ -73,9 +73,10 @@ Property persistence and audit insertion remain separate MongoDB writes, matchin
 
 ## Deferred boundaries
 
-Production binary upload/provider deletion, staff management, and hard deletion remain
-deferred or blocked. Image-reference management is implemented without an upload facade;
-see [`property-media.md`](../architecture/property-media.md).
+Production object storage/provider deletion, staff management, and hard deletion remain
+deferred or blocked. Validated device upload uses the existing media metadata model and an
+isolated development adapter; production fails closed until a provider is approved. See
+[`property-media.md`](../architecture/property-media.md).
 Inquiry administration was added in the next scoped level. The Auth0 development tenant
 still requires the manual end-to-end acceptance steps in
 [auth0-setup.md](../development/auth0-setup.md).

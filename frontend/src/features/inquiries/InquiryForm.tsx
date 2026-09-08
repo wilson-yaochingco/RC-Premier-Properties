@@ -60,6 +60,7 @@ export function InquiryForm({
   const formRef = useRef<HTMLFormElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
+  const [messageLength, setMessageLength] = useState(0);
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
   const isViewingRequest =
     defaultInquiryType === "viewing" && source === "viewing-page";
@@ -117,6 +118,7 @@ export function InquiryForm({
       );
       idempotencyKeyRef.current = null;
       formRef.current?.reset();
+      setMessageLength(0);
       setState({
         kind: "success",
         message: response.message,
@@ -300,11 +302,15 @@ export function InquiryForm({
             minLength={10}
             maxLength={2000}
             required={!isViewingRequest}
+            onChange={(event) => setMessageLength(event.target.value.length)}
             aria-invalid={invalidFields.has("message")}
             aria-describedby={
               invalidFields.has("message") ? "inquiry-errors" : undefined
             }
           />
+          <span className={styles.counter} aria-live="polite">
+            {messageLength} / 2000
+          </span>
         </div>
       </div>
 

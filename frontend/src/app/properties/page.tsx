@@ -42,6 +42,12 @@ export default async function PropertiesPage({
   searchParams,
 }: PageProps<"/properties">) {
   const rawSearchParams = (await searchParams) as RawSearchParams;
+  const resultQuery = new URLSearchParams();
+  Object.entries(rawSearchParams).forEach(([key, value]) => {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (first) resultQuery.set(key, first);
+  });
+  const resultsHref = `/properties${resultQuery.size ? `?${resultQuery.toString()}` : ""}`;
   const values = propertyFormValues(rawSearchParams);
   const facetsPromise = loadFacets();
   let response: PropertySearchResponse | undefined;
@@ -91,7 +97,7 @@ export default async function PropertiesPage({
 
           {errorMessage ? (
             <div className={styles.errorState} role="alert">
-              <strong>We could not load the property catalogue.</strong> {errorMessage}
+              <strong>We could not load the property catalog.</strong> {errorMessage}
               <br />
               Your filters remain in the URL. Check that the Express API and MongoDB are
               available, then try again.
@@ -108,7 +114,11 @@ export default async function PropertiesPage({
                 <>
                   <div className={styles.grid}>
                     {response.items.map((property) => (
-                      <PropertyCard key={property.id} property={property} />
+                      <PropertyCard
+                        key={property.id}
+                        property={property}
+                        resultsHref={resultsHref}
+                      />
                     ))}
                   </div>
                   <PropertyPagination
@@ -130,7 +140,7 @@ export default async function PropertiesPage({
 
           {!response && !errorMessage ? (
             <EmptyState
-              title="The catalogue is being prepared."
+              title="The catalog is being prepared."
               description="Published properties will appear here when inventory is connected."
             />
           ) : null}

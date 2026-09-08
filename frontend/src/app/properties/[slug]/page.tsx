@@ -7,6 +7,7 @@ import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { ApiClientError } from "@/services/api-client";
 import { PropertyGallery } from "@/features/properties/PropertyGallery";
 import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
+import { PropertyActions } from "@/features/properties/PropertyActions";
 import {
   formatLocation,
   formatPrice,
@@ -46,8 +47,15 @@ export async function generateMetadata({
 
 export default async function PropertyDetailPage({
   params,
+  searchParams,
 }: PageProps<"/properties/[slug]">) {
   const { slug } = await params;
+  const query = await searchParams;
+  const rawFrom = Array.isArray(query.from) ? query.from[0] : query.from;
+  const resultsHref =
+    rawFrom && (rawFrom === "/properties" || rawFrom.startsWith("/properties?"))
+      ? rawFrom
+      : "/properties";
   let property;
 
   try {
@@ -108,6 +116,9 @@ export default async function PropertyDetailPage({
             <span aria-hidden="true">/</span>
             <span aria-current="page">Premier Property #{property.propertyId}</span>
           </nav>
+          <Link href={resultsHref} className={styles.backToResults}>
+            ← Back to Results
+          </Link>
 
           <div className={styles.identityGrid}>
             <div>
@@ -115,8 +126,13 @@ export default async function PropertyDetailPage({
                 {propertyTypeLabel(property.propertyType)} · For {property.purpose} ·
                 Premier Property #{property.propertyId}
               </p>
+              <span className={styles.availabilityBadge}>{property.availability}</span>
               <h1 className={styles.title}>{property.title}</h1>
               <p className={styles.location}>{location}</p>
+              <PropertyActions
+                propertyNumber={`PREMIER PROPERTY #${property.propertyId}`}
+                shareTitle={property.title}
+              />
             </div>
             <div className={styles.priceBlock}>
               <p className={styles.priceLabel}>Asking price</p>
@@ -145,28 +161,26 @@ export default async function PropertyDetailPage({
               <p className={styles.description}>{property.description}</p>
             </section>
 
-            {specifications.length > 0 ? (
-              <section className={styles.sectionBlock}>
-                <p className={styles.sectionLabel}>02 · Specifications</p>
-                <h2>Property at a glance</h2>
-                <dl className={styles.specGrid}>
-                  {specifications.map((item) => (
-                    <div key={item.label}>
-                      <dt>{item.label}</dt>
-                      <dd>{item.value}</dd>
-                    </div>
-                  ))}
-                  <div>
-                    <dt>Availability</dt>
-                    <dd>{property.availability}</dd>
+            <section className={styles.sectionBlock}>
+              <p className={styles.sectionLabel}>02 · Specifications</p>
+              <h2>Property at a glance</h2>
+              <dl className={styles.specGrid}>
+                {specifications.map((item) => (
+                  <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>{item.value}</dd>
                   </div>
-                  <div>
-                    <dt>Listing purpose</dt>
-                    <dd>For {property.purpose}</dd>
-                  </div>
-                </dl>
-              </section>
-            ) : null}
+                ))}
+                <div>
+                  <dt>Availability</dt>
+                  <dd>{property.availability}</dd>
+                </div>
+                <div>
+                  <dt>Listing purpose</dt>
+                  <dd>For {property.purpose}</dd>
+                </div>
+              </dl>
+            </section>
 
             {property.highlights.length > 0 ||
             property.amenities.length > 0 ||
@@ -205,10 +219,9 @@ export default async function PropertyDetailPage({
                   <MediaPlaceholder label="PROPERTY MAP / GENERAL AREA" ratio="map" />
                 )}
                 <p className={styles.privacyNote}>
-                  The map and location text honor this listing&apos;s public precision
-                  setting ({property.location.publicPrecision.replace("-", " ")}). An
-                  exact stored address or internal coordinate is never sent unless it is
-                  separately approved for exact public disclosure.
+                  {property.location.disclosure === "exact"
+                    ? "This listing is configured to show its exact public location."
+                    : "Approximate location shown for privacy. Exact viewing details will be coordinated after your appointment is confirmed."}
                 </p>
               </div>
             </section>
@@ -222,12 +235,14 @@ export default async function PropertyDetailPage({
               respond with the right listing context.
             </p>
             <div className={styles.asideActions}>
-              <Button
-                href={`/book-viewing?propertyId=${encodeURIComponent(property.propertyId)}`}
-                variant="secondary"
-              >
-                Request a viewing
-              </Button>
+              {property.availability !== "sold" ? (
+                <Button
+                  href={`/book-viewing?propertyId=${encodeURIComponent(property.propertyId)}`}
+                  variant="secondary"
+                >
+                  Book a Viewing
+                </Button>
+              ) : null}
               <Button
                 href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
                 variant="outline"
@@ -235,21 +250,32 @@ export default async function PropertyDetailPage({
                 Send an inquiry
               </Button>
             </div>
-            <div className={styles.agentSlot}>
-              <MediaPlaceholder
-                label="AGENT PHOTO"
-                ratio="square"
-                tone="violet"
-                className={styles.agentMedia}
-              />
-              <div>
-                <strong>Assigned property specialist</strong>
-                <p>A verified public agent profile will appear when supplied.</p>
-              </div>
-            </div>
+            <p className={styles.updatedAt}>
+              Last updated{" "}
+              {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+                new Date(property.updatedAt),
+              )}
+            </p>
           </aside>
         </Container>
       </section>
+
+      <div className={styles.mobileActions} aria-label="Property actions">
+        <Button
+          href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
+          variant="outline"
+        >
+          Inquire
+        </Button>
+        {property.availability !== "sold" ? (
+          <Button
+            href={`/book-viewing?propertyId=${encodeURIComponent(property.propertyId)}`}
+            variant="secondary"
+          >
+            Book a Viewing
+          </Button>
+        ) : null}
+      </div>
 
       <section className={styles.browseCta}>
         <Container className={styles.browseCtaInner}>

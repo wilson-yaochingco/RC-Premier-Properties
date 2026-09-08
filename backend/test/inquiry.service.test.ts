@@ -19,6 +19,33 @@ const REQUEST: Omit<CreateInquiryRequest, "website"> = {
 };
 
 describe("public inquiry idempotency", () => {
+  it("attempts the official notification only after persistence and does not lose an inquiry when delivery fails", async () => {
+    const createdAt = new Date("2026-09-07T08:00:00.000Z");
+    const create = vi.fn().mockResolvedValue({
+      _id: "507f191e810c19729de860ea",
+      createdAt,
+      inquiryType: "general",
+    });
+    const send = vi.fn().mockRejectedValue(new Error("provider unavailable"));
+    const service = new MongooseInquiryService(
+      { create } as unknown as Model<InquiryEntity>,
+      { isRequestablePropertyId: vi.fn() },
+      { send },
+    );
+
+    await expect(service.create(REQUEST)).resolves.toMatchObject({
+      inquiryId: "507f191e810c19729de860ea",
+      status: "received",
+    });
+    expect(create).toHaveBeenCalledBefore(send);
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "rcpremierph@gmail.com",
+        subject: "New RC Premier Inquiry — General inquiry",
+      }),
+    );
+  });
+
   it("returns the original acknowledgement after a duplicate idempotency key race", async () => {
     const createdAt = new Date("2026-09-07T08:00:00.000Z");
     const persisted = { _id: "507f191e810c19729de860ea", createdAt };

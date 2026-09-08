@@ -83,9 +83,9 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
         </nav>
 
         <div className="mobile-navigation__footer">
-          <p>Property discovery across Angeles City and Pampanga.</p>
-          <Link href="/contact" onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
-            Start a conversation
+          <p>Homes and residential properties for sale across Pampanga.</p>
+          <Link href="/book-viewing" onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
+            Book a Viewing
             <span aria-hidden="true">→</span>
           </Link>
         </div>

@@ -19,14 +19,15 @@ test("home renders fixture inventory and primary navigation works", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { level: 1, name: /A more considered way/ }),
+    page.getByRole("heading", { level: 1, name: "Find a home that feels right." }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Clark Garden Residence" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Mabalacat Skyline Condominium" }),
+    page.getByRole("link", { name: /Angeles City, Pampanga 9 Properties/ }),
   ).toBeVisible();
+  await expect(page.getByText("9 Properties")).toBeVisible();
 
   const primaryNavigation = page.getByRole("navigation", {
     name: "Primary navigation",
@@ -35,6 +36,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   await expect(primaryNavigation.getByRole("link")).toHaveText([
     "Home",
     "Properties",
+    "Locations",
     "About",
     "Contact",
   ]);
@@ -100,15 +102,15 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   await page.getByLabel("Sort results").selectOption("price-asc");
   await page.getByRole("button", { name: "Search properties" }).click();
   await expect(page).toHaveURL(/sort=price-asc/);
-  await expect(page.getByText("11 results", { exact: true })).toBeVisible();
+  await expect(page.getByText("10 results", { exact: true })).toBeVisible();
   await expect(page.locator("main article h3").first()).toHaveText(
-    "Mabalacat Skyline Condominium",
+    "Pagination Fixture 01",
   );
   await expect(page.locator("main article")).toHaveCount(9);
 
   await page.getByRole("link", { name: /Next/ }).click();
   await expect(page).toHaveURL(/page=2/);
-  await expect(page.locator("main article")).toHaveCount(2);
+  await expect(page.locator("main article")).toHaveCount(1);
 
   await page.goBack();
   await expect(page).toHaveURL(/sort=price-asc/);
@@ -119,12 +121,30 @@ test("property filters stay in the URL, affect results, and expose an empty stat
 
 test("property detail renders public data and carries its ID into inquiry links", async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  await page.route("**/_next/image?*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   const browserErrors = trackBrowserErrors(page);
   await page.goto("/properties?propertyId=RCPP-E2E-001");
   await page.getByRole("link", { name: "View Clark Garden Residence" }).click();
 
-  await expect(page).toHaveURL(/\/properties\/clark-garden-residence$/);
+  await expect(page).toHaveURL(/\/properties\/clark-garden-residence\?from=/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Clark Garden Residence" }),
   ).toBeVisible();
@@ -133,13 +153,33 @@ test("property detail renders public data and carries its ID into inquiry links"
   );
   await expect(page.getByText("₱12,500,000")).toBeVisible();
   await expect(page.getByRole("region", { name: "Property gallery" })).toBeVisible();
+  await page.getByRole("button", { name: "View Fullscreen" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Property photo viewer" }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog").getByText("1 / 2")).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("dialog").getByText("2 / 2")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Property photo viewer" })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Copy Property Number" }).click();
+  await expect(page.getByText("Property number copied.")).toBeVisible();
+  await page.getByRole("button", { name: "Share Property" }).click();
+  await expect(page.getByText("Property link copied.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to Results" })).toHaveAttribute(
+    "href",
+    "/properties?propertyId=RCPP-E2E-001",
+  );
   await expect(
     page.getByRole("complementary", { name: "Property inquiry" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Request a viewing" })).toHaveAttribute(
-    "href",
-    "/book-viewing?propertyId=RCPP-E2E-001",
-  );
+  await expect(
+    page
+      .getByRole("complementary", { name: "Property inquiry" })
+      .getByRole("link", { name: "Book a Viewing" }),
+  ).toHaveAttribute("href", "/book-viewing?propertyId=RCPP-E2E-001");
   await expect(page.getByRole("link", { name: "Send an inquiry" })).toHaveAttribute(
     "href",
     "/contact?propertyId=RCPP-E2E-001",
@@ -150,7 +190,7 @@ test("property detail renders public data and carries its ID into inquiry links"
 test("production rendering keeps neutral placeholders when property media is absent", async ({
   page,
 }) => {
-  await page.goto("/properties/mabalacat-skyline-condominium");
+  await page.goto("/properties/san-fernando-commercial-lot");
 
   const gallery = page.getByRole("region", { name: "Property gallery" });
   await expect(gallery).toBeVisible();
@@ -158,10 +198,14 @@ test("production rendering keeps neutral placeholders when property media is abs
   await expect(page.getByText("Development sample — not this listing")).toHaveCount(0);
 });
 
-test("malformed and missing property slugs render the public not-found state", async ({
+test("malformed, rental, and missing property slugs render the public not-found state", async ({
   page,
 }) => {
-  for (const path of ["/properties/INVALID_SLUG", "/properties/missing-property"]) {
+  for (const path of [
+    "/properties/INVALID_SLUG",
+    "/properties/mabalacat-skyline-condominium",
+    "/properties/missing-property",
+  ]) {
     await page.goto(path);
     await expect(
       page.getByRole("heading", {

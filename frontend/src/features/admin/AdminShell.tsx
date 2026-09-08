@@ -152,10 +152,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <p className={styles.staffName}>{context.session.staff.displayName}</p>
           </div>
           <nav aria-label="Administration navigation">
+            <Link href="/admin">Dashboard</Link>
             <Link href="/admin/properties">Properties</Link>
             <Link href="/admin/inquiries">Inquiries</Link>
             <Link href="/admin/viewings">Viewings</Link>
             <Link href="/admin/properties/new">Create draft</Link>
+            <Link href="/" className={styles.viewWebsite}>
+              View Website
+            </Link>
           </nav>
           <button type="button" onClick={handleLogout} disabled={loggingOut}>
             {loggingOut ? "Signing out…" : "Sign out"}

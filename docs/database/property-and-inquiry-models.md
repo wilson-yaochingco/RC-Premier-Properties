@@ -20,14 +20,16 @@ The first supported property types are house and lot, condominium, townhouse, lo
 commercial, office and warehouse. This is deliberately smaller than every possible real
 estate category and directly supports the supplied discovery requirements.
 
-Listing purpose is either sale or rent. Currency is PHP in the public MVP.
+The stable stored listing purpose is either sale or rent, while every public query now
+enforces sales-only inventory. Currency is PHP in the public MVP.
 
 ## Workflow and market state
 
 Two concepts are stored separately:
 
 - `publicationStatus`: `draft`, `published`, `unpublished` or `archived`. Public endpoints
-  always add `publicationStatus: published` themselves; callers cannot override it.
+  always add `publicationStatus: published` and `purpose: sale` themselves; callers
+  cannot override either public boundary.
 - `availability`: `available`, `reserved` or `sold`. This is safe to show on a
   published listing and does not grant publication by itself.
 
@@ -107,7 +109,7 @@ collection while keeping appointment state separate from inquiry follow-up state
 compound viewing-status/requested-date index supports the staff queue. The related
 Property ID is accepted only when it resolves to a published, not-sold sale property.
 
-The public API returns only a new opaque inquiry identifier, `received` acknowledgement
+The public API returns only a new opaque inquiry identifier, `received` acknowledgment
 and creation time. It never echoes the submitted personal data. Staff retrieval waits for
 authenticated, authorized administration.
 
@@ -116,7 +118,7 @@ honeypot is acknowledged without creating a record so automated senders cannot t
 around the control. Invalid fields are rejected before the honeypot decision.
 
 Public clients may supply an `Idempotency-Key`. Only its SHA-256 hash is stored under a
-unique sparse index, allowing a retry to recover the original acknowledgement without
+unique sparse index, allowing a retry to recover the original acknowledgment without
 storing the raw key or suppressing legitimate repeat inquiries heuristically.
 
 ## Form data purpose
@@ -158,5 +160,6 @@ records are retained and restorable; `archivedAt` is the future retention-select
 boundary, but no retention duration or hard-delete job exists until policy is approved.
 
 There is still no public update/delete route and no public inquiry read. Authorized image
-metadata administration exists; production binary upload remains blocked on storage
-provider approval.
+metadata administration and validated binary device upload are implemented. The
+development adapter is isolated locally; production storage/CDN remains blocked on
+provider approval and fails closed.

@@ -115,18 +115,7 @@ export function PropertySearchForm({ values, facets }: PropertySearchFormProps) 
               />
             </div>
 
-            <div className={styles.searchField}>
-              <label htmlFor="property-purpose">Listing purpose</label>
-              <select
-                id="property-purpose"
-                name="purpose"
-                defaultValue={values.purpose}
-              >
-                <option value="">Sale and rent</option>
-                <option value="sale">For sale</option>
-                <option value="rent">For rent</option>
-              </select>
-            </div>
+            <input type="hidden" name="purpose" value="sale" />
 
             <div className={styles.searchField}>
               <label htmlFor="property-bedrooms">Minimum bedrooms</label>
