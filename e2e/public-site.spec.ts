@@ -28,6 +28,16 @@ test("home renders fixture inventory and primary navigation works", async ({
     page.getByRole("link", { name: /Angeles City, Pampanga 9 Properties/ }),
   ).toBeVisible();
   await expect(page.getByText("9 Properties")).toBeVisible();
+  await expect(page.locator("iframe")).toHaveCount(0);
+  const videoLinks = page.getByRole("link", { name: /Watch Short on YouTube/ });
+  await expect(videoLinks).toHaveCount(3);
+  for (const [index, href] of [
+    "https://youtube.com/shorts/8tGEOhF_o8M?si=UQqAiJ90eS4-f0_Q",
+    "https://youtube.com/shorts/w0WveEZTyU8?si=O4yeF1ejn7J4zmnR",
+    "https://youtube.com/shorts/bZPY9DClb1o?si=5MNya_9Y_iw7XNlb",
+  ].entries()) {
+    await expect(videoLinks.nth(index)).toHaveAttribute("href", href);
+  }
 
   const primaryNavigation = page.getByRole("navigation", {
     name: "Primary navigation",
@@ -221,6 +231,19 @@ test("contact form sends its typed payload and displays API success feedback", a
 }) => {
   const browserErrors = trackBrowserErrors(page);
   await page.goto("/contact?propertyId=RCPP-E2E-001");
+
+  const main = page.locator("main#main-content");
+  await expect(
+    main.getByRole("link", { name: "rcpremierph@gmail.com" }),
+  ).toHaveAttribute("href", "mailto:rcpremierph@gmail.com");
+  await expect(main.getByRole("link", { name: "+63 918 429 1873" })).toHaveAttribute(
+    "href",
+    "tel:+639184291873",
+  );
+  await expect(main.getByRole("link", { name: "Facebook" })).toHaveAttribute(
+    "href",
+    "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/",
+  );
 
   await expect(page.getByLabel(/^Property ID/)).toHaveValue("RCPP-E2E-001");
   await expect(page.getByLabel("Inquiry type")).toHaveValue("property");
