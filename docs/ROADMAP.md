@@ -505,11 +505,12 @@ market, not an afterthought.
 - [x] Inquiry create/read persistence is verified against Atlas with a temporary synthetic
       record; staff retrieval correctly waits for authenticated administration
 - [x] Unpublished listings verified unreachable publicly
-- [ ] Automated overflow checks pass from 320px through 1920px, but the required manual
-      visual acceptance pass across mobile, tablet and desktop is still open
+- [x] Automated overflow checks cover the documented 320px-through-1920px matrix; the
+      required physical-device visual acceptance pass remains open
 - [x] SEO foundation in place: metadata, sitemap, robots, canonical URLs, structured data
-- [ ] Semantic structure, skip navigation, keyboard menu behavior, focus restoration and
-      accessible form feedback are tested; a complete accessibility audit is still open
+- [x] Semantic structure, skip navigation, keyboard interaction, dialog focus,
+      accessible form feedback, reduced motion and 200% text sizing have automated
+      coverage; real screen-reader and physical-device acceptance remain open
 - [x] Unit and HTTP integration tests pass; implemented security requirements are covered
 - [x] Feature, API, database, architecture, testing and setup documentation updated
 - [x] E2E API paths derive from `API_PREFIX`, and frontend environment reads stay

@@ -51,11 +51,13 @@ const PRIMARY_FIXTURES = [
       {
         id: "fixture-media-001",
         kind: "image",
+        url: "/media/properties/fixture-residence-exterior.webp",
         alt: "Synthetic fixture residence exterior",
       },
       {
         id: "fixture-media-002",
         kind: "image",
+        url: "/media/properties/fixture-residence-living-area.webp",
         alt: "Synthetic fixture residence living area",
       },
       { kind: "floor-plan", alt: "Synthetic fixture residence floor plan" },

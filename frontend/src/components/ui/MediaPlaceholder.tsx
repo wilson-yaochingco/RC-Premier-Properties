@@ -3,6 +3,7 @@ type MediaTone = "neutral" | "violet" | "dark";
 
 interface MediaPlaceholderProps {
   label: string;
+  accessibleLabel?: string;
   ratio?: MediaRatio;
   tone?: MediaTone;
   className?: string;
@@ -10,6 +11,7 @@ interface MediaPlaceholderProps {
 
 export function MediaPlaceholder({
   label,
+  accessibleLabel,
   ratio = "landscape",
   tone = "neutral",
   className = "",
@@ -20,7 +22,7 @@ export function MediaPlaceholder({
     <div
       className={`media-placeholder media-placeholder--${ratio} media-placeholder--${tone} ${className}`.trim()}
       role="img"
-      aria-label={`Media placeholder: ${visibleLabel.slice(1, -1)}`}
+      aria-label={accessibleLabel ?? `Media placeholder: ${visibleLabel.slice(1, -1)}`}
     >
       <span className="media-placeholder__line" aria-hidden="true" />
       <span>{visibleLabel}</span>

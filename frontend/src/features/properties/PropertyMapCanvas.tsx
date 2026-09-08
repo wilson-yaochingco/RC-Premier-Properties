@@ -149,7 +149,9 @@ export function PropertyMapCanvas({
   const regionCallbackRef = useRef(onRegionSelect);
   const [boundaries, setBoundaries] = useState<RegionCollection>();
   const [boundaryError, setBoundaryError] = useState(false);
+  const [boundaryAttempt, setBoundaryAttempt] = useState(0);
   const [tileError, setTileError] = useState(false);
+  const [mapAttempt, setMapAttempt] = useState(0);
   const [mapResult, setMapResult] = useState<{
     query: string;
     response?: PropertyMapResponse;
@@ -182,7 +184,7 @@ export function PropertyMapCanvas({
       });
 
     return () => controller.abort();
-  }, []);
+  }, [boundaryAttempt]);
 
   useEffect(() => {
     if (mapQuery === undefined) return;
@@ -203,7 +205,7 @@ export function PropertyMapCanvas({
       });
 
     return () => controller.abort();
-  }, [mapQuery]);
+  }, [mapAttempt, mapQuery]);
 
   const effectiveMapResult = mapResult?.query === mapQuery ? mapResult : undefined;
   const displayedProperties: MappableProperty[] =
@@ -360,6 +362,23 @@ export function PropertyMapCanvas({
       <div className={styles.failure} role="status">
         <strong>Map boundaries are temporarily unavailable.</strong>
         <p>Use the location filter and property list to continue browsing.</p>
+        <button
+          type="button"
+          onClick={() => {
+            setBoundaryError(false);
+            setBoundaryAttempt((value) => value + 1);
+          }}
+        >
+          Retry map boundaries
+        </button>
+      </div>
+    );
+  }
+
+  if (!boundaries) {
+    return (
+      <div className={styles.loading} role="status" aria-busy="true">
+        Preparing map boundariesâ€¦
       </div>
     );
   }
@@ -395,6 +414,7 @@ export function PropertyMapCanvas({
       <div
         ref={containerRef}
         className={styles.mapCanvas}
+        role="region"
         aria-label="Interactive map of approximate Pampanga administrative areas and approved public property pins"
       />
       <div className={styles.mapStatus} aria-live="polite">
@@ -410,7 +430,12 @@ export function PropertyMapCanvas({
       </div>
       {effectiveMapResult?.failed ? (
         <div className={styles.mapDataFailure} role="status">
-          Map-wide pins are unavailable. Showing approved pins from this results page.
+          <span>
+            Map-wide pins are unavailable. Showing approved pins from this results page.
+          </span>
+          <button type="button" onClick={() => setMapAttempt((value) => value + 1)}>
+            Retry map pins
+          </button>
         </div>
       ) : null}
       {tileError ? (

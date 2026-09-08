@@ -163,17 +163,23 @@ test("property detail renders public data and carries its ID into inquiry links"
   );
   await expect(page.getByText("₱12,500,000")).toBeVisible();
   await expect(page.getByRole("region", { name: "Property gallery" })).toBeVisible();
-  await page.getByRole("button", { name: "View Fullscreen" }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Property photo viewer" }),
-  ).toBeVisible();
-  await expect(page.getByRole("dialog").getByText("1 / 2")).toBeVisible();
+  const fullscreenTrigger = page.getByRole("button", { name: "View Fullscreen" });
+  await fullscreenTrigger.click();
+  const dialog = page.getByRole("dialog", { name: "Property photo viewer" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog.getByRole("button", { name: "Next photo" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
+  await expect(dialog.getByText("Photo 1 of 2")).toBeVisible();
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("dialog").getByText("2 / 2")).toBeVisible();
+  await expect(dialog.getByText("Photo 2 of 2")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Property photo viewer" })).toHaveCount(
     0,
   );
+  await expect(fullscreenTrigger).toBeFocused();
   await page.getByRole("button", { name: "Copy Property Number" }).click();
   await expect(page.getByText("Property number copied.")).toBeVisible();
   await page.getByRole("button", { name: "Share Property" }).click();
@@ -206,6 +212,65 @@ test("production rendering keeps neutral placeholders when property media is abs
   await expect(gallery).toBeVisible();
   await expect(gallery.getByText("PROPERTY GALLERY IMAGE 01")).toBeVisible();
   await expect(page.getByText("Development sample — not this listing")).toHaveCount(0);
+});
+
+test("failed property images preserve the gallery with a neutral fallback", async ({
+  page,
+}) => {
+  await page.route("**/_next/image?*", (route) =>
+    route.fulfill({ status: 500, body: "Unavailable" }),
+  );
+  await page.goto("/properties/clark-garden-residence");
+
+  const gallery = page.getByRole("region", { name: "Property gallery" });
+  await expect(
+    gallery.getByRole("img", { name: /image unavailable/i }).first(),
+  ).toBeVisible();
+  await expect(gallery.getByRole("button", { name: "View Fullscreen" })).toBeVisible();
+});
+
+test("copy and share controls provide a safe fallback without modern browser APIs", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+    document.execCommand = () => false;
+  });
+  await page.goto("/properties/clark-garden-residence");
+
+  await page.getByRole("button", { name: "Copy Property Number" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Select and copy the property number shown on this page.",
+  );
+  await page.getByRole("button", { name: "Share Property" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Copy the link from your browser address bar.",
+  );
+});
+
+test("featured video activation transfers focus to the titled player", async ({
+  page,
+}) => {
+  await page.route("https://www.youtube-nocookie.com/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: "<title>Fixture</title>",
+    }),
+  );
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Play featured property video 1" }).click();
+  const player = page.getByTitle("RC Premier featured property video 1");
+  await expect(player).toBeVisible();
+  await expect(player).toBeFocused();
 });
 
 test("malformed, rental, and missing property slugs render the public not-found state", async ({
@@ -281,6 +346,60 @@ test("contact form sends its typed payload and displays API success feedback", a
   expect(browserErrors).toEqual([]);
 });
 
+test("server validation is focused, linked, and preserved beside each inquiry field", async ({
+  page,
+}) => {
+  await page.route(`**${API_PREFIX}/inquiries`, (route) => {
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3100",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers": "Content-Type, Idempotency-Key",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    };
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers });
+    }
+    return route.fulfill({
+      status: 422,
+      headers,
+      json: {
+        status: "error",
+        statusCode: 422,
+        message: "Please correct the highlighted fields.",
+        issues: [
+          { field: "email", message: "Enter a deliverable email address." },
+          { field: "message", message: "Add enough detail for staff to respond." },
+        ],
+      },
+    });
+  });
+  await page.goto("/contact");
+  await page.getByLabel("Name").fill("Playwright Visitor");
+  await page.getByLabel("Email").fill("visitor@example.test");
+  await page.getByLabel("Message").fill("A valid-length message for the fixture.");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Send inquiry" }).click();
+
+  const summary = page.locator("#inquiry-errors");
+  await expect(summary).toBeFocused();
+  await expect(page.getByLabel("Email")).toHaveAttribute(
+    "aria-describedby",
+    "inquiry-email-error",
+  );
+  await expect(page.locator("#inquiry-email-error")).toHaveText(
+    "Enter a deliverable email address.",
+  );
+  await expect(page.getByLabel("Message")).toHaveAttribute(
+    "aria-describedby",
+    /inquiry-message-count inquiry-message-error/,
+  );
+  await expect(page.locator("#inquiry-message-count")).not.toHaveAttribute(
+    "aria-live",
+    /.+/,
+  );
+  await expect(page.getByLabel("Name")).toHaveValue("Playwright Visitor");
+});
+
 test("viewing form submits a structured unconfirmed appointment request", async ({
   page,
 }) => {
@@ -338,9 +457,11 @@ test("mobile navigation closes on Escape and restores trigger focus", async ({
   await expect(
     page.getByRole("navigation", { name: "Mobile navigation" }),
   ).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
 
   await page.keyboard.press("Escape");
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
   await expect(panel).toHaveAttribute("aria-hidden", "true");
   await expect(trigger).toBeFocused();
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
 });

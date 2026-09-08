@@ -273,7 +273,12 @@ export function AdminPropertyList() {
           <p className={styles.resultCount} role="status">
             {state.response.pagination.total.toLocaleString("en-PH")} properties found
           </p>
-          <div className={styles.tableWrap}>
+          <div
+            className={styles.tableWrap}
+            role="region"
+            aria-label="Private properties table"
+            tabIndex={0}
+          >
             <table className={styles.table}>
               <caption className={styles.srOnly}>
                 Private properties and lifecycle actions

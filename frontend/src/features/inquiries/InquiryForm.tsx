@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   INQUIRY_TYPES,
   type CreateInquiryRequest,
@@ -46,9 +46,30 @@ const FIELD_LABELS: Record<string, string> = {
   privacyConsent: "Privacy consent",
 };
 
+const FIELD_IDS: Record<string, string> = {
+  name: "inquiry-name",
+  email: "inquiry-email",
+  phone: "inquiry-phone",
+  inquiryType: "inquiry-type",
+  propertyId: "inquiry-property-id",
+  subject: "inquiry-subject",
+  message: "inquiry-message",
+  requestedDate: "viewing-requested-date",
+  requestedTime: "viewing-requested-time",
+  privacyConsent: "inquiry-privacy-consent",
+};
+
 function textValue(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function FieldError({ field, issue }: { field: string; issue?: ValidationIssue }) {
+  return issue ? (
+    <p id={`inquiry-${field}-error`} className={styles.fieldError}>
+      {issue.message}
+    </p>
+  ) : null;
 }
 
 export function InquiryForm({
@@ -58,12 +79,27 @@ export function InquiryForm({
   submitLabel = "Send inquiry",
 }: InquiryFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [messageLength, setMessageLength] = useState(0);
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
   const isViewingRequest =
     defaultInquiryType === "viewing" && source === "viewing-page";
+
+  useEffect(() => {
+    if (state.kind === "error") errorRef.current?.focus();
+  }, [state.kind, state.issues]);
+
+  function issueFor(field: string): ValidationIssue | undefined {
+    return state.issues?.find((issue) => issue.field === field);
+  }
+
+  function describedBy(field: string, ...supportIds: Array<string | undefined>) {
+    const ids = supportIds.filter(Boolean) as string[];
+    if (issueFor(field)) ids.push(`inquiry-${field}-error`);
+    return ids.length > 0 ? ids.join(" ") : undefined;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,7 +180,12 @@ export function InquiryForm({
   }
 
   return (
-    <form ref={formRef} className={styles.form} onSubmit={handleSubmit}>
+    <form
+      ref={formRef}
+      className={styles.form}
+      onSubmit={handleSubmit}
+      aria-busy={state.kind === "pending"}
+    >
       <div className={styles.grid}>
         <div className={styles.field}>
           <label htmlFor="inquiry-name">Name</label>
@@ -156,8 +197,9 @@ export function InquiryForm({
             maxLength={100}
             required
             aria-invalid={invalidFields.has("name")}
-            aria-describedby={invalidFields.has("name") ? "inquiry-errors" : undefined}
+            aria-describedby={describedBy("name")}
           />
+          <FieldError field="name" issue={issueFor("name")} />
         </div>
 
         <div className={styles.field}>
@@ -171,8 +213,9 @@ export function InquiryForm({
             maxLength={254}
             required
             aria-invalid={invalidFields.has("email")}
-            aria-describedby={invalidFields.has("email") ? "inquiry-errors" : undefined}
+            aria-describedby={describedBy("email")}
           />
+          <FieldError field="email" issue={issueFor("email")} />
         </div>
 
         <div className={styles.field}>
@@ -187,8 +230,9 @@ export function InquiryForm({
             autoComplete="tel"
             maxLength={30}
             aria-invalid={invalidFields.has("phone")}
-            aria-describedby={invalidFields.has("phone") ? "inquiry-errors" : undefined}
+            aria-describedby={describedBy("phone")}
           />
+          <FieldError field="phone" issue={issueFor("phone")} />
         </div>
 
         {isViewingRequest ? (
@@ -202,9 +246,7 @@ export function InquiryForm({
               defaultValue={defaultInquiryType}
               required
               aria-invalid={invalidFields.has("inquiryType")}
-              aria-describedby={
-                invalidFields.has("inquiryType") ? "inquiry-errors" : undefined
-              }
+              aria-describedby={describedBy("inquiryType")}
             >
               {INQUIRY_TYPES.filter((type) => type !== "viewing").map((type) => (
                 <option key={type} value={type}>
@@ -212,6 +254,7 @@ export function InquiryForm({
                 </option>
               ))}
             </select>
+            <FieldError field="inquiryType" issue={issueFor("inquiryType")} />
           </div>
         )}
 
@@ -230,10 +273,9 @@ export function InquiryForm({
             autoComplete="off"
             required={isViewingRequest}
             aria-invalid={invalidFields.has("propertyId")}
-            aria-describedby={
-              invalidFields.has("propertyId") ? "inquiry-errors" : undefined
-            }
+            aria-describedby={describedBy("propertyId")}
           />
+          <FieldError field="propertyId" issue={issueFor("propertyId")} />
         </div>
 
         {isViewingRequest ? (
@@ -246,12 +288,9 @@ export function InquiryForm({
                 type="date"
                 required
                 aria-invalid={invalidFields.has("requestedDate")}
-                aria-describedby={
-                  invalidFields.has("requestedDate")
-                    ? "inquiry-errors"
-                    : "viewing-time-note"
-                }
+                aria-describedby={describedBy("requestedDate", "viewing-time-note")}
               />
+              <FieldError field="requestedDate" issue={issueFor("requestedDate")} />
             </div>
             <div className={styles.field}>
               <label htmlFor="viewing-requested-time">Requested time</label>
@@ -261,15 +300,12 @@ export function InquiryForm({
                 type="time"
                 required
                 aria-invalid={invalidFields.has("requestedTime")}
-                aria-describedby={
-                  invalidFields.has("requestedTime")
-                    ? "inquiry-errors"
-                    : "viewing-time-note"
-                }
+                aria-describedby={describedBy("requestedTime", "viewing-time-note")}
               />
               <p id="viewing-time-note" className={styles.optional}>
                 Philippine time. Staff confirmation is required.
               </p>
+              <FieldError field="requestedTime" issue={issueFor("requestedTime")} />
             </div>
           </>
         ) : null}
@@ -283,10 +319,9 @@ export function InquiryForm({
             name="subject"
             maxLength={150}
             aria-invalid={invalidFields.has("subject")}
-            aria-describedby={
-              invalidFields.has("subject") ? "inquiry-errors" : undefined
-            }
+            aria-describedby={describedBy("subject")}
           />
+          <FieldError field="subject" issue={issueFor("subject")} />
         </div>
 
         <div className={`${styles.field} ${styles.wide}`}>
@@ -304,13 +339,12 @@ export function InquiryForm({
             required={!isViewingRequest}
             onChange={(event) => setMessageLength(event.target.value.length)}
             aria-invalid={invalidFields.has("message")}
-            aria-describedby={
-              invalidFields.has("message") ? "inquiry-errors" : undefined
-            }
+            aria-describedby={describedBy("message", "inquiry-message-count")}
           />
-          <span className={styles.counter} aria-live="polite">
-            {messageLength} / 2000
+          <span id="inquiry-message-count" className={styles.counter}>
+            {messageLength} of 2000 characters
           </span>
+          <FieldError field="message" issue={issueFor("message")} />
         </div>
       </div>
 
@@ -321,19 +355,19 @@ export function InquiryForm({
 
       <label className={styles.consent}>
         <input
+          id="inquiry-privacy-consent"
           type="checkbox"
           name="privacyConsent"
           required
           aria-invalid={invalidFields.has("privacyConsent")}
-          aria-describedby={
-            invalidFields.has("privacyConsent") ? "inquiry-errors" : undefined
-          }
+          aria-describedby={describedBy("privacyConsent")}
         />
         <span>
           I agree that RC Premier Properties may use these details to respond to this
           inquiry. No account is created by submitting this form.
         </span>
       </label>
+      <FieldError field="privacyConsent" issue={issueFor("privacyConsent")} />
 
       {state.kind === "success" && (
         <div className={styles.message} role="status" aria-live="polite">
@@ -352,17 +386,26 @@ export function InquiryForm({
 
       {state.kind === "error" && (
         <div
+          ref={errorRef}
           id="inquiry-errors"
           className={`${styles.message} ${styles.error}`}
           role="alert"
-          aria-live="assertive"
+          tabIndex={-1}
         >
           <strong>We could not submit the form.</strong> {state.message}
           {state.issues && state.issues.length > 0 && (
             <ul className={styles.issues}>
               {state.issues.map((issue) => (
                 <li key={`${issue.field}-${issue.message}`}>
-                  {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                  {FIELD_IDS[issue.field] ? (
+                    <a href={`#${FIELD_IDS[issue.field]}`}>
+                      {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                    </a>
+                  ) : (
+                    <>
+                      {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

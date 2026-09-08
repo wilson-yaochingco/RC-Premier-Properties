@@ -58,6 +58,7 @@ interface PendingUpload {
   state: "ready" | "uploading" | "success" | "error";
   progress: number;
   error?: string;
+  errorField?: "alt" | "file";
 }
 
 export function AdminPropertyMediaManager({
@@ -82,6 +83,7 @@ export function AdminPropertyMediaManager({
   const uploadsRef = useRef<PendingUpload[]>([]);
   const [dragging, setDragging] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [reorderMessage, setReorderMessage] = useState("");
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -143,10 +145,16 @@ export function AdminPropertyMediaManager({
         updateUpload(upload.id, {
           state: "error",
           error: "Alternative text is required.",
+          errorField: "alt",
         });
         continue;
       }
-      updateUpload(upload.id, { state: "uploading", progress: 0, error: undefined });
+      updateUpload(upload.id, {
+        state: "uploading",
+        progress: 0,
+        error: undefined,
+        errorField: undefined,
+      });
       try {
         successfulProperty = await uploadPropertyImage(
           property.id,
@@ -172,6 +180,7 @@ export function AdminPropertyMediaManager({
           state: "error",
           error:
             error instanceof ApiClientError ? error.message : "Image upload failed.",
+          errorField: "file",
         });
       }
     }
@@ -208,6 +217,7 @@ export function AdminPropertyMediaManager({
   function move(index: number, direction: -1 | 1) {
     const destination = index + direction;
     if (destination < 0 || destination >= media.length) return;
+    const movedId = media[index]?.id;
     setMedia((items) => {
       const next = [...items];
       const [item] = next.splice(index, 1);
@@ -216,6 +226,20 @@ export function AdminPropertyMediaManager({
     });
     setState({ kind: "idle" });
     setDirty(true);
+    setReorderMessage(
+      `Image moved to position ${destination + 1}. Save property media to keep this order.`,
+    );
+    window.requestAnimationFrame(() => {
+      const movedItem = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-media-item]"),
+      ).find((element) => element.dataset.mediaId === movedId);
+      const preferredDirection = destination === 0 ? "later" : "earlier";
+      movedItem
+        ?.querySelector<HTMLButtonElement>(
+          `button[data-move-direction="${preferredDirection}"]:not([disabled])`,
+        )
+        ?.focus();
+    });
   }
 
   function remove(index: number) {
@@ -246,6 +270,7 @@ export function AdminPropertyMediaManager({
       setCoverMediaId(initialCoverId(updated, savedMedia));
       onSaved(updated);
       setDirty(false);
+      setReorderMessage("");
       setState({ kind: "success", message: "Property media saved." });
     } catch (error) {
       if (error instanceof ApiClientError && error.statusCode === 401) {
@@ -277,7 +302,7 @@ export function AdminPropertyMediaManager({
             production storage remains provider-gated.
           </p>
         </div>
-        <span>
+        <span role="status">
           {media.length} / {MAX_PROPERTY_IMAGES} images
         </span>
       </div>
@@ -302,6 +327,9 @@ export function AdminPropertyMediaManager({
           <strong>{state.message}</strong>
         </div>
       ) : null}
+      <p className={styles.srOnly} role="status">
+        {reorderMessage}
+      </p>
 
       <div
         className={`${styles.uploadZone} ${dragging ? styles.uploadZoneDragging : ""}`}
@@ -332,71 +360,88 @@ export function AdminPropertyMediaManager({
 
       {uploads.length > 0 ? (
         <ol className={styles.uploadList}>
-          {uploads.map((upload) => (
-            <li key={upload.id}>
-              {/* Browser-created preview only; the server still validates the bytes. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={upload.previewUrl} alt="" />
-              <div>
-                <strong>{upload.file.name}</strong>
-                <label>
-                  <span>Alternative text</span>
-                  <input
-                    value={upload.alt}
-                    maxLength={240}
-                    disabled={
-                      upload.state === "uploading" || upload.state === "success"
-                    }
-                    onChange={(event) =>
-                      updateUpload(upload.id, {
-                        alt: event.target.value,
-                        state: "ready",
-                        error: undefined,
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Caption (optional)</span>
-                  <input
-                    value={upload.caption}
-                    maxLength={500}
-                    disabled={
-                      upload.state === "uploading" || upload.state === "success"
-                    }
-                    onChange={(event) =>
-                      updateUpload(upload.id, { caption: event.target.value })
-                    }
-                  />
-                </label>
-                <progress max="100" value={upload.progress}>
-                  {upload.progress}%
-                </progress>
-                <span role="status">
-                  {upload.state === "ready"
-                    ? "Ready"
-                    : upload.state === "uploading"
-                      ? `Uploading ${upload.progress}%`
-                      : upload.state === "success"
-                        ? "Uploaded"
-                        : upload.error}
-                </span>
-              </div>
-              {upload.state !== "uploading" && upload.state !== "success" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    URL.revokeObjectURL(upload.previewUrl);
-                    setUploads((items) =>
-                      items.filter((item) => item.id !== upload.id),
-                    );
-                  }}
-                >
-                  Remove
-                </button>
-              ) : null}
-            </li>
-          ))}
+          {uploads.map((upload) => {
+            const nameId = `upload-${upload.id}-name`;
+            const statusId = `upload-${upload.id}-status`;
+            return (
+              <li key={upload.id} aria-labelledby={nameId} aria-describedby={statusId}>
+                {/* Browser-created preview only; the server still validates the bytes. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={upload.previewUrl} alt="" />
+                <div>
+                  <strong id={nameId}>{upload.file.name}</strong>
+                  <label>
+                    <span>Alternative text</span>
+                    <input
+                      value={upload.alt}
+                      maxLength={240}
+                      disabled={
+                        upload.state === "uploading" || upload.state === "success"
+                      }
+                      aria-invalid={upload.errorField === "alt"}
+                      aria-describedby={
+                        upload.errorField === "alt" ? statusId : undefined
+                      }
+                      onChange={(event) =>
+                        updateUpload(upload.id, {
+                          alt: event.target.value,
+                          state: "ready",
+                          error: undefined,
+                          errorField: undefined,
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Caption (optional)</span>
+                    <input
+                      value={upload.caption}
+                      maxLength={500}
+                      disabled={
+                        upload.state === "uploading" || upload.state === "success"
+                      }
+                      onChange={(event) =>
+                        updateUpload(upload.id, { caption: event.target.value })
+                      }
+                    />
+                  </label>
+                  <progress
+                    max="100"
+                    value={upload.progress}
+                    aria-label={`Upload progress for ${upload.file.name}`}
+                    aria-describedby={statusId}
+                  >
+                    {upload.progress}%
+                  </progress>
+                  <span
+                    id={statusId}
+                    role={upload.state === "error" ? "alert" : "status"}
+                  >
+                    {upload.state === "ready"
+                      ? "Ready"
+                      : upload.state === "uploading"
+                        ? `Uploading ${upload.progress}%`
+                        : upload.state === "success"
+                          ? "Uploaded"
+                          : upload.error}
+                  </span>
+                </div>
+                {upload.state !== "uploading" && upload.state !== "success" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(upload.previewUrl);
+                      setUploads((items) =>
+                        items.filter((item) => item.id !== upload.id),
+                      );
+                    }}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       ) : null}
 
@@ -426,8 +471,15 @@ export function AdminPropertyMediaManager({
           {media.map((item, index) => {
             const urlError = issueFor(issues, index, "url");
             const altError = issueFor(issues, index, "alt");
+            const urlErrorId = `media-${item.id}-url-error`;
+            const altErrorId = `media-${item.id}-alt-error`;
             return (
-              <li key={item.id} className={styles.mediaItem}>
+              <li
+                key={item.id}
+                className={styles.mediaItem}
+                data-media-item
+                data-media-id={item.id}
+              >
                 <div className={styles.mediaPreview}>
                   <PropertyMedia media={item} label={`PROPERTY IMAGE ${index + 1}`} />
                   <span>Position {index + 1}</span>
@@ -439,11 +491,12 @@ export function AdminPropertyMediaManager({
                       value={item.url}
                       maxLength={2048}
                       aria-invalid={Boolean(urlError)}
+                      aria-describedby={urlError ? urlErrorId : undefined}
                       onChange={(event) =>
                         updateItem(index, { url: event.target.value })
                       }
                     />
-                    {urlError ? <small>{urlError}</small> : null}
+                    {urlError ? <small id={urlErrorId}>{urlError}</small> : null}
                   </label>
                   <label>
                     <span>Alternative text</span>
@@ -451,11 +504,12 @@ export function AdminPropertyMediaManager({
                       value={item.alt}
                       maxLength={240}
                       aria-invalid={Boolean(altError)}
+                      aria-describedby={altError ? altErrorId : undefined}
                       onChange={(event) =>
                         updateItem(index, { alt: event.target.value })
                       }
                     />
-                    {altError ? <small>{altError}</small> : null}
+                    {altError ? <small id={altErrorId}>{altError}</small> : null}
                   </label>
                   <label>
                     <span>Caption (optional)</span>
@@ -524,13 +578,19 @@ export function AdminPropertyMediaManager({
                       type="radio"
                       name="coverMedia"
                       checked={coverMediaId === item.id}
-                      onChange={() => setCoverMediaId(item.id)}
+                      onChange={() => {
+                        setCoverMediaId(item.id);
+                        setState({ kind: "idle" });
+                        setDirty(true);
+                      }}
                     />
                     Cover image
                   </label>
                   <button
                     type="button"
                     disabled={index === 0}
+                    aria-label={`Move image ${index + 1} earlier`}
+                    data-move-direction="earlier"
                     onClick={() => move(index, -1)}
                   >
                     Move up
@@ -538,6 +598,8 @@ export function AdminPropertyMediaManager({
                   <button
                     type="button"
                     disabled={index === media.length - 1}
+                    aria-label={`Move image ${index + 1} later`}
+                    data-move-direction="later"
                     onClick={() => move(index, 1)}
                   >
                     Move down

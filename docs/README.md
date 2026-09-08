@@ -75,6 +75,9 @@ Current:
 - [`seo-and-social-discovery.md`](features/seo-and-social-discovery.md) — metadata,
   canonicals, location indexing, social previews, structured data, robots and sitemap
   policy
+- [`accessibility-responsive-browser-qa.md`](features/accessibility-responsive-browser-qa.md)
+  — practical accessibility target, interaction rules, responsive matrix, browser
+  coverage and manual acceptance boundaries
 
 The backend authentication foundation is documented as an architectural boundary. The
 first property-administration slice now has a feature specification. Structured viewing

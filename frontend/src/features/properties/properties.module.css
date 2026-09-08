@@ -113,10 +113,11 @@
     5px 5px;
 }
 
-.searchField input:focus,
-.searchField select:focus {
+.searchField input:focus-visible,
+.searchField select:focus-visible {
   border-color: var(--color-gold, #b4893d);
-  outline: none;
+  outline: 2px solid var(--color-gold, #b4893d);
+  outline-offset: 3px;
 }
 
 .searchActions {
@@ -475,6 +476,10 @@
   line-height: 1.65;
   margin: 0 0 2rem;
   padding: 1rem 1.25rem;
+}
+
+.errorState :global(.button) {
+  margin-top: 1rem;
 }
 
 .pagination {

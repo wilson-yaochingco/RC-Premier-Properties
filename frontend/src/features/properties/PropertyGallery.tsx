@@ -49,6 +49,8 @@ export function PropertyGallery({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const touchStart = useRef<number | null>(null);
+  const fullscreenTrigger = useRef<HTMLButtonElement>(null);
+  const lightbox = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const selected = media[selectedIndex] ?? media[0];
   const sourceUrl = selected ? safeSourceUrl(selected) : undefined;
@@ -61,22 +63,46 @@ export function PropertyGallery({
     [media.length],
   );
 
+  const closeFullscreen = useCallback(() => {
+    setFullscreen(false);
+    window.requestAnimationFrame(() => fullscreenTrigger.current?.focus());
+  }, []);
+
   useEffect(() => {
     if (!fullscreen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     closeButton.current?.focus();
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setFullscreen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeFullscreen();
+      }
       if (event.key === "ArrowLeft") select(selectedIndex - 1);
       if (event.key === "ArrowRight") select(selectedIndex + 1);
+      if (event.key !== "Tab") return;
+
+      const controls = Array.from(
+        lightbox.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      const first = controls.at(0);
+      const last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [fullscreen, selectedIndex, media.length, select]);
+  }, [closeFullscreen, fullscreen, selectedIndex, select]);
 
   if (media.length === 0) {
     return (
@@ -98,14 +124,15 @@ export function PropertyGallery({
           sizes="(max-width: 768px) 100vw, 72vw"
         />
         <button
+          ref={fullscreenTrigger}
           type="button"
           className={styles.fullscreenTrigger}
           onClick={() => setFullscreen(true)}
         >
           View Fullscreen
         </button>
-        <span className={styles.photoCount}>
-          {selectedIndex + 1} / {media.length}
+        <span className={styles.photoCount} aria-live="polite" aria-atomic="true">
+          Photo {selectedIndex + 1} of {media.length}
         </span>
         {selected?.caption || selected?.attribution ? (
           <figcaption className={styles.galleryCaption}>
@@ -159,6 +186,7 @@ export function PropertyGallery({
 
       {fullscreen && selected ? (
         <div
+          ref={lightbox}
           className={styles.lightbox}
           role="dialog"
           aria-modal="true"
@@ -178,7 +206,7 @@ export function PropertyGallery({
             ref={closeButton}
             type="button"
             className={styles.lightboxClose}
-            onClick={() => setFullscreen(false)}
+            onClick={closeFullscreen}
           >
             Close
           </button>
@@ -205,8 +233,8 @@ export function PropertyGallery({
           <div className={styles.lightboxMedia}>
             <PropertyMedia media={selected} fit="contain" sizes="100vw" />
           </div>
-          <p>
-            {selectedIndex + 1} / {media.length}
+          <p aria-live="polite" aria-atomic="true">
+            Photo {selectedIndex + 1} of {media.length}
           </p>
         </div>
       ) : null}

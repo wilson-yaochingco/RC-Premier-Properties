@@ -92,6 +92,9 @@ test("card focus highlights its approved marker and a boundary-data failure is i
   await expect(
     page.getByRole("heading", { name: "Clark Garden Residence" }),
   ).toBeVisible();
+  await page.unroute(`**${BOUNDARY_PATH}`);
+  await page.getByRole("button", { name: "Retry map boundaries" }).click();
+  await expect(page.getByRole("region", { name: /Interactive map/ })).toBeVisible();
 });
 
 test("property detail loads only its separately approved public pin", async ({

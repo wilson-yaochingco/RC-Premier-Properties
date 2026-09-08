@@ -107,8 +107,19 @@ real addresses. Browser coverage verifies home and primary navigation, all requi
 property search fields, URL-backed results and empty states, property detail/inquiry
 links, a successful inquiry payload, lazy map/filter/card interaction, mobile-menu
 keyboard behavior, semantic page shells and horizontal overflow at 320, 360, 375, 390,
-412, 430, 768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 pixels. Captures and failure
-traces stay under the configured ignored Playwright output directory.
+412, 414, 430, 480, 640, 768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 pixels.
+Admin property coverage uses 320, 360, 390, 768, 1280 and 1920 pixels. Captures and
+failure traces stay under the configured ignored Playwright output directory.
+
+Level 9 browser checks also cover landmark and heading structure, duplicate IDs, form
+labels, named controls, skip navigation, real keyboard focus order, modal trapping and
+restoration, mobile scroll locking, form-error association/focus, restrained live-region
+use, gallery position, failed-image fallback, video focus transfer, clipboard failure,
+map retry, upload progress and media-reorder focus. Reduced-motion behavior and
+representative public pages at 200% root text sizing have regression assertions. These
+targeted checks are not an accessibility certification or a substitute for real
+assistive-technology and device testing; see
+[`accessibility-responsive-browser-qa.md`](../features/accessibility-responsive-browser-qa.md).
 
 The performance spec currently enforces practical fixture-environment ceilings of CLS
 `<= 0.1`, longest observed main-thread task `< 500 ms`, initial encoded JavaScript below
@@ -155,3 +166,9 @@ build and Playwright browser acceptance. CI uses the installed Chrome channel wi
 worker and retries; local Windows runs use installed Microsoft Edge. Run the complete
 gate locally before handoff because a configured workflow is not proof that a particular
 unpublished branch has passed remotely.
+
+Record browser evidence accurately. A local Edge run does not prove Chrome, Firefox,
+WebKit or physical Safari/iOS behavior, and the configured Chrome CI project is not a
+pass until that workflow has actually run. Real screen-reader review, forced-colors
+review and physical phone/tablet upload acceptance remain manual checks unless their
+exact environment and results are recorded.

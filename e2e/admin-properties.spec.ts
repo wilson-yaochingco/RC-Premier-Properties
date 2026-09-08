@@ -231,6 +231,8 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     /noindex.*nofollow/,
   );
   await expect(page.locator("header")).toHaveCount(1);
+  await expect(page.getByRole("banner")).toHaveCount(1);
+  await expect(page.locator("main#main-content")).toHaveCount(1);
   const adminNavigation = page.getByRole("navigation", {
     name: "Administration navigation",
   });
@@ -248,6 +250,15 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await expect(
     adminNavigation.getByRole("link", { name: "View Website" }),
   ).toHaveAttribute("href", "/");
+  await expect(
+    adminNavigation.getByRole("link", { name: "Properties", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main-content")).toBeFocused();
 
   await page.getByRole("link", { name: "Create draft", exact: true }).last().click();
   await page.getByLabel("Property ID").fill("RCPP-E2E-NEW");
@@ -293,7 +304,10 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     },
   });
   await expect(page.getByText("Add licensed development sample")).toHaveCount(0);
-  await page.locator('input[type="file"]').setInputFiles({
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.focus();
+  await expect(fileInput.locator("..")).not.toHaveCSS("outline-style", "none");
+  await fileInput.setInputFiles({
     name: "portrait-home.png",
     mimeType: "image/png",
     buffer: Buffer.from(
@@ -302,6 +316,9 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     ),
   });
   await page.getByLabel("Alternative text").fill("Uploaded portrait test home");
+  await expect(
+    page.getByRole("progressbar", { name: "Upload progress for portrait-home.png" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Upload Photos" }).click();
   await expect(page.getByText("Uploaded", { exact: true })).toBeVisible();
   expect(uploadRequest).toMatchObject({
@@ -320,13 +337,15 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     .last()
     .fill("Living room of the synthetic test property");
   await page.getByRole("radio", { name: "Cover image" }).nth(1).check();
-  await page.getByRole("button", { name: "Move up" }).nth(1).click();
+  await page.getByRole("button", { name: "Move image 2 earlier" }).click();
+  await expect(page.getByRole("button", { name: "Move image 1 later" })).toBeFocused();
+  await expect(page.getByText("Image moved to position 1.")).toBeAttached();
   await page.getByRole("button", { name: "Save property media" }).click();
   await expect(page.getByText("Property media saved.")).toBeVisible();
   expect(mediaRequest?.coverMediaId).toEqual(
     (mediaRequest?.media as Array<{ id: string }>)[0]?.id,
   );
-  for (const width of [360, 768, 1280]) {
+  for (const width of [320, 360, 390, 768, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
       await page.evaluate(() => ({

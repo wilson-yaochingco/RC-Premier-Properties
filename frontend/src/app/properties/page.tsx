@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared";
 import propertiesImage from "@/assets/site/properties.png";
+import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiClientError } from "@/services/api-client";
@@ -117,6 +118,9 @@ export default async function PropertiesPage({
               <br />
               Your filters remain in the URL. Check that the Express API and MongoDB are
               available, then try again.
+              <Button href={resultsHref} variant="outline">
+                Retry property search
+              </Button>
             </div>
           ) : null}
 

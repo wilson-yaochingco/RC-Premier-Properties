@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -35,6 +36,7 @@ function signInUrl(): string {
 }
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [session, setSession] = useState<CurrentSessionResponse | null>(null);
   const [state, setState] = useState<
     "loading" | "authenticated" | "anonymous" | "error"
@@ -101,6 +103,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
     }
   }
 
+  function isCurrentRoute(href: string): boolean {
+    if (href === "/admin") return pathname === href;
+    if (href === "/admin/properties/new") return pathname === href;
+    if (href === "/admin/properties") {
+      return pathname.startsWith(href) && pathname !== "/admin/properties/new";
+    }
+    return pathname.startsWith(href);
+  }
+
   if (state === "loading") {
     return (
       <main id="main-content" className={styles.state} aria-busy="true">
@@ -145,18 +156,45 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <AdminSessionContext.Provider value={context}>
-      <main id="main-content" className={styles.admin}>
+      <div className={styles.admin}>
         <header className={styles.shellHeader}>
           <div>
             <p className={styles.eyebrow}>RC Premier staff</p>
             <p className={styles.staffName}>{context.session.staff.displayName}</p>
           </div>
           <nav aria-label="Administration navigation">
-            <Link href="/admin">Dashboard</Link>
-            <Link href="/admin/properties">Properties</Link>
-            <Link href="/admin/inquiries">Inquiries</Link>
-            <Link href="/admin/viewings">Viewings</Link>
-            <Link href="/admin/properties/new">Create draft</Link>
+            <Link
+              href="/admin"
+              aria-current={isCurrentRoute("/admin") ? "page" : undefined}
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/admin/properties"
+              aria-current={isCurrentRoute("/admin/properties") ? "page" : undefined}
+            >
+              Properties
+            </Link>
+            <Link
+              href="/admin/inquiries"
+              aria-current={isCurrentRoute("/admin/inquiries") ? "page" : undefined}
+            >
+              Inquiries
+            </Link>
+            <Link
+              href="/admin/viewings"
+              aria-current={isCurrentRoute("/admin/viewings") ? "page" : undefined}
+            >
+              Viewings
+            </Link>
+            <Link
+              href="/admin/properties/new"
+              aria-current={
+                isCurrentRoute("/admin/properties/new") ? "page" : undefined
+              }
+            >
+              Create draft
+            </Link>
             <Link href="/" className={styles.viewWebsite}>
               View Website
             </Link>
@@ -170,8 +208,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             {message}
           </p>
         ) : null}
-        <div className={styles.shellContent}>{children}</div>
-      </main>
+        <main id="main-content" tabIndex={-1} className={styles.shellContent}>
+          {children}
+        </main>
+      </div>
     </AdminSessionContext.Provider>
   );
 }

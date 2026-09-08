@@ -241,7 +241,12 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
           <p className={styles.resultCount} role="status">
             {state.response.pagination.total.toLocaleString("en-PH")} inquiries found
           </p>
-          <div className={styles.tableWrap}>
+          <div
+            className={styles.tableWrap}
+            role="region"
+            aria-label="Private inquiries table"
+            tabIndex={0}
+          >
             <table className={styles.table}>
               <caption className={styles.srOnly}>Private staff inquiry queue</caption>
               <thead>

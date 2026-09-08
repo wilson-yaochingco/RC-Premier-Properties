@@ -61,7 +61,9 @@
   max-width: 30rem;
 }
 
-.consentPlaceholder button {
+.consentPlaceholder button,
+.failure button,
+.mapDataFailure button {
   background: var(--color-ink, #3a424f);
   border: 0;
   color: #fff;
@@ -73,6 +75,19 @@
   min-height: 2.75rem;
   padding: 0.8rem 1.1rem;
   text-transform: uppercase;
+}
+
+.mapDataFailure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mapDataFailure button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .canvasFrame {

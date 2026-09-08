@@ -57,12 +57,13 @@
   resize: vertical;
 }
 
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
   border-color: var(--color-gold, #b4893d);
   box-shadow: 0 0 0 3px rgb(180 137 61 / 18%);
-  outline: none;
+  outline: 2px solid var(--color-gold, #b4893d);
+  outline-offset: 2px;
 }
 
 .field input[aria-invalid="true"],
@@ -133,6 +134,21 @@
   border-left-color: #9f2f2f;
   background: #fff3f2;
   color: #702323;
+}
+
+.fieldError {
+  color: #702323;
+  font-size: 0.82rem;
+}
+
+.message:focus {
+  outline: 3px solid #9f2f2f;
+  outline-offset: 3px;
+}
+
+.issues a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .issues {

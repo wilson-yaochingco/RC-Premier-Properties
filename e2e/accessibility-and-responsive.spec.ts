@@ -15,10 +15,12 @@ const CORE_ROUTES = [
 ] as const;
 
 const VIEWPORT_WIDTHS = [
-  320, 360, 375, 390, 412, 430, 768, 820, 1024, 1280, 1366, 1440, 1600, 1920,
+  320, 360, 375, 390, 412, 414, 430, 480, 640, 768, 820, 1024, 1280, 1366, 1440, 1600,
+  1920,
 ] as const;
 
 async function expectSemanticShell(page: Page) {
+  await expect(page.locator('main#main-content:not([aria-busy="true"])')).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("banner")).toHaveCount(1);
   await expect(page.locator("main#main-content")).toHaveCount(1);
@@ -27,6 +29,50 @@ async function expectSemanticShell(page: Page) {
   await expect(page.getByRole("navigation", { name: "Footer navigation" })).toHaveCount(
     1,
   );
+  const structure = await page.evaluate(() => {
+    const headingLevels = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map(
+      (heading) => Number(heading.tagName.slice(1)),
+    );
+    const skippedHeading = headingLevels.some(
+      (level, index) => index > 0 && level > (headingLevels[index - 1] ?? 0) + 1,
+    );
+    const duplicateIds = [...document.querySelectorAll<HTMLElement>("[id]")]
+      .map((element) => element.id)
+      .filter((id, index, ids) => ids.indexOf(id) !== index);
+    const unlabeledControls = [
+      ...document.querySelectorAll<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >('input:not([type="hidden"]), select, textarea'),
+    ]
+      .filter((control) => !control.closest('[aria-hidden="true"]'))
+      .filter(
+        (control) =>
+          control.labels?.length === 0 &&
+          !control.getAttribute("aria-label") &&
+          !control.getAttribute("aria-labelledby"),
+      )
+      .map((control) => `${control.tagName.toLowerCase()}#${control.id}`);
+    const unnamedButtons = [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .filter((button) => !button.closest('[aria-hidden="true"]'))
+      .filter(
+        (button) =>
+          !button.innerText.trim() &&
+          !button.getAttribute("aria-label") &&
+          !button.getAttribute("aria-labelledby"),
+      ).length;
+    return {
+      duplicateIds,
+      headingLevels,
+      skippedHeading,
+      unlabeledControls,
+      unnamedButtons,
+    };
+  });
+  expect(structure.headingLevels[0]).toBe(1);
+  expect(structure.skippedHeading).toBe(false);
+  expect(structure.duplicateIds).toEqual([]);
+  expect(structure.unlabeledControls).toEqual([]);
+  expect(structure.unnamedButtons).toBe(0);
 }
 
 test("core routes expose one semantic shell and a working skip link", async ({
@@ -44,6 +90,63 @@ test("core routes expose one semantic shell and a working skip link", async ({
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#main-content$/);
   await expect(page.locator("main#main-content")).toBeFocused();
+});
+
+test("form controls retain a visible keyboard focus indicator", async ({ page }) => {
+  await page.goto("/contact");
+  const name = page.getByLabel("Name");
+  await name.focus();
+  const focusStyle = await name.evaluate((control) => {
+    const style = getComputedStyle(control);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle.outlineStyle).not.toBe("none");
+  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/properties");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  const propertyId = page.getByLabel("Property ID");
+  await expect(propertyId).toBeVisible();
+  await page.locator("main#main-content").focus();
+  await page.keyboard.press("Tab");
+  await expect(propertyId).toBeFocused();
+  expect(
+    await propertyId.evaluate((control) => getComputedStyle(control).outlineStyle),
+  ).not.toBe("none");
+});
+
+test("reduced motion and 200 percent text sizing preserve core content", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+  expect(
+    Number.parseFloat(
+      await page
+        .locator(".home-hero__content h1")
+        .evaluate((heading) => getComputedStyle(heading).animationDuration),
+    ),
+  ).toBeLessThanOrEqual(0.001);
+
+  for (const path of [
+    "/",
+    "/properties",
+    "/properties/clark-garden-residence",
+    "/contact",
+  ]) {
+    await page.goto(path);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    const layout = await inspectHorizontalOverflow(page);
+    expect(
+      layout.documentWidth,
+      `${path} overflow at 200% text: ${JSON.stringify(layout.offenders)}`,
+    ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
 });
 
 async function inspectHorizontalOverflow(page: Page) {
@@ -102,6 +205,9 @@ for (const width of VIEWPORT_WIDTHS) {
 
     for (const route of CORE_ROUTES) {
       await page.goto(route.path);
+      await expect(
+        page.locator('main#main-content:not([aria-busy="true"])'),
+      ).toBeVisible();
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       const layout = await inspectHorizontalOverflow(page);
       expect(

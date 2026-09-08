@@ -103,7 +103,7 @@ video {
 
 ::selection {
   background: var(--brand-secondary);
-  color: var(--brand-white);
+  color: var(--brand-ink-on-gold);
 }
 
 :focus-visible {
@@ -605,7 +605,6 @@ video {
   border: 0;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
-  outline: 0;
   background: transparent;
   font-size: 0.92rem;
 }
@@ -615,10 +614,12 @@ video {
   opacity: 1;
 }
 
-.form-field input:focus,
-.form-field select:focus {
+.form-field input:focus-visible,
+.form-field select:focus-visible {
   border-bottom-color: var(--brand-secondary);
   box-shadow: 0 1px 0 var(--brand-secondary);
+  outline: 2px solid var(--brand-secondary);
+  outline-offset: 3px;
 }
 
 .property-search-entry__submit {
@@ -1167,6 +1168,7 @@ video {
   .mobile-navigation__panel {
     position: fixed;
     inset: var(--header-height) 0 auto;
+    height: calc(100vh - var(--header-height));
     height: calc(100dvh - var(--header-height));
     display: flex;
     flex-direction: column;
@@ -1754,6 +1756,9 @@ video {
 }
 
 .featured-video > a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
   color: rgba(255, 255, 255, 0.75);
   font-size: 0.75rem;
 }
@@ -1804,7 +1809,22 @@ video {
 }
 
 .site-footer__location a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
   color: inherit;
+}
+
+.site-footer__navigation a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.property-media > .media-placeholder {
+  height: 100%;
+  min-height: 100%;
+  border: 0;
 }
 
 @media (max-width: 62rem) {

@@ -11,12 +11,29 @@ export function PropertyActions({
 }) {
   const [message, setMessage] = useState("");
 
-  async function copy(value: string, success: string) {
+  function legacyCopy(value: string): boolean {
+    const field = document.createElement("textarea");
+    field.value = value;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.append(field);
+    field.select();
+    const copied = document.execCommand("copy");
+    field.remove();
+    return copied;
+  }
+
+  async function copy(value: string, success: string, failure: string) {
     try {
-      await navigator.clipboard.writeText(value);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else if (!legacyCopy(value)) {
+        throw new Error("Clipboard unavailable");
+      }
       setMessage(success);
     } catch {
-      setMessage("Copy failed. Please copy it from the page address.");
+      setMessage(failure);
     }
   }
 
@@ -27,7 +44,11 @@ export function PropertyActions({
         setMessage("Share options opened.");
         return;
       }
-      await copy(window.location.href, "Property link copied.");
+      await copy(
+        window.location.href,
+        "Property link copied.",
+        "Copy unavailable. Copy the link from your browser address bar.",
+      );
     } catch (error) {
       setMessage(
         error instanceof DOMException && error.name === "AbortError"
@@ -41,7 +62,13 @@ export function PropertyActions({
     <div className="property-actions">
       <button
         type="button"
-        onClick={() => copy(propertyNumber, "Property number copied.")}
+        onClick={() =>
+          copy(
+            propertyNumber,
+            "Property number copied.",
+            "Copy unavailable. Select and copy the property number shown on this page.",
+          )
+        }
       >
         Copy Property Number
       </button>

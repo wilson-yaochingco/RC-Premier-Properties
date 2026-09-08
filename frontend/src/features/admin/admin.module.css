@@ -1,5 +1,5 @@
 .admin {
-  min-height: 70vh;
+  min-height: 100vh;
   background: #f5f3ee;
 }
 
@@ -38,6 +38,10 @@
   padding-inline: 0.85rem;
   border: 1px solid var(--brand-secondary-light);
   color: var(--brand-secondary-light);
+}
+
+.shellHeader a[aria-current="page"] {
+  box-shadow: inset 0 -2px var(--brand-secondary-light);
 }
 
 .shellHeader button {
@@ -828,6 +832,11 @@
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+.uploadPicker:focus-within {
+  outline: 2px solid var(--brand-secondary);
+  outline-offset: 4px;
 }
 
 .uploadList {

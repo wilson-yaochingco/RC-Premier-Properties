@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const videos = [
   {
@@ -19,6 +19,13 @@ const videos = [
 
 export function FeaturedVideos() {
   const [active, setActive] = useState<string[]>([]);
+  const [lastActivated, setLastActivated] = useState<string>();
+
+  useEffect(() => {
+    if (lastActivated) {
+      document.getElementById(`featured-video-${lastActivated}`)?.focus();
+    }
+  }, [lastActivated]);
 
   return (
     <div className="featured-videos">
@@ -28,8 +35,10 @@ export function FeaturedVideos() {
           <article key={video.id} className="featured-video">
             {isActive ? (
               <iframe
+                id={`featured-video-${video.id}`}
                 src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&rel=0`}
                 title={`RC Premier featured property video ${index + 1}`}
+                tabIndex={0}
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
@@ -37,7 +46,10 @@ export function FeaturedVideos() {
               <button
                 type="button"
                 aria-label={`Play featured property video ${index + 1}`}
-                onClick={() => setActive((items) => [...items, video.id])}
+                onClick={() => {
+                  setActive((items) => [...items, video.id]);
+                  setLastActivated(video.id);
+                }}
               >
                 <span className="featured-video__number">0{index + 1}</span>
                 <span className="featured-video__play" aria-hidden="true">
