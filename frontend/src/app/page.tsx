@@ -144,7 +144,7 @@ export default function HomePage() {
                   alt="Modern Pampanga home with a sloping roof and landscaped frontage"
                   fill
                   priority
-                  sizes="(max-width: 800px) 100vw, 52vw"
+                  sizes="(max-width: 800px) 92vw, 52vw"
                 />
               </figure>
               <figure className="home-hero__photo">
@@ -152,7 +152,7 @@ export default function HomePage() {
                   src={heroPool}
                   alt="Residential courtyard with a tiled pool and blue sky"
                   fill
-                  sizes="(max-width: 800px) 48vw, 23vw"
+                  sizes="(max-width: 800px) 44vw, 23vw"
                 />
               </figure>
               <figure className="home-hero__photo">
@@ -160,7 +160,7 @@ export default function HomePage() {
                   src={heroInterior}
                   alt="High-ceiling living and dining area with warm wood details"
                   fill
-                  sizes="(max-width: 800px) 48vw, 23vw"
+                  sizes="(max-width: 800px) 44vw, 23vw"
                 />
               </figure>
             </div>
@@ -219,7 +219,7 @@ export default function HomePage() {
                 src={locationImage}
                 alt="Contemporary multi-story Pampanga residence under a blue sky"
                 fill
-                sizes="(max-width: 800px) 100vw, 45vw"
+                sizes="(max-width: 800px) 92vw, 45vw"
               />
             </figure>
             <Suspense
@@ -255,7 +255,7 @@ export default function HomePage() {
               src={whyImage}
               alt="Double-height home entrance with sculptural gold pendant lights"
               fill
-              sizes="(max-width: 800px) 100vw, 45vw"
+              sizes="(max-width: 800px) 92vw, 45vw"
             />
           </figure>
           <div>
@@ -291,7 +291,7 @@ export default function HomePage() {
               src={viewingImage}
               alt="Landscaped private garden beside a residence"
               fill
-              sizes="(max-width: 800px) 100vw, 42vw"
+              sizes="(max-width: 800px) 92vw, 42vw"
             />
           </figure>
         </Container>

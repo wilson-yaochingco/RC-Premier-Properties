@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared";
 import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +24,8 @@ import {
 } from "@/features/properties/property-seo";
 import styles from "@/features/properties/properties.module.css";
 
+const getCachedPropertyFacets = cache(getPropertyFacets);
+
 export async function generateMetadata({
   searchParams,
 }: PageProps<"/properties">): Promise<Metadata> {
@@ -37,7 +40,7 @@ export async function generateMetadata({
 
 async function loadFacets(): Promise<PropertyFacetsResponse | undefined> {
   try {
-    return await getPropertyFacets();
+    return await getCachedPropertyFacets();
   } catch {
     return undefined;
   }

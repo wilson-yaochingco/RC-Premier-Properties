@@ -8,11 +8,30 @@ import { buildPublicSitemap } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
+const SITEMAP_PAGE_SIZE = "48";
+const SITEMAP_FETCH_CONCURRENCY = 4;
+
 async function getPublishedSitemapProperties() {
-  const firstPage = await getProperties({ page: "1" });
+  const firstPage = await getProperties({ page: "1", limit: SITEMAP_PAGE_SIZE });
   const pages = [firstPage];
-  for (let page = 2; page <= firstPage.pagination.totalPages; page += 1) {
-    pages.push(await getProperties({ page: String(page) }));
+  for (
+    let firstPendingPage = 2;
+    firstPendingPage <= firstPage.pagination.totalPages;
+    firstPendingPage += SITEMAP_FETCH_CONCURRENCY
+  ) {
+    const lastPendingPage = Math.min(
+      firstPage.pagination.totalPages,
+      firstPendingPage + SITEMAP_FETCH_CONCURRENCY - 1,
+    );
+    const batch = await Promise.all(
+      Array.from({ length: lastPendingPage - firstPendingPage + 1 }, (_, index) =>
+        getProperties({
+          page: String(firstPendingPage + index),
+          limit: SITEMAP_PAGE_SIZE,
+        }),
+      ),
+    );
+    pages.push(...batch);
   }
   return pages.flatMap((result) => result.items);
 }

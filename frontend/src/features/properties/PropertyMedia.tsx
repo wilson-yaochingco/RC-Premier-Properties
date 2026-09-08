@@ -49,7 +49,7 @@ export function PropertyMedia({
   label = "PROPERTY IMAGE",
   preload = false,
   className = "",
-  sizes = "(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw",
+  sizes = "(max-width: 639px) 92vw, (max-width: 1023px) 50vw, 33vw",
   fit = "cover",
 }: PropertyMediaProps) {
   const [failedUrl, setFailedUrl] = useState<string>();

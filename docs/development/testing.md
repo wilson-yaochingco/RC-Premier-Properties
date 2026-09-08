@@ -86,8 +86,9 @@ npm run test:e2e
 - The interactive map has browser coverage for deferred loading, shared URL filters,
   card/marker synchronization, approved-point privacy and isolated data failures.
 - Practical performance checks guard initial encoded JavaScript, layout shift, long
-  tasks, DOM size and accidental eager boundary downloads. They are regression budgets,
-  not a substitute for production field monitoring.
+  tasks, DOM size, image-preload discipline, progressive galleries, raw-PNG delivery,
+  pre-intent third-party requests and accidental eager boundary downloads. They are
+  regression budgets, not a substitute for production field monitoring.
 - Manual visual acceptance includes mobile, tablet and desktop viewports and records any
   external blocker rather than silently skipping it.
 
@@ -123,10 +124,15 @@ assistive-technology and device testing; see
 
 The performance spec currently enforces practical fixture-environment ceilings of CLS
 `<= 0.1`, longest observed main-thread task `< 500 ms`, initial encoded JavaScript below
-1 MB and fewer than 1,500 initial DOM nodes on the home/catalog mobile entry routes. It
-also proves those entries make no eager boundary request. These figures are deliberately
+1 MB and fewer than 1,500 initial DOM nodes on the home, catalog and representative
+property-detail mobile entry routes. It also proves those entries make no eager boundary,
+YouTube or direct raw-PNG source request. Focused assertions keep one true homepage LCP
+preload, secondary imagery lazy, one current detail-image preload, nonselected gallery
+media lazy, and fullscreen media absent before activation. These figures are deliberately
 coarse cross-environment guards; production Core Web Vitals need real-user or controlled
-Lighthouse measurement after hosting, media and analytics are selected.
+staging measurement after hosting, media and analytics are selected. See
+[`performance-and-delivery.md`](../features/performance-and-delivery.md) for methodology,
+before/after evidence and limitations.
 
 ## External integration boundary
 

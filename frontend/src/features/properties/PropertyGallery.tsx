@@ -121,7 +121,7 @@ export function PropertyGallery({
           media={selected}
           label="PROPERTY GALLERY IMAGE"
           preload
-          sizes="(max-width: 768px) 100vw, 72vw"
+          sizes="(max-width: 768px) 92vw, 72vw"
         />
         <button
           ref={fullscreenTrigger}
@@ -152,18 +152,21 @@ export function PropertyGallery({
 
       {media.length > 1 ? (
         <div className={styles.gallerySide} aria-label="Choose gallery image">
-          {media.slice(0, 2).map((item, index) => (
-            <button
-              key={mediaKey(item, index)}
-              type="button"
-              className={styles.galleryChoice}
-              aria-label={`Show image ${index + 1}: ${item.alt}`}
-              aria-pressed={selectedIndex === index}
-              onClick={() => select(index)}
-            >
-              <PropertyMedia media={item} sizes="28vw" />
-            </button>
-          ))}
+          {media
+            .map((item, index) => ({ item, index }))
+            .filter(({ index }) => index !== selectedIndex)
+            .slice(0, 2)
+            .map(({ item, index }) => (
+              <button
+                key={mediaKey(item, index)}
+                type="button"
+                className={styles.galleryChoice}
+                aria-label={`Show image ${index + 1}: ${item.alt}`}
+                onClick={() => select(index)}
+              >
+                <PropertyMedia media={item} sizes="28vw" />
+              </button>
+            ))}
         </div>
       ) : null}
 

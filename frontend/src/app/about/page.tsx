@@ -62,7 +62,7 @@ export default function AboutPage() {
                 alt="Contemporary residence with a bright open-air entrance courtyard"
                 fill
                 priority
-                sizes="(max-width: 800px) 100vw, 70vw"
+                sizes="(max-width: 800px) 92vw, 70vw"
               />
             </figure>
             <p>

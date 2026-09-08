@@ -79,6 +79,10 @@ Current:
   — practical accessibility target, interaction rules, responsive matrix, browser
   coverage and manual acceptance boundaries
 
+- [`performance-and-delivery.md`](features/performance-and-delivery.md) - Level 10
+  baseline, Core Web Vitals readiness, image/gallery/video/map delivery, API and query
+  efficiency, caching policy, budgets, and field-validation boundaries
+
 The backend authentication foundation is documented as an architectural boundary. The
 first property-administration slice now has a feature specification. Structured viewing
 requests and their lightweight staff lifecycle are implemented without a live calendar;

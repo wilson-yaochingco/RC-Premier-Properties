@@ -481,7 +481,11 @@ export function AdminPropertyMediaManager({
                 data-media-id={item.id}
               >
                 <div className={styles.mediaPreview}>
-                  <PropertyMedia media={item} label={`PROPERTY IMAGE ${index + 1}`} />
+                  <PropertyMedia
+                    media={item}
+                    label={`PROPERTY IMAGE ${index + 1}`}
+                    sizes="(max-width: 480px) 92vw, (max-width: 960px) 35vw, 20rem"
+                  />
                   <span>Position {index + 1}</span>
                 </div>
                 <div className={styles.mediaFields}>

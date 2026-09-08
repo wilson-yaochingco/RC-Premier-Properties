@@ -1000,6 +1000,12 @@ Core Web Vitals, image optimization, API performance, MongoDB query performance 
 indexes, caching, bundle size, lazy loading, CDN usage. **Identify where caching helps
 before introducing it** — premature caching hides problems rather than solving them.
 
+The Level 10 engineering audit and implemented local optimizations are recorded in
+[`features/performance-and-delivery.md`](features/performance-and-delivery.md). That work
+does not complete this production launch gate: field Core Web Vitals, hosting/proxy
+compression, production storage/CDN behavior, production-shaped MongoDB plans, and
+real-device/network validation still depend on staging and provider decisions.
+
 ### SEO and accessibility audits
 
 Metadata, sitemap, robots, canonical URLs, structured data, social previews, property

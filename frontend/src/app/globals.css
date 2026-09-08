@@ -1938,7 +1938,8 @@ video {
 
 .route-state {
   width: min(100% - (2 * var(--container-gutter)), var(--container-max));
-  min-height: 70vh;
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
   display: flex;
   flex-direction: column;
   align-items: flex-start;

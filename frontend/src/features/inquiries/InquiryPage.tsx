@@ -61,7 +61,7 @@ export function InquiryPage({
                 src={image}
                 alt={imageAlt}
                 fill
-                sizes="(max-width: 900px) 100vw, 40vw"
+                sizes="(max-width: 900px) 92vw, 40vw"
               />
             </figure>
           </section>

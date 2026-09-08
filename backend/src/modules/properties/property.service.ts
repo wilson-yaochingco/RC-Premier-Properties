@@ -49,7 +49,7 @@ import type {
   PublicPropertyRecord,
 } from "./property.types.js";
 
-const PUBLIC_PROPERTY_PROJECTION = [
+const PUBLIC_PROPERTY_SUMMARY_FIELDS = [
   "_id",
   "propertyId",
   "slug",
@@ -67,13 +67,38 @@ const PUBLIC_PROPERTY_PROJECTION = [
   "location.publicPoint",
   "specifications",
   "shortDescription",
+  "coverMedia",
+  "publishedAt",
+] as const;
+
+const PUBLIC_PROPERTY_SUMMARY_PROJECTION = PUBLIC_PROPERTY_SUMMARY_FIELDS.join(" ");
+
+const PUBLIC_PROPERTY_MAP_PROJECTION = [
+  "_id",
+  "propertyId",
+  "slug",
+  "title",
+  "purpose",
+  "propertyType",
+  "availability",
+  "price",
+  "location.province",
+  "location.city",
+  "location.barangay",
+  "location.development",
+  "location.publicPrecision",
+  "location.publicPoint",
+  "specifications",
+  "coverMedia",
+].join(" ");
+
+const PUBLIC_PROPERTY_DETAIL_PROJECTION = [
+  ...PUBLIC_PROPERTY_SUMMARY_FIELDS,
   "description",
   "highlights",
   "amenities",
   "features",
-  "coverMedia",
   "gallery",
-  "publishedAt",
   "updatedAt",
 ].join(" ");
 
@@ -349,21 +374,21 @@ export function toPublicPropertySummary(
 export function toPublicPropertyMapItem(
   record: PublicPropertyRecord,
 ): PublicPropertyMapItem | undefined {
-  const summary = toPublicPropertySummary(record);
-  if (!summary.location.publicPoint) return undefined;
+  const location = publicLocation(record);
+  if (!location.publicPoint) return undefined;
 
   return {
-    id: summary.id,
-    propertyId: summary.propertyId,
-    slug: summary.slug,
-    title: summary.title,
-    purpose: summary.purpose,
-    propertyType: summary.propertyType,
-    availability: summary.availability,
-    price: summary.price,
-    location: summary.location,
-    specifications: summary.specifications,
-    ...(summary.coverMedia ? { coverMedia: summary.coverMedia } : {}),
+    id: String(record._id),
+    propertyId: record.propertyId,
+    slug: record.slug,
+    title: record.title,
+    purpose: record.purpose,
+    propertyType: record.propertyType,
+    availability: record.availability,
+    price: record.price,
+    location,
+    specifications: record.specifications,
+    ...(record.coverMedia ? { coverMedia: record.coverMedia } : {}),
   };
 }
 
@@ -475,7 +500,7 @@ export class MongoosePropertyService implements PropertyService {
     const [records, total] = await Promise.all([
       this.model
         .find(filter)
-        .select(PUBLIC_PROPERTY_PROJECTION)
+        .select(PUBLIC_PROPERTY_SUMMARY_PROJECTION)
         .sort(sortFor(request.sort))
         .skip(skip)
         .limit(request.limit)
@@ -513,7 +538,7 @@ export class MongoosePropertyService implements PropertyService {
     const [records, matchingTotal, mappableTotal] = await Promise.all([
       this.model
         .find(mappableFilter)
-        .select(PUBLIC_PROPERTY_PROJECTION)
+        .select(PUBLIC_PROPERTY_MAP_PROJECTION)
         .sort(sortFor("newest"))
         .limit(MAP_RESULT_LIMIT)
         .lean<PublicPropertyRecord[]>(),
@@ -541,7 +566,7 @@ export class MongoosePropertyService implements PropertyService {
   async findPublishedBySlug(slug: string): Promise<PublicPropertyDetail | null> {
     const record = await this.model
       .findOne(buildPublishedPropertyDetailFilter(slug))
-      .select(PUBLIC_PROPERTY_PROJECTION)
+      .select(PUBLIC_PROPERTY_DETAIL_PROJECTION)
       .lean<PublicPropertyRecord | null>();
     return record ? toPublicPropertyDetail(record) : null;
   }
