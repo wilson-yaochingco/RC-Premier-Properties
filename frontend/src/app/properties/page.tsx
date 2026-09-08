@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared";
+import propertiesImage from "@/assets/site/properties.png";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiClientError } from "@/services/api-client";
@@ -15,20 +16,23 @@ import {
   getProperties,
   getPropertyFacets,
 } from "@/features/properties/property.service";
+import {
+  buildPropertiesMetadata,
+  resolveLocationSeoState,
+} from "@/features/properties/property-seo";
 import styles from "@/features/properties/properties.module.css";
 
-export const metadata: Metadata = {
-  title: "Properties",
-  description:
-    "Search published RC Premier Properties listings by Property ID, Pampanga location, property type and price.",
-  alternates: { canonical: "/properties" },
-  openGraph: {
-    title: "Properties | RC Premier Properties",
-    description:
-      "Search published property listings in Angeles City and the wider Pampanga market.",
-    type: "website",
-  },
-};
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/properties">): Promise<Metadata> {
+  const rawSearchParams = (await searchParams) as RawSearchParams;
+  const hasLocation = Boolean(propertyFormValues(rawSearchParams).location);
+  const facets = hasLocation ? await loadFacets() : undefined;
+  return buildPropertiesMetadata(
+    resolveLocationSeoState(rawSearchParams, facets),
+    propertiesImage.src,
+  );
+}
 
 async function loadFacets(): Promise<PropertyFacetsResponse | undefined> {
   try {
@@ -63,13 +67,25 @@ export default async function PropertiesPage({
   }
 
   const facets = await facetsPromise;
+  const locationSeo = resolveLocationSeoState(rawSearchParams, facets);
 
   return (
     <main id="main-content" tabIndex={-1}>
       <section className={styles.hero}>
         <Container className={styles.heroCopy}>
           <p className={styles.heroEyebrow}>Property collection · Pampanga</p>
-          <h1>Find the right place, with clarity.</h1>
+          <h1>
+            {locationSeo.location
+              ? `Properties for sale in ${locationSeo.location}`
+              : "Find the right place, with clarity."}
+          </h1>
+          {locationSeo.location ? (
+            <p className={styles.heroIntro}>
+              {locationSeo.count?.toLocaleString("en-PH")} published{" "}
+              {locationSeo.count === 1 ? "property is" : "properties are"} currently
+              available to explore in this location.
+            </p>
+          ) : null}
           <p className={styles.heroIntro}>
             Search published inventory by reference, location, type and budget. Every
             result comes from the property API—never from a decorative sample list.

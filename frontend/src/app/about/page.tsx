@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "About",
   description:
     "Learn about RC Premier Properties and its residential property focus in Pampanga.",
-  alternates: { canonical: "/about" },
-};
+  canonicalPath: "/about",
+  imagePath: aboutImage.src,
+});
 
 const principles = [
   {

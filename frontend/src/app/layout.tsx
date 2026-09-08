@@ -1,33 +1,28 @@
 import type { Metadata } from "next";
+import heroExterior from "@/assets/site/home-hero-1.png";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PublicChrome } from "@/components/layout/PublicChrome";
 import { SITE_URL } from "@/lib/env";
+import { buildPageMetadata } from "@/lib/seo";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: "RC Premier Properties",
-    template: "%s | RC Premier Properties",
-  },
+const rootMetadata = buildPageMetadata({
+  title: "RC Premier Properties | Houses for Sale in Pampanga",
   description:
     "Browse houses and residential properties for sale in Pampanga with RC Premier Properties.",
+  canonicalPath: "/",
+  imagePath: heroExterior.src,
+});
+
+export const metadata: Metadata = {
+  ...rootMetadata,
+  ...(SITE_URL ? { metadataBase: new URL(SITE_URL) } : {}),
+  title: {
+    default: "RC Premier Properties | Houses for Sale in Pampanga",
+    template: "%s | RC Premier Properties",
+  },
   applicationName: "RC Premier Properties",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "RC Premier Properties",
-    description: "Browse houses and residential properties for sale in Pampanga.",
-    type: "website",
-    siteName: "RC Premier Properties",
-    locale: "en_PH",
-    url: "/",
-  },
-  twitter: {
-    card: "summary",
-    title: "RC Premier Properties",
-    description: "Browse houses and residential properties for sale in Pampanga.",
-  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

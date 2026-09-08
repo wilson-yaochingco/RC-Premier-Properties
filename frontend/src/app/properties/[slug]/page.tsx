@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
+import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
@@ -15,8 +17,15 @@ import {
   visibleSpecifications,
 } from "@/features/properties/property-format";
 import { getPropertyBySlug } from "@/features/properties/property.service";
-import { SITE_URL } from "@/lib/env";
+import {
+  buildPropertyMetadata,
+  buildPropertyStructuredData,
+  nonpublicPropertyMetadata,
+} from "@/features/properties/property-seo";
+import { serializeJsonLd } from "@/lib/seo";
 import styles from "@/features/properties/property-detail.module.css";
+
+const getPublishedProperty = cache(getPropertyBySlug);
 
 export async function generateMetadata({
   params,
@@ -24,24 +33,16 @@ export async function generateMetadata({
   const { slug } = await params;
 
   try {
-    const property = await getPropertyBySlug(slug);
-    const description = property.shortDescription.slice(0, 160);
-    return {
-      title: property.title,
-      description,
-      alternates: { canonical: `/properties/${property.slug}` },
-      openGraph: {
-        title: property.title,
-        description,
-        type: "website",
-        url: `/properties/${property.slug}`,
-      },
-    };
-  } catch {
-    return {
-      title: "Property",
-      description: "View a published RC Premier Properties listing.",
-    };
+    const property = await getPublishedProperty(slug);
+    return buildPropertyMetadata(property, propertiesImage.src);
+  } catch (error) {
+    if (
+      error instanceof ApiClientError &&
+      (error.statusCode === 400 || error.statusCode === 404)
+    ) {
+      notFound();
+    }
+    return nonpublicPropertyMetadata();
   }
 }
 
@@ -59,7 +60,7 @@ export default async function PropertyDetailPage({
   let property;
 
   try {
-    property = await getPropertyBySlug(slug);
+    property = await getPublishedProperty(slug);
   } catch (error) {
     if (
       error instanceof ApiClientError &&
@@ -72,40 +73,16 @@ export default async function PropertyDetailPage({
 
   const location = formatLocation(property.location);
   const specifications = visibleSpecifications(property.specifications);
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: property.title,
-    description: property.shortDescription,
-    sku: property.propertyId,
-    category: propertyTypeLabel(property.propertyType),
-    url: `${SITE_URL}/properties/${property.slug}`,
-    areaServed: {
-      "@type": "AdministrativeArea",
-      name: location,
-    },
-    offers: {
-      "@type": "Offer",
-      price: property.price.amount,
-      priceCurrency: property.price.currency,
-      availability:
-        property.availability === "available"
-          ? "https://schema.org/InStock"
-          : property.availability === "reserved"
-            ? "https://schema.org/LimitedAvailability"
-            : "https://schema.org/OutOfStock",
-      url: `${SITE_URL}/properties/${property.slug}`,
-    },
-  };
+  const structuredData = buildPropertyStructuredData(property);
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c"),
-        }}
-      />
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
+        />
+      ) : null}
 
       <section className={styles.identity}>
         <Container>

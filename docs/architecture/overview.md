@@ -122,11 +122,15 @@ routes, plus loading, error and not-found boundaries, `robots.txt` and `sitemap.
 Property and inquiry code lives under matching feature folders. A small shared API client
 normalizes non-2xx, network and malformed-response failures into the shared error contract.
 
-Global and route metadata use `NEXT_PUBLIC_SITE_URL` as their public origin. Static
-routes appear in `sitemap.xml`; `robots.txt` allows the public site and reserves `/admin`
-and `/api`. Property detail pages derive canonical/Open Graph metadata and JSON-LD from
-the published record. Dynamic listing URLs are not fabricated into the static sitemap
-while no production inventory source is available.
+Global and route metadata use a validated `NEXT_PUBLIC_SITE_URL` as their one public
+origin. Production suppresses URL-bearing SEO output when that value is missing, invalid,
+or localhost, so development URLs cannot become production canonicals. `robots.txt`
+allows the public site and reserves `/admin` and `/api`; the dynamic sitemap adds only
+static public routes, inventory-backed location states, and published sales listings.
+Property detail pages derive canonical/Open Graph metadata, safe production images,
+Product data, and BreadcrumbList data from the public record. The complete indexing,
+filter, structured-data, privacy, and failure policy is in
+[`seo-and-social-discovery.md`](../features/seo-and-social-discovery.md).
 
 ---
 

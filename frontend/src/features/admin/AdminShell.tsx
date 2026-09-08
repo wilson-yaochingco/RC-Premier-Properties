@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { API_PREFIX, type CurrentSessionResponse } from "@rc/shared";
-import { API_BASE_URL, SITE_URL } from "@/lib/env";
+import { API_BASE_URL } from "@/lib/env";
 import { ApiClientError } from "@/services/api-client";
 import { getCurrentSession, logout } from "./admin.service";
 import styles from "./admin.module.css";
@@ -30,7 +30,7 @@ export function useAdminSession(): AdminSessionContextValue {
 }
 
 function signInUrl(): string {
-  const query = new URLSearchParams({ returnTo: `${SITE_URL}/admin` });
+  const query = new URLSearchParams({ returnTo: `${window.location.origin}/admin` });
   return `${API_BASE_URL}${API_PREFIX}/auth/login?${query.toString()}`;
 }
 

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import contactImage from "@/assets/site/contact.png";
 import { InquiryPage } from "@/features/inquiries/InquiryPage";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "Contact",
   description:
     "Send a property or general inquiry to RC Premier Properties in Angeles City, Pampanga.",
-  alternates: { canonical: "/contact" },
-};
+  canonicalPath: "/contact",
+  imagePath: contactImage.src,
+});
 
 export default async function ContactPage({ searchParams }: PageProps<"/contact">) {
   const query = await searchParams;

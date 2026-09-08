@@ -72,6 +72,9 @@ Current:
 - [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behavior
 - [`production-content-and-media.md`](features/production-content-and-media.md) — approved
   Level 7 business content, supplied design media, device uploads and provider gates
+- [`seo-and-social-discovery.md`](features/seo-and-social-discovery.md) — metadata,
+  canonicals, location indexing, social previews, structured data, robots and sitemap
+  policy
 
 The backend authentication foundation is documented as an architectural boundary. The
 first property-administration slice now has a feature specification. Structured viewing

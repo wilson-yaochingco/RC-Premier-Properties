@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import viewingImage from "@/assets/site/book-viewing.png";
 import { InquiryPage } from "@/features/inquiries/InquiryPage";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Request a Viewing",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Book a Property Viewing",
   description:
     "Request a property viewing with RC Premier Properties in Angeles City and Pampanga.",
-  alternates: { canonical: "/book-viewing" },
-};
+  canonicalPath: "/book-viewing",
+  imagePath: viewingImage.src,
+});
 
 export default async function BookViewingPage({
   searchParams,

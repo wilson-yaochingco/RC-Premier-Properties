@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import contactImage from "@/assets/site/contact.png";
 import { InquiryPage } from "@/features/inquiries/InquiryPage";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "Sell a Property",
   description:
     "Start a private property-selling conversation with RC Premier Properties in Pampanga.",
-  alternates: { canonical: "/sell" },
-};
+  canonicalPath: "/sell",
+  imagePath: contactImage.src,
+});
 
 export default function SellPage() {
   return (

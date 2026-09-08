@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+
+export const metadata: Metadata = {
+  title: "Property not found",
+  alternates: { canonical: null },
+};
 
 export default function PropertyNotFound() {
   return (

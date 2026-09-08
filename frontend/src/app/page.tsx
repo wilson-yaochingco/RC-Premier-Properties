@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import heroExterior from "@/assets/site/home-hero-1.png";
 import heroPool from "@/assets/site/home-hero-2.png";
 import heroInterior from "@/assets/site/home-hero-3.png";
+import logo from "@/assets/brand/rc-premier-logo.png";
 import locationImage from "@/assets/site/location.png";
 import propertiesImage from "@/assets/site/properties.png";
 import viewingImage from "@/assets/site/book-viewing.png";
@@ -20,6 +21,7 @@ import {
   getPropertyFacets,
 } from "@/features/properties/property.service";
 import propertyStyles from "@/features/properties/properties.module.css";
+import { buildSiteStructuredData, serializeJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -105,8 +107,16 @@ async function ExploreLocations() {
 }
 
 export default function HomePage() {
+  const structuredData = buildSiteStructuredData(logo.src);
+
   return (
     <main id="main-content" tabIndex={-1}>
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
+        />
+      ) : null}
       <Section className="home-hero" tone="soft" aria-labelledby="home-heading">
         <Container>
           <div className="home-hero__layout">
