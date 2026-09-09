@@ -333,8 +333,16 @@ staging, device, or production environment.
 
 ## Level 12 handoff
 
+Level 12 subsequently completed the repository-side safe boundaries and runbooks in
+[`operations.md`](operations.md) and [`disaster-recovery.md`](disaster-recovery.md).
+Providers were still unavailable, so live monitoring/alerts, RUM, managed backups,
+object versioning, restore execution, and recovery evidence remain explicit external
+launch blockers. Automatic orphan deletion remains intentionally absent.
+
 Do not implement these in Level 11: monitoring/alert routing, log retention, notification
 retry infrastructure, field RUM, automated orphan cleanup, storage/database backup
 automation, retention enforcement, or restore testing. Level 12 must select the relevant
-providers, collect production evidence, and perform recovery—not merely document that a
-backup setting exists.
+providers when they are supplied, collect production evidence, and perform recovery—not
+merely document that a backup setting exists. Without those external dependencies, its
+repository responsibility is to implement/test the safe boundaries and preserve each
+live check as an explicit blocker.

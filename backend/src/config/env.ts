@@ -45,6 +45,34 @@ function environment(name: string, fallback: Environment): Environment {
   }
 }
 
+export type LogLevel = "debug" | "info" | "warn" | "error";
+
+function logLevel(name: string, fallback: LogLevel): LogLevel {
+  const value = optional(name, fallback);
+  switch (value) {
+    case "debug":
+    case "info":
+    case "warn":
+    case "error":
+      return value;
+    default:
+      throw new Error(
+        `Invalid ${name}: "${value}". Expected debug, info, warn, or error.`,
+      );
+  }
+}
+
+function productionLogLevel(nodeEnv: Environment): LogLevel {
+  const level = logLevel(
+    "LOG_LEVEL",
+    nodeEnv === "test" ? "warn" : nodeEnv === "development" ? "debug" : "info",
+  );
+  if (nodeEnv === "production" && level === "debug") {
+    throw new Error("Production LOG_LEVEL cannot be debug.");
+  }
+  return level;
+}
+
 function port(name: string, fallback: number): number {
   const raw = process.env[name];
   if (!raw || raw.trim() === "") return fallback;
@@ -456,6 +484,7 @@ export const env = Object.freeze({
   TRUST_PROXY_HOPS: productionTrustProxyHops(nodeEnv, process.env.TRUST_PROXY_HOPS),
   SHUTDOWN_GRACE_SECONDS: boundedPositiveInteger("SHUTDOWN_GRACE_SECONDS", 30, 120),
   APP_BUILD_ID: buildId(optionalValue("APP_BUILD_ID")),
+  LOG_LEVEL: productionLogLevel(nodeEnv),
   MONGODB_URI: mongodbUri,
   CORS_ORIGIN: corsOrigin,
   API_PUBLIC_ORIGIN: publicApiOrigin,

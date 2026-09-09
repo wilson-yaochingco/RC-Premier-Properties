@@ -68,7 +68,10 @@ deactivation and administrator reprovisioning also retain a safe aggregate count
 their higher-level event.
 
 Indexes support newest-first review, actor history and action history. There is no TTL
-index because the application retention period has not been approved. Events cannot
+index because the application retention period has not been approved. Level 12 keeps
+MongoDB as the durable audit source and deliberately does not add an outbox/event bus
+without an independent delivery destination or scale requirement. Audit write failures
+must be alerted from structured operational errors before production. Events cannot
 store callback codes, provider tokens, cookies, CSRF values, passwords, arbitrary text,
 inquiry messages or complete data snapshots.
 

@@ -7,6 +7,26 @@ import {
   VIEWING_REQUEST_STATUSES,
 } from "@rc/shared";
 import type { InquiryEntity } from "./inquiry.types.js";
+import { INQUIRY_NOTIFICATION_STATUSES } from "./inquiry.types.js";
+
+const inquiryNotificationSchema = new Schema(
+  {
+    notificationId: { type: String, required: true, maxlength: 80 },
+    status: {
+      type: String,
+      enum: INQUIRY_NOTIFICATION_STATUSES,
+      required: true,
+    },
+    attempts: { type: Number, required: true, min: 0, max: 5 },
+    nextAttemptAt: { type: Date },
+    lastAttemptAt: { type: Date },
+    deliveredAt: { type: Date },
+    lastErrorCode: { type: String, maxlength: 80 },
+    leaseId: { type: String, maxlength: 80 },
+    leaseUntil: { type: Date },
+  },
+  { _id: false },
+);
 
 const statusHistorySchema = new Schema(
   {
@@ -117,6 +137,11 @@ const inquirySchema = new Schema<InquiryEntity>(
       select: false,
       maxlength: 64,
     },
+    notification: {
+      type: inquiryNotificationSchema,
+      required: true,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -131,6 +156,11 @@ inquirySchema.index({ status: 1, createdAt: -1 });
 inquirySchema.index({ archivedAt: 1, createdAt: -1 });
 inquirySchema.index({ "viewingRequest.status": 1, "viewingRequest.requestedDate": 1 });
 inquirySchema.index({ idempotencyKeyHash: 1 }, { unique: true, sparse: true });
+inquirySchema.index({ "notification.status": 1, "notification.nextAttemptAt": 1 });
+inquirySchema.index(
+  { "notification.notificationId": 1 },
+  { unique: true, sparse: true },
+);
 
 export const InquiryModel: Model<InquiryEntity> =
   (mongoose.models.Inquiry as Model<InquiryEntity> | undefined) ??

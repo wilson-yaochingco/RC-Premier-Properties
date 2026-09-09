@@ -979,6 +979,18 @@ does not complete Phase 6: the final domain/host, Auth0 MFA, Atlas production co
 storage/CDN, email, map provider, staging acceptance, monitoring, and recovery remain
 external or later gates.
 
+### Level 12 operational-resilience status
+
+Level 12 repository engineering adds provider-neutral structured logging, correlation,
+durable bounded inquiry-notification retries, media cleanup-debt tracking, scan-only data
+integrity tooling, monitoring/incident policy, and an isolated disaster-recovery
+procedure. See [`architecture/operational-resilience.md`](architecture/operational-resilience.md),
+[`development/operations.md`](development/operations.md), and
+[`development/disaster-recovery.md`](development/disaster-recovery.md). Live monitoring,
+alert routing, Atlas/object backup configuration, restore execution, staging/provider
+failure checks, and RUM remain open launch gates; repository work is not evidence those
+external controls passed.
+
 ### Testing
 
 Unit tests for important business logic. Integration tests for API and database
@@ -1022,11 +1034,19 @@ guidance.
 
 ### Monitoring
 
+The Level 12 signal, severity, privacy, ownership, and provider-neutral routing policy is
+documented and locally tested. Monitoring and alerting are not live because no provider,
+destination, deployment, or production traffic exists.
+
 Application and backend errors, failed login spikes, permission failures, suspicious
 behavior, availability, performance, and critical admin actions. _Provider to be
 evaluated/selected during this phase._
 
 ### Backup recovery
+
+The Level 12 backup policy, isolated restore sequence, validation checklist, media
+reconciliation, session invalidation, and rehearsal cadence are documented. No managed
+backup or restore has been executed, so the production gate remains unchecked.
 
 **Do not merely verify that backups exist. Perform a restore and document the result.**
 An untested backup is a hypothesis.

@@ -58,6 +58,10 @@ Current:
 - [`deployment-topology.md`](architecture/deployment-topology.md) — Level 11 public edge,
   same-site session, proxy, provider, CSP, and deployment trust boundaries
 
+- [`operational-resilience.md`](architecture/operational-resilience.md) — Level 12 health,
+  structured logging, notification retry, media cleanup-debt, integrity, and scheduler
+  boundaries
+
 ### `features/`
 
 One document per feature, written when that feature is being designed or implemented —
@@ -148,6 +152,11 @@ Current:
   rollback, external blockers, and Level 12 handoff
 
 ---
+
+- [`operations.md`](development/operations.md) — Level 12 ownership, monitoring, alerts,
+  incident/provider runbooks, retention, commands, and live blockers
+- [`disaster-recovery.md`](development/disaster-recovery.md) — database/media backup,
+  isolated restore, validation, provider recovery, and rehearsal procedure
 
 ## Rules
 

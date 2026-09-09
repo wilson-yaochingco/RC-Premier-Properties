@@ -52,13 +52,18 @@ under `frontend/.local-media-sources/`, auto-orients and bounds the display copy
 pixels, strips metadata, and writes an 88-quality WebP under
 `frontend/public/media/properties/`. Both paths are ignored. UUID storage names are
 created by the server. Locally generated files removed from metadata are deleted only
-after the database mutation succeeds.
+after the database mutation succeeds. A failed owned-object deletion does not re-add
+metadata: it creates private `pending-review` cleanup debt. If upload storage succeeds
+but metadata persistence fails, failed compensating deletion creates the same durable
+debt without hiding the original database error.
 
 Production selects `UnavailablePropertyMediaStorage` and returns 503. This fail-closed
 choice makes it impossible to deploy local filesystem storage accidentally. Selecting a
 real provider still requires approved credentials/bucket topology, an exact delivery
 hostname, signed-upload/lifecycle decisions, retention/orphan policy, CDN caching, and
-live acceptance. No provider or credential has been invented.
+live acceptance. It must also define a reviewed owned namespace and stable non-secret
+object references. Orphan work remains report/quarantine/recheck/operator approval; no
+automatic cleanup path exists. No provider or credential has been invented.
 
 Level 11 adds one optional exact delivery-origin boundary. Backend
 `MEDIA_PUBLIC_ORIGIN` governs accepted production image references; frontend

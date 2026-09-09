@@ -8,6 +8,8 @@
     "start": "node dist/server.js",
     "auth:provision-admin": "tsx src/scripts/provision-admin.ts",
     "auth:disable-staff": "tsx src/scripts/disable-staff.ts",
+    "ops:retry-inquiry-notifications": "node dist/scripts/retry-inquiry-notifications.js",
+    "ops:check-integrity": "node dist/scripts/check-data-integrity.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

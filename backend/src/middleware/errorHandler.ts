@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import type { ApiErrorResponse, ValidationIssue } from "@rc/shared";
 import { env } from "../config/env.js";
-import { safeErrorMessage } from "../lib/safe-error.js";
+import { errorIdentity, operationalLogger } from "../lib/operational-logger.js";
+import { getRequestId } from "./requestContext.js";
 
 /** An error carrying an intended HTTP status code. */
 export class HttpError extends Error {
@@ -33,7 +34,7 @@ function requestBodyError(error: unknown): { status: number; message: string } |
  */
 export function errorHandler(
   error: unknown,
-  _req: Request,
+  req: Request,
   res: Response<ApiErrorResponse>,
   _next: NextFunction,
 ): void {
@@ -45,13 +46,18 @@ export function errorHandler(
       : (bodyError?.message ?? "Internal Server Error");
 
   if (status >= 500) {
-    console.error(
-      `[error] ${safeErrorMessage(error, [
-        env.MONGODB_URI,
-        env.AUTH?.clientSecret,
-        env.AUTH?.sessionHashSecret,
-      ])}`,
-    );
+    operationalLogger.error("http_request_failed", {
+      requestId: getRequestId(res),
+      method: req.method,
+      route: req.path,
+      statusCode: status,
+      errorCode: bodyError
+        ? "request_body_error"
+        : error instanceof HttpError
+          ? `http_error_${status}`
+          : "unexpected_server_error",
+      ...errorIdentity(error),
+    });
   }
 
   const body: ApiErrorResponse = {

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import type { SecurityAuditEventInput } from "../src/modules/auth/auth.types.js";
 import { DefaultAdminPropertyService } from "../src/modules/properties/property.service.js";
+import type { MediaCleanupDebtInput } from "../src/modules/properties/property-media-cleanup.model.js";
 import type { PropertyMediaStorage } from "../src/modules/properties/property-media.storage.js";
 import type {
   AdminPropertyRecord,
@@ -149,15 +150,24 @@ class MemoryAdminPropertyRepository implements PropertyAdminRepository {
 function makeService(mediaStorage?: PropertyMediaStorage) {
   const repository = new MemoryAdminPropertyRepository();
   const audits: SecurityAuditEventInput[] = [];
+  const cleanupDebts: MediaCleanupDebtInput[] = [];
   const audit = {
     async recordAudit(event: SecurityAuditEventInput) {
       audits.push(event);
     },
   };
-  const service = mediaStorage
-    ? new DefaultAdminPropertyService(repository, audit, mediaStorage)
-    : new DefaultAdminPropertyService(repository, audit);
-  return { audits, repository, service };
+  const cleanupDebt = {
+    async record(input: MediaCleanupDebtInput) {
+      cleanupDebts.push(input);
+    },
+  };
+  const service = new DefaultAdminPropertyService(
+    repository,
+    audit,
+    mediaStorage,
+    cleanupDebt,
+  );
+  return { audits, cleanupDebts, repository, service };
 }
 
 describe("admin property service", () => {
@@ -204,6 +214,81 @@ describe("admin property service", () => {
     expect(repository.record.gallery[0]?.url).toBe(stored.url);
     expect(audits).toHaveLength(1);
     expect(JSON.stringify(audits)).not.toContain(stored.url);
+  });
+
+  it("keeps removed metadata removed and records cleanup debt when owned-object deletion fails", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-old-0001",
+      kind: "image",
+      url: "/media/properties/11111111-1111-4111-8111-111111111111.webp",
+      alt: "Old image",
+      source: "production",
+    };
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove: async () => {
+        throw Object.assign(new Error("provider private diagnostic"), {
+          code: "storage_delete_failed",
+        });
+      },
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage);
+    repository.record.gallery = [oldMedia];
+    repository.record.coverMedia = oldMedia;
+
+    const result = await service.updateMedia(
+      PROPERTY_ID,
+      { expectedVersion: 0, media: [] },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "media-remove-request",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(result?.gallery).toEqual([]);
+    expect(repository.record.gallery).toEqual([]);
+    expect(cleanupDebts).toEqual([
+      expect.objectContaining({
+        propertyId: PROPERTY_ID,
+        objectReference: oldMedia.url,
+        reason: "metadata-removed",
+      }),
+    ]);
+  });
+
+  it("does not change metadata when storage fails before an upload is persisted", async () => {
+    const mediaStorage: PropertyMediaStorage = {
+      store: async () => {
+        throw Object.assign(new Error("secret provider detail"), {
+          code: "storage_write_failed",
+        });
+      },
+      remove: async () => undefined,
+    };
+    const { repository, service } = makeService(mediaStorage);
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Storage failure fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-storage-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("secret provider detail");
+    expect(repository.record.gallery).toEqual([]);
+    expect(repository.record.__v).toBe(0);
   });
 
   it("rejects another upload when the existing media maximum is reached", async () => {

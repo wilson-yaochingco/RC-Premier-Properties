@@ -136,6 +136,13 @@ before/after evidence and limitations.
 
 ## External integration boundary
 
+Level 12 deterministic coverage verifies server-generated request IDs, allowlisted
+structured logs without header/query/body values, durable post-persistence notification
+state, stable delivery idempotency, bounded retry/terminal behavior, provider fail-closed
+behavior, explicit production targeting, media cleanup debt, storage-failure metadata
+safety, and a non-mutating PII-free integrity report. Provider backup/restore and alert
+acceptance remain live external checks, not mocked claims.
+
 Neither Vitest nor Playwright connects to the project database or Auth0. The backend HTTP
 tests inject service doubles, the OIDC protocol tests use a loopback signed issuer, and
 the browser tests use the explicit fixture API. They prove application behavior without

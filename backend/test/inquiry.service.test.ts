@@ -18,6 +18,13 @@ const REQUEST: Omit<CreateInquiryRequest, "website"> = {
   privacyConsent: true,
 };
 
+function notificationState() {
+  return {
+    markInitialDelivered: vi.fn().mockResolvedValue(undefined),
+    markInitialFailed: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
 describe("public inquiry idempotency", () => {
   it("attempts the official notification only after persistence and does not lose an inquiry when delivery fails", async () => {
     const createdAt = new Date("2026-09-07T08:00:00.000Z");
@@ -27,10 +34,12 @@ describe("public inquiry idempotency", () => {
       inquiryType: "general",
     });
     const send = vi.fn().mockRejectedValue(new Error("provider unavailable"));
+    const state = notificationState();
     const service = new MongooseInquiryService(
       { create } as unknown as Model<InquiryEntity>,
       { isRequestablePropertyId: vi.fn() },
       { send },
+      state,
     );
 
     await expect(service.create(REQUEST)).resolves.toMatchObject({
@@ -43,6 +52,23 @@ describe("public inquiry idempotency", () => {
         to: "rcpremierph@gmail.com",
         subject: "New RC Premier Inquiry — General inquiry",
       }),
+      { idempotencyKey: expect.stringMatching(/^[a-f0-9-]{36}$/) },
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notification: expect.objectContaining({
+          status: "pending",
+          attempts: 0,
+          notificationId: expect.stringMatching(/^[a-f0-9-]{36}$/),
+        }),
+      }),
+    );
+    expect(state.markInitialFailed).toHaveBeenCalledWith(
+      "507f191e810c19729de860ea",
+      expect.stringMatching(/^[a-f0-9-]{36}$/),
+      expect.any(Date),
+      expect.any(Date),
+      "provider_delivery_failed",
     );
   });
 
@@ -61,7 +87,12 @@ describe("public inquiry idempotency", () => {
       });
     const findOne = vi.fn(() => ({ select: () => ({ lean }) }));
     const model = { create, findOne } as unknown as Model<InquiryEntity>;
-    const service = new MongooseInquiryService(model);
+    const service = new MongooseInquiryService(
+      model,
+      { isRequestablePropertyId: vi.fn() },
+      { configured: true, send: vi.fn().mockResolvedValue(undefined) },
+      notificationState(),
+    );
 
     const first = await service.create(REQUEST, "same-public-request-key");
     const retry = await service.create(REQUEST, "same-public-request-key");
@@ -83,7 +114,12 @@ describe("public inquiry idempotency", () => {
     }));
     const model = { create } as unknown as Model<InquiryEntity>;
     const properties = { isRequestablePropertyId: vi.fn().mockResolvedValue(true) };
-    const service = new MongooseInquiryService(model, properties);
+    const service = new MongooseInquiryService(
+      model,
+      properties,
+      { configured: true, send: vi.fn().mockResolvedValue(undefined) },
+      notificationState(),
+    );
 
     const response = await service.create({
       name: "Maria Viewing",
@@ -131,6 +167,11 @@ describe("public inquiry idempotency", () => {
       { idempotencyKeyHash: 1 },
       expect.objectContaining({ unique: true, sparse: true }),
     ]);
+    expect(indexes).toContainEqual([
+      { "notification.notificationId": 1 },
+      expect.objectContaining({ unique: true, sparse: true }),
+    ]);
+    expect(InquiryModel.schema.path("notification")?.options.select).toBe(false);
     expect(InquiryModel.schema.get("versionKey")).toBe("__v");
   });
 

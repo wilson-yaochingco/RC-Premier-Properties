@@ -15,6 +15,28 @@ import type {
 } from "@rc/shared";
 import type { SecurityAuditEventInput } from "../auth/auth.types.js";
 
+export const INQUIRY_NOTIFICATION_STATUSES = [
+  "pending",
+  "sending",
+  "retry-pending",
+  "delivered",
+  "terminal-failure",
+] as const;
+export type InquiryNotificationStatus = (typeof INQUIRY_NOTIFICATION_STATUSES)[number];
+
+export interface InquiryNotificationEntity {
+  /** Stable, non-sensitive identity supplied to providers as their idempotency key. */
+  notificationId: string;
+  status: InquiryNotificationStatus;
+  attempts: number;
+  nextAttemptAt?: Date;
+  lastAttemptAt?: Date;
+  deliveredAt?: Date;
+  lastErrorCode?: string;
+  leaseId?: string;
+  leaseUntil?: Date;
+}
+
 export interface InquiryStatusHistoryEntity {
   fromStatus?: InquiryStatus;
   toStatus: InquiryStatus;
@@ -64,6 +86,7 @@ export interface InquiryEntity {
   archivedAt?: Date;
   archivedByStaffIdentity?: unknown;
   idempotencyKeyHash?: string;
+  notification: InquiryNotificationEntity;
   createdAt: Date;
   updatedAt: Date;
   __v?: number;
@@ -79,6 +102,21 @@ export interface InquiryService {
     request: Omit<CreateInquiryRequest, "website">,
     idempotencyKey?: string,
   ): Promise<CreateInquiryResponse>;
+}
+
+export interface InquiryNotificationStateStore {
+  markInitialDelivered(
+    inquiryId: string,
+    notificationId: string,
+    attemptedAt: Date,
+  ): Promise<void>;
+  markInitialFailed(
+    inquiryId: string,
+    notificationId: string,
+    attemptedAt: Date,
+    nextAttemptAt: Date,
+    errorCode: string,
+  ): Promise<void>;
 }
 
 export interface ViewingPropertyRepository {

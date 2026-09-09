@@ -28,6 +28,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Operational exports, backup/restore artifacts, and recovery scratch data
+backups/
+recovery/
+*.archive
+*.bson
+*.metadata.json
+*.mongodump
+
 # Testing / coverage
 coverage/
 .nyc_output/

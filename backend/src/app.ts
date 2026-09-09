@@ -7,6 +7,7 @@ import { apiRateLimit } from "./middleware/rateLimit.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestContext } from "./middleware/requestContext.js";
+import { requestLogging } from "./middleware/requestLogging.js";
 import { createSecurityHeaders } from "./middleware/securityHeaders.js";
 
 /**
@@ -24,6 +25,7 @@ export function createApp(dependencies: ApiDependencies = {}): Express {
 
   app.use(...createSecurityHeaders(env.IS_PRODUCTION));
   app.use(requestContext);
+  app.use(requestLogging);
   app.use(
     cors({
       origin: (origin, callback) => {

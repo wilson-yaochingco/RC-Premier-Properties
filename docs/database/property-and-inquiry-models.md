@@ -97,6 +97,14 @@ an explicit UI placeholder. This decision does not select an upload or storage p
 An inquiry stores name, email, optional phone, inquiry type, optional property ID,
 optional subject, optional viewing message, source, consent timestamp, workflow status
 and timestamps.
+Each new inquiry also embeds a private operational notification record: a random stable
+delivery ID, `pending | sending | retry-pending | delivered | terminal-failure` state,
+bounded attempt count, due/attempt/delivery dates, safe error code, and short database
+lease. It is excluded from normal API selection. Existing pre-Level-12 records are not
+given fabricated delivery history; the integrity scan reports missing state for review.
+The delivery ID has its own unique sparse index and the due-state index supports an
+external scheduled retry command. Inquiry acceptance never depends on email success.
+
 The initial status is `new`. Staff management adds append-only status history, bounded
 internal notes, a recoverable archive timestamp, the pre-spam status and an
 optimistic-concurrency version. Inquiry records contain personal information and never
@@ -163,3 +171,10 @@ There is still no public update/delete route and no public inquiry read. Authori
 metadata administration and validated binary device upload are implemented. The
 development adapter is isolated locally; production storage/CDN remains blocked on
 provider approval and fails closed.
+
+Failed deletion of an adapter-owned object after a successful metadata change is stored
+as a private `PropertyMediaCleanupTask`. Tasks contain a property reference, selected-off
+by-default stable object reference, SHA-256 reference hash, failure reason/code, attempt
+count, and dates. They remain `pending-review`; no TTL, repair, or automatic deletion job
+exists. The unique hash/status index coalesces repeated failures without losing the need
+for operator review.

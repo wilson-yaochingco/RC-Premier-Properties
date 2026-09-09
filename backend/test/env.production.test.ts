@@ -79,6 +79,7 @@ describe("production authentication environment", () => {
     ["API_PUBLIC_ORIGIN", "", /API_PUBLIC_ORIGIN/],
     ["TRUST_PROXY_HOPS", "", /TRUST_PROXY_HOPS/],
     ["MONGODB_URI", "mongodb://127.0.0.1/rc_premier", /MONGODB_URI/],
+    ["LOG_LEVEL", "debug", /LOG_LEVEL/],
   ])("rejects unsafe production %s", async (name, value, expected) => {
     configureProductionAuth();
     vi.stubEnv(name, value);

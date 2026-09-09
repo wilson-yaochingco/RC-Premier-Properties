@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   AdminInquiryDetail,
   AdminInquiryListRequest,
@@ -16,13 +16,16 @@ import type {
 } from "@rc/shared";
 import { Types, type Model, type QueryFilter } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
+import { errorIdentity, operationalLogger } from "../../lib/operational-logger.js";
 import { mongooseAuthStore } from "../auth/auth.store.js";
 import { PropertyModel } from "../properties/property.model.js";
 import type { PropertyEntity } from "../properties/property.types.js";
 import { InquiryModel } from "./inquiry.model.js";
 import {
   buildInquiryNotification,
+  inquiryNotificationErrorCode,
   inquiryNotifier,
+  nextInquiryNotificationAttempt,
   type InquiryNotifier,
 } from "./inquiry.notification.js";
 import type {
@@ -32,6 +35,7 @@ import type {
   InquiryAuditRecorder,
   InquiryEntity,
   InquiryMutationContext,
+  InquiryNotificationStateStore,
   InquiryService,
   ViewingPropertyRepository,
 } from "./inquiry.types.js";
@@ -56,11 +60,71 @@ export class MongooseViewingPropertyRepository implements ViewingPropertyReposit
   }
 }
 
+export class MongooseInquiryNotificationStateStore implements InquiryNotificationStateStore {
+  constructor(private readonly model: Model<InquiryEntity> = InquiryModel) {}
+
+  async markInitialDelivered(
+    inquiryId: string,
+    notificationId: string,
+    attemptedAt: Date,
+  ): Promise<void> {
+    await this.model.updateOne(
+      {
+        _id: inquiryId,
+        "notification.notificationId": notificationId,
+        "notification.status": "pending",
+        "notification.attempts": 0,
+      },
+      {
+        $set: {
+          "notification.status": "delivered",
+          "notification.attempts": 1,
+          "notification.lastAttemptAt": attemptedAt,
+          "notification.deliveredAt": attemptedAt,
+        },
+        $unset: {
+          "notification.nextAttemptAt": 1,
+          "notification.lastErrorCode": 1,
+        },
+      },
+    );
+  }
+
+  async markInitialFailed(
+    inquiryId: string,
+    notificationId: string,
+    attemptedAt: Date,
+    nextAttemptAt: Date,
+    errorCode: string,
+  ): Promise<void> {
+    await this.model.updateOne(
+      {
+        _id: inquiryId,
+        "notification.notificationId": notificationId,
+        "notification.status": "pending",
+        "notification.attempts": 0,
+      },
+      {
+        $set: {
+          "notification.status": "retry-pending",
+          "notification.attempts": 1,
+          "notification.lastAttemptAt": attemptedAt,
+          "notification.nextAttemptAt": nextAttemptAt,
+          "notification.lastErrorCode": errorCode,
+        },
+      },
+    );
+  }
+}
+
 export class MongooseInquiryService implements InquiryService {
   constructor(
     private readonly model: Model<InquiryEntity> = InquiryModel,
     private readonly properties: ViewingPropertyRepository = new MongooseViewingPropertyRepository(),
     private readonly notifier: InquiryNotifier = inquiryNotifier,
+    private readonly notificationState: InquiryNotificationStateStore = new MongooseInquiryNotificationStateStore(
+      model,
+    ),
   ) {}
 
   async create(
@@ -68,6 +132,7 @@ export class MongooseInquiryService implements InquiryService {
     idempotencyKey?: string,
   ): Promise<CreateInquiryResponse> {
     const now = new Date();
+    const notificationId = randomUUID();
     const idempotencyKeyHash = idempotencyKey
       ? createHash("sha256").update(idempotencyKey).digest("hex")
       : undefined;
@@ -123,6 +188,12 @@ export class MongooseInquiryService implements InquiryService {
             }
           : {}),
         ...(idempotencyKeyHash ? { idempotencyKeyHash } : {}),
+        notification: {
+          notificationId,
+          status: "pending",
+          attempts: 0,
+          nextAttemptAt: now,
+        },
       });
     } catch (error) {
       if (!idempotencyKeyHash || !isDuplicateKey(error)) throw error;
@@ -136,16 +207,54 @@ export class MongooseInquiryService implements InquiryService {
     }
 
     const inquiryId = String(inquiry._id);
+    const attemptedAt = new Date();
     try {
       await this.notifier.send(
         buildInquiryNotification(inquiryId, request, inquiry.createdAt),
+        { idempotencyKey: notificationId },
       );
-    } catch {
+      try {
+        await this.notificationState.markInitialDelivered(
+          inquiryId,
+          notificationId,
+          attemptedAt,
+        );
+      } catch (error) {
+        operationalLogger.error("inquiry_notification_state_update_failed", {
+          dependency: "mongodb",
+          entityType: "inquiry",
+          entityId: inquiryId,
+          operation: "mark-delivered",
+          ...errorIdentity(error),
+        });
+      }
+    } catch (error) {
       // Persistence is the source of truth. Notification failure must never reject or
       // roll back an inquiry that has already been accepted into MongoDB.
-      console.error(
-        `[inquiry-notification] delivery failed for persisted inquiry ${inquiryId}`,
-      );
+      const errorCode = inquiryNotificationErrorCode(error);
+      try {
+        await this.notificationState.markInitialFailed(
+          inquiryId,
+          notificationId,
+          attemptedAt,
+          nextInquiryNotificationAttempt(1, attemptedAt),
+          errorCode,
+        );
+      } catch (stateError) {
+        operationalLogger.error("inquiry_notification_state_update_failed", {
+          dependency: "mongodb",
+          entityType: "inquiry",
+          entityId: inquiryId,
+          operation: "mark-retry-pending",
+          ...errorIdentity(stateError),
+        });
+      }
+      operationalLogger.warn("inquiry_notification_delivery_failed", {
+        dependency: "email",
+        entityType: "inquiry",
+        entityId: inquiryId,
+        errorCode,
+      });
     }
     return createResponse(inquiryId, inquiry.createdAt, inquiry.inquiryType);
   }

@@ -2,36 +2,37 @@ import { API_PREFIX } from "@rc/shared";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
-import { safeErrorMessage } from "./lib/safe-error.js";
+import { errorIdentity, operationalLogger } from "./lib/operational-logger.js";
 
 async function start(): Promise<void> {
   try {
     await connectDatabase();
   } catch (error) {
-    const message = safeErrorMessage(error, [env.MONGODB_URI]);
-
     if (env.NODE_ENV !== "development") {
-      console.error(
-        `[db] connection failed, refusing to start in ${env.NODE_ENV}: ${message}`,
-      );
+      operationalLogger.error("server_start_refused", {
+        dependency: "mongodb",
+        errorCode: "database_connection_failed",
+        ...errorIdentity(error),
+      });
       process.exit(1);
     }
 
-    console.warn(
-      `[db] connection failed: ${message}\n` +
-        `[db] continuing without MongoDB (NODE_ENV=${env.NODE_ENV}). ` +
-        `${API_PREFIX}/health will report the database as disconnected.`,
-    );
+    operationalLogger.warn("server_started_degraded", {
+      dependency: "mongodb",
+      errorCode: "database_connection_failed",
+      ...errorIdentity(error),
+    });
   }
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {
-    console.log(
-      `[server] rc-premier-backend listening on port ${env.PORT} (${env.NODE_ENV})`,
-    );
-    console.log(`[server] liveness: ${API_PREFIX}/health`);
-    console.log(`[server] readiness: ${API_PREFIX}/health/ready`);
-    if (env.APP_BUILD_ID) console.log(`[server] build: ${env.APP_BUILD_ID}`);
+    operationalLogger.info("server_listening", {
+      operation: `port:${env.PORT}`,
+    });
+    operationalLogger.debug("server_health_routes", {
+      route: `${API_PREFIX}/health`,
+      operation: `${API_PREFIX}/health/ready`,
+    });
   });
 
   let shutdownStarted = false;
@@ -40,25 +41,25 @@ async function start(): Promise<void> {
   const shutdown = (signal: string): void => {
     if (shutdownStarted) return;
     shutdownStarted = true;
-    console.log(`[server] ${signal} received, shutting down`);
+    operationalLogger.info("server_shutdown_started", { signal });
 
     const finish = (exitCode: number): void => {
       if (shutdownFinished) return;
       shutdownFinished = true;
       void disconnectDatabase()
         .catch((error: unknown) =>
-          console.error(
-            "[db] close failed:",
-            safeErrorMessage(error, [env.MONGODB_URI]),
-          ),
+          operationalLogger.error("dependency_close_failed", {
+            dependency: "mongodb",
+            ...errorIdentity(error),
+          }),
         )
         .finally(() => process.exit(exitCode));
     };
 
     const forceTimer = setTimeout(() => {
-      console.error(
-        `[server] shutdown exceeded ${env.SHUTDOWN_GRACE_SECONDS} seconds; closing remaining connections`,
-      );
+      operationalLogger.error("server_shutdown_timeout", {
+        errorCode: "shutdown_grace_exceeded",
+      });
       server.closeAllConnections();
       finish(1);
     }, env.SHUTDOWN_GRACE_SECONDS * 1_000);
@@ -67,7 +68,9 @@ async function start(): Promise<void> {
     server.close((error) => {
       clearTimeout(forceTimer);
       if (error) {
-        console.error("[server] HTTP close failed:", safeErrorMessage(error));
+        operationalLogger.error("server_http_close_failed", {
+          ...errorIdentity(error),
+        });
       }
       finish(error ? 1 : 0);
     });

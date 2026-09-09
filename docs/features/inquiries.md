@@ -96,7 +96,8 @@ updates live only under `/admin/inquiries` and require backend authentication pl
 named `inquiry:read` or `inquiry:update` permission. There is likewise no public
 update/delete route and no external CRM or messaging service that the UI pretends is
 active. A provider-neutral email notification is constructed only after persistence;
-its disabled adapter performs no delivery until a production provider is approved.
+its disabled adapter now fails explicitly until a production provider is approved, while
+the already accepted inquiry retains durable retry state.
 
 The schema, service and HTTP workflow are implemented and covered with injected-service
 tests. On 2026-09-05, a temporary synthetic inquiry was written to the project Atlas
@@ -150,6 +151,9 @@ duration is invented in this level.
   availability provider.
 - MongoDB/Admin Inquiries remain authoritative. After persistence, the application builds
   a provider-neutral notification for `rcpremierph@gmail.com`. Delivery failure is caught
-  and cannot roll back the accepted inquiry.
+  and cannot roll back the accepted inquiry. A stable non-sensitive identity, database
+  lease, 5/30/120/360-minute backoff, five-attempt maximum, and terminal-failure state
+  make retries bounded and observable without an in-process scheduler.
 - A production transactional-mail provider and credentials are not selected. The current
-  disabled adapter performs no external delivery and embeds no Gmail password.
+  disabled adapter performs no external delivery, embeds no Gmail password, and makes the
+  compiled retry command fail closed before claiming work.

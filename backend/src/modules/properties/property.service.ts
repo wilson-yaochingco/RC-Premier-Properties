@@ -29,13 +29,20 @@ import {
 import type { Model, QueryFilter, SortOrder } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
 import { env } from "../../config/env.js";
+import { errorIdentity, operationalLogger } from "../../lib/operational-logger.js";
 import { mongooseAuthStore } from "../auth/auth.store.js";
 import { PropertyModel } from "./property.model.js";
 import { inspectPropertyImage } from "./property-media.validation.js";
 import {
   propertyMediaStorage,
+  propertyMediaStorageErrorCode,
   type PropertyMediaStorage,
 } from "./property-media.storage.js";
+import {
+  mongooseMediaCleanupDebtRecorder,
+  type MediaCleanupDebtRecorder,
+  type MediaCleanupReason,
+} from "./property-media-cleanup.model.js";
 import type {
   AdminPropertyRecord,
   AdminPropertyService,
@@ -834,7 +841,48 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     private readonly repository: PropertyAdminRepository,
     private readonly audit: PropertyAuditRecorder,
     private readonly mediaStorage: PropertyMediaStorage = propertyMediaStorage,
+    private readonly cleanupDebt: MediaCleanupDebtRecorder = mongooseMediaCleanupDebtRecorder,
   ) {}
+
+  private async removeOwnedMediaOrRecordDebt(
+    propertyId: string,
+    objectReference: string,
+    reason: MediaCleanupReason,
+    requestId: string,
+  ): Promise<void> {
+    if (this.mediaStorage.owns && !this.mediaStorage.owns(objectReference)) return;
+    try {
+      await this.mediaStorage.remove(objectReference);
+    } catch (error) {
+      const errorCode = propertyMediaStorageErrorCode(error);
+      operationalLogger.warn("property_media_cleanup_deferred", {
+        dependency: "media-storage",
+        entityType: "property",
+        entityId: propertyId,
+        requestId,
+        errorCode,
+        ...errorIdentity(error),
+      });
+      try {
+        await this.cleanupDebt.record({
+          propertyId,
+          objectReference,
+          reason,
+          errorCode,
+          failedAt: new Date(),
+        });
+      } catch (debtError) {
+        operationalLogger.error("property_media_cleanup_debt_record_failed", {
+          dependency: "mongodb",
+          entityType: "property",
+          entityId: propertyId,
+          requestId,
+          errorCode: "cleanup_debt_persistence_failed",
+          ...errorIdentity(debtError),
+        });
+      }
+    }
+  }
 
   async listPrivate(
     request: AdminPropertyListRequest,
@@ -959,13 +1007,20 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       occurredAt: context.occurredAt ?? new Date(),
     });
     const retainedUrls = new Set(input.media.map((item) => item.url));
-    await Promise.allSettled(
+    await Promise.all(
       current.gallery
         .map((item) => item.url)
         .filter(
           (url): url is string => Boolean(url) && !retainedUrls.has(url as string),
         )
-        .map((url) => this.mediaStorage.remove(url)),
+        .map((url) =>
+          this.removeOwnedMediaOrRecordDebt(
+            id,
+            url,
+            "metadata-removed",
+            context.requestId,
+          ),
+        ),
     );
     return toAdminPropertyDetail(record);
   }
@@ -991,8 +1046,33 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
         `This property already has ${MAX_PROPERTY_IMAGES} images.`,
       );
     }
-    const image = await inspectPropertyImage(bytes, declaredMimeType);
-    const stored = await this.mediaStorage.store(bytes, image);
+    let image;
+    try {
+      image = await inspectPropertyImage(bytes, declaredMimeType);
+    } catch (error) {
+      operationalLogger.warn("property_media_validation_failed", {
+        entityType: "property",
+        entityId: id,
+        requestId: context.requestId,
+        errorCode: "media_validation_failed",
+        ...errorIdentity(error),
+      });
+      throw error;
+    }
+    let stored;
+    try {
+      stored = await this.mediaStorage.store(bytes, image);
+    } catch (error) {
+      operationalLogger.error("property_media_upload_failed", {
+        dependency: "media-storage",
+        entityType: "property",
+        entityId: id,
+        requestId: context.requestId,
+        errorCode: propertyMediaStorageErrorCode(error),
+        ...errorIdentity(error),
+      });
+      throw error;
+    }
     const existingMedia: AdminPropertyMediaInput[] = current.gallery.map(
       (item, index) => ({
         id: item.id ?? `legacy-${index}-${String(current._id)}`,
@@ -1037,7 +1117,20 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       });
       return toAdminPropertyDetail(record);
     } catch (error) {
-      await this.mediaStorage.remove(stored.url);
+      operationalLogger.error("property_media_metadata_save_failed", {
+        dependency: "mongodb",
+        entityType: "property",
+        entityId: id,
+        requestId: context.requestId,
+        errorCode: "media_metadata_save_failed",
+        ...errorIdentity(error),
+      });
+      await this.removeOwnedMediaOrRecordDebt(
+        id,
+        stored.url,
+        "metadata-save-failed",
+        context.requestId,
+      );
       throw error;
     }
   }
