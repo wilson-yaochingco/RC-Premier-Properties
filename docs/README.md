@@ -27,6 +27,7 @@ now_.
 | [`api/`](api/)                   | Endpoint conventions, request/response formats, versioning          |
 | [`database/`](database/)         | Data models, relationships, indexes, schema and migration decisions |
 | [`development/`](development/)   | Setup, environment variables, workflow, deployment                  |
+| [`audits/`](audits/)             | Forensic readiness reports, findings, gates and remediation plans   |
 
 ---
 
@@ -157,6 +158,18 @@ Current:
   incident/provider runbooks, retention, commands, and live blockers
 - [`disaster-recovery.md`](development/disaster-recovery.md) — database/media backup,
   isolated restore, validation, provider recovery, and rehearsal procedure
+
+### `audits/`
+
+Point-in-time, evidence-backed audits. These reports record observed repository state,
+quality-gate results, confirmed defects, external acceptance gates, and recommended
+remediation without silently changing the audited application.
+
+Current:
+
+- [`level-13-production-readiness.md`](audits/level-13-production-readiness.md) — complete
+  forensic production-readiness audit, launch score, live acceptance matrix, and unexecuted
+  Level 14 remediation plan
 
 ## Rules
 
