@@ -61,6 +61,7 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
   const [attempt, setAttempt] = useState(0);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string }>();
+  const [copyMessage, setCopyMessage] = useState("");
 
   const handleError = useCallback(
     (error: unknown, fallback: string) => {
@@ -222,6 +223,30 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
     }
   }
 
+  async function copyContact(value: string, labelText: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const input = document.createElement("textarea");
+        input.value = value;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.append(input);
+        input.select();
+        const copied = document.execCommand("copy");
+        input.remove();
+        if (!copied) throw new Error("Copy unavailable.");
+      }
+      setCopyMessage(`${labelText} copied.`);
+    } catch {
+      setCopyMessage(
+        `Copy unavailable. Select the ${labelText.toLowerCase()} manually.`,
+      );
+    }
+  }
+
   if (state.kind === "loading") {
     return (
       <div className={styles.panel} aria-busy="true">
@@ -302,11 +327,29 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
               <dt>Email</dt>
               <dd>
                 <a href={`mailto:${inquiry.email}`}>{inquiry.email}</a>
+                <button
+                  type="button"
+                  className={styles.copyButton}
+                  onClick={() => copyContact(inquiry.email, "Email")}
+                >
+                  Copy
+                </button>
               </dd>
             </div>
             <div>
               <dt>Phone</dt>
-              <dd>{inquiry.phone ?? "Not supplied"}</dd>
+              <dd>
+                {inquiry.phone ?? "Not supplied"}
+                {inquiry.phone ? (
+                  <button
+                    type="button"
+                    className={styles.copyButton}
+                    onClick={() => copyContact(inquiry.phone!, "Phone")}
+                  >
+                    Copy
+                  </button>
+                ) : null}
+              </dd>
             </div>
             <div>
               <dt>Type</dt>
@@ -336,6 +379,47 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
                 </time>
               </dd>
             </div>
+            <div>
+              <dt>Inquiry status changed</dt>
+              <dd>
+                <time
+                  dateTime={
+                    inquiry.statusHistory.at(-1)?.changedAt ?? inquiry.createdAt
+                  }
+                >
+                  {dateTime(
+                    inquiry.statusHistory.at(-1)?.changedAt ?? inquiry.createdAt,
+                  )}
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt>Notification delivery</dt>
+              <dd>
+                {label(inquiry.notification.status)} · {inquiry.notification.attempts}{" "}
+                attempt{inquiry.notification.attempts === 1 ? "" : "s"}
+              </dd>
+            </div>
+            {inquiry.notification.lastAttemptAt ? (
+              <div>
+                <dt>Notification last attempted</dt>
+                <dd>
+                  <time dateTime={inquiry.notification.lastAttemptAt}>
+                    {dateTime(inquiry.notification.lastAttemptAt)}
+                  </time>
+                </dd>
+              </div>
+            ) : null}
+            {inquiry.notification.nextAttemptAt ? (
+              <div>
+                <dt>Notification next retry</dt>
+                <dd>
+                  <time dateTime={inquiry.notification.nextAttemptAt}>
+                    {dateTime(inquiry.notification.nextAttemptAt)}
+                  </time>
+                </dd>
+              </div>
+            ) : null}
             {inquiry.viewingRequest ? (
               <>
                 <div>
@@ -351,9 +435,28 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
                     )}
                   </dd>
                 </div>
+                <div>
+                  <dt>Viewing status changed</dt>
+                  <dd>
+                    <time
+                      dateTime={
+                        inquiry.viewingRequest.statusHistory.at(-1)?.changedAt ??
+                        inquiry.createdAt
+                      }
+                    >
+                      {dateTime(
+                        inquiry.viewingRequest.statusHistory.at(-1)?.changedAt ??
+                          inquiry.createdAt,
+                      )}
+                    </time>
+                  </dd>
+                </div>
               </>
             ) : null}
           </dl>
+          <p className={styles.copyStatus} role="status" aria-live="polite">
+            {copyMessage}
+          </p>
           {inquiry.message ? (
             <>
               <h3>Message</h3>

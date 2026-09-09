@@ -117,6 +117,13 @@ reschedule, completion or cancellation transitions. Cancellation requires explic
 browser confirmation. The established inquiry statuses remain `new`, `in-progress`,
 `viewing-scheduled`, `closed`, `lost` and `spam`.
 
+Level 15 adds notification-delivery visibility to list/detail, actual last status-change
+times from history, accessible copy controls for authorized contact fields, and
+formula-neutralized export of the already loaded current page without phone, message,
+consent, notes, or history. The viewing page also includes a 42-day/200-record bounded
+Philippine-time calendar with an equivalent list; it visualizes the existing state machine
+and does not create availability or confirmation.
+
 Spam is excluded from the default active queue. Marking an inquiry as spam remembers its
 previous non-spam status; **Mark not spam** restores that status. Archived records leave
 active and spam queues but remain available in the archive queue. Every mutation uses

@@ -1,18 +1,19 @@
 import { createHash, randomUUID } from "node:crypto";
-import type {
-  AdminInquiryDetail,
-  AdminInquiryListRequest,
-  AdminInquiryListResponse,
-  AdminInquirySummary,
-  AdminInquiryTransitionRequest,
-  AddInquiryNoteRequest,
-  CreateInquiryRequest,
-  CreateInquiryResponse,
-  InquiryStatus,
-  InquiryType,
-  UpdateViewingRequestRequest,
-  ViewingRequestStatus,
-  UpdateInquiryStatusRequest,
+import {
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  type AdminInquiryDetail,
+  type AdminInquiryListRequest,
+  type AdminInquiryListResponse,
+  type AdminInquirySummary,
+  type AdminInquiryTransitionRequest,
+  type AddInquiryNoteRequest,
+  type CreateInquiryRequest,
+  type CreateInquiryResponse,
+  type InquiryStatus,
+  type InquiryType,
+  type UpdateViewingRequestRequest,
+  type ViewingRequestStatus,
+  type UpdateInquiryStatusRequest,
 } from "@rc/shared";
 import { Types, type Model, type QueryFilter } from "mongoose";
 import { HttpError } from "../../middleware/errorHandler.js";
@@ -59,6 +60,7 @@ export class MongooseViewingPropertyRepository implements ViewingPropertyReposit
         propertyId,
         publicationStatus: "published",
         purpose: "sale",
+        propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
         availability: { $ne: "sold" },
       }),
     );
@@ -347,8 +349,12 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
     }
     if (request.query) {
       const expression = new RegExp(escapeRegExp(request.query), "i");
+      const exactId = Types.ObjectId.isValid(request.query)
+        ? [{ _id: new Types.ObjectId(request.query) }]
+        : [];
       filters.push({
         $or: [
+          ...exactId,
           { name: expression },
           { email: expression },
           { phone: expression },
@@ -363,7 +369,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
       this.model
         .find(filter)
         .select(
-          "name email inquiryType source propertyId subject status viewingRequest.status viewingRequest.requestedDate viewingRequest.requestedTime createdAt updatedAt archivedAt __v",
+          "+notification name email inquiryType source propertyId subject status viewingRequest.status viewingRequest.requestedDate viewingRequest.requestedTime createdAt updatedAt archivedAt __v",
         )
         .sort({ createdAt: -1, _id: -1 })
         .skip((request.page - 1) * request.limit)
@@ -377,7 +383,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
   async findById(id: string): Promise<AdminInquiryRecord | null> {
     return this.model
       .findById(id)
-      .select("+internalNotes")
+      .select("+internalNotes +notification")
       .lean<AdminInquiryRecord | null>();
   }
 
@@ -416,7 +422,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
         },
         { new: true },
       )
-      .select("+internalNotes")
+      .select("+internalNotes +notification")
       .lean<AdminInquiryRecord | null>();
   }
 
@@ -475,7 +481,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
         },
         { new: true },
       )
-      .select("+internalNotes")
+      .select("+internalNotes +notification")
       .lean<AdminInquiryRecord | null>();
   }
 
@@ -507,7 +513,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
         },
         { new: true },
       )
-      .select("+internalNotes")
+      .select("+internalNotes +notification")
       .lean<AdminInquiryRecord | null>();
   }
 
@@ -533,7 +539,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
         },
         { new: true },
       )
-      .select("+internalNotes")
+      .select("+internalNotes +notification")
       .lean<AdminInquiryRecord | null>();
   }
 
@@ -550,12 +556,17 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
         },
         { new: true },
       )
-      .select("+internalNotes")
+      .select("+internalNotes +notification")
       .lean<AdminInquiryRecord | null>();
   }
 }
 
 function toSummary(record: AdminInquiryRecord): AdminInquirySummary {
+  const notification = record.notification ?? {
+    notificationId: "redacted",
+    status: "pending",
+    attempts: 0,
+  };
   return {
     id: String(record._id),
     name: record.name,
@@ -574,6 +585,22 @@ function toSummary(record: AdminInquiryRecord): AdminInquirySummary {
           },
         }
       : {}),
+    notification: {
+      status: notification.status,
+      attempts: notification.attempts,
+      ...(notification.nextAttemptAt
+        ? { nextAttemptAt: notification.nextAttemptAt.toISOString() }
+        : {}),
+      ...(notification.lastAttemptAt
+        ? { lastAttemptAt: notification.lastAttemptAt.toISOString() }
+        : {}),
+      ...(notification.deliveredAt
+        ? { deliveredAt: notification.deliveredAt.toISOString() }
+        : {}),
+      ...(notification.lastErrorCode
+        ? { lastErrorCode: notification.lastErrorCode }
+        : {}),
+    },
     version: record.__v ?? 0,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),

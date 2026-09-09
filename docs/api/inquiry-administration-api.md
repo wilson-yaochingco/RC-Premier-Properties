@@ -26,12 +26,16 @@ authorization control.
 
 `page` defaults to 1 and is capped at 10,000; `limit` defaults to 20 and is capped at 100. `queue` is `active` (default), `spam`, `archived` or `all`. Optional exact filters
 are `status`, `viewingStatus`, `inquiryType`, `source` and normalized `propertyId`. `query` is a trimmed,
-escaped, maximum-100-character search over name, email, phone, Property ID and subject.
+escaped, maximum-100-character search over an exact valid inquiry database ID plus name,
+email, phone, Property ID and subject.
 Unknown, repeated/object-style or invalid parameters return `400` with field issues.
 
 List responses deliberately omit message bodies, phone numbers, consent timestamps,
-internal notes and history. Detail responses include the operational private fields,
-created/updated timestamps, archive time, current version, notes and status history.
+internal notes and history. They include only safe notification status, attempt count, and
+available attempt/delivery times/error code—not notification identity or lease data.
+Detail responses include the operational private fields, created/updated timestamps,
+archive time, current version, notes, status history, and the same safe notification
+summary. The staff UI derives status-changed times only from actual history entries.
 
 ## Writes and concurrency
 

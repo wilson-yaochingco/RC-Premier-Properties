@@ -69,6 +69,10 @@ database leasing keeps overlapping invocations safe.
 
 Existing inquiries created before Level 12 have no notification state. The integrity
 scan reports those records for review; it does not invent delivery history or resend them.
+Level 15 exposes safe notification status/count/timing fields to authorized staff and
+dashboard aggregates. Notification identity, lease state, provider credentials, and
+customer content remain private. No manual retry endpoint or second scheduler was added;
+the bounded leased CLI architecture remains authoritative.
 
 ## Media failure and consistency boundary
 
@@ -98,6 +102,8 @@ reviewed owned namespace and stable non-secret object references before removal.
 listing and orphan detection must produce a report only after excluding in-progress
 uploads and objects younger than the approved grace period. A failed database read,
 temporary CDN outage, or first missing-object result must never trigger deletion.
+The Level 15 dashboard may count pending-review cleanup records but cannot reveal object
+references or mutate debt. Orphan scanning therefore remains scan-only and CLI-owned.
 
 ## Audit and integrity decisions
 

@@ -104,4 +104,34 @@ describe("public property read projections", () => {
       ]),
     );
   });
+
+  it("bounds related-property candidates and fabricates no fallback inventory", async () => {
+    const currentQuery = createReadQuery({
+      _id: "current-property",
+      propertyType: "house-and-lot",
+      price: { amount: 8_500_000 },
+      location: { city: "Angeles City" },
+    });
+    const candidatesQuery = createReadQuery([]);
+    const model = {
+      findOne: vi.fn().mockReturnValue(currentQuery),
+      find: vi.fn().mockReturnValue(candidatesQuery),
+    } as unknown as Model<PropertyEntity>;
+
+    await expect(
+      new MongoosePropertyService(model).related("test-property"),
+    ).resolves.toEqual({ items: [] });
+
+    expect(model.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publicationStatus: "published",
+        purpose: "sale",
+        _id: { $ne: "current-property" },
+      }),
+    );
+    expect(candidatesQuery.limit).toHaveBeenCalledWith(12);
+    const fields = projectionFields(candidatesQuery.select);
+    expect(fields).not.toContain("location.privateAddress");
+    expect(fields).not.toContain("location.coordinates");
+  });
 });

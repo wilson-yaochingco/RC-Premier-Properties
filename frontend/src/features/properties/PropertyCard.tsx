@@ -33,9 +33,7 @@ export function PropertyCard({ property, resultsHref }: PropertyCardProps) {
           label="PROPERTY IMAGE"
           className={styles.cardMedia}
         />
-        <span className={styles.cardPurpose}>
-          For {property.purpose === "sale" ? "sale" : "rent"}
-        </span>
+        <span className={styles.cardPurpose}>For sale</span>
       </Link>
 
       <div className={styles.cardBody}>
@@ -64,7 +62,9 @@ export function PropertyCard({ property, resultsHref }: PropertyCardProps) {
         ) : null}
 
         <div className={styles.cardFooter}>
-          <span className={styles.availability}>{property.availability}</span>
+          <span className={styles.availability}>
+            {property.availability.replace(/^./, (first) => first.toUpperCase())}
+          </span>
           <Link href={detailHref} className={styles.cardLink}>
             View property <span aria-hidden="true">↗</span>
           </Link>

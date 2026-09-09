@@ -222,6 +222,7 @@ The first release has this permission matrix:
 | Change availability                      |   Deny |                         Deny |           Deny |   Allow |
 | Read or update inquiries                 |   Deny |                         Deny |           Deny |   Allow |
 | Read security audit events               |   Deny |                         Deny |           Deny |   Allow |
+| Read staff identity operations view      |   Deny |                         Deny |           Deny |   Allow |
 
 The implementation should express these as named permissions rather than scattered
 string comparisons, even though the initial role has all Phase 3A permissions. This
@@ -317,7 +318,8 @@ experience.
    **Implemented.**
 6. Add property administration one lifecycle capability at a time. The requested
    property lifecycle, media-reference and lightweight inquiry/viewing slices are now
-   protected by this boundary; the audit view remains unimplemented.
+   protected by this boundary. Level 15 adds protected read-only dashboard, viewing
+   calendar, audit, and staff identity views without adding another identity system.
 
 Authentication and authorization land before any property write or inquiry read route.
 Media upload remains a separate Phase 3A slice after its storage provider and upload

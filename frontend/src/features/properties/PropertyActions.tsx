@@ -75,6 +75,9 @@ export function PropertyActions({
       <button type="button" onClick={share}>
         Share Property
       </button>
+      <button type="button" onClick={() => window.print()}>
+        Print Property
+      </button>
       <span role="status" aria-live="polite">
         {message}
       </span>

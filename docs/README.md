@@ -76,6 +76,8 @@ Current:
   detail behavior
 - [`property-administration.md`](features/property-administration.md) — protected admin
   shell, property lifecycle, draft content and image-reference workflow
+- [`admin-operations.md`](features/admin-operations.md) — Level 15 dashboard, viewing
+  calendar, search, audit/staff visibility, and bounded export decisions
 - [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behavior
 - [`production-content-and-media.md`](features/production-content-and-media.md) — approved
   Level 7 business content, supplied design media, device uploads and provider gates
@@ -113,6 +115,8 @@ Current:
   logout contract
 - [`property-administration-api.md`](api/property-administration-api.md) — protected
   private reads and draft create/edit contracts
+- [`admin-operations-api.md`](api/admin-operations-api.md) — protected read-only
+  dashboard, calendar, audit, and staff contracts
 
 ### `database/`
 
@@ -171,6 +175,8 @@ Current:
   forensic production-readiness audit and historical Level 14 input
 - [`level-14-remediation.md`](audits/level-14-remediation.md) — finding-by-finding
   remediation evidence, full quality gate, residual live blockers, and recalculated score
+- [`level-15-product-operations-enhancements.md`](audits/level-15-product-operations-enhancements.md)
+  — scoped product/operations implementation, deferrals, regression evidence, and gate
 
 ## Rules
 

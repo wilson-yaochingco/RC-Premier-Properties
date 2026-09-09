@@ -6,6 +6,7 @@ import type {
   PropertyMapResponse,
   PropertySearchResponse,
   PublicPropertyDetail,
+  RelatedPropertiesResponse,
 } from "@rc/shared";
 import { HttpError } from "../../middleware/errorHandler.js";
 import { getRequestId } from "../../middleware/requestContext.js";
@@ -55,6 +56,16 @@ export function createPropertyController(
       const property = await service.findPublishedBySlug(slug);
       if (!property) throw new HttpError(404, "Property not found.");
       res.status(200).json(property);
+    },
+
+    async related(
+      req: Request<{ slug: string }>,
+      res: Response<RelatedPropertiesResponse>,
+    ): Promise<void> {
+      const slug = parsePropertySlug(req.params.slug);
+      const properties = await service.related(slug);
+      if (!properties) throw new HttpError(404, "Property not found.");
+      res.status(200).json(properties);
     },
   };
 }

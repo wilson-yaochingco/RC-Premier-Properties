@@ -17,6 +17,7 @@ import {
   transitionAdminProperty,
 } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
+import { downloadCsv, propertyPageCsv } from "./admin-csv";
 import styles from "./admin.module.css";
 
 type ListState =
@@ -178,9 +179,24 @@ export function AdminPropertyList() {
           <h1 id="admin-properties-title">Properties</h1>
           <p>Search, preview, publish, update availability, and archive listings.</p>
         </div>
-        <Link className={styles.primaryAction} href="/admin/properties/new">
-          Create draft
-        </Link>
+        <div className={styles.pageHeaderActions}>
+          {state.kind === "ready" && state.response.items.length > 0 ? (
+            <button
+              type="button"
+              onClick={() =>
+                downloadCsv(
+                  "rc-premier-properties-page.csv",
+                  propertyPageCsv(state.response.items),
+                )
+              }
+            >
+              Export current page CSV
+            </button>
+          ) : null}
+          <Link className={styles.primaryAction} href="/admin/properties/new">
+            Create draft
+          </Link>
+        </div>
       </div>
 
       <form className={styles.filters} onSubmit={applyFilters}>
@@ -289,6 +305,7 @@ export function AdminPropertyList() {
                   <th scope="col">Location</th>
                   <th scope="col">Publication</th>
                   <th scope="col">Availability</th>
+                  <th scope="col">Readiness</th>
                   <th scope="col">Updated</th>
                   <th scope="col">
                     <span className={styles.srOnly}>Actions</span>
@@ -307,6 +324,11 @@ export function AdminPropertyList() {
                     </td>
                     <td>{label(property.publicationStatus)}</td>
                     <td>{label(property.availability)}</td>
+                    <td>
+                      {property.publicationReadiness.ready
+                        ? "Complete"
+                        : `Missing: ${property.publicationReadiness.missing.join(", ")}`}
+                    </td>
                     <td>
                       {new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(
                         new Date(property.updatedAt),
@@ -329,7 +351,15 @@ export function AdminPropertyList() {
                           property.publicationStatus,
                         ) ? (
                           <button
-                            disabled={pendingId === property.id}
+                            disabled={
+                              pendingId === property.id ||
+                              !property.publicationReadiness.ready
+                            }
+                            title={
+                              property.publicationReadiness.ready
+                                ? undefined
+                                : `Complete before publishing: ${property.publicationReadiness.missing.join(", ")}`
+                            }
                             onClick={() => mutate(property, "publish")}
                           >
                             Publish

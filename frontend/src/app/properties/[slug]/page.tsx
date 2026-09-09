@@ -10,19 +10,23 @@ import { ApiClientError } from "@/services/api-client";
 import { PropertyGallery } from "@/features/properties/PropertyGallery";
 import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
 import { PropertyActions } from "@/features/properties/PropertyActions";
+import { PropertyCard } from "@/features/properties/PropertyCard";
 import {
   formatLocation,
   formatPrice,
   propertyTypeLabel,
   visibleSpecifications,
 } from "@/features/properties/property-format";
-import { getPropertyBySlug } from "@/features/properties/property.service";
+import {
+  getPropertyBySlug,
+  getRelatedProperties,
+} from "@/features/properties/property.service";
 import {
   buildPropertyMetadata,
   buildPropertyStructuredData,
   nonpublicPropertyMetadata,
 } from "@/features/properties/property-seo";
-import { serializeJsonLd } from "@/lib/seo";
+import { absoluteSiteUrl, serializeJsonLd } from "@/lib/seo";
 import { formatBusinessDate } from "@/lib/date-time";
 import styles from "@/features/properties/property-detail.module.css";
 
@@ -59,6 +63,7 @@ export default async function PropertyDetailPage({
       ? rawFrom
       : "/properties";
   let property;
+  const relatedPromise = getRelatedProperties(slug).catch(() => ({ items: [] }));
 
   try {
     property = await getPublishedProperty(slug);
@@ -75,6 +80,9 @@ export default async function PropertyDetailPage({
   const location = formatLocation(property.location);
   const specifications = visibleSpecifications(property.specifications);
   const structuredData = buildPropertyStructuredData(property);
+  const related = await relatedPromise;
+  const publicUrl =
+    absoluteSiteUrl(`/properties/${property.slug}`) ?? `/properties/${property.slug}`;
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
@@ -84,6 +92,26 @@ export default async function PropertyDetailPage({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
         />
       ) : null}
+
+      <section className={styles.printSummary} aria-label="Printable property summary">
+        <h1>RC Premier Properties</h1>
+        <p>Premier Property #{property.propertyId}</p>
+        <p>{property.title}</p>
+        <p>Price: {formatPrice(property.price.amount, property.price.currency)}</p>
+        <p>{location}</p>
+        <p>{propertyTypeLabel(property.propertyType)}</p>
+        <dl>
+          {specifications.map((item) => (
+            <div key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p>{property.description}</p>
+        <p>rcpremierph@gmail.com · +63 918 429 1873</p>
+        <p>Public listing: {publicUrl}</p>
+      </section>
 
       <section className={styles.identity}>
         <Container>
@@ -264,6 +292,20 @@ export default async function PropertyDetailPage({
           </Button>
         </Container>
       </section>
+
+      {related.items.length > 0 ? (
+        <section className={styles.relatedSection} aria-labelledby="related-title">
+          <Container>
+            <p className={styles.sectionLabel}>More published inventory</p>
+            <h2 id="related-title">Similar properties</h2>
+            <div className={styles.relatedGrid}>
+              {related.items.map((item) => (
+                <PropertyCard key={item.id} property={item} />
+              ))}
+            </div>
+          </Container>
+        </section>
+      ) : null}
     </main>
   );
 }

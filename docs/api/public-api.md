@@ -1,6 +1,6 @@
 # Public API Reference
 
-Status: implemented public MVP contract. Last reviewed 2026-09-07.
+Status: implemented public MVP and Level 15 discovery contract. Last reviewed 2026-09-10.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. Request
 and response types live in [`shared/src/api.ts`](../../shared/src/api.ts); this document
@@ -8,15 +8,16 @@ explains behavior and intentionally does not create a second TypeScript contract
 
 ## Endpoint summary
 
-| Method | Path                 | Purpose                                             | Success   |
-| ------ | -------------------- | --------------------------------------------------- | --------- |
-| `GET`  | `/health`            | Process and MongoDB connection health               | `200`     |
-| `GET`  | `/health/ready`      | MongoDB-backed deployment traffic readiness         | `200/503` |
-| `GET`  | `/properties`        | Search published properties                         | `200`     |
-| `GET`  | `/properties/facets` | Values derived from published inventory             | `200`     |
-| `GET`  | `/properties/map`    | Filtered, approved public property pins for the map | `200`     |
-| `GET`  | `/properties/:slug`  | Read one published property                         | `200`     |
-| `POST` | `/inquiries`         | Store a public inquiry or viewing request           | `201`     |
+| Method | Path                        | Purpose                                             | Success   |
+| ------ | --------------------------- | --------------------------------------------------- | --------- |
+| `GET`  | `/health`                   | Process and MongoDB connection health               | `200`     |
+| `GET`  | `/health/ready`             | MongoDB-backed deployment traffic readiness         | `200/503` |
+| `GET`  | `/properties`               | Search published properties                         | `200`     |
+| `GET`  | `/properties/facets`        | Values derived from published inventory             | `200`     |
+| `GET`  | `/properties/map`           | Filtered, approved public property pins for the map | `200`     |
+| `GET`  | `/properties/:slug`         | Read one published property                         | `200`     |
+| `GET`  | `/properties/:slug/related` | Read up to three related published properties       | `200`     |
+| `POST` | `/inquiries`                | Store a public inquiry or viewing request           | `201`     |
 
 There are no public property writes and no public inquiry reads. Staff authentication
 uses a separate backend session boundary documented in
@@ -43,11 +44,12 @@ and exposes no URI, credential, or private infrastructure detail.
 
 ## `GET /properties`
 
-Only records with `publicationStatus: "published"` and `purpose: "sale"` are eligible.
-Neither boundary is user-controlled. Private addresses, internal coordinates, owner
-references and internal notes are excluded from the public projection. An optional public
-point is a separate, explicitly approved field governed by `publicPrecision`; it is never
-derived from an internal coordinate.
+Only records with `publicationStatus: "published"`, `purpose: "sale"`, and an approved
+residential sale type (`house-and-lot`, `townhouse`, or `lot`) are eligible. None of these
+boundaries is user-controlled. Private addresses, internal coordinates, owner references
+and internal notes are excluded from the public projection. An optional public point is a
+separate, explicitly approved field governed by `publicPrecision`; it is never derived
+from an internal coordinate.
 
 ### Query parameters
 
@@ -56,8 +58,9 @@ derived from an internal coordinate.
 | `keyword`                    | Partial title, short description, Property ID or development match | up to 120 characters                                    |
 | `propertyId`                 | Exact public reference                                             | up to 40 letters, numbers, hyphens or underscores       |
 | `location`                   | Partial province, city, barangay or development match              | up to 120 characters                                    |
-| `propertyType`               | Listing category                                                   | one of `PROPERTY_TYPES`                                 |
+| `propertyType`               | Residential sale category                                          | `house-and-lot`, `townhouse`, or `lot`                  |
 | `purpose`                    | Compatibility input; public inventory remains sales-only           | `sale`; `rent` returns no public matches                |
+| `availability`               | Market state                                                       | `available`, `reserved`, or `sold`                      |
 | `minPrice`, `maxPrice`       | Inclusive PHP price range                                          | 0–1,000,000,000,000; minimum cannot exceed maximum      |
 | `bedrooms`, `bathrooms`      | Minimum room count                                                 | whole number from 0 to 100                              |
 | `minLotArea`, `minFloorArea` | Inclusive minimum square meters                                    | 0–100,000,000                                           |
@@ -114,8 +117,8 @@ unbounded replacement for the paginated property list.
 ## `GET /properties/facets`
 
 Returns sorted location labels and property types plus the minimum and maximum PHP price
-derived from published records. With no published inventory, the arrays are empty and
-both price bounds are `null`.
+derived only from published residential sale records. With no eligible inventory, the
+arrays are empty and both price bounds are `null`.
 
 This route does not supply example listings. The repository intentionally contains no
 seed data or real inventory.
@@ -136,6 +139,15 @@ ordered `gallery`. Media entries carry image metadata and production/sample prov
 The frontend renders only supported image URLs and keeps its stable fallback for missing
 or unapproved entries. Development samples are always visibly marked as not depicting
 the listing. See [`property-media.md`](../architecture/property-media.md).
+
+## `GET /properties/:slug/related`
+
+Uses the same slug validation and visibility predicate as detail. A missing, unpublished,
+rental, condominium, apartment, or commercial record returns `404`. The service excludes
+the current record, queries at most 12 eligible candidates using same city, same type, or
+a price within 20 percent, and deterministically returns at most three public summaries.
+Availability, similarity score, publication time, and record ID provide stable ordering.
+Insufficient inventory returns fewer items or an empty array; no result is fabricated.
 
 ## `POST /inquiries`
 
@@ -172,9 +184,9 @@ uncertain failures.
 
 A viewing inquiry creates structured `requested` appointment state. Its source must be
 `viewing-page`, its date/time must be in the future, and its Property ID must identify a
-published sale property that is not sold. The acknowledgment explicitly says the requested
-schedule still needs staff confirmation; the endpoint does not expose calendar
-availability or confirm an appointment.
+published residential sale property that is not sold. The acknowledgment explicitly says
+the requested schedule still needs staff confirmation; the endpoint does not expose
+calendar availability or confirm an appointment.
 
 For every inquiry type, a supplied `propertyId` is a relational reference rather than
 free text and must identify a current property. This keeps accepted inquiries aligned

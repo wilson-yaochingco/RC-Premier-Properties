@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiClientError } from "@/services/api-client";
 import { PropertyCard } from "@/features/properties/PropertyCard";
+import { PropertyFilterChips } from "@/features/properties/PropertyFilterChips";
 import { PropertyPagination } from "@/features/properties/PropertyPagination";
 import { PropertyResultsExperience } from "@/features/properties/PropertyResultsExperience";
 import { PropertySearchForm } from "@/features/properties/PropertySearchForm";
@@ -99,6 +100,7 @@ export default async function PropertiesPage({
 
       <Container className={styles.searchWrap}>
         <PropertySearchForm values={values} facets={facets} />
+        <PropertyFilterChips values={values} searchParams={rawSearchParams} />
       </Container>
 
       <section

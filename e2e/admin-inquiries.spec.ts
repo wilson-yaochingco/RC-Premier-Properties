@@ -36,6 +36,11 @@ const INQUIRY: AdminInquiryDetail = {
   message: "This is a synthetic private inquiry used only by browser tests.",
   privacyConsentAt: "2026-09-07T08:00:00.000Z",
   status: "new",
+  notification: {
+    status: "delivered",
+    attempts: 1,
+    deliveredAt: "2026-09-07T08:00:00.000Z",
+  },
   viewingRequest: {
     status: "requested",
     requestedDate: "2030-09-20",

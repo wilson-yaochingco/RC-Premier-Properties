@@ -56,6 +56,14 @@ media infrastructure. Phase 6 repository hardening through Level 14 is implement
 the production launch gate remains open for the explicitly tracked live infrastructure,
 security, monitoring, device, and recovery evidence. Phase 2B remains deferred.
 
+The approved Level 15 enhancement slice is repository-complete without opening Phase 2B
+or 3B: public residential-sale filtering/detail improvements and read-only admin
+dashboard, viewing-request calendar, search, audit/staff visibility, and bounded export
+sit on the existing MVP models and permissions. It adds no CRM client/agent records,
+analytics, calendar availability, customer accounts, provider configuration, or new
+mutation architecture. See the
+[Level 15 implementation report](audits/level-15-product-operations-enhancements.md).
+
 This ownership split does not weaken dependency rules or a phase's Definition of Done.
 A backend workstream may be complete while the overall product phase remains open. Do
 not expose property writes or inquiry reads before Phase 3A authentication and
@@ -737,7 +745,7 @@ changed, not the personal data it contained.
 - [x] Inquiry management usable by staff
 - [x] Audit trail records property and inquiry changes without sensitive values
 - [x] Repository tests pass; live security acceptance remains separately gated
-- [x] Repository documentation updated through Level 14
+- [x] Repository documentation updated through the scoped Level 15 enhancements
 
 ### Not in this phase
 
@@ -760,8 +768,9 @@ timeline.
 
 **Agents** — profile, contact information, listing assignments, lead assignments, status.
 
-**Bookings** — the lightweight viewing-request staff lifecycle from Phase 2B is
-implemented. Broader calendar, agent-assignment and CRM capabilities remain deferred.
+**Bookings** — the lightweight viewing-request staff lifecycle and a read-only visual
+calendar of those requests are implemented. Calendar availability, external calendar
+integration, agent assignment, and broader CRM capabilities remain deferred.
 
 **Analytics** — candidate metrics: property views, popular listings, inquiry count,
 inquiry source, viewing requests, conversion rate. **Define precisely what each metric

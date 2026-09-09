@@ -11,13 +11,14 @@ describe("property query URLs", () => {
     const query = propertyApiSearchParams({
       keyword: "  family home  ",
       propertyType: "house-and-lot",
+      availability: "reserved",
       sort: "price-desc",
       page: "2",
       unknown: "do-not-forward",
     });
 
     expect(query.toString()).toBe(
-      "keyword=family+home&propertyType=house-and-lot&purpose=sale&sort=price-desc&page=2&limit=9",
+      "keyword=family+home&propertyType=house-and-lot&availability=reserved&purpose=sale&sort=price-desc&page=2&limit=9",
     );
   });
 
@@ -49,10 +50,13 @@ describe("property query URLs", () => {
     expect(
       propertyMapApiSearchParams({
         location: "Angeles City",
-        propertyType: "commercial",
+        propertyType: "house-and-lot",
         sort: "price-desc",
         page: "3",
       }).toString(),
-    ).toBe("location=Angeles+City&propertyType=commercial&purpose=sale");
+    ).toBe("location=Angeles+City&propertyType=house-and-lot&purpose=sale");
+    expect(
+      propertyMapApiSearchParams({ propertyType: "commercial" }).has("propertyType"),
+    ).toBe(false);
   });
 });

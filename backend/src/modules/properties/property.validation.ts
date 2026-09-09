@@ -9,7 +9,7 @@ import {
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
   PROPERTY_SORT_OPTIONS,
-  PROPERTY_TYPES,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   type AdminPropertyContentInput,
   type AdminPropertyMediaInput,
   type AdminPropertyAvailabilityRequest,
@@ -33,6 +33,7 @@ const ALLOWED_QUERY_FIELDS = new Set([
   "location",
   "propertyType",
   "purpose",
+  "availability",
   "minPrice",
   "maxPrice",
   "bedrooms",
@@ -165,8 +166,14 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
   const propertyId = boundedString(query, "propertyId", 40, issues);
   const area = enumValue(query, "area", PUBLIC_PROPERTY_AREAS, issues);
   const location = boundedString(query, "location", 120, issues);
-  const propertyType = enumValue(query, "propertyType", PROPERTY_TYPES, issues);
+  const propertyType = enumValue(
+    query,
+    "propertyType",
+    RESIDENTIAL_SALE_PROPERTY_TYPES,
+    issues,
+  );
   const purpose = enumValue(query, "purpose", LISTING_PURPOSES, issues);
+  const availability = enumValue(query, "availability", PROPERTY_AVAILABILITY, issues);
   const minPrice = nonNegativeNumber(query, "minPrice", issues, {
     maximum: MAX_PRICE,
   });
@@ -226,6 +233,7 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
     ...(location ? { location } : {}),
     ...(propertyType ? { propertyType } : {}),
     ...(purpose ? { purpose } : {}),
+    ...(availability ? { availability } : {}),
     ...(minPrice !== undefined ? { minPrice } : {}),
     ...(maxPrice !== undefined ? { maxPrice } : {}),
     ...(bedrooms !== undefined ? { bedrooms } : {}),
@@ -701,7 +709,7 @@ function parseAdminPropertyContent(
     const value = bodyEnum(
       rawBody.propertyType,
       "propertyType",
-      PROPERTY_TYPES,
+      RESIDENTIAL_SALE_PROPERTY_TYPES,
       issues,
     );
     if (value) result.propertyType = value;

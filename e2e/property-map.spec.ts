@@ -64,7 +64,7 @@ test("the heavy map stays lazy and mobile List/Map discovery shares URL filters"
   await page.locator(".leaflet-marker-icon").click();
   await expect(page.getByRole("link", { name: /View property/ })).toHaveAttribute(
     "href",
-    "/properties/san-fernando-commercial-lot",
+    "/properties/san-fernando-townhouse",
   );
 });
 

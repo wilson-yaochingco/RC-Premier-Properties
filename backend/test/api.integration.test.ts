@@ -81,6 +81,9 @@ function makePropertyService() {
     async findPublishedBySlug(slug) {
       return slug === DETAIL.slug ? DETAIL : null;
     },
+    async related(slug) {
+      return slug === DETAIL.slug ? { items: [] } : null;
+    },
     async getFacets() {
       return FACETS;
     },
@@ -157,6 +160,9 @@ describe("Phase 2A public API", () => {
   it("returns facets and published detail responses", async () => {
     const facets = await request(app()).get(`${API_PREFIX}/properties/facets`);
     const detail = await request(app()).get(`${API_PREFIX}/properties/${DETAIL.slug}`);
+    const related = await request(app()).get(
+      `${API_PREFIX}/properties/${DETAIL.slug}/related`,
+    );
 
     expect(facets.status).toBe(200);
     expect(facets.body).toEqual(FACETS);
@@ -167,6 +173,8 @@ describe("Phase 2A public API", () => {
       publicPrecision: "city-only",
       disclosure: "general-area",
     });
+    expect(related.status).toBe(200);
+    expect(related.body).toEqual({ items: [] });
   });
 
   it("returns a bounded map response using the same normalized filters", async () => {

@@ -14,6 +14,7 @@ import {
 import { ApiClientError } from "@/services/api-client";
 import { getAdminInquiries } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
+import { downloadCsv, inquiryPageCsv } from "./admin-csv";
 import styles from "./admin.module.css";
 
 const PAGE_SIZE = 20;
@@ -117,6 +118,19 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
               : "Review leads, track follow-up, and keep spam outside the active queue."}
           </p>
         </div>
+        {state.kind === "ready" && state.response.items.length > 0 ? (
+          <button
+            type="button"
+            onClick={() =>
+              downloadCsv(
+                "rc-premier-inquiries-page.csv",
+                inquiryPageCsv(state.response.items),
+              )
+            }
+          >
+            Export current page CSV
+          </button>
+        ) : null}
       </div>
 
       <form
@@ -256,6 +270,7 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
                   <th scope="col">Property</th>
                   <th scope="col">Viewing status</th>
                   <th scope="col">Inquiry status</th>
+                  <th scope="col">Notification</th>
                   <th scope="col">Requested schedule</th>
                   <th scope="col">Received</th>
                   <th scope="col">
@@ -296,6 +311,11 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
                         }`}
                       >
                         {label(inquiry.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={styles.statusBadge}>
+                        {label(inquiry.notification.status)}
                       </span>
                     </td>
                     <td>

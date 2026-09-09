@@ -1,7 +1,8 @@
 # Property Administration
 
-Status: property lifecycle, provider-neutral image administration, and privacy-conscious
-location administration implemented. Production upload remains blocked; inquiry administration is documented separately in
+Status: property lifecycle, Level 15 publish-readiness/current-page export, provider-neutral
+image administration, and privacy-conscious location administration implemented.
+Production upload remains blocked; inquiry administration is documented separately in
 [`inquiries.md`](inquiries.md).
 
 ## Staff experience
@@ -14,6 +15,13 @@ The protected `/admin` shell checks the local staff session, keeps its CSRF toke
 - `/admin/properties/[id]/preview` — protected pre-publication preview using the configured public location precision.
 
 Search covers the Premier Property number, slug, title, and city. Results show loading, error, forbidden, empty, success, and pagination states. Lifecycle controls adapt to smaller screens and are hidden when the session lacks the relevant permission; Express remains the authorization boundary.
+
+List and detail records expose backend-derived publication readiness. Staff see Complete
+or Incomplete plus the exact current missing requirements, and cannot invoke Publish from
+the list while incomplete. The backend remains authoritative and rejects the same case.
+New/edit controls accept only house-and-lot, townhouse, and lot; historical non-residential
+records are read-only for deliberate reconciliation. The list can export its already
+authorized current page as formula-neutralized CSV without private coordinates or notes.
 
 ## Lifecycle
 
@@ -73,8 +81,10 @@ Property persistence and audit insertion remain separate MongoDB writes, matchin
 
 ## Deferred boundaries
 
-Production object storage/provider deletion, staff management, and hard deletion remain
-deferred or blocked. Validated device upload uses the existing media metadata model and an
+Production object storage/provider deletion, staff mutation, and hard deletion remain
+deferred or blocked. Level 15 adds only read-only staff identity visibility through the
+existing architecture; provisioning/deactivation remain the audited CLI workflows.
+Validated device upload uses the existing media metadata model and an
 isolated development adapter; production fails closed until a provider is approved. See
 [`property-media.md`](../architecture/property-media.md).
 Inquiry administration was added in the next scoped level. The Auth0 development tenant

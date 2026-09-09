@@ -22,6 +22,8 @@ import {
   resolveAuthRouteDependencies,
   type AuthRouteDependencies,
 } from "./modules/auth/auth.routes.js";
+import { createAdminOperationsRoutes } from "./modules/operations/admin-operations.routes.js";
+import type { AdminOperationsService } from "./modules/operations/admin-operations.types.js";
 
 /**
  * Root API router, mounted on `API_PREFIX` in `app.ts`.
@@ -43,6 +45,11 @@ export interface ApiDependencies {
   adminInquiryService?: AdminInquiryService;
   adminInquiryReadPermission?: RequestHandler;
   adminInquiryUpdatePermission?: RequestHandler;
+  adminOperationsService?: AdminOperationsService;
+  adminOperationsPropertyReadPermission?: RequestHandler;
+  adminOperationsInquiryReadPermission?: RequestHandler;
+  adminOperationsAuditReadPermission?: RequestHandler;
+  adminOperationsStaffPermission?: RequestHandler;
   inquiryRateLimit?: RequestHandler;
   auth?: AuthRouteDependencies;
 }
@@ -53,6 +60,27 @@ export function createApiRouter(dependencies: ApiDependencies = {}): Router {
 
   router.use("/health", createHealthRoutes(dependencies.health));
   router.use("/auth", createAuthRoutes(dependencies.auth, auth));
+  router.use(
+    "/admin/operations",
+    createAdminOperationsRoutes({
+      auth,
+      ...(dependencies.adminOperationsService
+        ? { service: dependencies.adminOperationsService }
+        : {}),
+      ...(dependencies.adminOperationsPropertyReadPermission
+        ? { propertyReadPermission: dependencies.adminOperationsPropertyReadPermission }
+        : {}),
+      ...(dependencies.adminOperationsInquiryReadPermission
+        ? { inquiryReadPermission: dependencies.adminOperationsInquiryReadPermission }
+        : {}),
+      ...(dependencies.adminOperationsAuditReadPermission
+        ? { auditReadPermission: dependencies.adminOperationsAuditReadPermission }
+        : {}),
+      ...(dependencies.adminOperationsStaffPermission
+        ? { staffPermission: dependencies.adminOperationsStaffPermission }
+        : {}),
+    }),
+  );
   router.use(
     "/admin/properties",
     createAdminPropertyRoutes({

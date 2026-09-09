@@ -1,7 +1,8 @@
 # Public Properties
 
-Status: implemented public read and Phase 2A interactive-map experience. Live Atlas
-persistence verified; real inventory remains unsupplied. Last reviewed 2026-09-08.
+Status: implemented public read, Level 15 discovery/detail enhancements, and Phase 2A
+interactive-map experience. Live Atlas persistence verified; real inventory remains
+unsupplied. Last reviewed 2026-09-10.
 
 ## Purpose and routes
 
@@ -20,20 +21,25 @@ honest empty states rather than invented inventory.
 
 ## Catalog behavior
 
-The search surface supports Property ID, location, property type, minimum price and
-maximum price fields. A progressively disclosed region adds keyword, minimum bedrooms,
-minimum bathrooms, minimum lot/floor areas and sort. The public experience is sales-only:
-the frontend always requests `purpose=sale`, and public backend filters independently
-enforce `purpose: sale`. The stable internal purpose vocabulary remains available to
-administration to avoid a needless schema migration.
+The search surface supports Property ID, location, residential property type,
+availability, minimum price and maximum price fields. A progressively disclosed region
+adds keyword, minimum bedrooms, minimum bathrooms, minimum lot/floor areas and sort. The
+public experience is sales-only: the frontend always requests `purpose=sale`, and public
+backend list, map, facet, detail, related, and viewing-eligibility queries independently
+enforce sale plus the approved `house-and-lot`, `townhouse`, and `lot` types. Historical
+rental, condominium, apartment, and commercial values remain readable only for deliberate
+private reconciliation; they cannot enter production-visible workflows.
 
 Search state lives in the URL, so filtered pages can be linked, reloaded and traversed
 with normal browser controls. The frontend keeps only documented scalar keys before
 calling the API. The catalog requests nine items per page and retains active filters
-when pagination links change pages.
+when pagination links change pages. Active filters and non-default sort render as
+keyboard-accessible removable chips; removing one resets pagination while retaining the
+other normalized URL state, and **Clear all** returns to the unfiltered catalog.
 
-Facet data augments the location suggestions. If facets fail, the search remains usable
-with the core Angeles City/Pampanga suggestions. A facet failure never substitutes
+Location and property-type choices come only from real eligible inventory facets. If
+facets fail, free-text location and all numeric/status controls remain usable; no manual
+"popular" locations or property types are substituted. A facet failure never substitutes
 property results. Catalog outcomes are distinct:
 
 - published matches render responsive cards and a live result count;
@@ -43,8 +49,8 @@ property results. Catalog outcomes are distinct:
 - route loading and error boundaries provide non-empty transition and recovery states.
 
 Cards expose only fields supplied by the public summary: reference, location, type,
-purpose, price, availability and up to three available specifications. Missing values
-are omitted rather than guessed.
+sale purpose, PHP price, availability and up to three available specifications. Missing
+values are omitted rather than guessed; no popularity or recommendation badge exists.
 
 ## Map discovery behavior
 
@@ -74,10 +80,11 @@ Source, licensing and regeneration details are in
 
 ## API and publication rules
 
-The backend owns validation and always constrains list/detail/facet queries to
-`publicationStatus: "published"`. Regex input is escaped, unknown or operator-style
-parameters are rejected, page size is bounded and only fixed sort choices are accepted.
-Unpublished and missing slugs both resolve as public 404s.
+The backend owns validation and always constrains list/map/detail/facet/related queries to
+published residential sale inventory. Regex input is escaped, unknown or operator-style
+parameters are rejected, page size is bounded and only newest, price-low-to-high, and
+price-high-to-low deterministic sorts are accepted. Unpublished, disallowed historical,
+and missing slugs all resolve as public 404s.
 
 Public projections exclude private street address, internal coordinates, owner
 references and internal notes. A listing can expose a separately stored, approved
@@ -104,7 +111,17 @@ The stable public route uses the listing slug. The page provides:
 - an interactive map for a separately approved public point, otherwise a stable
   general-area placeholder, plus the listing's precision/privacy explanation;
 - links to property-aware inquiry and viewing-request forms; and
-- property-specific metadata plus JSON-LD based on the public record.
+- property-specific metadata plus JSON-LD based on the public record;
+- native share with copy/manual fallback and an explicit print action;
+- a print-only, ink-conscious summary containing business identity, public facts,
+  description, approved contact details, and the canonical public URL; and
+- zero to three related cards selected deterministically from at most 12 real published
+  residential sale candidates, excluding the current property.
+
+Print and related-property data use public DTOs only. They cannot expose private address,
+internal coordinates, notes, customer data, or hidden records. A related-data failure is
+non-fatal and shows no invented fallback. A QR code remains deliberately absent because
+the printed URL is an accessible fallback and optional QR weight was not justified.
 
 The viewing action creates no appointment by itself. It carries the Property ID into the
 viewing-request form for staff follow-up.

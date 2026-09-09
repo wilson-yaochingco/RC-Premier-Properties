@@ -1,6 +1,6 @@
 import {
   PROPERTY_TYPE_LABELS,
-  PROPERTY_TYPES,
+  PROPERTY_AVAILABILITY,
   type PropertyFacetsResponse,
 } from "@rc/shared";
 import { Button } from "@/components/ui/Button";
@@ -12,17 +12,9 @@ interface PropertySearchFormProps {
   facets?: PropertyFacetsResponse;
 }
 
-const LOCATION_SUGGESTIONS = [
-  "Angeles City",
-  "Mabalacat City",
-  "City of San Fernando",
-  "Clark Freeport area",
-];
-
 export function PropertySearchForm({ values, facets }: PropertySearchFormProps) {
-  const locations = Array.from(
-    new Set([...LOCATION_SUGGESTIONS, ...(facets?.locations ?? [])]),
-  ).sort((left, right) => left.localeCompare(right));
+  const locations = facets?.locations ?? [];
+  const propertyTypes = facets?.propertyTypes ?? [];
 
   return (
     <form action="/properties" method="get" className={styles.searchForm}>
@@ -63,9 +55,25 @@ export function PropertySearchForm({ values, facets }: PropertySearchFormProps) 
             defaultValue={values.propertyType}
           >
             <option value="">All types</option>
-            {PROPERTY_TYPES.map((type) => (
+            {propertyTypes.map((type) => (
               <option key={type} value={type}>
                 {PROPERTY_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.searchField}>
+          <label htmlFor="property-availability">Availability</label>
+          <select
+            id="property-availability"
+            name="availability"
+            defaultValue={values.availability}
+          >
+            <option value="">All availability states</option>
+            {PROPERTY_AVAILABILITY.map((availability) => (
+              <option key={availability} value={availability}>
+                {availability.replace(/^./, (first) => first.toUpperCase())}
               </option>
             ))}
           </select>

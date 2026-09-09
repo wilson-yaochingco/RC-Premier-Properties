@@ -74,7 +74,8 @@ npm run test:e2e
   recovery. The protected browser fixture covers queue/detail rendering, status, notes,
   spam restoration, CSRF forwarding, memory-only session state and 320-pixel overflow.
 - Mongoose query builders are tested for the published-only predicate and sanitised user
-  input. Real persistence remains a separate integration gate that needs MongoDB.
+  input. Automated suites do not need MongoDB; the separate temporary Atlas persistence
+  acceptance is recorded below.
 - A public user journey has a browser test for navigation, URL state, responsive overflow
   and accessible form feedback.
 - The protected admin browser fixture covers session bootstrap, the unauthenticated
@@ -83,6 +84,12 @@ npm run test:e2e
   expired-session states. It also verifies private HTML cache headers and confirms both
   local and session storage stay empty. It intercepts the Auth0/session boundary and
   does not claim to test a live provider login.
+- Level 15 focused coverage verifies availability/residential-sale validation, removable
+  URL filter chips, bounded/non-fabricated related inventory, publish readiness,
+  notification summaries, formula-neutralized current-page CSV, Philippine calendar
+  ranges, aggregate dashboard query shapes, value-minimized audit projection, broad-search
+  privacy, and the dashboard/calendar at 320 pixels and 200% text. The operations browser
+  fixture uses protected route mocks and does not claim live Auth0 or Atlas acceptance.
 - The interactive map has browser coverage for deferred loading, shared URL filters,
   card/marker synchronization, approved-point privacy and isolated data failures.
 - Practical performance checks guard initial encoded JavaScript, layout shift, long

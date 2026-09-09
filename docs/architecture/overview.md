@@ -4,10 +4,11 @@ This records decisions that are **already in force** and verifiable in the code.
 not a plan for future work.
 
 Status: the public MVP vertical slice, Phase 3A authentication foundation, property
-lifecycle administration and lightweight staff inquiry management are implemented. The
-API exposes health, published reads, inquiry creation, staff login/session/logout,
-private property lifecycle operations and private inquiry operations. Media and the
-audit-read UI/API remain outside the implemented system.
+lifecycle administration, lightweight staff inquiry management, and scoped Level 15
+read-only operations workspace are implemented. The API exposes health, published reads,
+inquiry creation, staff login/session/logout, private property/inquiry operations, and
+permission-protected dashboard/calendar/audit/staff reads. Production media/provider and
+live acceptance boundaries remain outside the repository implementation.
 
 ---
 
@@ -47,8 +48,8 @@ response shapes, the error envelope, and `API_VERSION` / `API_PREFIX`.
 Both apps import from `@rc/shared` rather than declaring their own copies. Renaming a
 field there fails the build on whichever side was not updated. The contract now includes
 health, property taxonomy, public and private listing shapes, draft-property requests,
-search/facet responses, inquiry requests and acknowledgements, staff session and named
-permission shapes, and the common error envelope.
+search/facet/related responses, inquiry requests and acknowledgements, staff session and
+named permission shapes, admin operations responses, and the common error envelope.
 
 **Rule:** if it travels over the network, it goes in `shared/src/api.ts`. Types only one
 app cares about stay local — `frontend/src/types/` or the relevant backend module.
@@ -74,6 +75,7 @@ backend/src/
     ├── health/
     ├── properties/
     ├── inquiries/
+    ├── operations/  Bounded dashboard, calendar, audit and staff reads
     └── auth/        OIDC, local staff, sessions, CSRF, permissions and audit
 ```
 
@@ -117,8 +119,9 @@ exist to stay small.
 page uses it.
 
 The implemented routes are `/`, `/properties`, `/properties/[slug]`, `/about`,
-`/contact`, `/sell`, `/book-viewing`, and the protected `/admin` property list/create/edit
-routes, plus loading, error and not-found boundaries, `robots.txt` and `sitemap.xml`.
+`/contact`, `/sell`, `/book-viewing`, and protected `/admin` dashboard, property,
+inquiry/viewing, search, audit, and staff views, plus loading, error and not-found
+boundaries, `robots.txt` and `sitemap.xml`.
 Property and inquiry code lives under matching feature folders. A small shared API client
 normalizes non-2xx, network and malformed-response failures into the shared error contract.
 
@@ -171,19 +174,22 @@ Connection failure is handled differently by environment, deliberately:
 `server.ts` handles `SIGINT`/`SIGTERM` by closing the HTTP server and the mongoose
 connection before exiting.
 
-The schemas, query builders and service wiring are implemented, but real MongoDB
-persistence has not yet been verified with project credentials. Automated API tests
-inject services and therefore prove routing, normalization, validation and disclosure
-behavior without claiming that external persistence works. No seed records are shipped.
+The schemas, query builders and service wiring are implemented. Temporary synthetic
+property and inquiry create/read/delete checks verified the project Atlas persistence path
+on 2026-09-05 without retaining test records. Production Atlas configuration, security,
+representative cardinality, and execution plans remain external gate X04. Automated API
+tests inject services for deterministic routing, validation, and disclosure coverage. No
+seed records are shipped.
 
 ---
 
 ## Public data and workflow boundaries
 
-Every public property query adds `publicationStatus: "published"` within the service;
-clients cannot request drafts. Public projections omit exact addresses, coordinates,
-owner references and internal notes. Property reads are available as list, facet and
-slug-detail endpoints. There are no public property write endpoints.
+Every public property query adds published, sale, and approved-residential-type predicates
+within the service; clients cannot request drafts or historical rental/condominium/
+commercial records. Public projections omit exact addresses, coordinates, owner
+references and internal notes. Property reads are available as list, map, facet,
+slug-detail, and bounded related endpoints. There are no public property write endpoints.
 
 Inquiry creation accepts contact, property, seller and viewing-request submissions. It
 returns an opaque acknowledgment without echoing personal data. There is deliberately
@@ -193,7 +199,9 @@ not a booking or confirmed appointment.
 The authentication/session boundary protects private property and inquiry endpoints.
 Reads require their named read permission; writes require the relevant named permission,
 exact origin and session-bound CSRF. Publication, availability and inquiry operations
-are implemented; audit-read remains unavailable. The official logo, favicon,
+are implemented; Level 15 adds read-only operational aggregation, viewing-calendar,
+value-minimized audit, and local-staff visibility without bypassing those mutation
+controls. The official logo, favicon,
 website-design photography, and public contact details are integrated. Actual listing
 inventory, listing-specific media, and production storage/mail providers remain
 unsupplied; the UI and provider boundaries represent those gaps without inventing data.

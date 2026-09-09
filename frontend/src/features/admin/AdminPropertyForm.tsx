@@ -13,7 +13,7 @@ import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   ADMIN_LISTING_PURPOSES,
   PROPERTY_TYPE_LABELS,
-  PROPERTY_TYPES,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentInput,
   type AdminPropertyCoordinates,
@@ -480,6 +480,28 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
     );
   }
 
+  if (
+    mode === "edit" &&
+    load.property &&
+    !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
+      load.property.propertyType,
+    )
+  ) {
+    return (
+      <section className={styles.page}>
+        <div className={styles.panel} role="alert">
+          <h1>This legacy non-residential record is read-only.</h1>
+          <p>
+            The production workflow accepts approved residential sale types only.
+            Reconcile this historical record deliberately outside the public publishing
+            workflow.
+          </p>
+          <Link href="/admin/properties">Back to properties</Link>
+        </div>
+      </section>
+    );
+  }
+
   const content = load.property ? editableContent(load.property) : EMPTY_CONTENT;
   const issues = submission.issues ?? [];
 
@@ -504,10 +526,21 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         <div className={styles.lifecycleNotice}>
           <span>Publication: {load.property.publicationStatus}</span>
           <span>Availability: {load.property.availability}</span>
+          <span>
+            Publish readiness:{" "}
+            {load.property.publicationReadiness.ready ? "Complete" : "Incomplete"}
+          </span>
+          {!load.property.publicationReadiness.ready ? (
+            <span>
+              Missing: {load.property.publicationReadiness.missing.join(", ")}
+            </span>
+          ) : null}
         </div>
       ) : (
         <div className={styles.lifecycleNotice}>
-          New records are always created as private, available drafts.
+          New records are always created as private, available drafts. Complete all
+          required listing, price, public location, and description fields before
+          publishing.
         </div>
       )}
 
@@ -598,7 +631,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 name="propertyType"
                 defaultValue={content.propertyType}
               >
-                {PROPERTY_TYPES.map((type: PropertyType) => (
+                {RESIDENTIAL_SALE_PROPERTY_TYPES.map((type: PropertyType) => (
                   <option key={type} value={type}>
                     {PROPERTY_TYPE_LABELS[type]}
                   </option>

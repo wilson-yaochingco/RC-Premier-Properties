@@ -5,11 +5,17 @@ import {
   type AdminInquiryListRequest,
   type AdminInquiryListResponse,
   type AdminInquiryTransitionRequest,
+  type AdminAuditListRequest,
+  type AdminAuditListResponse,
+  type AdminDashboardResponse,
   type AdminPropertyAvailabilityRequest,
   type AdminPropertyDetail,
   type AdminPropertyListRequest,
   type AdminPropertyListResponse,
   type AdminPropertyTransitionRequest,
+  type AdminStaffListRequest,
+  type AdminStaffListResponse,
+  type AdminViewingCalendarResponse,
   type CreateDraftPropertyRequest,
   type CurrentSessionResponse,
   type LogoutResponse,
@@ -77,6 +83,60 @@ export function getAdminInquiries(
 export function getAdminInquiry(id: string, signal?: AbortSignal) {
   return apiRequest<AdminInquiryDetail>(
     `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}`,
+    authenticatedRequest(signal),
+  );
+}
+
+export function getAdminDashboard(signal?: AbortSignal) {
+  return apiRequest<AdminDashboardResponse>(
+    `${API_PREFIX}/admin/operations/dashboard`,
+    authenticatedRequest(signal),
+  );
+}
+
+export function getAdminViewingCalendar(
+  start: string,
+  end: string,
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({ start, end });
+  return apiRequest<AdminViewingCalendarResponse>(
+    `${API_PREFIX}/admin/operations/viewings/calendar?${query.toString()}`,
+    authenticatedRequest(signal),
+  );
+}
+
+export function getAdminAuditEvents(
+  request: AdminAuditListRequest,
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({
+    page: String(request.page),
+    limit: String(request.limit),
+  });
+  if (request.action) query.set("action", request.action);
+  if (request.entityType) query.set("entityType", request.entityType);
+  if (request.outcome) query.set("outcome", request.outcome);
+  if (request.actorStaffIdentityId) {
+    query.set("actorStaffIdentityId", request.actorStaffIdentityId);
+  }
+  if (request.from) query.set("from", request.from);
+  if (request.to) query.set("to", request.to);
+  return apiRequest<AdminAuditListResponse>(
+    `${API_PREFIX}/admin/operations/audit-events?${query.toString()}`,
+    authenticatedRequest(signal),
+  );
+}
+
+export function getAdminStaff(request: AdminStaffListRequest, signal?: AbortSignal) {
+  const query = new URLSearchParams({
+    page: String(request.page),
+    limit: String(request.limit),
+  });
+  if (request.query) query.set("query", request.query);
+  if (request.status) query.set("status", request.status);
+  return apiRequest<AdminStaffListResponse>(
+    `${API_PREFIX}/admin/operations/staff?${query.toString()}`,
     authenticatedRequest(signal),
   );
 }

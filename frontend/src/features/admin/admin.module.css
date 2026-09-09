@@ -92,6 +92,7 @@
 
 .state h1,
 .page h1 {
+  overflow-wrap: anywhere;
   font-family: var(--font-editorial);
   font-size: clamp(2.8rem, 6vw, 5.5rem);
   font-weight: 400;
@@ -129,6 +130,7 @@
 }
 
 .page {
+  min-width: 0;
   display: grid;
   gap: 2rem;
 }
@@ -142,6 +144,11 @@
   border-bottom: 1px solid var(--line);
 }
 
+.pageHeader > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .pageHeader h1 {
   margin-block: 0.5rem 1rem;
 }
@@ -152,6 +159,28 @@
   align-items: center;
   border-bottom: 1px solid currentColor;
   font-weight: 700;
+}
+
+.pageHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pageHeaderActions button,
+.pageHeader > button,
+.calendarControls button,
+.searchPanel button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-white);
+  color: var(--brand-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .panel,
@@ -218,6 +247,9 @@
 }
 
 .tableWrap {
+  width: 100%;
+  max-width: 100%;
+  contain: inline-size paint;
   overflow-x: auto;
   border: 1px solid var(--line);
   background: var(--brand-white);
@@ -302,6 +334,7 @@
 }
 
 .resultCount {
+  overflow-wrap: anywhere;
   color: var(--text-muted);
   font-size: 0.85rem;
 }
@@ -334,6 +367,247 @@
   color: var(--text-muted);
 }
 
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.metricCard {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+  color: inherit;
+  text-decoration: none;
+}
+
+.metricCard:hover,
+.metricCard:focus-visible {
+  border-color: var(--brand-secondary-text);
+}
+
+.metricCard span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metricCard strong {
+  font-family: var(--font-editorial);
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 400;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.7fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.operationList,
+.searchResults,
+.calendarList ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operationList li,
+.searchResults li,
+.calendarList li {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.operationList a,
+.searchResults a,
+.calendarList a {
+  font-weight: 700;
+}
+
+.operationList span,
+.searchResults span,
+.calendarList span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.operationCounts {
+  margin: 1rem 0;
+}
+
+.operationCounts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.operationCounts dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.viewingsPage {
+  min-width: 0;
+  display: grid;
+  gap: 3rem;
+}
+
+.viewingsPage > * {
+  min-width: 0;
+}
+
+.calendarPanel {
+  min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+}
+
+.calendarHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.calendarHeader h2 {
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+  font-family: var(--font-editorial);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 400;
+}
+
+.calendarControls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.calendarHeader > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.calendarWrap {
+  width: 100%;
+  max-width: 100%;
+  contain: inline-size paint;
+  overflow-x: auto;
+}
+
+.calendarTable {
+  width: 100%;
+  min-width: 50rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.calendarTable th,
+.calendarTable td {
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.calendarTable th {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.calendarTable td {
+  height: 7rem;
+}
+
+.calendarTable td > time {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.calendarTable td > a {
+  display: block;
+  margin-bottom: 0.35rem;
+  padding: 0.35rem;
+  background: #fff7de;
+  color: inherit;
+  font-size: 0.72rem;
+}
+
+.outsideMonth {
+  background: #f5f3ee;
+  color: var(--text-muted);
+}
+
+.calendarList {
+  margin-top: 2rem;
+}
+
+.calendarList h3 {
+  font-family: var(--font-editorial);
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.searchPanel {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+}
+
+.searchPanel label {
+  font-weight: 700;
+}
+
+.searchPanel > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.searchPanel input {
+  min-height: 3rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+}
+
+.copyButton {
+  margin-left: 0.6rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line);
+  background: var(--brand-white);
+  color: inherit;
+  font-size: 0.68rem;
+}
+
+.copyStatus {
+  min-height: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.auditFilters {
+  grid-template-columns: repeat(5, minmax(9rem, 1fr)) auto;
+}
+
 .detailGrid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr);
@@ -350,6 +624,7 @@
 
 .detailCard h2,
 .workflowCard h2 {
+  overflow-wrap: anywhere;
   font-family: var(--font-editorial);
   font-size: 2rem;
   font-weight: 400;
@@ -369,6 +644,11 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.detailHeading > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .detailList {
@@ -1091,8 +1371,14 @@
   }
 
   .inquiryFilters,
+  .auditFilters,
+  .dashboardGrid,
   .detailGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .inquiryFilters label:first-child,
@@ -1139,6 +1425,23 @@
   .filters button,
   .pagination button {
     width: 100%;
+  }
+
+  .pageHeaderActions,
+  .pageHeaderActions > *,
+  .pageHeader > button,
+  .calendarControls,
+  .calendarControls button {
+    width: 100%;
+  }
+
+  .calendarControls {
+    flex-direction: column;
+  }
+
+  .metricGrid,
+  .searchPanel > div {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .filters {

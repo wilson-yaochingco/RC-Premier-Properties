@@ -1,7 +1,13 @@
-import type { AdminPropertyContentField, AuthPermission, StaffRole } from "@rc/shared";
-
-export const STAFF_STATUSES = ["active", "disabled"] as const;
-export type StaffStatus = (typeof STAFF_STATUSES)[number];
+import type {
+  AdminPropertyContentField,
+  AuditAction,
+  AuditOutcome,
+  AuthPermission,
+  StaffRole,
+  StaffStatus,
+} from "@rc/shared";
+export { AUDIT_ACTIONS, AUDIT_OUTCOMES, STAFF_STATUSES } from "@rc/shared";
+export type { AuditAction, AuditOutcome, StaffStatus } from "@rc/shared";
 
 export interface StaffIdentityRecord {
   id: string;
@@ -51,40 +57,6 @@ export const SESSION_REVOCATION_REASONS = [
   "authorization-changed",
 ] as const;
 export type SessionRevocationReason = (typeof SESSION_REVOCATION_REASONS)[number];
-
-export const AUDIT_ACTIONS = [
-  "auth.login.succeeded",
-  "auth.login.failed",
-  "auth.logout.succeeded",
-  "auth.session.revoked",
-  "auth.access.denied",
-  "property.created",
-  "property.edited",
-  "property.media-updated",
-  "property.published",
-  "property.unpublished",
-  "property.availability-changed",
-  "property.reserved",
-  "property.sold",
-  "property.archived",
-  "property.restored",
-  "inquiry.status-changed",
-  "inquiry.marked-spam",
-  "inquiry.restored-from-spam",
-  "inquiry.note-added",
-  "inquiry.archived",
-  "inquiry.restored",
-  "viewing.confirmed",
-  "viewing.reschedule-requested",
-  "viewing.completed",
-  "viewing.canceled",
-  "staff.provisioned",
-  "staff.deactivated",
-] as const;
-export type AuditAction = (typeof AUDIT_ACTIONS)[number];
-
-export const AUDIT_OUTCOMES = ["succeeded", "failed", "denied"] as const;
-export type AuditOutcome = (typeof AUDIT_OUTCOMES)[number];
 
 export const AUDIT_REASONS = [
   "invalid-callback",

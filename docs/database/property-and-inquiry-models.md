@@ -2,7 +2,7 @@
 
 Status: implemented Mongoose schemas and service contracts, including protected location
 authoring. Public persistence was verified against Atlas on 2026-09-05; the Level 5
-location changes still require a live admin acceptance pass. Last reviewed 2026-09-08.
+location changes still require a live admin acceptance pass. Last reviewed 2026-09-10.
 
 The repository includes the models, indexes, projections and service queries described
 here. It does not include real listings or seed data. Automated tests verify query
@@ -16,20 +16,22 @@ exist. Authentication schema and retention rules are documented in
 
 ## Property taxonomy
 
-The first supported property types are house and lot, condominium, townhouse, lot/land,
-commercial, office and warehouse. This is deliberately smaller than every possible real
-estate category and directly supports the supplied discovery requirements.
+The stable historical schema can read house and lot, condominium, townhouse, lot/land,
+commercial, office and warehouse records without a migration. New administration and all
+production-visible workflows accept only the approved residential sale types: house and
+lot, townhouse, and lot/land. Historical condominium, apartment, rental, and commercial
+records stay private and read-only for deliberate reconciliation.
 
-The stable stored listing purpose is either sale or rent, while every public query now
-enforces sales-only inventory. Currency is PHP in the public MVP.
+The stable stored listing purpose can still read sale or rent, while every public query
+and new admin write enforces sales-only inventory. Currency is PHP in the public MVP.
 
 ## Workflow and market state
 
 Two concepts are stored separately:
 
 - `publicationStatus`: `draft`, `published`, `unpublished` or `archived`. Public endpoints
-  always add `publicationStatus: published` and `purpose: sale` themselves; callers
-  cannot override either public boundary.
+  always add `publicationStatus: published`, `purpose: sale`, and the approved residential
+  type set themselves; callers cannot override any public boundary.
 - `availability`: `available`, `reserved` or `sold`. This is safe to show on a
   published listing and does not grant publication by itself.
 
@@ -78,9 +80,10 @@ missing legacy precision is serialized as `city-only`, and no backfill derives o
 location data. No geospatial index is added because current queries filter administrative
 text and read explicitly approved points rather than querying by distance or bounds.
 
-Indexes follow actual Phase 2A access patterns: unique property ID and slug, published
-listing recency, published price, location/type filtering and featured listing lookup.
-No owner or CRM schema is introduced by this phase.
+Indexes follow actual Phase 2A/Level 15 access patterns: unique property ID and slug,
+published listing recency, published purpose/type/price, location filtering,
+bedroom/bathroom filtering, and featured lookup. Related inventory reuses those predicates
+and caps candidates at 12. No speculative index, owner, or CRM schema is introduced.
 
 ## Media
 
@@ -114,8 +117,9 @@ Viewing inquiries embed a one-to-one `viewingRequest` subdocument containing sta
 requested `YYYY-MM-DD` date, requested `HH:mm` Philippine time and append-only status
 history snapshots. This avoids duplicating customer and consent data in an appointment
 collection while keeping appointment state separate from inquiry follow-up state. The
-compound viewing-status/requested-date index supports the staff queue. The related
-Property ID is accepted only when it resolves to a published, not-sold sale property.
+compound viewing-status/requested-date index supports the staff queue and Level 15
+calendar. The related Property ID is accepted only when it resolves to a published,
+not-sold residential sale property.
 
 The public API returns only a new opaque inquiry identifier, `received` acknowledgment
 and creation time. It never echoes the submitted personal data. Staff retrieval waits for
@@ -166,6 +170,12 @@ Inquiry list queries use indexes on status/creation, Property ID/creation and
 archive/creation. The default active queue excludes spam and archived records. Archived
 records are retained and restorable; `archivedAt` is the future retention-selection
 boundary, but no retention duration or hard-delete job exists until policy is approved.
+
+Level 15 dashboard counts use server-side property/inquiry aggregations rather than
+loading collections. Upcoming/calendar reads project only schedule identifiers and are
+bounded at six and 200 respectively. Audit/staff reads use their existing time, actor,
+action, status/role, and email indexes with bounded pages. No new index was added without
+representative `executionStats`; that evidence remains production/staging gate X04.
 
 There is still no public update/delete route and no public inquiry read. Authorized image
 metadata administration and validated binary device upload are implemented. The

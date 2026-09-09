@@ -1,0 +1,107 @@
+# Admin Operations
+
+Status: Level 15 read-only operational workspace implemented. Live Auth0, Atlas,
+provider, retention, and physical-device acceptance remain external gates.
+
+## Scope
+
+The protected staff shell adds small operational views over the existing property,
+inquiry, viewing, audit, notification, cleanup-debt, and `StaffIdentity` records:
+
+- `/admin` — bounded real-data counts, new-inquiry visibility, upcoming viewings, and
+  retry/cleanup attention counts;
+- `/admin/viewings` — a six-week calendar and equivalent chronological list over the
+  existing viewing-request state;
+- `/admin/search` — at most five property and five inquiry results from the existing
+  paginated APIs;
+- `/admin/audit` — paginated, filterable, value-minimized audit events; and
+- `/admin/staff` — paginated read-only visibility into existing local staff identities.
+
+This is not a CRM, analytics platform, scheduling engine, or second identity system. It
+does not create clients, agents, calendar availability, revenue metrics, popularity,
+notifications, or provider configuration.
+
+## Dashboard and viewing calendar
+
+Dashboard property counts include residential sale records only. Publication counts are
+draft, published, and unpublished; market counts are available, reserved, and sold among
+published records. Inquiry counts use actual non-archived workflow status. Notification
+counts use persisted retry-pending and terminal-failure states. Cleanup debt is the count
+of existing pending-review records; no cleanup mutation is available.
+
+Upcoming viewings use `Asia/Manila` date/time semantics, exclude archived and terminal
+inquiry/viewing states, and return six records plus an independent count. The calendar
+accepts a real inclusive range of at most 42 days and returns at most 200 records. It
+contains inquiry and Premier Property identifiers, status, requested date, and requested
+time—never names, email addresses, phone numbers, or message text. A keyboard-focusable
+table and equivalent schedule list are both present. This visualizes requests that staff
+may confirm through the established inquiry workflow; it does not expose slots or confirm
+appointments.
+
+## Search, audit, and staff boundaries
+
+Cross-admin search delegates to the existing bounded property and inquiry list endpoints.
+The broad results render property titles/numbers and opaque inquiry identifiers/status;
+they do not render customer names, email addresses, phone numbers, or message bodies.
+Opening the protected inquiry detail remains the deliberate path to contact data.
+
+Audit responses select only actor staff ID, allowlisted action, entity type/ID, outcome,
+request ID, and occurrence time. Filters cover available action/entity/outcome/date/staff
+fields. Page size defaults to 25 and is capped at 100. Event details and before/after
+payloads are not returned.
+
+Staff visibility uses the existing `StaffIdentity` collection and administrator-only
+`staff:manage` permission. The response omits Auth0 issuer/subject and all session data.
+It is intentionally read-only: provisioning and deactivation remain existing deliberate
+CLI workflows because they already provide session revocation and value-minimized audit
+behavior. Level 15 does not add role mutation, passwords, Auth0 management, or a risky
+final-administrator workflow.
+
+## Current-page CSV and contact convenience
+
+The property and inquiry lists can export only the records already returned on the
+current protected page. No unbounded export endpoint was added. Every cell is quoted,
+UTF-8 output carries a BOM, and values beginning with `=`, `+`, `-`, or `@` after optional
+leading whitespace are prefixed with an apostrophe to prevent spreadsheet formula
+interpretation. Property export contains public/list operational fields. Inquiry export
+contains name and email needed for staff operations but excludes phone, message,
+consent, notes, history, and notification internals.
+
+Authorized inquiry detail adds accessible copy controls for the already-visible email and
+phone, plus actual inquiry/viewing history timestamps. Notification status, attempts, and
+available attempt/delivery times are visible; provider credentials and notification IDs
+are not.
+
+## Query and security review
+
+All routes require the backend-owned session and named permissions and return `no-store`.
+They are read-only, so they do not need or bypass CSRF/optimistic concurrency. Existing
+mutable property, inquiry, viewing, staff CLI, retry CLI, and media workflows retain their
+version, origin, CSRF, audit, lease, and cleanup rules.
+
+The dashboard uses one property aggregation, one inquiry aggregation, a six-record
+projected viewing query, and count operations concurrently. Calendar, audit, and staff
+queries are capped and projected. Related public inventory uses one current-record query
+and one 12-candidate query, then returns at most three. No per-row query is issued, so no
+N+1 path was introduced.
+
+No index was added in Level 15. Existing indexes cover published property
+purpose/type/price, viewing status/date, notification status, audit actor/action/time,
+staff status/role/email, and cleanup status. The small dashboard aggregations intentionally
+favor one server-side scan over loading documents. Representative Atlas
+`executionStats`, cardinality, and latency remain external gate X04; an index should be
+added only if that evidence identifies a real bottleneck.
+
+## Deliberately deferred
+
+- Draft autosave: conflict-safe autosave would require more UX/state work around the
+  existing optimistic-concurrency token; weakening 409 protection is not acceptable.
+- Duplicate warnings: property number and slug uniqueness already block exact collisions;
+  no evidence supports a reliable non-fuzzy heuristic for broader warnings.
+- Bulk availability: per-record versions, confirmation, authorization, audit, and partial
+  failure semantics outweigh the demonstrated need; individual safe transitions remain.
+- Staff mutations, manual email retry, cleanup mutation, and orphan deletion UI: existing
+  CLI/operator boundaries are safer and already bounded; no automatic orphan deletion is
+  introduced.
+- QR code: the canonical URL is printed as accessible text; dependency/implementation
+  weight is not justified for an optional enhancement.

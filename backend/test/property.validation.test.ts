@@ -63,6 +63,7 @@ describe("property search validation", () => {
         location: " Angeles City ",
         propertyType: "house-and-lot",
         purpose: "sale",
+        availability: "reserved",
         minPrice: "1000000",
         maxPrice: "5000000.50",
         bedrooms: "3",
@@ -77,6 +78,7 @@ describe("property search validation", () => {
       location: "Angeles City",
       propertyType: "house-and-lot",
       purpose: "sale",
+      availability: "reserved",
       minPrice: 1_000_000,
       maxPrice: 5_000_000.5,
       bedrooms: 3,
@@ -134,6 +136,7 @@ describe("published property query construction", () => {
       propertyId: "RC-9",
       propertyType: "house-and-lot",
       purpose: "sale",
+      availability: "available",
       minPrice: 1,
       maxPrice: 10,
       bedrooms: 2,
@@ -151,6 +154,7 @@ describe("published property query construction", () => {
       propertyId: "RC-9",
       propertyType: "house-and-lot",
       purpose: "sale",
+      availability: "available",
       featured: true,
       "price.amount": { $gte: 1, $lte: 10 },
       "specifications.bedrooms": { $gte: 2 },
@@ -164,6 +168,7 @@ describe("published property query construction", () => {
     expect(buildPublishedPropertyDetailFilter("stable-slug")).toEqual({
       publicationStatus: "published",
       purpose: "sale",
+      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
       slug: "stable-slug",
     });
   });

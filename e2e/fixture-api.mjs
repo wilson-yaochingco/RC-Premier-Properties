@@ -5,7 +5,7 @@
  * Production middleware, routing, validation and error handling are exercised without
  * connecting to MongoDB or loading synthetic records into a production data path.
  */
-import { PROPERTY_TYPES } from "@rc/shared";
+import { RESIDENTIAL_SALE_PROPERTY_TYPES } from "@rc/shared";
 import { createApp } from "../backend/dist/app.js";
 
 const FIXTURE_HOST = "127.0.0.1";
@@ -105,10 +105,10 @@ const PRIMARY_FIXTURES = [
   {
     id: "fixture-property-003",
     propertyId: "RCPP-E2E-003",
-    slug: "san-fernando-commercial-lot",
-    title: "San Fernando Commercial Lot",
+    slug: "san-fernando-townhouse",
+    title: "San Fernando Townhouse",
     purpose: "sale",
-    propertyType: "commercial",
+    propertyType: "townhouse",
     availability: "reserved",
     featured: false,
     price: { amount: 8_750_000, currency: "PHP", negotiable: false },
@@ -123,12 +123,12 @@ const PRIMARY_FIXTURES = [
     },
     specifications: { lotAreaSqm: 500 },
     shortDescription:
-      "A synthetic commercial fixture for price, location, and empty-state tests.",
+      "A synthetic townhouse fixture for price, location, and empty-state tests.",
     description:
-      "This test-only commercial lot is not real inventory and is never persisted.",
+      "This test-only townhouse is not real inventory and is never persisted.",
     highlights: ["Test-only listing"],
     amenities: [],
-    features: ["Five-hundred-square-metre fixture lot"],
+    features: ["Five-hundred-square-meter fixture lot"],
     gallery: [],
     publishedAt: "2026-08-10T08:00:00.000Z",
     updatedAt: "2026-08-12T08:00:00.000Z",
@@ -178,11 +178,20 @@ function includes(value, query) {
 
 function searchFixtureProperties(request) {
   const filtered = TEST_PROPERTIES.filter((property) => {
+    if (
+      property.purpose !== "sale" ||
+      !RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType)
+    ) {
+      return false;
+    }
     if (request.propertyId && property.propertyId !== request.propertyId) return false;
     if (request.propertyType && property.propertyType !== request.propertyType) {
       return false;
     }
     if (request.purpose && property.purpose !== request.purpose) return false;
+    if (request.availability && property.availability !== request.availability) {
+      return false;
+    }
     if (request.featured !== undefined && property.featured !== request.featured) {
       return false;
     }
@@ -298,13 +307,35 @@ const propertyService = {
   async findPublishedBySlug(slug) {
     return (
       TEST_PROPERTIES.find(
-        (property) => property.slug === slug && property.purpose === "sale",
+        (property) =>
+          property.slug === slug &&
+          property.purpose === "sale" &&
+          RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
       ) ?? null
     );
   },
+  async related(slug) {
+    const current = TEST_PROPERTIES.find(
+      (property) =>
+        property.slug === slug &&
+        property.purpose === "sale" &&
+        RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+    );
+    if (!current) return null;
+    return {
+      items: TEST_PROPERTIES.filter(
+        (property) =>
+          property.id !== current.id &&
+          property.purpose === "sale" &&
+          RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+      ).slice(0, 3),
+    };
+  },
   async getFacets() {
     const saleProperties = TEST_PROPERTIES.filter(
-      (property) => property.purpose === "sale",
+      (property) =>
+        property.purpose === "sale" &&
+        RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
     );
     const locationCounts = Object.entries(
       saleProperties.reduce((counts, property) => {
@@ -318,7 +349,7 @@ const propertyService = {
     return {
       locations: locationCounts.map(({ location }) => location),
       locationCounts,
-      propertyTypes: PROPERTY_TYPES.filter((type) =>
+      propertyTypes: RESIDENTIAL_SALE_PROPERTY_TYPES.filter((type) =>
         saleProperties.some((property) => property.propertyType === type),
       ),
       priceRange: {

@@ -3,6 +3,7 @@ import {
   type PropertyFacetsResponse,
   type PropertySearchResponse,
   type PublicPropertyDetail,
+  type RelatedPropertiesResponse,
 } from "@rc/shared";
 import { apiRequest } from "../../services/api-client";
 import { propertyApiSearchParams, type RawSearchParams } from "./property-query";
@@ -58,6 +59,16 @@ export function getPropertyBySlug(
 ): Promise<PublicPropertyDetail> {
   return apiRequest<PublicPropertyDetail>(
     `${API_PREFIX}/properties/${encodeURIComponent(slug)}`,
+    readOptions(init),
+  );
+}
+
+export function getRelatedProperties(
+  slug: string,
+  init?: RequestInit,
+): Promise<RelatedPropertiesResponse> {
+  return apiRequest<RelatedPropertiesResponse>(
+    `${API_PREFIX}/properties/${encodeURIComponent(slug)}/related`,
     readOptions(init),
   );
 }

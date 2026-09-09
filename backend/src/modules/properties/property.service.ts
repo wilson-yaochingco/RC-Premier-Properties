@@ -2,6 +2,7 @@ import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   MAX_PROPERTY_IMAGES,
   PUBLIC_LOCATION_PRECISIONS,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   type AdminPropertyContentField,
   type AdminPropertyDetail,
   type AdminPropertyAvailabilityRequest,
@@ -22,6 +23,7 @@ import {
   type PublicPropertyDetail,
   type PublicPropertyLocation,
   type PublicPropertySummary,
+  type RelatedPropertiesResponse,
   type UpdateDraftPropertyRequest,
   type UpdatePropertyMediaRequest,
   type UploadPropertyImageRequest,
@@ -200,11 +202,13 @@ export function buildPublishedPropertyFilter(
   const filter: QueryFilter<PropertyEntity> = {
     publicationStatus: "published",
     purpose: "sale",
+    propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
   };
 
   if (request.propertyId) filter.propertyId = request.propertyId.toUpperCase();
   if (request.area) filter["location.city"] = request.area;
   if (request.propertyType) filter.propertyType = request.propertyType;
+  if (request.availability) filter.availability = request.availability;
   if (request.purpose === "rent") filter._id = { $exists: false };
   if (request.featured !== undefined) filter.featured = request.featured;
 
@@ -272,7 +276,12 @@ export function buildPublishedPropertyFilter(
 export function buildPublishedPropertyDetailFilter(
   slug: string,
 ): QueryFilter<PropertyEntity> {
-  return { publicationStatus: "published", purpose: "sale", slug };
+  return {
+    publicationStatus: "published",
+    purpose: "sale",
+    propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+    slug,
+  };
 }
 
 function sortFor(sort: PropertySort): Record<string, SortOrder> {
@@ -416,6 +425,29 @@ export function toPublicPropertyDetail(
 export function toAdminPropertySummary(
   record: AdminPropertyRecord,
 ): AdminPropertySummary {
+  const missing: string[] = [];
+  if (!record.propertyId?.trim()) missing.push("property number");
+  if (!record.slug?.trim()) missing.push("URL slug");
+  if (!record.title?.trim()) missing.push("title");
+  if (record.purpose !== "sale") missing.push("sale purpose");
+  if (
+    !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
+      record.propertyType,
+    )
+  ) {
+    missing.push("approved residential property type");
+  }
+  if (!Number.isFinite(record.price?.amount) || record.price.amount < 0) {
+    missing.push("valid PHP price");
+  }
+  if (!record.location?.province?.trim() || !record.location.city?.trim()) {
+    missing.push("public location");
+  }
+  if (!validPublicPrecision(record.location?.publicPrecision)) {
+    missing.push("public location precision");
+  }
+  if (!record.shortDescription?.trim()) missing.push("short description");
+  if (!record.description?.trim()) missing.push("full description");
   return {
     id: String(record._id),
     propertyId: record.propertyId,
@@ -437,6 +469,7 @@ export function toAdminPropertySummary(
       publicPrecision: record.location.publicPrecision ?? "city-only",
     },
     shortDescription: record.shortDescription,
+    publicationReadiness: { ready: missing.length === 0, missing },
     version: record.__v ?? 0,
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -578,10 +611,68 @@ export class MongoosePropertyService implements PropertyService {
     return record ? toPublicPropertyDetail(record) : null;
   }
 
+  async related(slug: string): Promise<RelatedPropertiesResponse | null> {
+    const current = await this.model
+      .findOne(buildPublishedPropertyDetailFilter(slug))
+      .select("_id propertyType price.amount location.city")
+      .lean<PublicPropertyRecord | null>();
+    if (!current) return null;
+
+    const price = current.price.amount;
+    const candidates = await this.model
+      .find({
+        publicationStatus: "published",
+        purpose: "sale",
+        propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+        _id: { $ne: current._id },
+        $or: [
+          { "location.city": current.location.city },
+          { propertyType: current.propertyType },
+          {
+            "price.amount": {
+              $gte: Math.max(0, price * 0.8),
+              $lte: price * 1.2,
+            },
+          },
+        ],
+      })
+      .select(PUBLIC_PROPERTY_SUMMARY_PROJECTION)
+      .sort({ availability: 1, publishedAt: -1, _id: -1 })
+      .limit(12)
+      .lean<PublicPropertyRecord[]>();
+
+    const score = (record: PublicPropertyRecord) => {
+      let value = record.location.city === current.location.city ? 4 : 0;
+      if (record.propertyType === current.propertyType) value += 3;
+      const withinPriceRange =
+        price === 0
+          ? record.price.amount === 0
+          : Math.abs(record.price.amount - price) / price <= 0.2;
+      if (withinPriceRange) value += 2;
+      if (record.availability === "available") value += 1;
+      return value;
+    };
+    candidates.sort((left, right) => {
+      const scoreDifference = score(right) - score(left);
+      if (scoreDifference !== 0) return scoreDifference;
+      const publishedDifference =
+        right.publishedAt.getTime() - left.publishedAt.getTime();
+      return publishedDifference || String(right._id).localeCompare(String(left._id));
+    });
+
+    return { items: candidates.slice(0, 3).map(toPublicPropertySummary) };
+  }
+
   async getFacets(): Promise<PropertyFacetsResponse> {
     const [facetResults, locationCounts] = await Promise.all([
       this.model.aggregate<FacetAggregate>([
-        { $match: { publicationStatus: "published", purpose: "sale" } },
+        {
+          $match: {
+            publicationStatus: "published",
+            purpose: "sale",
+            propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+          },
+        },
         {
           $project: {
             price: "$price.amount",
@@ -602,7 +693,13 @@ export class MongoosePropertyService implements PropertyService {
         },
       ]),
       this.model.aggregate<LocationCountAggregate>([
-        { $match: { publicationStatus: "published", purpose: "sale" } },
+        {
+          $match: {
+            publicationStatus: "published",
+            purpose: "sale",
+            propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+          },
+        },
         {
           $group: {
             _id: { $concat: ["$location.city", ", ", "$location.province"] },
@@ -971,11 +1068,14 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       const requestedPurpose = (input as { purpose?: unknown }).purpose;
       if (
         current.purpose !== "sale" ||
-        (requestedPurpose !== undefined && requestedPurpose !== "sale")
+        (requestedPurpose !== undefined && requestedPurpose !== "sale") ||
+        !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
+          current.propertyType,
+        )
       ) {
         throw new HttpError(
           409,
-          "Non-sale records require deliberate data reconciliation and cannot be edited here.",
+          "Legacy non-residential or non-sale records require deliberate data reconciliation and cannot be edited here.",
         );
       }
       if (!["draft", "unpublished"].includes(current.publicationStatus)) {
@@ -1219,6 +1319,13 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     if (!current) return null;
     if (current.purpose !== "sale") {
       throw new HttpError(409, "Only sale properties can be published.");
+    }
+    const readiness = toAdminPropertySummary(current).publicationReadiness;
+    if (!readiness.ready) {
+      throw new HttpError(
+        409,
+        `Complete this property before publishing: ${readiness.missing.join(", ")}.`,
+      );
     }
     if (!["draft", "unpublished"].includes(current.publicationStatus)) {
       throw new HttpError(

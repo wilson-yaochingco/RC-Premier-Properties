@@ -1,7 +1,9 @@
 import {
   PROPERTY_SORT_OPTIONS,
-  PROPERTY_TYPES,
+  PROPERTY_AVAILABILITY,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   type ListingPurpose,
+  type PropertyAvailability,
   type PropertySearchFilters,
   type PropertySort,
   type PropertyType,
@@ -14,6 +16,7 @@ export interface PropertyFormValues {
   propertyId: string;
   location: string;
   propertyType: "" | PropertyType;
+  availability: "" | PropertyAvailability;
   purpose: "" | ListingPurpose;
   minPrice: string;
   maxPrice: string;
@@ -52,7 +55,12 @@ export function propertyFormValues(searchParams: RawSearchParams): PropertyFormV
     keyword: firstValue(searchParams.keyword),
     propertyId: firstValue(searchParams.propertyId),
     location: firstValue(searchParams.location),
-    propertyType: oneOf(propertyType, PROPERTY_TYPES) ? propertyType : "",
+    propertyType: oneOf(propertyType, RESIDENTIAL_SALE_PROPERTY_TYPES)
+      ? propertyType
+      : "",
+    availability: oneOf(firstValue(searchParams.availability), PROPERTY_AVAILABILITY)
+      ? (firstValue(searchParams.availability) as PropertyAvailability)
+      : "",
     purpose: "sale",
     minPrice: firstValue(searchParams.minPrice),
     maxPrice: firstValue(searchParams.maxPrice),
@@ -77,6 +85,7 @@ export function propertyApiSearchParams(
   }
 
   if (values.propertyType) output.set("propertyType", values.propertyType);
+  if (values.availability) output.set("availability", values.availability);
   output.set("purpose", "sale");
 
   for (const key of NUMBER_FILTERS) {
@@ -108,6 +117,18 @@ export function paginationHref(searchParams: RawSearchParams, page: number): str
   return `/properties?${query.toString()}`;
 }
 
+export function removePropertyFilterHref(
+  searchParams: RawSearchParams,
+  key: keyof PropertyFormValues,
+): string {
+  const query = propertyApiSearchParams(searchParams);
+  query.delete("limit");
+  query.delete("page");
+  if (key === "sort") query.set("sort", "newest");
+  else query.delete(key);
+  return `/properties${query.size ? `?${query.toString()}` : ""}`;
+}
+
 /** Apply a map-area selection to the same canonical URL state used by the form. */
 export function mapLocationHref(
   searchParams: RawSearchParams,
@@ -131,6 +152,7 @@ export function activePropertyFilters(
   }
 
   if (values.propertyType) filters.propertyType = values.propertyType;
+  if (values.availability) filters.availability = values.availability;
   if (values.purpose) filters.purpose = values.purpose;
 
   for (const key of NUMBER_FILTERS) {

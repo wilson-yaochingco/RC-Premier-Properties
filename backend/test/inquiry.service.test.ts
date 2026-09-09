@@ -347,6 +347,7 @@ describe("public inquiry idempotency", () => {
       propertyId: "RCPP-ADMIN-001",
       publicationStatus: "published",
       purpose: "sale",
+      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
       availability: { $ne: "sold" },
     });
     await expect(repository.isKnownPropertyId("RCPP-ADMIN-001")).resolves.toBe(true);

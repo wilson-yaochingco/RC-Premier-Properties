@@ -77,6 +77,7 @@ export const AUTH_PERMISSIONS = [
   "inquiry:read",
   "inquiry:update",
   "audit:read",
+  "staff:manage",
 ] as const;
 
 export type AuthPermission = (typeof AUTH_PERMISSIONS)[number];
@@ -121,6 +122,16 @@ export const PROPERTY_TYPES = [
 ] as const;
 
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+/** Property types approved for the public residential-sales experience. */
+export const RESIDENTIAL_SALE_PROPERTY_TYPES = [
+  "house-and-lot",
+  "townhouse",
+  "lot",
+] as const satisfies readonly PropertyType[];
+
+export type ResidentialSalePropertyType =
+  (typeof RESIDENTIAL_SALE_PROPERTY_TYPES)[number];
 
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   "house-and-lot": "House & lot",
@@ -393,6 +404,10 @@ export interface AdminPropertySummary {
   /** Deliberately excludes private coordinates/address from collection responses. */
   location: AdminPropertyLocationSummary;
   shortDescription: string;
+  publicationReadiness: {
+    ready: boolean;
+    missing: string[];
+  };
   /** Optimistic-concurrency token. Send it back with every mutation. */
   version: number;
   updatedAt: string;
@@ -466,6 +481,7 @@ export interface PropertySearchFilters {
   location?: string;
   propertyType?: PropertyType;
   purpose?: ListingPurpose;
+  availability?: PropertyAvailability;
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;
@@ -535,6 +551,11 @@ export interface PropertyFacetsResponse {
     max: number | null;
     currency: PropertyCurrency;
   };
+}
+
+/** Body of `GET /api/v1/properties/:slug/related`. */
+export interface RelatedPropertiesResponse {
+  items: PublicPropertySummary[];
 }
 
 export const INQUIRY_TYPES = ["general", "property", "viewing", "selling"] as const;
@@ -654,10 +675,20 @@ export interface AdminInquirySummary {
   subject?: string;
   status: InquiryStatus;
   viewingRequest?: Omit<AdminViewingRequest, "statusHistory">;
+  notification: AdminInquiryNotification;
   version: number;
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
+}
+
+export interface AdminInquiryNotification {
+  status: "pending" | "sending" | "retry-pending" | "delivered" | "terminal-failure";
+  attempts: number;
+  nextAttemptAt?: string;
+  lastAttemptAt?: string;
+  deliveredAt?: string;
+  lastErrorCode?: string;
 }
 
 export interface AdminInquiryDetail extends AdminInquirySummary {
@@ -705,4 +736,139 @@ export interface AddInquiryNoteRequest {
 
 export interface AdminInquiryTransitionRequest {
   expectedVersion: number;
+}
+
+export const AUDIT_ACTIONS = [
+  "auth.login.succeeded",
+  "auth.login.failed",
+  "auth.logout.succeeded",
+  "auth.session.revoked",
+  "auth.access.denied",
+  "property.created",
+  "property.edited",
+  "property.media-updated",
+  "property.published",
+  "property.unpublished",
+  "property.availability-changed",
+  "property.reserved",
+  "property.sold",
+  "property.archived",
+  "property.restored",
+  "inquiry.status-changed",
+  "inquiry.marked-spam",
+  "inquiry.restored-from-spam",
+  "inquiry.note-added",
+  "inquiry.archived",
+  "inquiry.restored",
+  "viewing.confirmed",
+  "viewing.reschedule-requested",
+  "viewing.completed",
+  "viewing.canceled",
+  "staff.provisioned",
+  "staff.deactivated",
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export const AUDIT_OUTCOMES = ["succeeded", "failed", "denied"] as const;
+export type AuditOutcome = (typeof AUDIT_OUTCOMES)[number];
+
+export const AUDIT_ENTITY_TYPES = [
+  "authentication",
+  "property",
+  "inquiry",
+  "session",
+  "staff-identity",
+] as const;
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
+
+export const STAFF_STATUSES = ["active", "disabled"] as const;
+export type StaffStatus = (typeof STAFF_STATUSES)[number];
+
+export interface AdminDashboardResponse {
+  properties: {
+    published: number;
+    draft: number;
+    unpublished: number;
+    available: number;
+    reserved: number;
+    sold: number;
+  };
+  inquiries: {
+    active: number;
+    new: number;
+  };
+  notifications: {
+    retryPending: number;
+    terminalFailure: number;
+  };
+  upcomingViewings: AdminViewingCalendarItem[];
+  upcomingViewingCount: number;
+  mediaCleanupDebtCount: number;
+  generatedAt: string;
+}
+
+export interface AdminViewingCalendarItem {
+  inquiryId: string;
+  propertyId?: string;
+  status: ViewingRequestStatus;
+  requestedDate: string;
+  requestedTime: string;
+}
+
+export interface AdminViewingCalendarResponse {
+  items: AdminViewingCalendarItem[];
+  start: string;
+  end: string;
+  truncated: boolean;
+}
+
+export interface AdminAuditEventSummary {
+  id: string;
+  actorStaffIdentityId?: string;
+  action: AuditAction;
+  entityType: AuditEntityType;
+  entityId?: string;
+  outcome: AuditOutcome;
+  requestId: string;
+  occurredAt: string;
+}
+
+export interface AdminAuditListRequest {
+  action?: AuditAction;
+  entityType?: AuditEntityType;
+  outcome?: AuditOutcome;
+  actorStaffIdentityId?: string;
+  from?: string;
+  to?: string;
+  page: number;
+  limit: number;
+}
+
+export interface AdminAuditListResponse {
+  items: AdminAuditEventSummary[];
+  pagination: PaginationMeta;
+}
+
+export interface AdminStaffSummary {
+  id: string;
+  displayName: string;
+  email: string;
+  role: StaffRole | null;
+  status: StaffStatus;
+  authorizationVersion: number;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminStaffListRequest {
+  query?: string;
+  status?: StaffStatus;
+  page: number;
+  limit: number;
+}
+
+export interface AdminStaffListResponse {
+  items: AdminStaffSummary[];
+  pagination: PaginationMeta;
 }

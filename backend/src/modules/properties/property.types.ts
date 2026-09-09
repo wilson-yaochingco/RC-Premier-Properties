@@ -17,6 +17,7 @@ import type {
   PropertyMapResponse,
   PublicPropertyDetail,
   PublicPropertySummary,
+  RelatedPropertiesResponse,
   UpdateDraftPropertyRequest,
   UpdatePropertyMediaRequest,
   UploadPropertyImageRequest,
@@ -229,6 +230,7 @@ export interface PropertyService {
     request: import("@rc/shared").PropertySearchRequest,
   ): Promise<PropertyMapResponse>;
   findPublishedBySlug(slug: string): Promise<PublicPropertyDetail | null>;
+  related(slug: string): Promise<RelatedPropertiesResponse | null>;
   getFacets(): Promise<import("@rc/shared").PropertyFacetsResponse>;
 }
 

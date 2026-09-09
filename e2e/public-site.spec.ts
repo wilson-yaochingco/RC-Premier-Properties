@@ -161,7 +161,7 @@ test("property detail renders public data and carries its ID into inquiry links"
   await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText(
     "RCPP-E2E-001",
   );
-  await expect(page.getByText("₱12,500,000")).toBeVisible();
+  await expect(page.getByText("₱12,500,000", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Property gallery" })).toBeVisible();
   const fullscreenTrigger = page.getByRole("button", { name: "View Fullscreen" });
   await fullscreenTrigger.click();
@@ -206,7 +206,7 @@ test("property detail renders public data and carries its ID into inquiry links"
 test("production rendering keeps neutral placeholders when property media is absent", async ({
   page,
 }) => {
-  await page.goto("/properties/san-fernando-commercial-lot");
+  await page.goto("/properties/san-fernando-townhouse");
 
   const gallery = page.getByRole("region", { name: "Property gallery" });
   await expect(gallery).toBeVisible();

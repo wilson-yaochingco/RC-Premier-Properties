@@ -110,14 +110,18 @@ and one named permission. The initial local `admin` role receives:
 - `inquiry:read`
 - `inquiry:update`
 - `audit:read`
+- `staff:manage`
 
 Permission checks deny by default. Anonymous access returns `401`; an authenticated
 identity missing a required permission returns `403`; a service may return the common
 protected-resource `404 Resource not found.` response when revealing existence would
 disclose protected information. The property routes use all four property permissions,
-and inquiry administration uses `inquiry:read` and `inquiry:update`. Audit-read remains
-unimplemented. See [`property-administration-api.md`](property-administration-api.md)
-and [`inquiry-administration-api.md`](inquiry-administration-api.md).
+and inquiry administration uses `inquiry:read` and `inquiry:update`. Level 15 operations
+use the applicable property/inquiry reads, `audit:read`, and administrator-only
+`staff:manage`; staff provisioning/deactivation remain separate CLI operations. See
+[`property-administration-api.md`](property-administration-api.md),
+[`inquiry-administration-api.md`](inquiry-administration-api.md), and
+[`admin-operations-api.md`](admin-operations-api.md).
 
 ## Error and audit boundary
 

@@ -21,6 +21,7 @@ export function createPropertyRoutes(service?: PropertyService): Router {
 
   router.get("/facets", controller.facets);
   router.get("/map", controller.map);
+  router.get("/:slug/related", controller.related);
   router.get("/:slug", controller.detail);
   router.get("/", controller.search);
 

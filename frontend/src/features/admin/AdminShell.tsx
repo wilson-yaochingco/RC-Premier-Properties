@@ -187,6 +187,31 @@ export function AdminShell({ children }: { children: ReactNode }) {
             >
               Viewings
             </Link>
+            {context.session.permissions.includes("property:read-private") ||
+            context.session.permissions.includes("inquiry:read") ? (
+              <Link
+                href="/admin/search"
+                aria-current={isCurrentRoute("/admin/search") ? "page" : undefined}
+              >
+                Search
+              </Link>
+            ) : null}
+            {context.session.permissions.includes("audit:read") ? (
+              <Link
+                href="/admin/audit"
+                aria-current={isCurrentRoute("/admin/audit") ? "page" : undefined}
+              >
+                Audit
+              </Link>
+            ) : null}
+            {context.session.permissions.includes("staff:manage") ? (
+              <Link
+                href="/admin/staff"
+                aria-current={isCurrentRoute("/admin/staff") ? "page" : undefined}
+              >
+                Staff
+              </Link>
+            ) : null}
             <Link
               href="/admin/properties/new"
               aria-current={

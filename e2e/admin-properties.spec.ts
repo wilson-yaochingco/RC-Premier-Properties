@@ -43,6 +43,7 @@ const DRAFT: AdminPropertyDetail = {
   },
   specifications: { bedrooms: 3, bathrooms: 2 },
   shortDescription: "A private browser-test draft.",
+  publicationReadiness: { ready: true, missing: [] },
   version: 0,
   description: "This synthetic draft exists only in the browser test boundary.",
   highlights: [],
