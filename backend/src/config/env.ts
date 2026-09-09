@@ -208,20 +208,52 @@ function configuredPublicOrigin(
   return validateProductionOrigin(nodeEnv, name, normalized);
 }
 
-/** Require encrypted, non-local MongoDB connectivity and an explicit database in production. */
+const MONGODB_TLS_ENABLE_OPTIONS = new Set(["tls", "ssl"]);
+const MONGODB_TLS_INSECURE_OPTIONS = new Set([
+  "tlsinsecure",
+  "tlsallowinvalidcertificates",
+  "tlsallowinvalidhostnames",
+]);
+
+/** Require encrypted, certificate-valid, non-local MongoDB connectivity in production. */
 export function validateMongoDbUri(nodeEnv: Environment, value: string): string {
   if (nodeEnv !== "production") return value;
 
   try {
     const parsed = new URL(value);
+    const transportOptions = [...parsed.searchParams].reduce<Map<string, string[]>>(
+      (options, [name, setting]) => {
+        const normalizedName = name.toLowerCase();
+        if (
+          MONGODB_TLS_ENABLE_OPTIONS.has(normalizedName) ||
+          MONGODB_TLS_INSECURE_OPTIONS.has(normalizedName) ||
+          normalizedName === "sslvalidate"
+        ) {
+          const current = options.get(normalizedName) ?? [];
+          current.push(setting.toLowerCase());
+          options.set(normalizedName, current);
+        }
+        return options;
+      },
+      new Map(),
+    );
+    const tlsSettings = [...transportOptions.entries()]
+      .filter(([name]) => MONGODB_TLS_ENABLE_OPTIONS.has(name))
+      .flatMap(([, settings]) => settings);
+    const explicitlyWeakensTls = [...transportOptions.entries()].some(
+      ([name, settings]) =>
+        (MONGODB_TLS_ENABLE_OPTIONS.has(name) &&
+          settings.some((setting) => setting !== "true")) ||
+        (MONGODB_TLS_INSECURE_OPTIONS.has(name) &&
+          settings.some((setting) => setting !== "false")) ||
+        (name === "sslvalidate" && settings.some((setting) => setting !== "true")),
+    );
     const encryptedSrv = parsed.protocol === "mongodb+srv:";
     const encryptedStandard =
-      parsed.protocol === "mongodb:" &&
-      [parsed.searchParams.get("tls"), parsed.searchParams.get("ssl")].some(
-        (setting) => setting?.toLowerCase() === "true",
-      );
+      parsed.protocol === "mongodb:" && tlsSettings.includes("true");
     const databaseName = parsed.pathname.replace(/^\//, "");
     if (
+      explicitlyWeakensTls ||
       (!encryptedSrv && !encryptedStandard) ||
       isLoopbackHostname(parsed.hostname) ||
       !databaseName ||

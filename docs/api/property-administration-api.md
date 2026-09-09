@@ -33,8 +33,10 @@ details. Protected details include the ordered `gallery`, selected `coverMedia`,
 
 ## Writes and concurrency
 
-Create accepts `CreateDraftPropertyRequest`, assigns `draft`, `available`, and PHP, and
-rejects lifecycle and unknown fields. Location authoring may include a private address,
+Create accepts the sales-only `CreateDraftPropertyRequest`, assigns `draft`, `available`,
+and PHP, and rejects rental purpose, lifecycle, and unknown fields. Edit and publish also
+fail closed for a legacy non-sale record; the UI presents it read-only for deliberate
+integrity reconciliation rather than silently converting it. Location authoring may include a private address,
 a complete private `{ latitude, longitude }` pair, public precision, and a separate
 GeoJSON `{ type: "Point", coordinates: [longitude, latitude] }` public point. Latitude is
 bounded to -90 through 90 and longitude to -180 through 180. Values must be finite JSON
@@ -72,6 +74,11 @@ as one frame, and dimensions are bounded. The server generates the storage ID an
 no client filename because filenames are not accepted at all. A successful storage write
 and version-matched gallery update returns the updated private property with status 201.
 If MongoDB persistence fails, the newly written development object is removed.
+
+Metadata commit and audit insertion are separate durable boundaries. A post-commit audit
+failure is surfaced and never deletes an object still referenced by the property. For a
+media removal, metadata and audit complete before physical deletion; failed deletion is
+recorded as cleanup debt and never makes removed media reappear.
 
 Development retains the original privately and serves an optimized WebP derivative.
 Production returns 503 until an object-storage/CDN adapter is selected.

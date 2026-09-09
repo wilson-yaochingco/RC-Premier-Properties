@@ -114,7 +114,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   if (state === "loading") {
     return (
-      <main id="main-content" className={styles.state} aria-busy="true">
+      <main id="main-content" tabIndex={-1} className={styles.state} aria-busy="true">
         <p className={styles.eyebrow}>Staff administration</p>
         <h1>Checking your session…</h1>
         <div className={styles.loadingRule} aria-hidden="true" />
@@ -124,7 +124,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   if (state === "anonymous") {
     return (
-      <main id="main-content" className={styles.state}>
+      <main id="main-content" tabIndex={-1} className={styles.state}>
         <p className={styles.eyebrow}>Protected staff area</p>
         <h1>Staff sign-in required.</h1>
         <p>{message}</p>
@@ -137,7 +137,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   if (state === "error" || !context) {
     return (
-      <main id="main-content" className={styles.state}>
+      <main id="main-content" tabIndex={-1} className={styles.state}>
         <p className={styles.eyebrow}>Staff administration</p>
         <h1>We could not check your session.</h1>
         <p role="alert">{message}</p>

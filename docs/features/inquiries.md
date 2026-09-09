@@ -56,8 +56,10 @@ requested -> confirmed -> completed
 ```
 
 `completed` and `canceled` are terminal. Reschedule updates retain the requested date and
-time in append-only viewing history. `no-show` is deliberately not modeled because the
-current operational requirement does not justify another terminal state.
+time in append-only viewing history. Terminal mutations copy the current schedule and
+ignore replacement date/time values, so completion or cancellation cannot rewrite the
+recorded appointment. `no-show` is deliberately not modeled because the current
+operational requirement does not justify another terminal state.
 
 Viewing status describes the appointment request; inquiry status describes lead
 follow-up. Confirmation changes `new` or `in-progress` to `viewing-scheduled`.
@@ -95,7 +97,8 @@ There is deliberately no `GET /inquiries` or other public read route. Staff read
 updates live only under `/admin/inquiries` and require backend authentication plus the
 named `inquiry:read` or `inquiry:update` permission. There is likewise no public
 update/delete route and no external CRM or messaging service that the UI pretends is
-active. A provider-neutral email notification is constructed only after persistence;
+active. A supplied property reference must resolve to a current property for every
+inquiry type. A provider-neutral email notification is constructed only after persistence;
 its disabled adapter now fails explicitly until a production provider is approved, while
 the already accepted inquiry retains durable retry state.
 
@@ -141,6 +144,11 @@ makes the collection ready for a future retention job once the owner approves a
 retention period and legal/business deletion procedure. No automatic purge or retention
 duration is invented in this level.
 
+All staff-facing instant timestamps are formatted deterministically in `Asia/Manila` and
+retain their original ISO instant in `<time dateTime>`. Viewing wall-clock requests are
+also explicitly Philippine time; neither display behavior depends on the browser or host
+timezone.
+
 ## Notification boundary and current blockers
 
 - Production abuse-control review is still required; no CAPTCHA or step-up challenge
@@ -151,9 +159,11 @@ duration is invented in this level.
   availability provider.
 - MongoDB/Admin Inquiries remain authoritative. After persistence, the application builds
   a provider-neutral notification for `rcpremierph@gmail.com`. Delivery failure is caught
-  and cannot roll back the accepted inquiry. A stable non-sensitive identity, database
-  lease, 5/30/120/360-minute backoff, five-attempt maximum, and terminal-failure state
-  make retries bounded and observable without an in-process scheduler.
+  and cannot roll back the accepted inquiry. The initial sender persists and owns a
+  five-minute lease before sending, which excludes the retry worker until success,
+  failure, or lease expiry. A stable non-sensitive identity, 5/30/120/360-minute backoff,
+  five-attempt maximum, and terminal-failure state make retries bounded and observable
+  without an in-process scheduler.
 - A production transactional-mail provider and credentials are not selected. The current
   disabled adapter performs no external delivery, embeds no Gmail password, and makes the
   compiled retry command fail closed before claiming work.

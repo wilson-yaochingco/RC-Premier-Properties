@@ -7,7 +7,10 @@ import {
   inspectPropertyImage,
   parseImageUploadQuery,
 } from "../src/modules/properties/property-media.validation.js";
-import { LocalDevelopmentPropertyMediaStorage } from "../src/modules/properties/property-media.storage.js";
+import {
+  LocalDevelopmentPropertyMediaStorage,
+  PropertyMediaStorageError,
+} from "../src/modules/properties/property-media.storage.js";
 
 async function image(format: "png" | "jpeg" | "webp") {
   const pipeline = sharp({
@@ -112,5 +115,30 @@ describe("property image upload validation", () => {
     await storage.remove(stored.url);
     await expect(access(deliveryPath)).rejects.toThrow();
     await expect(access(sourcePath)).rejects.toThrow();
+  });
+
+  it("surfaces failed compensation after a transformation failure", async () => {
+    const cleanupFailure = new Error("injected cleanup failure");
+    const storage = new LocalDevelopmentPropertyMediaStorage({
+      mkdir: async () => undefined,
+      writeFile: async () => undefined,
+      transform: async () => {
+        throw new Error("injected transform failure");
+      },
+      removeFile: async () => {
+        throw cleanupFailure;
+      },
+    });
+
+    await expect(
+      storage.store(await image("png"), {
+        mimeType: "image/png",
+        extension: "png",
+        width: 640,
+        height: 800,
+      }),
+    ).rejects.toMatchObject<PropertyMediaStorageError>({
+      code: "transformation_cleanup_failed",
+    });
   });
 });

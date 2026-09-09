@@ -4,7 +4,7 @@ import {
   type PropertySearchResponse,
   type PublicPropertyDetail,
 } from "@rc/shared";
-import { apiRequest } from "@/services/api-client";
+import { apiRequest } from "../../services/api-client";
 import { propertyApiSearchParams, type RawSearchParams } from "./property-query";
 
 const READ_TIMEOUT_MS = 8_000;

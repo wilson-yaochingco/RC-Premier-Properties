@@ -197,7 +197,10 @@ npm run ops:retry-inquiry-notifications --workspace backend -- --target staging 
 
 The integrity command is always scan-only. It requires an explicit target, emits a
 PII-free JSON report, exits `2` for serious findings and `1` for execution/configuration
-failure. It has no repair flag.
+failure. `--limit` selects the database cursor batch size from 1 through 500; it never
+limits how many records are inspected. Complete severity counts are retained while the
+serialized finding list is capped at 500 with an `omittedFindings` count. It has no repair
+flag.
 
 The retry command mutates notification state and may send mail. Production additionally
 requires `--confirm-production`; it refuses to claim work unless a real notifier reports

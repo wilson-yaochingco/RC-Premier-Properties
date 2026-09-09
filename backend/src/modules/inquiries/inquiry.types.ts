@@ -108,11 +108,13 @@ export interface InquiryNotificationStateStore {
   markInitialDelivered(
     inquiryId: string,
     notificationId: string,
+    leaseId: string,
     attemptedAt: Date,
   ): Promise<void>;
   markInitialFailed(
     inquiryId: string,
     notificationId: string,
+    leaseId: string,
     attemptedAt: Date,
     nextAttemptAt: Date,
     errorCode: string,
@@ -120,6 +122,7 @@ export interface InquiryNotificationStateStore {
 }
 
 export interface ViewingPropertyRepository {
+  isKnownPropertyId(propertyId: string): Promise<boolean>;
   isRequestablePropertyId(propertyId: string): Promise<boolean>;
 }
 

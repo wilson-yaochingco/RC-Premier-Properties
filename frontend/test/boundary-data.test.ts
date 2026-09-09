@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -31,6 +31,10 @@ const boundaryPath = resolve(
   process.cwd(),
   "frontend/public/geo/pampanga-admin3.geojson",
 );
+const obsoleteGeneratorPath = resolve(
+  process.cwd(),
+  "scripts/build-pampanga-admin3.mjs",
+);
 
 function numericCoordinates(value: unknown, result: number[][] = []): number[][] {
   if (!Array.isArray(value)) return result;
@@ -47,6 +51,15 @@ function numericCoordinates(value: unknown, result: number[][] = []): number[][]
 }
 
 describe("Pampanga discovery boundaries", () => {
+  it("has one authoritative generator and no obsolete alternate-output script", async () => {
+    const generator = await readFile(
+      resolve(process.cwd(), "scripts/build-pampanga-boundaries.mjs"),
+      "utf8",
+    );
+    expect(generator).toContain("frontend/public/geo/pampanga-admin3.geojson");
+    await expect(access(obsoleteGeneratorPath)).rejects.toThrow();
+  });
+
   it("ships a small, attributed, reviewed 22-area extract", async () => {
     const [contents, file] = await Promise.all([
       readFile(boundaryPath, "utf8"),

@@ -4,6 +4,8 @@ import { env } from "./config/env.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { errorIdentity, operationalLogger } from "./lib/operational-logger.js";
 
+const HTTP_REQUEST_TIMEOUT_MS = 15_000;
+
 async function start(): Promise<void> {
   try {
     await connectDatabase();
@@ -34,6 +36,9 @@ async function start(): Promise<void> {
       operation: `${API_PREFIX}/health/ready`,
     });
   });
+  server.requestTimeout = HTTP_REQUEST_TIMEOUT_MS;
+  server.headersTimeout = 10_000;
+  server.setTimeout(HTTP_REQUEST_TIMEOUT_MS);
 
   let shutdownStarted = false;
   let shutdownFinished = false;

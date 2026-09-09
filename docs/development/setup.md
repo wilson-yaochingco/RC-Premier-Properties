@@ -376,8 +376,9 @@ The public API currently provides health, published property list/facet/detail r
 inquiry creation. There are no public property writes or inquiry reads. The protected
 staff boundary provides an admin shell plus private property list/detail and draft
 create/edit operations, lifecycle transitions and lightweight inquiry management. Media
-management and confirmed appointments remain unimplemented; a viewing submission is only
-a request for follow-up.
+metadata management and device uploads with isolated development storage are implemented;
+production object storage is provider-blocked. Calendar-backed confirmed appointments
+remain unimplemented, and a viewing submission is only a request for follow-up.
 
 ---
 

@@ -130,22 +130,104 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
     ),
   ).toBeLessThanOrEqual(0.001);
 
-  for (const path of [
-    "/",
-    "/properties",
-    "/properties/clark-garden-residence",
-    "/contact",
-  ]) {
-    await page.goto(path);
+  for (const route of CORE_ROUTES) {
+    await page.goto(route.path);
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "200%";
     });
     const layout = await inspectHorizontalOverflow(page);
     expect(
       layout.documentWidth,
-      `${path} overflow at 200% text: ${JSON.stringify(layout.offenders)}`,
+      `${route.path} overflow at 200% text: ${JSON.stringify(layout.offenders)}`,
     ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(await inspectSiblingOverlaps(page, ".site-header__inner")).toEqual([]);
+    expect(await inspectSiblingOverlaps(page, ".site-footer__main")).toEqual([]);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+});
+
+test("admin skip link focuses the loading session-state main", async ({ page }) => {
+  let releaseSession!: () => void;
+  const sessionGate = new Promise<void>((resolve) => {
+    releaseSession = resolve;
+  });
+  await page.route("**/api/v1/auth/session", async (route) => {
+    await sessionGate;
+    await route.fulfill({
+      status: 401,
+      json: {
+        status: "error",
+        statusCode: 401,
+        message: "Authentication required.",
+      },
+    });
+  });
+
+  await page.goto("/admin");
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  await expect(page.locator('main#main-content[aria-busy="true"]')).toBeVisible();
+  const loadingLayout = await inspectHorizontalOverflow(page);
+  expect(loadingLayout.documentWidth).toBeLessThanOrEqual(
+    loadingLayout.viewportWidth + 1,
+  );
+  await page.getByRole("link", { name: "Skip to main content" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main-content")).toBeFocused();
+
+  releaseSession();
+  await expect(page.locator('main#main-content:not([aria-busy="true"])')).toBeVisible();
+  await page.unrouteAll({ behavior: "wait" });
+});
+
+test("admin skip link focuses every resolved session-state main", async ({ page }) => {
+  const scenarios = [
+    { kind: "response", status: 401, message: "Authentication required." },
+    { kind: "network-error", status: 0, message: "" },
+    { kind: "response", status: 200, message: "" },
+  ] as const;
+
+  for (const scenario of scenarios) {
+    await page.route("**/api/v1/auth/session", (route) => {
+      if (scenario.kind === "network-error") return route.abort("connectionfailed");
+      return route.fulfill({
+        status: scenario.status,
+        json:
+          scenario.status === 200
+            ? {
+                authenticated: true,
+                staff: {
+                  id: "fixture-admin",
+                  displayName: "Accessibility Admin",
+                  email: "admin@example.test",
+                  role: "admin",
+                },
+                permissions: [],
+                csrfToken: "fixture-csrf",
+                idleExpiresAt: "2030-09-01T00:00:00.000Z",
+                absoluteExpiresAt: "2030-09-01T08:00:00.000Z",
+              }
+            : {
+                status: "error",
+                statusCode: scenario.status,
+                message: scenario.message,
+              },
+      });
+    });
+    await page.goto("/admin");
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    await expect(
+      page.locator('main#main-content:not([aria-busy="true"])'),
+    ).toBeVisible();
+    const layout = await inspectHorizontalOverflow(page);
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    await page.getByRole("link", { name: "Skip to main content" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("main#main-content")).toBeFocused();
+    await page.unrouteAll({ behavior: "wait" });
   }
 });
 
@@ -180,6 +262,34 @@ async function inspectHorizontalOverflow(page: Page) {
       offenders,
     };
   });
+}
+
+async function inspectSiblingOverlaps(page: Page, selector: string) {
+  return page.evaluate((containerSelector) => {
+    const children = [
+      ...(document.querySelector(containerSelector)?.children ?? []),
+    ] as HTMLElement[];
+    const visible = children.filter(
+      (element) =>
+        getComputedStyle(element).display !== "none" &&
+        element.getBoundingClientRect().width > 0 &&
+        element.getBoundingClientRect().height > 0,
+    );
+    const overlaps: string[] = [];
+    for (let first = 0; first < visible.length; first += 1) {
+      const a = visible[first]!.getBoundingClientRect();
+      for (let second = first + 1; second < visible.length; second += 1) {
+        const b = visible[second]!.getBoundingClientRect();
+        if (
+          Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
+          Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
+        ) {
+          overlaps.push(`${first}:${second}`);
+        }
+      }
+    }
+    return overlaps;
+  }, selector);
 }
 
 async function captureViewport(

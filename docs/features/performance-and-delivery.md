@@ -261,7 +261,7 @@ No provider, credential, hostname, compression layer, or CDN was invented in Lev
 | 10AG API computation    | Acceptable/no change; only bounded mapping/formatting occurs on reads.                                              |
 | 10AH compression        | Intentionally deferred to Level 11 proxy/hosting selection; no double compression added.                            |
 | 10AI cache headers      | Already efficient for hashed/static and boundary assets; private no-store preserved.                                |
-| 10AJ waterfalls         | Measurable sitemap waterfall fixed with maximum pages and bounded batches.                                          |
+| 10AJ waterfalls         | Historical Level 10 batching; superseded by Level 14's fixed 20-page sitemap shards and one-read index.             |
 | 10AK server response    | Safe optimization applied through narrower Mongo reads; middleware/security retained.                               |
 | 10AL admin              | Already efficient; bounded projected lists and no-store behavior preserved.                                         |
 | 10AM media previews     | Safe optimization applied with admin-specific responsive preview sizing.                                            |

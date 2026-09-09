@@ -80,7 +80,7 @@ It does not add:
 - favorites, confirmed viewing appointments or seller accounts;
 - a full CRM or user-management dashboard;
 - email, SMS or notification providers;
-- production binary image uploads or audit-read endpoints.
+- a production object-storage adapter or audit-read endpoints.
 
 ## Trust boundaries
 
@@ -265,8 +265,10 @@ secrets, inquiry message bodies or complete before/after copies of personal data
 ## Abuse handling and recovery
 
 - Apply a dedicated login-start rate limit in addition to the general API limiter.
-- Prefer provider-side brute-force protection and lockout; locally rate-limit callback
-  failures without creating an account-enumeration signal.
+- Prefer provider-side brute-force protection and lockout. Login starts and failed
+  callbacks are independently rate-limited locally without an account-enumeration signal;
+  because those stores are process-local, multi-instance release acceptance requires an
+  equivalent shared edge/WAF budget or a reviewed shared store.
 - Revoke sessions after account recovery, factor replacement, suspected compromise or a
   staff status/role change.
 - Authenticator recovery is handled by the selected provider under a documented staff

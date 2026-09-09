@@ -20,7 +20,10 @@ export interface PropertyMediaStorage {
 }
 
 export type PropertyMediaStorageErrorCode =
-  "storage_write_failed" | "transformation_failed" | "storage_delete_failed";
+  | "storage_write_failed"
+  | "transformation_failed"
+  | "transformation_cleanup_failed"
+  | "storage_delete_failed";
 
 export class PropertyMediaStorageError extends Error {
   constructor(
@@ -47,7 +50,31 @@ const SOURCE_ROOT = fileURLToPath(
   new URL("../../../../frontend/.local-media-sources/", import.meta.url),
 );
 
+interface LocalPropertyMediaFileOperations {
+  mkdir: typeof mkdir;
+  writeFile: typeof writeFile;
+  removeFile: typeof rm;
+  transform(bytes: Buffer, deliveryPath: string): Promise<void>;
+}
+
+const localFileOperations: LocalPropertyMediaFileOperations = {
+  mkdir,
+  writeFile,
+  removeFile: rm,
+  async transform(bytes, deliveryPath) {
+    await sharp(bytes)
+      .rotate()
+      .resize({ width: 3200, height: 3200, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 88, effort: 4 })
+      .toFile(deliveryPath);
+  },
+};
+
 export class LocalDevelopmentPropertyMediaStorage implements PropertyMediaStorage {
+  constructor(
+    private readonly files: LocalPropertyMediaFileOperations = localFileOperations,
+  ) {}
+
   owns(url: string): boolean {
     return /^\/media\/properties\/[a-f0-9-]{36}\.webp$/.test(url);
   }
@@ -61,24 +88,28 @@ export class LocalDevelopmentPropertyMediaStorage implements PropertyMediaStorag
     const deliveryPath = path.join(PUBLIC_ROOT, `${id}.webp`);
     try {
       await Promise.all([
-        mkdir(PUBLIC_ROOT, { recursive: true }),
-        mkdir(SOURCE_ROOT, { recursive: true }),
+        this.files.mkdir(PUBLIC_ROOT, { recursive: true }),
+        this.files.mkdir(SOURCE_ROOT, { recursive: true }),
       ]);
-      await writeFile(sourcePath, bytes, { flag: "wx" });
+      await this.files.writeFile(sourcePath, bytes, { flag: "wx" });
     } catch (error) {
       throw new PropertyMediaStorageError("storage_write_failed", { cause: error });
     }
     try {
-      await sharp(bytes)
-        .rotate()
-        .resize({ width: 3200, height: 3200, fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 88, effort: 4 })
-        .toFile(deliveryPath);
+      await this.files.transform(bytes, deliveryPath);
     } catch (error) {
-      await Promise.allSettled([
-        rm(sourcePath, { force: true }),
-        rm(deliveryPath, { force: true }),
+      const cleanup = await Promise.allSettled([
+        this.files.removeFile(sourcePath, { force: true }),
+        this.files.removeFile(deliveryPath, { force: true }),
       ]);
+      const cleanupFailures = cleanup.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (cleanupFailures.length > 0) {
+        throw new PropertyMediaStorageError("transformation_cleanup_failed", {
+          cause: new AggregateError(cleanupFailures, "Local media cleanup failed."),
+        });
+      }
       throw new PropertyMediaStorageError("transformation_failed", { cause: error });
     }
     return { id: `media-${id}`, url: `/media/properties/${id}.webp` };
@@ -91,9 +122,13 @@ export class LocalDevelopmentPropertyMediaStorage implements PropertyMediaStorag
     if (!match?.[1]) return;
     const id = match[1];
     try {
-      await rm(path.join(PUBLIC_ROOT, `${id}.webp`), { force: true });
+      await this.files.removeFile(path.join(PUBLIC_ROOT, `${id}.webp`), {
+        force: true,
+      });
       for (const extension of ["png", "jpg", "webp"] as const) {
-        await rm(path.join(SOURCE_ROOT, `${id}.${extension}`), { force: true });
+        await this.files.removeFile(path.join(SOURCE_ROOT, `${id}.${extension}`), {
+          force: true,
+        });
       }
     } catch (error) {
       throw new PropertyMediaStorageError("storage_delete_failed", { cause: error });

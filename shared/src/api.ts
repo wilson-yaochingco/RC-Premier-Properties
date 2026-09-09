@@ -134,6 +134,9 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
 
 export const LISTING_PURPOSES = ["sale", "rent"] as const;
 export type ListingPurpose = (typeof LISTING_PURPOSES)[number];
+/** The production administration write boundary is sales-only. */
+export const ADMIN_LISTING_PURPOSES = ["sale"] as const;
+export type AdminListingPurpose = (typeof ADMIN_LISTING_PURPOSES)[number];
 
 export const PROPERTY_AVAILABILITY = ["available", "reserved", "sold"] as const;
 export type PropertyAvailability = (typeof PROPERTY_AVAILABILITY)[number];
@@ -339,7 +342,7 @@ export interface AdminPropertyContentInput {
   propertyId: string;
   slug: string;
   title: string;
-  purpose: ListingPurpose;
+  purpose: AdminListingPurpose;
   propertyType: PropertyType;
   featured: boolean;
   price: AdminPropertyPriceInput;
@@ -579,7 +582,8 @@ export type ViewingStaffTransitionStatus =
   (typeof VIEWING_STAFF_TRANSITION_STATUSES)[number];
 
 /** Requested viewing times are interpreted in Philippine local time. */
-export const VIEWING_TIME_ZONE = "Asia/Manila" as const;
+export const BUSINESS_TIME_ZONE = "Asia/Manila" as const;
+export const VIEWING_TIME_ZONE = BUSINESS_TIME_ZONE;
 
 export const ADMIN_INQUIRY_QUEUES = ["active", "spam", "archived", "all"] as const;
 export type AdminInquiryQueue = (typeof ADMIN_INQUIRY_QUEUES)[number];

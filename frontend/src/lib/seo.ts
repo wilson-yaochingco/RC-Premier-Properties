@@ -106,6 +106,7 @@ export function buildPublicSitemap(
   properties: PublicPropertySummary[],
   locations: Array<{ location: string; count: number }>,
   siteUrl: string | undefined = SITE_URL,
+  options: { includeStaticRoutes?: boolean } = {},
 ): MetadataRoute.Sitemap {
   if (!siteUrl) return [];
 
@@ -117,11 +118,14 @@ export function buildPublicSitemap(
     { path: "/sell", changeFrequency: "monthly", priority: 0.7 },
     { path: "/book-viewing", changeFrequency: "monthly", priority: 0.7 },
   ] as const;
-  const entries: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
-    url: `${siteUrl}${route.path}`,
-    changeFrequency: route.changeFrequency,
-    priority: route.priority,
-  }));
+  const entries: MetadataRoute.Sitemap =
+    options.includeStaticRoutes === false
+      ? []
+      : staticRoutes.map((route) => ({
+          url: `${siteUrl}${route.path}`,
+          changeFrequency: route.changeFrequency,
+          priority: route.priority,
+        }));
 
   const seenLocations = new Set<string>();
   for (const item of locations) {

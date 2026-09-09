@@ -157,6 +157,7 @@ inquirySchema.index({ archivedAt: 1, createdAt: -1 });
 inquirySchema.index({ "viewingRequest.status": 1, "viewingRequest.requestedDate": 1 });
 inquirySchema.index({ idempotencyKeyHash: 1 }, { unique: true, sparse: true });
 inquirySchema.index({ "notification.status": 1, "notification.nextAttemptAt": 1 });
+inquirySchema.index({ "notification.status": 1, "notification.leaseUntil": 1 });
 inquirySchema.index(
   { "notification.notificationId": 1 },
   { unique: true, sparse: true },

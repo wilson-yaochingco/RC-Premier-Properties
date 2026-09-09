@@ -136,11 +136,12 @@ before/after evidence and limitations.
 
 ## External integration boundary
 
-Level 12 deterministic coverage verifies server-generated request IDs, allowlisted
+Level 12/14 deterministic coverage verifies server-generated request IDs, allowlisted
 structured logs without header/query/body values, durable post-persistence notification
-state, stable delivery idempotency, bounded retry/terminal behavior, provider fail-closed
-behavior, explicit production targeting, media cleanup debt, storage-failure metadata
-safety, and a non-mutating PII-free integrity report. Provider backup/restore and alert
+state and initial lease ownership, stable delivery idempotency, bounded retry/terminal
+behavior, provider fail-closed behavior, explicit production targeting, media/audit
+ordering, cleanup debt, storage-failure metadata safety, bounded full-cardinality integrity
+scanning, request deadlines, and PII-free reports. Provider backup/restore and alert
 acceptance remain live external checks, not mocked claims.
 
 Neither Vitest nor Playwright connects to the project database or Auth0. The backend HTTP
@@ -174,11 +175,17 @@ not yet been recorded.
 
 ## CI
 
-Pull requests run formatting, lint, typecheck, unit/API integration tests, the production
-build and Playwright browser acceptance. CI uses the installed Chrome channel with one
+Pull requests run clean install, dependency topology validation, high-severity production
+dependency audit, formatting, lint, typecheck, unit/API integration tests, both ordinary
+and strict staging-shaped deployment builds, and Playwright browser acceptance. CI uses the installed Chrome channel with one
 worker and retries; local Windows runs use installed Microsoft Edge. Run the complete
 gate locally before handoff because a configured workflow is not proof that a particular
 unpublished branch has passed remotely.
+
+The production dependency audit fails on high or critical advisories. An exception must
+be a reviewed repository change naming the advisory, affected runtime path, compensating
+control, owner, and expiry; force/legacy-peer flags or an undocumented audit ignore are
+not acceptable policy.
 
 Record browser evidence accurately. A local Edge run does not prove Chrome, Firefox,
 WebKit or physical Safari/iOS behavior, and the configured Chrome CI project is not a

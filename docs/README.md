@@ -90,10 +90,10 @@ Current:
   baseline, Core Web Vitals readiness, image/gallery/video/map delivery, API and query
   efficiency, caching policy, budgets, and field-validation boundaries
 
-The backend authentication foundation is documented as an architectural boundary. The
-first property-administration slice now has a feature specification. Structured viewing
-requests and their lightweight staff lifecycle are implemented without a live calendar;
-broader CRM administration remains unimplemented.
+The protected staff boundary now includes the full sales-property lifecycle, device
+media validation/development storage, and lightweight inquiry/viewing administration.
+Structured viewing requests remain deliberately separate from live calendar availability;
+broader CRM and future staff/client roles remain unimplemented.
 
 ### `api/`
 
@@ -168,8 +168,9 @@ remediation without silently changing the audited application.
 Current:
 
 - [`level-13-production-readiness.md`](audits/level-13-production-readiness.md) — complete
-  forensic production-readiness audit, launch score, live acceptance matrix, and unexecuted
-  Level 14 remediation plan
+  forensic production-readiness audit and historical Level 14 input
+- [`level-14-remediation.md`](audits/level-14-remediation.md) — finding-by-finding
+  remediation evidence, full quality gate, residual live blockers, and recalculated score
 
 ## Rules
 

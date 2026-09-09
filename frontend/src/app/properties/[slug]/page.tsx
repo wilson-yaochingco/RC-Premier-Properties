@@ -23,6 +23,7 @@ import {
   nonpublicPropertyMetadata,
 } from "@/features/properties/property-seo";
 import { serializeJsonLd } from "@/lib/seo";
+import { formatBusinessDate } from "@/lib/date-time";
 import styles from "@/features/properties/property-detail.module.css";
 
 const getPublishedProperty = cache(getPropertyBySlug);
@@ -229,9 +230,10 @@ export default async function PropertyDetailPage({
             </div>
             <p className={styles.updatedAt}>
               Last updated{" "}
-              {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-                new Date(property.updatedAt),
-              )}
+              <time dateTime={property.updatedAt}>
+                {formatBusinessDate(property.updatedAt)}
+              </time>{" "}
+              (Philippine time)
             </p>
           </aside>
         </Container>

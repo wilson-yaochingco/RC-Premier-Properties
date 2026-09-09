@@ -19,79 +19,79 @@ Status meanings: **implemented** is deterministic repository work; **existing** 
 verified and preserved; **configuration** needs real deployment values; **external**
 needs an account or live environment; **Level 12** is intentionally deferred.
 
-| Requirement               | Classification and Level 11 result                                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 11A topology              | Implemented: recommended same-origin reverse proxy and supported same-site alternative documented                           |
-| 11B sessions              | Existing/verified: secure host-only `__Host-`, HttpOnly, Lax cookies; cross-site topology unsupported                       |
-| 11C domain                | Configuration/external: strict staging/production HTTPS origin validation; final domain absent                              |
-| 11D frontend              | Implemented/verified: Next server build/start, dynamic routes, image/CSP/SEO inputs documented                              |
-| 11E backend               | Implemented/verified: compiled Express start, port, fail-closed startup, readiness, bounded shutdown                        |
-| 11F runtime               | Existing/verified: Node `>=20.19.0`; CI and recommended deployment runtime use Node 22                                      |
-| 11G environment           | Implemented: development/staging/production matrix and templates updated                                                    |
-| 11H validation            | Implemented: public origins, Atlas/TLS, proxy, Auth0, media, map, and build inputs validated                                |
-| 11I secrets               | Existing/verified: real env files ignored; tracked key/credential scan found templates/test placeholders only               |
-| 11J Auth0                 | Existing plus configuration/external: callback pinned to public API origin; tenant setup documented                         |
-| 11K MFA                   | Existing/external: `amr: mfa` policy preserved; real tenant factor pass blocked                                             |
-| 11L Auth0 live            | Staging/external: login-to-revocation flow not performed without tenant/deployment                                          |
-| 11M proxy                 | Implemented/configuration: exact hop count required explicitly in production; host-specific count blocked                   |
-| 11N CORS                  | Existing/verified: one exact origin, credentialed wildcard rejected, hostile origins receive no allow-origin                |
-| 11O CSRF                  | Existing/verified: session token plus exact origin required for authenticated writes                                        |
-| 11P CSP                   | Implemented/configuration: narrow provider-aware policy; real provider origins remain external                              |
-| 11Q Next CSP              | Implemented/tested locally: optimized runtime policy supports hydration, Leaflet, images, and embeds                        |
-| 11R headers               | Existing plus documented ownership: Next and Helmet policies preserved                                                      |
-| 11S HSTS                  | Existing/verified: optimized frontend and production API emit it; ineffective over local HTTP; no preload/includeSubDomains |
-| 11T storage               | Existing boundary/external: production adapter and account unselected; upload fails closed with 503                         |
-| 11U CDN                   | Implemented boundary/external: one exact HTTPS media origin supported; live CDN unselected                                  |
-| 11V media hostname        | Implemented/configuration: exact Next Image/CSP/rendering allowlist; hostname absent                                        |
-| 11W storage CORS          | Configuration/external: backend-proxied upload requires no browser write CORS                                               |
-| 11X lifecycle             | Documented; automated orphan cleanup deferred to Level 12                                                                   |
-| 11Y storage backup        | Provider-dependent/Level 12: versioning and recovery policy awaits provider                                                 |
-| 11Z email provider        | Existing boundary/external: provider and credentials unselected                                                             |
-| 11AA sender               | External: verified sender/domain, SPF, DKIM, and DMARC await provider/domain; no Gmail password                             |
-| 11AB email failure        | Existing plus improved logging: persistence remains source of truth; failure logs only inquiry ID                           |
-| 11AC email config         | Provider-dependent: secret stays server-side; exact variables added only with real adapter                                  |
-| 11AD email live           | Staging/external: actual receipt at `rcpremierph@gmail.com` not observed                                                    |
-| 11AE map provider         | Implemented config boundary/external: public builds require URL and attribution; provider unselected                        |
-| 11AF map failure          | Existing/verified: text, cards, retry, boundaries, and privacy remain available                                             |
-| 11AG MongoDB              | Implemented/configuration: encrypted non-local URI and explicit database required in production                             |
-| 11AH DB resilience        | Existing plus readiness: non-development startup refuses failed DB; runtime readiness follows state                         |
-| 11AI indexes              | Production-dependent: representative `executionStats` gate documented; no speculative indexes                               |
-| 11AJ health               | Existing plus build ID/no-store: safe liveness exposes no URI or credentials                                                |
-| 11AK readiness            | Implemented: `/api/v1/health/ready` returns 503 unless MongoDB is connected                                                 |
-| 11AL shutdown             | Implemented: stop accept, close idle/in-flight with bounded grace, then close MongoDB                                       |
-| 11AM build                | Verified commands documented; live artifact deployment external                                                             |
-| 11AN install              | Existing/verified: root `npm ci`, one authoritative lockfile, shared postinstall build                                      |
-| 11AO hygiene              | Existing/verified: env, build output, local media, logs, traces, and caches ignored                                         |
-| 11AP CI                   | Existing plus deployment separation: complete local gate remains secret-free                                                |
-| 11AQ staging              | Strategy documented; environment does not exist                                                                             |
-| 11AR staging data         | Policy documented: synthetic properties only, no production inquiries/rental fixtures                                       |
-| 11AS smoke                | Staging-dependent: checklist and safe script implemented; not run against live staging                                      |
-| 11AT security             | Staging-dependent acceptance checklist documented                                                                           |
-| 11AU media                | Provider/staging-dependent; physical picker remains manual external gate                                                    |
-| 11AV email                | Provider/staging-dependent; no live receipt claimed                                                                         |
-| 11AW smoke script         | Implemented: read-only HTTPS frontend/API/security checks, no credentials or mutations                                      |
-| 11AX production checklist | Implemented below                                                                                                           |
-| 11AY rollback             | Implemented below; no destructive data rollback promised                                                                    |
-| 11AZ migration            | Not applicable: Level 11 introduces no schema/data migration or startup mutation                                            |
-| 11BA build ID             | Implemented: optional sanitized `APP_BUILD_ID` in logs and health responses                                                 |
-| 11BB logging              | Existing/reviewed: no tokens, bodies, secrets, or private property location added                                           |
-| 11BC errors               | Existing/verified: generic production 500 and bounded redacted server diagnostics                                           |
-| 11BD proxy/rate limit     | Existing/configuration: server-generated request context and exact proxy depth; live topology gate remains                  |
-| 11BE uploads              | Existing policy/configuration: 12 MB image policy; upstream body limit must be confirmed                                    |
-| 11BF timeouts             | Configuration: 15-second smoke timeout and bounded 30-second default shutdown; provider request limits remain external      |
-| 11BG CDN cache            | Documented/provider-dependent: versioned immutable public keys, no dynamic/private API caching                              |
-| 11BH SEO deployment       | Existing/configuration: strict origin feeds canonical/robots/sitemap; live URL validation blocked                           |
-| 11BI social preview       | Staging/external: reachable URL and Facebook crawler/debugger not tested                                                    |
-| 11BJ performance          | Existing/verified locally; staging lab and Level 12 field RUM remain external/deferred                                      |
-| 11BK accessibility        | External manual gates carried below without claiming completion                                                             |
-| 11BL provider record      | Implemented in topology; no unselected provider is presented as chosen                                                      |
-| 11BM scope                | Complied: no orchestration, queues, microservices, or speculative IaC                                                       |
-| 11BN containers           | Not applicable: no selected target justifies containerization                                                               |
-| 11BO selection            | Complied: no account/provider/domain/credential created or invented                                                         |
-| 11BP docs                 | Implemented in topology, this runbook, API docs, templates, and roadmap link                                                |
-| 11BQ focused tests        | Implemented for origins, Atlas/TLS, Auth callback, CSP, map/media config, readiness, and existing security                  |
-| 11BR local gate           | Must pass before Level 11 completion; commands listed below                                                                 |
-| 11BS staging gate         | External/blocked until a real staging environment and providers exist                                                       |
+| Requirement               | Classification and Level 11 result                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 11A topology              | Implemented: recommended same-origin reverse proxy and supported same-site alternative documented                              |
+| 11B sessions              | Existing/verified: secure host-only `__Host-`, HttpOnly, Lax cookies; cross-site topology unsupported                          |
+| 11C domain                | Configuration/external: strict staging/production HTTPS origin validation; final domain absent                                 |
+| 11D frontend              | Implemented/verified: Next server build/start, dynamic routes, image/CSP/SEO inputs documented                                 |
+| 11E backend               | Implemented/verified: compiled Express start, port, fail-closed startup, readiness, bounded shutdown                           |
+| 11F runtime               | Existing/verified: Node `>=20.19.0`; CI and recommended deployment runtime use Node 22                                         |
+| 11G environment           | Implemented: development/staging/production matrix and templates updated                                                       |
+| 11H validation            | Implemented: public origins, Atlas/TLS, proxy, Auth0, media, map, and build inputs validated                                   |
+| 11I secrets               | Existing/verified: real env files ignored; tracked key/credential scan found templates/test placeholders only                  |
+| 11J Auth0                 | Existing plus configuration/external: callback pinned to public API origin; tenant setup documented                            |
+| 11K MFA                   | Existing/external: `amr: mfa` policy preserved; real tenant factor pass blocked                                                |
+| 11L Auth0 live            | Staging/external: login-to-revocation flow not performed without tenant/deployment                                             |
+| 11M proxy                 | Implemented/configuration: exact hop count required explicitly in production; host-specific count blocked                      |
+| 11N CORS                  | Existing/verified: one exact origin, credentialed wildcard rejected, hostile origins receive no allow-origin                   |
+| 11O CSRF                  | Existing/verified: session token plus exact origin required for authenticated writes                                           |
+| 11P CSP                   | Implemented/configuration: narrow provider-aware policy; real provider origins remain external                                 |
+| 11Q Next CSP              | Implemented/tested locally: optimized runtime policy supports hydration, Leaflet, images, and embeds                           |
+| 11R headers               | Existing plus documented ownership: Next and Helmet policies preserved                                                         |
+| 11S HSTS                  | Existing/verified: optimized frontend and production API emit it; ineffective over local HTTP; no preload/includeSubDomains    |
+| 11T storage               | Existing boundary/external: production adapter and account unselected; upload fails closed with 503                            |
+| 11U CDN                   | Implemented boundary/external: one exact HTTPS media origin supported; live CDN unselected                                     |
+| 11V media hostname        | Implemented/configuration: exact Next Image/CSP/rendering allowlist; hostname absent                                           |
+| 11W storage CORS          | Configuration/external: backend-proxied upload requires no browser write CORS                                                  |
+| 11X lifecycle             | Documented; automated orphan cleanup deferred to Level 12                                                                      |
+| 11Y storage backup        | Provider-dependent/Level 12: versioning and recovery policy awaits provider                                                    |
+| 11Z email provider        | Existing boundary/external: provider and credentials unselected                                                                |
+| 11AA sender               | External: verified sender/domain, SPF, DKIM, and DMARC await provider/domain; no Gmail password                                |
+| 11AB email failure        | Existing plus improved logging: persistence remains source of truth; failure logs only inquiry ID                              |
+| 11AC email config         | Provider-dependent: secret stays server-side; exact variables added only with real adapter                                     |
+| 11AD email live           | Staging/external: actual receipt at `rcpremierph@gmail.com` not observed                                                       |
+| 11AE map provider         | Implemented config boundary/external: public builds require URL and attribution; provider unselected                           |
+| 11AF map failure          | Existing/verified: text, cards, retry, boundaries, and privacy remain available                                                |
+| 11AG MongoDB              | Implemented/configuration: encrypted certificate-valid non-local URI, explicit database, and downgrade rejection in production |
+| 11AH DB resilience        | Existing plus readiness: non-development startup refuses failed DB; runtime readiness follows state                            |
+| 11AI indexes              | Production-dependent: representative `executionStats` gate documented; no speculative indexes                                  |
+| 11AJ health               | Existing plus build ID/no-store: safe liveness exposes no URI or credentials                                                   |
+| 11AK readiness            | Implemented: `/api/v1/health/ready` returns 503 unless MongoDB is connected                                                    |
+| 11AL shutdown             | Implemented: stop accept, close idle/in-flight with bounded grace, then close MongoDB                                          |
+| 11AM build                | Verified commands documented; live artifact deployment external                                                                |
+| 11AN install              | Existing/verified: root `npm ci`, one authoritative lockfile, shared postinstall build                                         |
+| 11AO hygiene              | Existing/verified: env, build output, local media, logs, traces, and caches ignored                                            |
+| 11AP CI                   | Existing plus deployment separation: complete local gate remains secret-free                                                   |
+| 11AQ staging              | Strategy documented; environment does not exist                                                                                |
+| 11AR staging data         | Policy documented: synthetic properties only, no production inquiries/rental fixtures                                          |
+| 11AS smoke                | Staging-dependent: checklist and safe script implemented; not run against live staging                                         |
+| 11AT security             | Staging-dependent acceptance checklist documented                                                                              |
+| 11AU media                | Provider/staging-dependent; physical picker remains manual external gate                                                       |
+| 11AV email                | Provider/staging-dependent; no live receipt claimed                                                                            |
+| 11AW smoke script         | Implemented: read-only HTTPS frontend/API/security checks, no credentials or mutations                                         |
+| 11AX production checklist | Implemented below                                                                                                              |
+| 11AY rollback             | Implemented below; no destructive data rollback promised                                                                       |
+| 11AZ migration            | Not applicable: Level 11 introduces no schema/data migration or startup mutation                                               |
+| 11BA build ID             | Implemented: optional sanitized `APP_BUILD_ID` in logs and health responses                                                    |
+| 11BB logging              | Existing/reviewed: no tokens, bodies, secrets, or private property location added                                              |
+| 11BC errors               | Existing/verified: generic production 500 and bounded redacted server diagnostics                                              |
+| 11BD proxy/rate limit     | Existing/configuration: server-generated request context and exact proxy depth; live topology gate remains                     |
+| 11BE uploads              | Existing policy/configuration: 12 MB image policy; upstream body limit must be confirmed                                       |
+| 11BF timeouts             | Implemented application deadlines plus bounded shutdown; host/provider alignment remains external                              |
+| 11BG CDN cache            | Documented/provider-dependent: versioned immutable public keys, no dynamic/private API caching                                 |
+| 11BH SEO deployment       | Existing/configuration: strict origin feeds canonical/robots/sitemap; live URL validation blocked                              |
+| 11BI social preview       | Staging/external: reachable URL and Facebook crawler/debugger not tested                                                       |
+| 11BJ performance          | Existing/verified locally; staging lab and Level 12 field RUM remain external/deferred                                         |
+| 11BK accessibility        | External manual gates carried below without claiming completion                                                                |
+| 11BL provider record      | Implemented in topology; no unselected provider is presented as chosen                                                         |
+| 11BM scope                | Complied: no orchestration, queues, microservices, or speculative IaC                                                          |
+| 11BN containers           | Not applicable: no selected target justifies containerization                                                                  |
+| 11BO selection            | Complied: no account/provider/domain/credential created or invented                                                            |
+| 11BP docs                 | Implemented in topology, this runbook, API docs, templates, and roadmap link                                                   |
+| 11BQ focused tests        | Implemented for origins, Atlas/TLS, Auth callback, CSP, map/media config, readiness, and existing security                     |
+| 11BR local gate           | Must pass before Level 11 completion; commands listed below                                                                    |
+| 11BS staging gate         | External/blocked until a real staging environment and providers exist                                                          |
 
 ## Runtime, build, and start
 
@@ -198,6 +198,9 @@ live values.
 - Send SIGTERM for rollout/scale-down. Express stops accepting work, closes idle
   connections, permits the configured grace interval, force-closes only after the bound,
   then closes MongoDB.
+- The frontend start wrapper directly supervises Next.js, forwards the first SIGTERM or
+  SIGINT, waits up to ten seconds, and only then force-terminates it. Linux/container
+  process-tree and port-reuse acceptance remains a selected-host gate.
 
 ## Auth0 staging and production gate
 
@@ -217,7 +220,9 @@ these live checks has been performed for Level 11 without a tenant and public de
 Create separate staging and production databases and least-privilege application users.
 Use Atlas TLS/SRV connectivity and restrict network access to the selected backend's
 stable egress or private networking. Do not allow broad public ingress as a permanent
-shortcut. Keep automatic schema/index behavior reviewed and do not seed production.
+shortcut. Production parsing rejects explicit `tls=false`/`ssl=false`, non-true enable
+values, conflicting weak aliases, certificate/hostname bypasses, and `sslValidate=false`.
+Keep automatic schema/index behavior reviewed and do not seed production.
 
 Before production traffic, run the actual published-property, facets, map, admin list,
 and inquiry queue query shapes against representative cardinality and record

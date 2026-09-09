@@ -5,17 +5,14 @@ import {
   parseOperationalArguments,
 } from "../lib/operational-target.js";
 import { errorIdentity, operationalLogger } from "../lib/operational-logger.js";
-import {
-  inspectDataIntegrity,
-  loadIntegritySnapshot,
-} from "../modules/operations/integrity.service.js";
+import { scanDataIntegrity } from "../modules/operations/integrity.service.js";
 
 async function main(): Promise<void> {
   const command = parseOperationalArguments(process.argv.slice(2));
   assertOperationalTarget(command, env.NODE_ENV, false);
   await connectDatabase();
   try {
-    const report = inspectDataIntegrity(await loadIntegritySnapshot());
+    const report = await scanDataIntegrity(command.limit);
     console.log(JSON.stringify(report, null, 2));
     if (report.counts.errors > 0) process.exitCode = 2;
   } finally {

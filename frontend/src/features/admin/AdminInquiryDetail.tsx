@@ -11,6 +11,7 @@ import {
   type InquiryWorkflowStatus,
 } from "@rc/shared";
 import { ApiClientError } from "@/services/api-client";
+import { formatBusinessDateTime } from "@/lib/date-time";
 import {
   addAdminInquiryNote,
   getAdminInquiry,
@@ -32,10 +33,7 @@ function label(value: string): string {
 }
 
 function dateTime(value: string): string {
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value);
 }
 
 function viewingDateTime(date: string, time: string): string {
@@ -267,8 +265,10 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
           <p className={styles.eyebrow}>Private inquiry</p>
           <h1 id="inquiry-detail-title">{inquiry.name}</h1>
           <p>
-            Received {dateTime(inquiry.createdAt)} · Updated{" "}
-            {dateTime(inquiry.updatedAt)}
+            Received{" "}
+            <time dateTime={inquiry.createdAt}>{dateTime(inquiry.createdAt)}</time> ·
+            Updated{" "}
+            <time dateTime={inquiry.updatedAt}>{dateTime(inquiry.updatedAt)}</time>
           </p>
         </div>
         <Link href="/admin/inquiries">Back to inquiries</Link>
@@ -330,7 +330,11 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
             </div>
             <div>
               <dt>Consent recorded</dt>
-              <dd>{dateTime(inquiry.privacyConsentAt)}</dd>
+              <dd>
+                <time dateTime={inquiry.privacyConsentAt}>
+                  {dateTime(inquiry.privacyConsentAt)}
+                </time>
+              </dd>
             </div>
             {inquiry.viewingRequest ? (
               <>
@@ -367,7 +371,8 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
           ) : null}
           {inquiry.archivedAt ? (
             <p className={styles.archiveNotice}>
-              Archived {dateTime(inquiry.archivedAt)}
+              Archived{" "}
+              <time dateTime={inquiry.archivedAt}>{dateTime(inquiry.archivedAt)}</time>
             </p>
           ) : null}
           {inquiry.viewingRequest ? (
@@ -509,7 +514,7 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
           <ol className={styles.timeline}>
             {[...inquiry.internalNotes].reverse().map((note) => (
               <li key={note.id}>
-                <time>{dateTime(note.createdAt)}</time>
+                <time dateTime={note.createdAt}>{dateTime(note.createdAt)}</time>
                 <p>{note.note}</p>
               </li>
             ))}
@@ -522,7 +527,7 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
         <ol className={styles.timeline}>
           {[...inquiry.statusHistory].reverse().map((entry, index) => (
             <li key={`${entry.changedAt}-${index}`}>
-              <time>{dateTime(entry.changedAt)}</time>
+              <time dateTime={entry.changedAt}>{dateTime(entry.changedAt)}</time>
               <p>
                 {entry.fromStatus
                   ? `${label(entry.fromStatus)} → ${label(entry.toStatus)}`
@@ -539,7 +544,7 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
           <ol className={styles.timeline}>
             {[...inquiry.viewingRequest.statusHistory].reverse().map((entry, index) => (
               <li key={`${entry.changedAt}-${index}`}>
-                <time>{dateTime(entry.changedAt)}</time>
+                <time dateTime={entry.changedAt}>{dateTime(entry.changedAt)}</time>
                 <p>
                   {entry.fromStatus
                     ? `${label(entry.fromStatus)} → ${label(entry.toStatus)}`

@@ -22,6 +22,12 @@ jobs:
       # The postinstall hook builds @rc/shared, which the other two compile against.
       - run: npm ci
 
+      - name: Validate dependency topology
+        run: npm ls --all
+
+      - name: Audit production dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Check formatting
         run: npm run format:check
 
@@ -42,6 +48,17 @@ jobs:
           NEXT_PUBLIC_DEPLOYMENT_ENV: test
           NEXT_PUBLIC_API_URL: https://api.ci.example.test
           NEXT_PUBLIC_SITE_URL: https://site.ci.example.test
+
+      - name: Strict staging-shaped deployment build
+        run: npm run build:deployment
+        env:
+          NEXT_PUBLIC_DEPLOYMENT_ENV: staging
+          NEXT_PUBLIC_API_URL: https://api.ci.example.test
+          NEXT_PUBLIC_SITE_URL: https://site.ci.example.test
+          NEXT_PUBLIC_MEDIA_ORIGIN: https://media.ci.example.test
+          NEXT_PUBLIC_MAP_TILE_URL: https://tiles.ci.example.test/{z}/{x}/{y}.png
+          NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT: CI map fixture
+          NEXT_PUBLIC_MAP_ATTRIBUTION_URL: https://tiles.ci.example.test/attribution
 
       - name: Browser acceptance tests
         run: npm run test:e2e

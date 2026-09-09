@@ -44,9 +44,14 @@ const RECEIVED_MESSAGE =
   "Thank you for contacting RC Premier Properties. We have received your inquiry and will get back to you using your preferred contact method.";
 const VIEWING_RECEIVED_MESSAGE =
   "Your viewing request has been received. Our team will contact you to confirm the requested schedule; it is not yet an appointment.";
+const INITIAL_NOTIFICATION_LEASE_MS = 5 * 60_000;
 
 export class MongooseViewingPropertyRepository implements ViewingPropertyRepository {
   constructor(private readonly model: Model<PropertyEntity> = PropertyModel) {}
+
+  async isKnownPropertyId(propertyId: string): Promise<boolean> {
+    return Boolean(await this.model.exists({ propertyId }));
+  }
 
   async isRequestablePropertyId(propertyId: string): Promise<boolean> {
     return Boolean(
@@ -66,14 +71,16 @@ export class MongooseInquiryNotificationStateStore implements InquiryNotificatio
   async markInitialDelivered(
     inquiryId: string,
     notificationId: string,
+    leaseId: string,
     attemptedAt: Date,
   ): Promise<void> {
     await this.model.updateOne(
       {
         _id: inquiryId,
         "notification.notificationId": notificationId,
-        "notification.status": "pending",
+        "notification.status": "sending",
         "notification.attempts": 0,
+        "notification.leaseId": leaseId,
       },
       {
         $set: {
@@ -85,6 +92,8 @@ export class MongooseInquiryNotificationStateStore implements InquiryNotificatio
         $unset: {
           "notification.nextAttemptAt": 1,
           "notification.lastErrorCode": 1,
+          "notification.leaseId": 1,
+          "notification.leaseUntil": 1,
         },
       },
     );
@@ -93,6 +102,7 @@ export class MongooseInquiryNotificationStateStore implements InquiryNotificatio
   async markInitialFailed(
     inquiryId: string,
     notificationId: string,
+    leaseId: string,
     attemptedAt: Date,
     nextAttemptAt: Date,
     errorCode: string,
@@ -101,8 +111,9 @@ export class MongooseInquiryNotificationStateStore implements InquiryNotificatio
       {
         _id: inquiryId,
         "notification.notificationId": notificationId,
-        "notification.status": "pending",
+        "notification.status": "sending",
         "notification.attempts": 0,
+        "notification.leaseId": leaseId,
       },
       {
         $set: {
@@ -111,6 +122,10 @@ export class MongooseInquiryNotificationStateStore implements InquiryNotificatio
           "notification.lastAttemptAt": attemptedAt,
           "notification.nextAttemptAt": nextAttemptAt,
           "notification.lastErrorCode": errorCode,
+        },
+        $unset: {
+          "notification.leaseId": 1,
+          "notification.leaseUntil": 1,
         },
       },
     );
@@ -133,6 +148,7 @@ export class MongooseInquiryService implements InquiryService {
   ): Promise<CreateInquiryResponse> {
     const now = new Date();
     const notificationId = randomUUID();
+    const initialNotificationLeaseId = randomUUID();
     const idempotencyKeyHash = idempotencyKey
       ? createHash("sha256").update(idempotencyKey).digest("hex")
       : undefined;
@@ -148,6 +164,14 @@ export class MongooseInquiryService implements InquiryService {
     }
 
     const { requestedDate, requestedTime, ...inquiryInput } = request;
+    if (
+      inquiryInput.propertyId &&
+      !(await this.properties.isKnownPropertyId(inquiryInput.propertyId))
+    ) {
+      throw new HttpError(400, "Invalid property reference.", [
+        { field: "propertyId", message: "Select a current property." },
+      ]);
+    }
     if (inquiryInput.inquiryType === "viewing") {
       if (
         !inquiryInput.propertyId ||
@@ -190,9 +214,10 @@ export class MongooseInquiryService implements InquiryService {
         ...(idempotencyKeyHash ? { idempotencyKeyHash } : {}),
         notification: {
           notificationId,
-          status: "pending",
+          status: "sending",
           attempts: 0,
-          nextAttemptAt: now,
+          leaseId: initialNotificationLeaseId,
+          leaseUntil: new Date(now.getTime() + INITIAL_NOTIFICATION_LEASE_MS),
         },
       });
     } catch (error) {
@@ -217,6 +242,7 @@ export class MongooseInquiryService implements InquiryService {
         await this.notificationState.markInitialDelivered(
           inquiryId,
           notificationId,
+          initialNotificationLeaseId,
           attemptedAt,
         );
       } catch (error) {
@@ -236,6 +262,7 @@ export class MongooseInquiryService implements InquiryService {
         await this.notificationState.markInitialFailed(
           inquiryId,
           notificationId,
+          initialNotificationLeaseId,
           attemptedAt,
           nextInquiryNotificationAttempt(1, attemptedAt),
           errorCode,
@@ -654,11 +681,19 @@ export class DefaultAdminInquiryService implements AdminInquiryService {
     }
     const nextInquiryStatus = synchronizedInquiryStatus(current.status, input.status);
     const occurredAt = context.occurredAt ?? new Date();
+    const transitionInput =
+      input.status === "completed" || input.status === "canceled"
+        ? {
+            ...input,
+            requestedDate: current.viewingRequest.requestedDate,
+            requestedTime: current.viewingRequest.requestedTime,
+          }
+        : input;
     const record = await this.repository.updateViewingRequest(
       id,
       input.expectedVersion,
       current.viewingRequest.status,
-      input,
+      transitionInput,
       context.actorStaffIdentityId,
       occurredAt,
       current.status,

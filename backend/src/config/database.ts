@@ -3,6 +3,8 @@ import type { DatabaseStatus } from "@rc/shared";
 import { env } from "./env.js";
 import { errorIdentity, operationalLogger } from "../lib/operational-logger.js";
 
+export const DATABASE_OPERATION_TIMEOUT_MS = 10_000;
+
 /**
  * MongoDB connection lifecycle. No schemas or models are defined here — this module
  * only owns connecting, reporting, and disconnecting.
@@ -31,8 +33,10 @@ mongoose.connection.on("disconnected", () => {
  * and exits in every other environment.
  */
 export async function connectDatabase(): Promise<void> {
+  mongoose.set("maxTimeMS", DATABASE_OPERATION_TIMEOUT_MS);
   await mongoose.connect(env.MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: DATABASE_OPERATION_TIMEOUT_MS,
   });
 }
 

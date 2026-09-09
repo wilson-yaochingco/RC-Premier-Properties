@@ -64,6 +64,7 @@ export interface IntegrityReport {
     errors: number;
   };
   findings: IntegrityFinding[];
+  omittedFindings?: number;
 }
 
 function entityId(value: unknown): string {
@@ -93,14 +94,26 @@ function duplicateValues<T>(
 export function inspectDataIntegrity(
   snapshot: IntegritySnapshot,
   now: Date = new Date(),
+  maxFindings = 500,
 ): IntegrityReport {
   const findings: IntegrityFinding[] = [];
+  let warnings = 0;
+  let errors = 0;
+  let omittedFindings = 0;
   const add = (
     severity: IntegritySeverity,
     code: string,
     type: IntegrityFinding["entityType"],
     id: unknown,
-  ) => findings.push({ severity, code, entityType: type, entityId: entityId(id) });
+  ) => {
+    if (severity === "warning") warnings += 1;
+    else errors += 1;
+    if (findings.length < maxFindings) {
+      findings.push({ severity, code, entityType: type, entityId: entityId(id) });
+    } else {
+      omittedFindings += 1;
+    }
+  };
 
   const duplicatePropertyIds = duplicateValues(snapshot.properties, (record) =>
     record.propertyId?.toUpperCase(),
@@ -226,26 +239,215 @@ export function inspectDataIntegrity(
       properties: snapshot.properties.length,
       inquiries: snapshot.inquiries.length,
       cleanupDebt: snapshot.cleanupDebt.length,
-      warnings: findings.filter((finding) => finding.severity === "warning").length,
-      errors: findings.filter((finding) => finding.severity === "error").length,
+      warnings,
+      errors,
     },
     findings,
+    ...(omittedFindings > 0 ? { omittedFindings } : {}),
   };
 }
 
-export async function loadIntegritySnapshot(): Promise<IntegritySnapshot> {
-  const [properties, inquiries, cleanupDebt] = await Promise.all([
-    PropertyModel.find({})
-      .select("propertyId slug purpose publicationStatus coverMedia gallery")
-      .lean<IntegrityPropertyRecord[]>(),
-    InquiryModel.find({})
-      .select(
-        "+notification propertyId inquiryType status statusHistory viewingRequest",
-      )
-      .lean<IntegrityInquiryRecord[]>(),
-    PropertyMediaCleanupTaskModel.find({ status: "pending-review" })
-      .select("property status")
-      .lean<IntegrityCleanupRecord[]>(),
+const INTEGRITY_MAX_FINDINGS = 500;
+const INTEGRITY_QUERY_TIMEOUT_MS = 30_000;
+
+interface DuplicateGroup {
+  ids: unknown[];
+}
+
+interface IdOnly {
+  _id: unknown;
+}
+
+/**
+ * Scan every record without retaining growing collections together in memory.
+ * `batchSize` controls database cursor batches, never the number of records checked.
+ */
+export async function scanDataIntegrity(
+  batchSize: number,
+  now: Date = new Date(),
+): Promise<IntegrityReport> {
+  if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 500) {
+    throw new Error("Integrity scan batch size must be an integer from 1 to 500.");
+  }
+
+  const findings: IntegrityFinding[] = [];
+  let warnings = 0;
+  let errors = 0;
+  let omittedFindings = 0;
+  const add = (finding: IntegrityFinding) => {
+    if (finding.severity === "warning") warnings += 1;
+    else errors += 1;
+    if (findings.length < INTEGRITY_MAX_FINDINGS) findings.push(finding);
+    else omittedFindings += 1;
+  };
+  const addFrom = (
+    report: IntegrityReport,
+    entityType: IntegrityFinding["entityType"],
+  ) =>
+    report.findings.filter((finding) => finding.entityType === entityType).forEach(add);
+
+  const [propertyCount, inquiryCount, cleanupDebtCount] = await Promise.all([
+    PropertyModel.countDocuments({}).maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS),
+    InquiryModel.countDocuments({}).maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS),
+    PropertyMediaCleanupTaskModel.countDocuments({
+      status: "pending-review",
+    }).maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS),
   ]);
-  return { properties, inquiries, cleanupDebt };
+
+  const duplicatePropertyIds = PropertyModel.aggregate<DuplicateGroup>([
+    { $match: { propertyId: { $type: "string" } } },
+    {
+      $group: {
+        _id: { $toUpper: "$propertyId" },
+        ids: { $push: "$_id" },
+        count: { $sum: 1 },
+      },
+    },
+    { $match: { count: { $gt: 1 } } },
+    { $project: { _id: 0, ids: 1 } },
+  ])
+    .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
+    .cursor({ batchSize });
+  for await (const group of duplicatePropertyIds) {
+    for (const id of group.ids) {
+      add({
+        severity: "error",
+        code: "property_id_duplicate",
+        entityType: "property",
+        entityId: entityId(id),
+      });
+    }
+  }
+
+  const duplicateSlugs = PropertyModel.aggregate<DuplicateGroup>([
+    { $match: { slug: { $type: "string" } } },
+    { $group: { _id: "$slug", ids: { $push: "$_id" }, count: { $sum: 1 } } },
+    { $match: { count: { $gt: 1 } } },
+    { $project: { _id: 0, ids: 1 } },
+  ])
+    .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
+    .cursor({ batchSize });
+  for await (const group of duplicateSlugs) {
+    for (const id of group.ids) {
+      add({
+        severity: "error",
+        code: "property_slug_duplicate",
+        entityType: "property",
+        entityId: entityId(id),
+      });
+    }
+  }
+
+  const duplicateNotifications = InquiryModel.aggregate<DuplicateGroup>([
+    { $match: { "notification.notificationId": { $type: "string" } } },
+    {
+      $group: {
+        _id: "$notification.notificationId",
+        ids: { $push: "$_id" },
+        count: { $sum: 1 },
+      },
+    },
+    { $match: { count: { $gt: 1 } } },
+    { $project: { _id: 0, ids: 1 } },
+  ])
+    .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
+    .cursor({ batchSize });
+  for await (const group of duplicateNotifications) {
+    for (const id of group.ids) {
+      add({
+        severity: "error",
+        code: "notification_identity_duplicate",
+        entityType: "inquiry",
+        entityId: entityId(id),
+      });
+    }
+  }
+
+  const missingPropertyReferences = InquiryModel.aggregate<IdOnly>([
+    { $match: { propertyId: { $type: "string" } } },
+    {
+      $lookup: {
+        from: PropertyModel.collection.name,
+        localField: "propertyId",
+        foreignField: "propertyId",
+        as: "referencedProperty",
+      },
+    },
+    { $match: { "referencedProperty.0": { $exists: false } } },
+    { $project: { _id: 1 } },
+  ])
+    .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
+    .cursor({ batchSize });
+  for await (const record of missingPropertyReferences) {
+    add({
+      severity: "error",
+      code: "inquiry_property_missing",
+      entityType: "inquiry",
+      entityId: entityId(record._id),
+    });
+  }
+
+  const propertyCursor = PropertyModel.find({})
+    .select("propertyId slug purpose publicationStatus coverMedia gallery")
+    .maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS)
+    .lean<IntegrityPropertyRecord>()
+    .cursor({ batchSize });
+  for await (const property of propertyCursor) {
+    addFrom(
+      inspectDataIntegrity(
+        { properties: [property], inquiries: [], cleanupDebt: [] },
+        now,
+      ),
+      "property",
+    );
+  }
+
+  const inquiryCursor = InquiryModel.find({})
+    .select("+notification propertyId inquiryType status statusHistory viewingRequest")
+    .maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS)
+    .lean<IntegrityInquiryRecord>()
+    .cursor({ batchSize });
+  for await (const inquiry of inquiryCursor) {
+    addFrom(
+      inspectDataIntegrity(
+        {
+          properties: inquiry.propertyId
+            ? [{ _id: "synthetic-reference", propertyId: inquiry.propertyId }]
+            : [],
+          inquiries: [inquiry],
+          cleanupDebt: [],
+        },
+        now,
+      ),
+      "inquiry",
+    );
+  }
+
+  const cleanupCursor = PropertyMediaCleanupTaskModel.find({
+    status: "pending-review",
+  })
+    .select("property status")
+    .maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS)
+    .lean<IntegrityCleanupRecord>()
+    .cursor({ batchSize });
+  for await (const debt of cleanupCursor) {
+    addFrom(
+      inspectDataIntegrity({ properties: [], inquiries: [], cleanupDebt: [debt] }, now),
+      "media-cleanup",
+    );
+  }
+
+  return {
+    mode: "scan-only",
+    generatedAt: now.toISOString(),
+    counts: {
+      properties: propertyCount,
+      inquiries: inquiryCount,
+      cleanupDebt: cleanupDebtCount,
+      warnings,
+      errors,
+    },
+    findings,
+    ...(omittedFindings > 0 ? { omittedFindings } : {}),
+  };
 }

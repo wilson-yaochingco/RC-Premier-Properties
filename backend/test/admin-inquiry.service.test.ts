@@ -358,15 +358,24 @@ describe("admin inquiry service", () => {
       INQUIRY_ID,
       {
         status: "completed",
-        requestedDate: "2026-09-20",
-        requestedTime: "10:30",
+        requestedDate: "2020-01-01",
+        requestedTime: "23:59",
         expectedVersion: confirmed?.version ?? -1,
       },
       CONTEXT,
     );
     expect(completed).toMatchObject({
       status: "in-progress",
-      viewingRequest: { status: "completed" },
+      viewingRequest: {
+        status: "completed",
+        requestedDate: "2026-09-20",
+        requestedTime: "10:30",
+      },
+    });
+    expect(completed?.viewingRequest?.statusHistory.at(-1)).toMatchObject({
+      toStatus: "completed",
+      requestedDate: "2026-09-20",
+      requestedTime: "10:30",
     });
     expect(audits.map((event) => event.action)).toEqual([
       "viewing.confirmed",

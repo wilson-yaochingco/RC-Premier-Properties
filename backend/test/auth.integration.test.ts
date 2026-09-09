@@ -20,6 +20,7 @@ import { createApp } from "../src/app.js";
 import { errorHandler, HttpError } from "../src/middleware/errorHandler.js";
 import { requestContext } from "../src/middleware/requestContext.js";
 import { createAuthCookieSettings } from "../src/modules/auth/auth.cookies.js";
+import { createCallbackFailureRateLimit } from "../src/middleware/callbackFailureRateLimit.js";
 import { AuthCrypto } from "../src/modules/auth/auth.crypto.js";
 import { OidcVerificationError } from "../src/modules/auth/auth.oidc.js";
 import { requirePermission } from "../src/modules/auth/auth.middleware.js";
@@ -698,6 +699,7 @@ function buildApp(
       service: auth.service,
       cookies: auth.cookies,
       loginRateLimit: passThrough,
+      callbackFailureRateLimit: passThrough,
     },
     propertyService: makePropertyService(),
     adminPropertyService:
@@ -848,6 +850,36 @@ describe("Phase 3A authentication HTTP boundary", () => {
       message: "Too many login attempts, please try again later.",
     });
     expect(limited.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("rate limits callback failures separately with one generic response", async () => {
+    const app = createApp({
+      auth: {
+        service: auth.service,
+        cookies: auth.cookies,
+        loginRateLimit: passThrough,
+        callbackFailureRateLimit: createCallbackFailureRateLimit(2),
+      },
+      propertyService: makePropertyService(),
+      inquiryRateLimit: passThrough,
+    });
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const failed = await request(app)
+        .get(`${API_PREFIX}/auth/callback`)
+        .query({ code: "invalid-signature", state: `invalid-${attempt}` });
+      expect(failed.status).toBe(401);
+      expect(failed.body.message).toBe("Authentication failed.");
+    }
+    const limited = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid", state: "still-generic" });
+    expect(limited.status).toBe(429);
+    expect(limited.body).toEqual({
+      status: "error",
+      statusCode: 429,
+      message: "Too many authentication attempts, please try again later.",
+    });
   });
 
   it("allows credentialed CORS only for the configured exact origin", async () => {

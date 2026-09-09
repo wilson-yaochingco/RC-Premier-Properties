@@ -20,6 +20,7 @@ import { formatLocation, formatPrice } from "./property-format";
 import styles from "./property-map.module.css";
 
 const BOUNDARY_URL = "/geo/pampanga-admin3.geojson";
+const MAP_ASSET_TIMEOUT_MS = 8_000;
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -179,7 +180,12 @@ export function PropertyMapCanvas({
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch(BOUNDARY_URL, { signal: controller.signal })
+    fetch(BOUNDARY_URL, {
+      signal: AbortSignal.any([
+        controller.signal,
+        AbortSignal.timeout(MAP_ASSET_TIMEOUT_MS),
+      ]),
+    })
       .then(async (response) => {
         if (!response.ok)
           throw new Error(`Boundary request failed: ${response.status}`);

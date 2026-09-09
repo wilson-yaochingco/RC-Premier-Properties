@@ -80,9 +80,26 @@ describe("production deployment configuration", () => {
       "mongodb://db.example.test/rc_premier",
       "mongodb://localhost/rc_premier?tls=true",
       "mongodb+srv://cluster.example.test/",
+      "mongodb+srv://cluster.example.test/rc_premier?tls=false",
+      "mongodb+srv://cluster.example.test/rc_premier?ssl=false",
+      "mongodb+srv://cluster.example.test/rc_premier?tls=true&ssl=false",
+      "mongodb://db.example.test/rc_premier?tls=true&tls=false",
+      "mongodb://db.example.test/rc_premier?TLS=TRUE&tls=false",
+      "mongodb://db.example.test/rc_premier?tls=1",
+      "mongodb+srv://cluster.example.test/rc_premier?tlsInsecure=true",
+      "mongodb+srv://cluster.example.test/rc_premier?tlsAllowInvalidCertificates=true",
+      "mongodb+srv://cluster.example.test/rc_premier?tlsAllowInvalidHostnames=true",
+      "mongodb+srv://cluster.example.test/rc_premier?sslValidate=false",
     ]) {
       expect(() => validateMongoDbUri("production", value)).toThrow(/MONGODB_URI/);
     }
+  });
+
+  it("keeps local development flexible without weakening production-equivalent staging", () => {
+    const local = "mongodb://127.0.0.1:27017/rc_premier?tls=false";
+    expect(validateMongoDbUri("development", local)).toBe(local);
+    expect(validateMongoDbUri("test", local)).toBe(local);
+    expect(() => validateMongoDbUri("production", local)).toThrow(/MONGODB_URI/);
   });
 });
 

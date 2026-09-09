@@ -142,20 +142,20 @@ the listing. See [`property-media.md`](../architecture/property-media.md).
 Accepts `CreateInquiryRequest` as JSON. The request must use an
 `application/json`-compatible content type:
 
-| Field            | Requirement                                                                |
-| ---------------- | -------------------------------------------------------------------------- |
-| `name`           | required, 2–100 characters                                                 |
-| `email`          | required valid address, up to 254 characters; normalized to lowercase      |
-| `phone`          | optional, up to 30 characters, validated as a phone-like value             |
-| `inquiryType`    | required: `general`, `property`, `viewing` or `selling`                    |
-| `source`         | required: `contact-page`, `property-detail`, `viewing-page` or `sell-page` |
-| `propertyId`     | optional normally; viewing requires a published, not-sold sale property    |
-| `subject`        | optional, up to 150 characters                                             |
-| `message`        | required normally; optional for viewing; 10–3,000 characters when supplied |
-| `requestedDate`  | viewing only; required real future `YYYY-MM-DD` Philippine date            |
-| `requestedTime`  | viewing only; required valid 24-hour `HH:mm` Philippine time               |
-| `privacyConsent` | must be the boolean `true`                                                 |
-| `website`        | optional honeypot; legitimate clients leave it empty                       |
+| Field            | Requirement                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| `name`           | required, 2–100 characters                                                                     |
+| `email`          | required valid address, up to 254 characters; normalized to lowercase                          |
+| `phone`          | optional, up to 30 characters, validated as a phone-like value                                 |
+| `inquiryType`    | required: `general`, `property`, `viewing` or `selling`                                        |
+| `source`         | required: `contact-page`, `property-detail`, `viewing-page` or `sell-page`                     |
+| `propertyId`     | optional; if supplied it must exist; viewing also requires a published, not-sold sale property |
+| `subject`        | optional, up to 150 characters                                                                 |
+| `message`        | required normally; optional for viewing; 10–3,000 characters when supplied                     |
+| `requestedDate`  | viewing only; required real future `YYYY-MM-DD` Philippine date                                |
+| `requestedTime`  | viewing only; required valid 24-hour `HH:mm` Philippine time                                   |
+| `privacyConsent` | must be the boolean `true`                                                                     |
+| `website`        | optional honeypot; legitimate clients leave it empty                                           |
 
 Unknown fields are rejected. A valid request returns only an opaque inquiry identifier,
 `received` status, acknowledgment text and creation time; submitted personal data is
@@ -175,6 +175,11 @@ A viewing inquiry creates structured `requested` appointment state. Its source m
 published sale property that is not sold. The acknowledgment explicitly says the requested
 schedule still needs staff confirmation; the endpoint does not expose calendar
 availability or confirm an appointment.
+
+For every inquiry type, a supplied `propertyId` is a relational reference rather than
+free text and must identify a current property. This keeps accepted inquiries aligned
+with the scan-only integrity contract. Viewing applies the stricter publication,
+sales-purpose, and availability rules above.
 
 ## Errors
 

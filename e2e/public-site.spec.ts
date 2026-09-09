@@ -400,6 +400,13 @@ test("server validation is focused, linked, and preserved beside each inquiry fi
   await expect(page.getByLabel("Name")).toHaveValue("Playwright Visitor");
 });
 
+test("an unrelated admin-prefixed 404 retains the public chrome", async ({ page }) => {
+  await page.goto("/administrator");
+  await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
 test("viewing form submits a structured unconfirmed appointment request", async ({
   page,
 }) => {

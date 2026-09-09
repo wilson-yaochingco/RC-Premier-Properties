@@ -584,6 +584,7 @@ describe("admin property validation", () => {
       location: { ...DRAFT_REQUEST.location, internalNotes: "private" },
     },
     { ...DRAFT_REQUEST, propertyType: "castle" },
+    { ...DRAFT_REQUEST, purpose: "rent" },
     { ...DRAFT_REQUEST, price: { amount: -1, negotiable: false } },
     { ...DRAFT_REQUEST, specifications: { bedrooms: 1.5 } },
   ])("rejects invalid or unknown create fields", (body) => {
@@ -615,6 +616,9 @@ describe("admin property validation", () => {
     ).toThrow(HttpError);
     expect(() =>
       parseUpdateDraftPropertyBody({ expectedVersion: 3, availability: "sold" }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseUpdateDraftPropertyBody({ expectedVersion: 3, purpose: "rent" }),
     ).toThrow(HttpError);
     expect(parseAdminPropertyTransitionBody({ expectedVersion: 3 })).toEqual({
       expectedVersion: 3,

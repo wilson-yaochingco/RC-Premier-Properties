@@ -3,7 +3,7 @@ import type {
   CreateDraftPropertyRequest,
   UpdateDraftPropertyRequest,
 } from "@rc/shared";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import type { SecurityAuditEventInput } from "../src/modules/auth/auth.types.js";
 import { DefaultAdminPropertyService } from "../src/modules/properties/property.service.js";
@@ -147,17 +147,22 @@ class MemoryAdminPropertyRepository implements PropertyAdminRepository {
   }
 }
 
-function makeService(mediaStorage?: PropertyMediaStorage) {
+function makeService(
+  mediaStorage?: PropertyMediaStorage,
+  failures: { audit?: Error; cleanupDebt?: Error } = {},
+) {
   const repository = new MemoryAdminPropertyRepository();
   const audits: SecurityAuditEventInput[] = [];
   const cleanupDebts: MediaCleanupDebtInput[] = [];
   const audit = {
     async recordAudit(event: SecurityAuditEventInput) {
+      if (failures.audit) throw failures.audit;
       audits.push(event);
     },
   };
   const cleanupDebt = {
     async record(input: MediaCleanupDebtInput) {
+      if (failures.cleanupDebt) throw failures.cleanupDebt;
       cleanupDebts.push(input);
     },
   };
@@ -216,6 +221,87 @@ describe("admin property service", () => {
     expect(JSON.stringify(audits)).not.toContain(stored.url);
   });
 
+  it("never deletes a referenced upload when its post-commit audit write fails", async () => {
+    const stored = {
+      id: "media-audit-boundary",
+      url: "/media/properties/audit-boundary.webp",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: vi.fn().mockResolvedValue(stored),
+      remove,
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage, {
+      audit: new Error("audit unavailable"),
+    });
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Audit failure fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-audit-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("audit unavailable");
+
+    expect(repository.record.gallery).toEqual([
+      expect.objectContaining({ id: stored.id, url: stored.url }),
+    ]);
+    expect(remove).not.toHaveBeenCalled();
+    expect(cleanupDebts).toEqual([]);
+  });
+
+  it("compensates storage only when media metadata fails before commit", async () => {
+    const stored = {
+      id: "media-metadata-failure",
+      url: "/media/properties/metadata-failure.webp",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: vi.fn().mockResolvedValue(stored),
+      remove,
+    };
+    const { repository, service } = makeService(mediaStorage);
+    vi.spyOn(repository, "updateMedia").mockRejectedValueOnce(
+      new Error("metadata unavailable"),
+    );
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Metadata failure fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-metadata-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("metadata unavailable");
+
+    expect(repository.record.gallery).toEqual([]);
+    expect(remove).toHaveBeenCalledOnce();
+    expect(remove).toHaveBeenCalledWith(stored.url);
+  });
+
   it("keeps removed metadata removed and records cleanup debt when owned-object deletion fails", async () => {
     const oldMedia: AdminPropertyMediaInput = {
       id: "media-old-0001",
@@ -256,6 +342,83 @@ describe("admin property service", () => {
         reason: "metadata-removed",
       }),
     ]);
+  });
+
+  it("does not physically delete removed media when audit fails and records cleanup debt", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-old-audit-0001",
+      kind: "image",
+      url: "/media/properties/22222222-2222-4222-8222-222222222222.webp",
+      alt: "Old image",
+      source: "production",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove,
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage, {
+      audit: new Error("audit unavailable"),
+    });
+    repository.record.gallery = [oldMedia];
+    repository.record.coverMedia = oldMedia;
+
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 0, media: [] },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-remove-audit-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("audit unavailable");
+
+    expect(repository.record.gallery).toEqual([]);
+    expect(remove).not.toHaveBeenCalled();
+    expect(cleanupDebts).toEqual([
+      expect.objectContaining({
+        objectReference: oldMedia.url,
+        reason: "metadata-removed",
+        errorCode: "audit_write_failed",
+      }),
+    ]);
+  });
+
+  it("keeps removed metadata removed when deletion and debt persistence both fail", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-double-failure-0001",
+      kind: "image",
+      url: "/media/properties/33333333-3333-4333-8333-333333333333.webp",
+      alt: "Old image",
+      source: "production",
+    };
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove: async () => {
+        throw new Error("storage unavailable");
+      },
+    };
+    const { repository, service } = makeService(mediaStorage, {
+      cleanupDebt: new Error("cleanup database unavailable"),
+    });
+    repository.record.gallery = [oldMedia];
+
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 0, media: [] },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-double-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).resolves.toMatchObject({ gallery: [] });
+    expect(repository.record.gallery).toEqual([]);
   });
 
   it("does not change metadata when storage fails before an upload is persisted", async () => {
@@ -353,6 +516,49 @@ describe("admin property service", () => {
     expect(serialized).not.toContain(CREATE_REQUEST.description);
     expect(serialized).not.toContain(CREATE_REQUEST.shortDescription);
     expect(serialized).not.toContain(CREATE_REQUEST.highlights[0]);
+  });
+
+  it("rejects non-sale creation, editing, and publication at the service boundary", async () => {
+    const { audits, repository, service } = makeService();
+    await expect(
+      service.createDraft(
+        { ...CREATE_REQUEST, purpose: "rent" } as unknown as CreateDraftPropertyRequest,
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-rental-create",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+
+    repository.record.purpose = "rent";
+    await expect(
+      service.updateDraft(
+        PROPERTY_ID,
+        { expectedVersion: 0, title: "Must remain unchanged" },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-rental-edit",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      service.publish(
+        PROPERTY_ID,
+        { expectedVersion: 0 },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-rental-publish",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    expect(repository.created).toBeUndefined();
+    expect(repository.updated).toBeUndefined();
+    expect(repository.record.publicationStatus).toBe("draft");
+    expect(audits).toEqual([]);
   });
 
   it("returns pagination metadata and passes all admin filters to the repository", async () => {

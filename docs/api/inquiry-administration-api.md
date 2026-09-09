@@ -43,8 +43,9 @@ dedicated action so it can preserve and restore the previous status. Note bodies
 
 Viewing bodies contain `status`, `requestedDate`, `requestedTime` and `expectedVersion`.
 Confirmation and reschedule require a future real calendar date and valid `HH:mm`
-Philippine time. Completion and cancellation preserve and validate the recorded schedule
-but may occur after it. Invalid or terminal transitions return `409`.
+Philippine time. Completion and cancellation ignore replacement schedule values and copy
+the current recorded schedule into the terminal history entry; they may occur after it.
+Invalid or terminal transitions return `409`.
 
 Viewing confirmation synchronizes inquiry status to `viewing-scheduled` only from `new`
 or `in-progress`. Reschedule, completion and cancellation return `viewing-scheduled` to

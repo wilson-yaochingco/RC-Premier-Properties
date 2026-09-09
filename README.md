@@ -12,16 +12,15 @@ Full-stack real estate web application for Angeles City and the wider Pampanga m
 > pass, and no production inventory or seed data is supplied. Level 11 deployment
 > engineering is provider-neutral; no live staging/production environment is claimed.
 
-Staff authentication, property lifecycle administration and lightweight staff inquiry
-management are implemented, including structured property viewing requests and a staff
+Staff authentication, sales-only property lifecycle administration and lightweight staff
+inquiry management are implemented, including structured viewing requests and a staff
 confirmation/reschedule/cancellation/completion lifecycle; production Auth0 assurance
-still requires its documented manual acceptance pass. Public inquiry reads, instant or
-calendar-backed appointment booking, binary media uploads, favorites, payments and
-notifications are not implemented. Authorized property image-reference management and
-public galleries are implemented; provider-backed upload remains blocked. A requested
-viewing becomes confirmed only through staff action. The approved brand and public
-business contact details are present; production inventory and listing media remain
-external inputs.
+still requires its documented manual acceptance pass. Device-image validation, local
+development storage, authorized media management, public galleries, and durable
+provider-neutral inquiry-notification retries are implemented. Production object storage,
+transactional email, instant/calendar-backed appointment booking, favorites, payments,
+production inventory, and listing media remain external or deferred. A requested viewing
+becomes confirmed only through staff action.
 
 ## Stack
 

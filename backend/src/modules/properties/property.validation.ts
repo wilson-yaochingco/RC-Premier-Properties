@@ -1,5 +1,6 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
+  ADMIN_LISTING_PURPOSES,
   LISTING_PURPOSES,
   MAX_PROPERTY_IMAGES,
   PROPERTY_AVAILABILITY,
@@ -693,7 +694,7 @@ function parseAdminPropertyContent(
   }
 
   if (rawBody.purpose !== undefined || required) {
-    const value = bodyEnum(rawBody.purpose, "purpose", LISTING_PURPOSES, issues);
+    const value = bodyEnum(rawBody.purpose, "purpose", ADMIN_LISTING_PURPOSES, issues);
     if (value) result.purpose = value;
   }
   if (rawBody.propertyType !== undefined || required) {

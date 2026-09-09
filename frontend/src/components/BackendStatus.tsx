@@ -19,7 +19,9 @@ export default function BackendStatus() {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch(apiUrl(`${API_PREFIX}/health`), { signal: controller.signal })
+    fetch(apiUrl(`${API_PREFIX}/health`), {
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]),
+    })
       .then((res) =>
         res.ok ? (res.json() as Promise<HealthResponse>) : Promise.reject(res.status),
       )

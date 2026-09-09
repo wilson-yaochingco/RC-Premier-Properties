@@ -25,20 +25,20 @@ Architecture is documented separately in
 The overall status describes the complete product phase. The three workstream columns
 make ownership and dependencies visible without treating skipped UI work as completed.
 
-| Phase | Name                                  | Overall | Backend / data      | Frontend / UI     | Business / external              | In MVP?     |
-| ----- | ------------------------------------- | ------- | ------------------- | ----------------- | -------------------------------- | ----------- |
-| 0     | Project Foundation                    | 🟩      | 🟩 Complete         | 🟩 Complete       | ↪ Branch protection follow-up    | Yes         |
-| 1     | Product Planning, Brand & UX          | 🟦      | 🟩 Complete         | ↪ External owner  | ⛔ Logo and lifecycle approval   | Yes         |
-| 2A    | Core Public Website MVP               | 🟦      | 🟩 Implemented      | ↪ External owner  | ⛔ Supplied production inventory | Yes         |
-| 2B    | Enhanced Property Experience          | ↪       | ↪ Deferred          | ↪ Deferred        | ↪ Requirements deferred          | No          |
-| 3A    | Secure Property Administration        | 🟦      | 🟦 Auth + draft API | 🟦 Admin draft UI | ⛔ Production MFA assurance gate | Partly      |
-| 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Requirements not validated    | No          |
-| 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Requirements not validated    | No          |
-| 5     | Communication & AI                    | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Providers not selected        | No          |
-| 6     | Production Hardening & Launch         | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Infrastructure not selected   | Launch gate |
-| 7     | Post-Launch Growth                    | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Prioritize after launch       | No          |
+| Phase | Name                                  | Overall | Backend / data | Frontend / UI    | Business / external               | In MVP?     |
+| ----- | ------------------------------------- | ------- | -------------- | ---------------- | --------------------------------- | ----------- |
+| 0     | Project Foundation                    | 🟩      | 🟩 Complete    | 🟩 Complete      | ↪ Branch protection follow-up     | Yes         |
+| 1     | Product Planning, Brand & UX          | 🟦      | 🟩 Complete    | ↪ External owner | ⛔ Logo and lifecycle approval    | Yes         |
+| 2A    | Core Public Website MVP               | 🟦      | 🟩 Implemented | ↪ External owner | ⛔ Supplied production inventory  | Yes         |
+| 2B    | Enhanced Property Experience          | ↪       | ↪ Deferred     | ↪ Deferred       | ↪ Requirements deferred           | No          |
+| 3A    | Secure Property Administration        | 🟦      | 🟩 Implemented | 🟩 Implemented   | ⛔ Production MFA assurance gate  | Partly      |
+| 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated     | No          |
+| 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated     | No          |
+| 5     | Communication & AI                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Providers not selected         | No          |
+| 6     | Production Hardening & Launch         | 🟦      | 🟩 Levels 8–14 | 🟩 Levels 8–14   | ⛔ Live infrastructure/acceptance | Launch gate |
+| 7     | Post-Launch Growth                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Prioritize after launch        | No          |
 
-**Phase 0 is Complete. Phases 1, 2A and 3A are In Progress.** The Atlas connection and
+**Phase 0 is Complete. Phases 1, 2A, 3A and 6 are In Progress.** The Atlas connection and
 live health response were verified on 2026-09-05. Repository-admin branch protection is
 an accepted follow-up rather than a Phase 0 completion gate; until it is enabled, the
 documented pull-request workflow remains enforced by convention. Phase 1 now has the
@@ -49,12 +49,12 @@ is not evidence that a capability works.
 
 ### Active implementation ownership
 
-The active engineering focus is backend and feature infrastructure. Broader frontend/UI
-ownership remains external, but Phase 3A now includes the explicitly requested minimal
-admin shell and draft-property forms; that slice is not treated as completion of the
-full interface. Phase 2B is intentionally deferred because it is outside the public MVP.
-Phase 3A has its backend authentication foundation plus the first permission-protected
-private property read and draft create/edit capability.
+The implemented Phase 3A repository slice includes the protected admin shell, complete
+property lifecycle, device media upload boundary, and lightweight inquiry/viewing
+administration. Its phase remains open for live Auth0/MongoDB acceptance and production
+media infrastructure. Phase 6 repository hardening through Level 14 is implemented, but
+the production launch gate remains open for the explicitly tracked live infrastructure,
+security, monitoring, device, and recovery evidence. Phase 2B remains deferred.
 
 This ownership split does not weaken dependency rules or a phase's Definition of Done.
 A backend workstream may be complete while the overall product phase remains open. Do
@@ -704,12 +704,12 @@ changed, not the personal data it contained.
 
 ### Security requirements
 
-- [ ] Every admin endpoint enforces authentication **and** authorization server-side
+- [x] Every implemented admin endpoint enforces authentication **and** authorization server-side
 - [ ] Broken access control tested explicitly: client role cannot reach admin endpoints,
       agent cannot reach another agent's data
-- [ ] Uploads validated by MIME type and size; filenames sanitised; uploads cannot be
+- [x] Uploads validated by MIME type and size; client filenames are not accepted; uploads cannot be
       executed
-- [ ] Login rate limiting and lockout in place
+- [x] Login-start and failed-callback rate limiting in place; provider lockout remains external
 - [x] Sessions expire; logout genuinely invalidates
 - [x] Inquiry and property audit events capture sensitive actions without sensitive values
 - [x] Admin routes excluded from public search indexing
@@ -718,8 +718,8 @@ changed, not the personal data it contained.
 
 - [ ] **Authorization tests are mandatory**, not optional: every role against every
       sensitive endpoint
-- [ ] Integration tests for the full listing lifecycle
-- [ ] Upload tests including malicious file types and oversized files
+- [x] Integration tests for the implemented full listing lifecycle
+- [x] Upload tests including malicious file types and oversized files
 - [x] Authentication abuse tests: brute force, session fixation, expired tokens
 
 ### Documentation to update
@@ -729,15 +729,15 @@ changed, not the personal data it contained.
 
 ### Definition of Done
 
-- [ ] Staff can perform the full listing lifecycle through the UI
+- [x] Staff can perform the implemented full listing lifecycle through the UI
 - [x] Authentication implemented with the chosen approach documented
-- [ ] Role-based authorization enforced server-side on every sensitive action
-- [ ] Authorization tests pass for every role/endpoint combination
-- [ ] Media upload secure, validated and working
+- [x] Role-based authorization enforced server-side on every implemented sensitive action
+- [x] Current invited-admin authorization matrix passes; future roles remain deferred
+- [x] Media upload secure, validated and working in development; production provider remains blocked
 - [x] Inquiry management usable by staff
 - [x] Audit trail records property and inquiry changes without sensitive values
-- [ ] Tests pass; security requirements verified
-- [ ] Documentation updated
+- [x] Repository tests pass; live security acceptance remains separately gated
+- [x] Repository documentation updated through Level 14
 
 ### Not in this phase
 

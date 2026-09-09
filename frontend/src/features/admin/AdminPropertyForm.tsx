@@ -11,7 +11,7 @@ import {
 } from "react";
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
-  LISTING_PURPOSES,
+  ADMIN_LISTING_PURPOSES,
   PROPERTY_TYPE_LABELS,
   PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
@@ -73,7 +73,7 @@ const EMPTY_CONTENT: AdminPropertyContentInput = {
   features: [],
 };
 
-const PURPOSE_LABELS = { sale: "For sale", rent: "For rent" } as const;
+const PURPOSE_LABELS = { sale: "For sale" } as const;
 const PRECISION_LABELS = {
   exact: "Exact (approved only)",
   approximate: "Approximate",
@@ -83,6 +83,11 @@ const PRECISION_LABELS = {
 } as const;
 
 function editableContent(property: AdminPropertyDetail): AdminPropertyContentInput {
+  if (property.purpose !== "sale") {
+    throw new Error(
+      "Non-sale records cannot be edited in the sales administration UI.",
+    );
+  }
   return {
     propertyId: property.propertyId,
     slug: property.slug,
@@ -440,9 +445,6 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
     );
   }
 
-  const content = load.property ? editableContent(load.property) : EMPTY_CONTENT;
-  const issues = submission.issues ?? [];
-
   if (
     mode === "edit" &&
     load.property &&
@@ -461,6 +463,25 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
       </section>
     );
   }
+
+  if (mode === "edit" && load.property && load.property.purpose !== "sale") {
+    return (
+      <section className={styles.page}>
+        <div className={styles.panel} role="alert">
+          <h1>This legacy non-sale record is read-only.</h1>
+          <p>
+            The production administration workflow is sales-only. Review this record
+            through the integrity report and reconcile it deliberately outside the
+            public publishing workflow.
+          </p>
+          <Link href="/admin/properties">Back to properties</Link>
+        </div>
+      </section>
+    );
+  }
+
+  const content = load.property ? editableContent(load.property) : EMPTY_CONTENT;
+  const issues = submission.issues ?? [];
 
   return (
     <section className={styles.page} aria-labelledby="property-form-title">
@@ -564,7 +585,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
             </Field>
             <Field field="purpose" label="Purpose" issues={issues}>
               <select id="purpose" name="purpose" defaultValue={content.purpose}>
-                {LISTING_PURPOSES.map((purpose) => (
+                {ADMIN_LISTING_PURPOSES.map((purpose) => (
                   <option key={purpose} value={purpose}>
                     {PURPOSE_LABELS[purpose]}
                   </option>

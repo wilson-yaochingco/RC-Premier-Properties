@@ -42,9 +42,12 @@ prompt. It is independently limited to ten starts per IP per 15 minutes.
 The callback consumes the transaction atomically before exchanging the code, preventing
 replay. `openid-client` validates state, nonce, PKCE, issuer, audience, signature and
 token expiry. Any failed validation returns the same `401 Authentication failed.`
-envelope and clears the transaction cookie. The callback is also inside the general API
-limit; valid provider exchanges additionally require a transaction created through the
-stricter login-start limit.
+envelope and clears the transaction cookie. The callback is inside the general API limit
+and a separate failed-callback budget of 20 per IP per 15 minutes. Successful callbacks
+are removed from that failure counter, and all rejected callbacks retain the same generic
+envelope. Valid provider exchanges additionally require a transaction created through the
+stricter login-start limit. Application limiters are process-local; a multi-instance
+deployment still requires the separately tracked shared edge/WAF enforcement contract.
 
 A valid provider identity must then match an active local record by exact `(issuer,
 subject)`, have the local `admin` role, and contain the configured authentication-method

@@ -49,7 +49,6 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
   background: var(--brand-white);
   color: var(--brand-primary);
   font-family: var(--font-sans);
@@ -414,18 +413,18 @@ video {
   position: sticky;
   z-index: 50;
   top: 0;
-  height: var(--header-height);
+  min-height: var(--header-height);
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.93);
   backdrop-filter: blur(10px);
 }
 
 .site-header__inner {
-  height: 100%;
+  min-height: var(--header-height);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: clamp(2rem, 5vw, 6rem);
+  gap: clamp(1rem, 3vw, 3rem);
 }
 
 .brand-name-slot {
@@ -454,7 +453,8 @@ video {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(1.5rem, 3vw, 3.5rem);
+  flex-wrap: wrap;
+  gap: 0 clamp(0.75rem, 2vw, 2rem);
 }
 
 .desktop-navigation a {
@@ -483,7 +483,7 @@ video {
 }
 
 .site-header__cta {
-  min-width: 8.5rem;
+  min-width: 0;
 }
 
 .mobile-navigation {
@@ -976,10 +976,7 @@ video {
 
 .site-footer__main {
   display: grid;
-  grid-template-columns: minmax(16rem, 1.5fr) minmax(12rem, 0.65fr) minmax(
-      12rem,
-      0.65fr
-    );
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 0.65fr));
   gap: clamp(3rem, 7vw, 8rem);
   padding-block: clamp(4rem, 7vw, 7rem) 2rem;
 }
@@ -993,6 +990,11 @@ video {
   max-width: 26rem;
   margin-top: 2rem;
   color: rgba(255, 255, 255, 0.6);
+}
+
+.site-footer__main a,
+.site-footer__main p {
+  overflow-wrap: anywhere;
 }
 
 .site-footer__navigation .eyebrow,
@@ -1278,7 +1280,7 @@ video {
   }
 
   .site-footer__main {
-    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(11rem, 0.55fr));
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 0.55fr));
     gap: 3rem;
   }
 }

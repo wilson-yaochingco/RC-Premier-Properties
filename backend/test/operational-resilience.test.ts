@@ -10,6 +10,7 @@ import { requestContext } from "../src/middleware/requestContext.js";
 import { createRequestLogging } from "../src/middleware/requestLogging.js";
 import {
   InquiryNotificationRetryService,
+  MongooseInquiryNotificationRetryStore,
   type InquiryNotificationJob,
   type InquiryNotificationRetryStore,
 } from "../src/modules/inquiries/inquiry-notification-retry.service.js";
@@ -79,6 +80,36 @@ function retryJob(attempts: number): InquiryNotificationJob {
 }
 
 describe("inquiry notification retries", () => {
+  it("claims an initial sending notification only after its lease expires", async () => {
+    const lean = vi.fn().mockResolvedValue(null);
+    const select = vi.fn(() => ({ lean }));
+    const findOneAndUpdate = vi.fn(() => ({ select }));
+    const store = new MongooseInquiryNotificationRetryStore({
+      findOneAndUpdate,
+    } as never);
+    const now = new Date("2026-09-09T01:00:00.000Z");
+
+    await expect(store.claimDue(now, "worker-lease", 60_000)).resolves.toBeNull();
+
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        $or: expect.arrayContaining([
+          {
+            "notification.status": "sending",
+            "notification.leaseUntil": { $lte: now },
+          },
+        ]),
+      }),
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          "notification.status": "sending",
+          "notification.leaseId": "worker-lease",
+        }),
+      }),
+      expect.objectContaining({ new: true }),
+    );
+  });
+
   it("uses stable idempotency, bounded backoff, and terminal failure", async () => {
     const job = retryJob(4);
     const store: InquiryNotificationRetryStore = {
@@ -229,5 +260,26 @@ describe("read-only data integrity", () => {
     );
     expect(snapshot).toEqual(before);
     expect(JSON.stringify(report)).not.toContain("synthetic@example.test");
+  });
+
+  it("bounds serialized findings while retaining complete severity counts", () => {
+    const report = inspectDataIntegrity(
+      {
+        properties: Array.from({ length: 25 }, (_, index) => ({
+          _id: `507f191e810c19729de8${String(index).padStart(4, "0")}`,
+          purpose: "rent",
+          publicationStatus: "published",
+        })),
+        inquiries: [],
+        cleanupDebt: [],
+      },
+      new Date("2026-09-09T02:00:00.000Z"),
+      10,
+    );
+
+    expect(report.findings).toHaveLength(10);
+    expect(report.counts.errors).toBe(75);
+    expect(report.omittedFindings).toBe(65);
+    expect(JSON.stringify(report)).not.toContain("rent");
   });
 });

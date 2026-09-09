@@ -75,6 +75,9 @@ a separate highly urbanized-city scope.
 The artifact embeds its source URL, revision, PSA crosswalk source/date, license URL,
 transformation note and disclaimer as top-level metadata. `scripts/build-pampanga-boundaries.mjs`
 reproduces it from the pinned source and fails if the expected area match is ambiguous.
+It is the single authoritative generator and writes only the consumed
+`frontend/public/geo/pampanga-admin3.geojson` path; the obsolete alternate-output script
+was removed in Level 14.
 Regeneration requires network access and must be followed by review of the artifact diff
 and the boundary-data tests.
 

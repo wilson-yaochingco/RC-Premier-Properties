@@ -12,6 +12,11 @@ It audits the public MVP and staff administration capabilities that exist at the
 it does not expand the product boundary. No application defect was remediated, no Level 14
 work was started, and no Level 15 feature was added.
 
+> Historical status: Level 14 subsequently remediated the confirmed repository findings.
+> The original evidence and conclusions below are intentionally unchanged; see
+> [`level-14-remediation.md`](level-14-remediation.md) for fixes, verification, retained
+> external blockers, and the updated readiness classification.
+
 ## 1. Executive summary
 
 The repository contains a substantial, coherent public and staff vertical slice. Public

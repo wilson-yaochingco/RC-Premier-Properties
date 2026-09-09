@@ -5,5 +5,5 @@ import type { ReactNode } from "react";
 
 export function PublicChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  return pathname.startsWith("/admin") ? null : children;
+  return pathname === "/admin" || pathname.startsWith("/admin/") ? null : children;
 }

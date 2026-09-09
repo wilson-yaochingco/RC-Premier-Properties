@@ -141,12 +141,18 @@ test("robots, noindex headers, sitemap, and property 404s preserve public bounda
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.ok()).toBe(true);
   const sitemapText = await sitemap.text();
-  expect(sitemapText).toContain(`${SITE_ORIGIN}/properties/clark-garden-residence`);
-  expect(sitemapText).toContain("location=Angeles+City%2C+Pampanga");
-  expect(sitemapText).not.toContain("mabalacat-skyline-condominium");
-  expect(sitemapText).not.toContain("/admin");
-  expect(sitemapText).not.toContain("/api");
-  expect(sitemapText).not.toContain("minPrice");
+  expect(sitemapText).toContain(`${SITE_ORIGIN}/sitemaps/0.xml`);
+  const sitemapShard = await request.get("/sitemaps/0.xml");
+  expect(sitemapShard.ok()).toBe(true);
+  const sitemapShardText = await sitemapShard.text();
+  expect(sitemapShardText).toContain(
+    `${SITE_ORIGIN}/properties/clark-garden-residence`,
+  );
+  expect(sitemapShardText).toContain("location=Angeles+City%2C+Pampanga");
+  expect(sitemapShardText).not.toContain("mabalacat-skyline-condominium");
+  expect(sitemapShardText).not.toContain("/admin");
+  expect(sitemapShardText).not.toContain("/api");
+  expect(sitemapShardText).not.toContain("minPrice");
 
   const adminResponse = await page.goto("/admin");
   expect(adminResponse?.headers()["x-robots-tag"]).toContain("noindex");

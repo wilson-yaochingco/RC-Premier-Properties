@@ -231,6 +231,7 @@ export function uploadPropertyImage(
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("POST", url);
+    request.timeout = 30_000;
     request.withCredentials = true;
     request.setRequestHeader("Accept", "application/json");
     request.setRequestHeader("Content-Type", file.type);
@@ -246,6 +247,14 @@ export function uploadPropertyImage(
           status: "error",
           statusCode: 0,
           message: "Unable to reach the API.",
+        }),
+      );
+    request.ontimeout = () =>
+      reject(
+        new ApiClientError({
+          status: "error",
+          statusCode: 0,
+          message: "Image upload timed out. Try again after checking the property.",
         }),
       );
     request.onload = () => {

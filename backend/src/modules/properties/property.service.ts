@@ -884,6 +884,34 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     }
   }
 
+  private async recordCleanupDebt(
+    propertyId: string,
+    objectReference: string,
+    reason: MediaCleanupReason,
+    errorCode: string,
+    requestId: string,
+  ): Promise<void> {
+    if (this.mediaStorage.owns && !this.mediaStorage.owns(objectReference)) return;
+    try {
+      await this.cleanupDebt.record({
+        propertyId,
+        objectReference,
+        reason,
+        errorCode,
+        failedAt: new Date(),
+      });
+    } catch (error) {
+      operationalLogger.error("property_media_cleanup_debt_record_failed", {
+        dependency: "mongodb",
+        entityType: "property",
+        entityId: propertyId,
+        requestId,
+        errorCode: "cleanup_debt_persistence_failed",
+        ...errorIdentity(error),
+      });
+    }
+  }
+
   async listPrivate(
     request: AdminPropertyListRequest,
   ): Promise<AdminPropertyListResponse> {
@@ -908,6 +936,9 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     input: CreateDraftPropertyRequest,
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail> {
+    if (input.purpose !== "sale") {
+      throw new HttpError(400, "Property administration is limited to sales.");
+    }
     try {
       const record = await this.repository.createDraft(createPersistenceInput(input));
       await this.audit.recordAudit({
@@ -937,6 +968,16 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     try {
       const current = await this.findExpectedRecord(id, input.expectedVersion);
       if (!current) return null;
+      const requestedPurpose = (input as { purpose?: unknown }).purpose;
+      if (
+        current.purpose !== "sale" ||
+        (requestedPurpose !== undefined && requestedPurpose !== "sale")
+      ) {
+        throw new HttpError(
+          409,
+          "Non-sale records require deliberate data reconciliation and cannot be edited here.",
+        );
+      }
       if (!["draft", "unpublished"].includes(current.publicationStatus)) {
         throw new HttpError(409, "Only draft or unpublished properties can be edited.");
       }
@@ -997,30 +1038,51 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       coverMedia,
     );
     if (!record) throw this.concurrencyConflict();
-    await this.audit.recordAudit({
-      actorStaffIdentityId: context.actorStaffIdentityId,
-      action: "property.media-updated",
-      entityType: "property",
-      entityId: String(record._id),
-      outcome: "succeeded",
-      requestId: context.requestId,
-      occurredAt: context.occurredAt ?? new Date(),
-    });
     const retainedUrls = new Set(input.media.map((item) => item.url));
-    await Promise.all(
-      current.gallery
-        .map((item) => item.url)
-        .filter(
-          (url): url is string => Boolean(url) && !retainedUrls.has(url as string),
-        )
-        .map((url) =>
-          this.removeOwnedMediaOrRecordDebt(
+    const removedUrls = current.gallery
+      .map((item) => item.url)
+      .filter((url): url is string => Boolean(url) && !retainedUrls.has(url as string));
+    try {
+      await this.audit.recordAudit({
+        actorStaffIdentityId: context.actorStaffIdentityId,
+        action: "property.media-updated",
+        entityType: "property",
+        entityId: String(record._id),
+        outcome: "succeeded",
+        requestId: context.requestId,
+        occurredAt: context.occurredAt ?? new Date(),
+      });
+    } catch (error) {
+      operationalLogger.error("property_media_audit_failed_after_commit", {
+        dependency: "mongodb",
+        entityType: "property",
+        entityId: id,
+        requestId: context.requestId,
+        errorCode: "audit_write_failed",
+        ...errorIdentity(error),
+      });
+      await Promise.all(
+        removedUrls.map((url) =>
+          this.recordCleanupDebt(
             id,
             url,
             "metadata-removed",
+            "audit_write_failed",
             context.requestId,
           ),
         ),
+      );
+      throw error;
+    }
+    await Promise.all(
+      removedUrls.map((url) =>
+        this.removeOwnedMediaOrRecordDebt(
+          id,
+          url,
+          "metadata-removed",
+          context.requestId,
+        ),
+      ),
     );
     return toAdminPropertyDetail(record);
   }
@@ -1098,24 +1160,15 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     const nextMedia = [...existingMedia, uploaded];
     const currentCoverId = current.coverMedia?.id ?? existingMedia[0]?.id;
     const cover = nextMedia.find((item) => item.id === currentCoverId) ?? uploaded;
+    let record;
     try {
-      const record = await this.repository.updateMedia(
+      record = await this.repository.updateMedia(
         id,
         input.expectedVersion,
         nextMedia,
         cover,
       );
       if (!record) throw this.concurrencyConflict();
-      await this.audit.recordAudit({
-        actorStaffIdentityId: context.actorStaffIdentityId,
-        action: "property.media-updated",
-        entityType: "property",
-        entityId: String(record._id),
-        outcome: "succeeded",
-        requestId: context.requestId,
-        occurredAt: context.occurredAt ?? new Date(),
-      });
-      return toAdminPropertyDetail(record);
     } catch (error) {
       operationalLogger.error("property_media_metadata_save_failed", {
         dependency: "mongodb",
@@ -1133,6 +1186,28 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       );
       throw error;
     }
+    try {
+      await this.audit.recordAudit({
+        actorStaffIdentityId: context.actorStaffIdentityId,
+        action: "property.media-updated",
+        entityType: "property",
+        entityId: String(record._id),
+        outcome: "succeeded",
+        requestId: context.requestId,
+        occurredAt: context.occurredAt ?? new Date(),
+      });
+      return toAdminPropertyDetail(record);
+    } catch (error) {
+      operationalLogger.error("property_media_audit_failed_after_commit", {
+        dependency: "mongodb",
+        entityType: "property",
+        entityId: id,
+        requestId: context.requestId,
+        errorCode: "audit_write_failed",
+        ...errorIdentity(error),
+      });
+      throw error;
+    }
   }
 
   async publish(
@@ -1142,6 +1217,9 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
   ): Promise<AdminPropertyDetail | null> {
     const current = await this.findExpectedRecord(id, input.expectedVersion);
     if (!current) return null;
+    if (current.purpose !== "sale") {
+      throw new HttpError(409, "Only sale properties can be published.");
+    }
     if (!["draft", "unpublished"].includes(current.publicationStatus)) {
       throw new HttpError(
         409,

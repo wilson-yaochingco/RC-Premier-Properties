@@ -101,14 +101,14 @@ Global and property not-found surfaces are also noindex. The public backend retu
 published sales records, so draft, unpublished, archived, rental, missing, and malformed
 slugs cannot render indexable property content.
 
-`sitemap.xml` is generated at request time. It contains the canonical static public
-routes, positive-count location canonicals from public facets, and every sales-only
-published property returned across public API pagination. Property `publishedAt` is the
-only listing timestamp used for `lastModified`; invalid or unavailable timestamps are
-omitted. Slugs are validated and deduplicated. Admin, API, auth, previews, arbitrary
-filters, rentals, and guessed inventory are never included. If inventory retrieval
-fails, generation returns static public routes only rather than exposing nonpublic or
-fabricated data.
+`sitemap.xml` is a bounded sitemap index. One 48-record discovery read determines stable
+`/sitemaps/{number}.xml` URLs. Each shard reads at most 20 API pages (960 summaries) in
+batches of four; only shard zero includes canonical static routes and positive-count
+location URLs. A failed later shard returns a retryable 503 for that shard without
+invalidating other shard responses. Property `publishedAt` is the only listing timestamp
+used for `lastModified`; invalid timestamps are omitted. Slugs are validated and
+deduplicated. Admin, API, auth, previews, arbitrary filters, rentals, and guessed
+inventory are never included.
 
 ## Independent public-data boundary
 

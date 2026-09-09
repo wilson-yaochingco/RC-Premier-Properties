@@ -4,7 +4,7 @@ export default function PropertiesError({ retry }: { retry: () => void }) {
   return (
     <main id="main-content" tabIndex={-1} className="route-state route-state--light">
       <p className="eyebrow">Catalog interruption</p>
-      <h1>We could not finish loading this property.</h1>
+      <h1>We could not finish loading the property catalog.</h1>
       <p>Your filters and page remain available. Retry when the API is reachable.</p>
       <button
         type="button"

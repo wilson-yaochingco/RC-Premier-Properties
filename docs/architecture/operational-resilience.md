@@ -1,7 +1,8 @@
 # Operational resilience architecture
 
-Status: Level 12 repository engineering complete; live monitoring, backup, restore, and
-provider acceptance remain blocked until infrastructure is selected and provisioned.
+Status: Level 12 architecture with Level 14 reliability remediation implemented; live
+monitoring, backup, restore, and provider acceptance remain blocked until infrastructure
+is selected and provisioned.
 
 This document records the application boundaries that make failures visible without
 turning observability into a second store of customer data. Operator procedures and
@@ -39,14 +40,16 @@ separate privacy decision explicitly approves a minimized field.
 MongoDB inquiry persistence remains the acceptance boundary:
 
 ```text
-persist inquiry + pending notification identity
+persist inquiry + owned `sending` notification identity and five-minute lease
   -> attempt email
      -> delivered
      -> retry-pending -> leased sending -> retry-pending or terminal-failure
 ```
 
 Each new inquiry embeds a private notification record with a random stable notification
-ID, state, attempt count, safe error code, due time, and optional database lease. The ID
+ID, state, attempt count, safe error code, and database lease. The initial request owns a
+five-minute `sending` lease before delivery begins, so a retry worker cannot claim the
+same notification while that send is in flight. The ID
 is distinct from the public inquiry idempotency key and contains no customer data. A mail
 adapter must pass it to its provider as the provider idempotency key where supported.
 
@@ -82,6 +85,14 @@ only reason, attempts, safe error code, and dates, and status stays `pending-rev
 Likewise, if an upload reaches storage but metadata persistence fails, failed compensating
 deletion becomes cleanup debt without masking the original database error.
 
+Metadata persistence, value-minimized audit insertion, and external-object deletion have
+an explicit order. Upload compensation may delete a newly stored object only if metadata
+did not commit. Once metadata commits, an audit failure is surfaced and the referenced
+object is retained. Removal commits metadata, then audit, then deletion; an audit failure
+therefore records cleanup debt without deleting, and a later deletion failure also records
+debt without restoring removed metadata. Local transformation cleanup failures expose a
+distinct safe error code instead of being silently discarded.
+
 No cleanup worker or automatic deletion exists. A future provider adapter must define a
 reviewed owned namespace and stable non-secret object references before removal. Object
 listing and orphan detection must produce a report only after excluding in-progress
@@ -98,12 +109,25 @@ production, the database owner and business/admin owner must approve retention a
 monitoring provider must alert on those failures. A future outbox is reconsidered only if
 independent audit durability or centralized delivery becomes a verified requirement.
 
-`ops:check-integrity` reads only lifecycle/reference metadata. It reports duplicate or
+`ops:check-integrity` reads only lifecycle/reference metadata through bounded database
+cursors. Database-side aggregations preserve duplicate and missing-reference detection
+across cursor batches. `--limit` is the cursor batch size (1–500), not a record cap; every
+record is checked. JSON retains complete severity counts but serializes at most 500
+PII-free findings and reports the omitted count. It reports duplicate or
 invalid property IDs/slugs, non-sale records, gallery/cover inconsistencies,
 inquiry/property/viewing/history inconsistencies, notification failures, and media
 cleanup debt. Output contains entity IDs and codes, not PII, addresses, coordinates, or
 media URLs. It is scan-only and contains no repair or delete mode. Property numbers and
 customer workflow history are never rewritten automatically.
+
+## Bounded I/O deadlines
+
+MongoDB applies a 10-second socket/default operation deadline in addition to server
+selection. The HTTP server bounds request/socket inactivity at 15 seconds and headers at
+10 seconds. The browser API client defaults to 15 seconds, public reads/map assets use an
+8-second boundary, and image uploads use 30 seconds. Caller cancellation remains distinct
+from a deadline so route teardown does not display a false timeout. Inquiry retries reuse
+the same browser idempotency key after uncertain failures.
 
 ## Scheduled work boundary
 
