@@ -10,11 +10,14 @@ interface NavigationItem {
 
 interface MobileNavigationProps {
   items: readonly NavigationItem[];
+  currentPath: string;
 }
 
-export function MobileNavigation({ items }: MobileNavigationProps) {
+export function MobileNavigation({ items, currentPath }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -23,6 +26,11 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    firstLinkRef.current?.focus();
   }, [isOpen]);
 
   function closeMenu() {
@@ -73,6 +81,7 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
       </button>
 
       <div
+        ref={panelRef}
         id="mobile-navigation-panel"
         className="mobile-navigation__panel"
         data-open={isOpen}
@@ -82,8 +91,20 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
           <ul>
             {items.map((item, index) => (
               <li key={item.href}>
-                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                <Link href={item.href} onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
+                <Link
+                  ref={index === 0 ? firstLinkRef : undefined}
+                  href={item.href}
+                  onClick={closeMenu}
+                  tabIndex={isOpen ? 0 : -1}
+                  aria-current={
+                    !item.href.includes("#") &&
+                    (item.href === "/"
+                      ? currentPath === "/"
+                      : currentPath.startsWith(item.href))
+                      ? "page"
+                      : undefined
+                  }
+                >
                   {item.label}
                 </Link>
               </li>

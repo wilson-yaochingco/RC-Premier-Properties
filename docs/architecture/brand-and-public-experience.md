@@ -1,7 +1,8 @@
 # Brand and Public Experience
 
-Status: approved branding and supplied website photography integrated; production listing
-inventory remains external. Last reviewed 2026-09-08.
+Status: approved branding and supplied website photography integrated; Part 1 of the
+Figma-driven public rebuild implemented; production listing inventory remains external.
+Last reviewed 2026-09-10.
 
 This decision turns the supplied RC Premier Properties brief into durable rules for the
 public website. It intentionally records no claims about company history, awards,
@@ -10,11 +11,18 @@ supplied.
 
 ## Reference interpretation
 
+The user-supplied `01-home-desktop-1440.png` is the primary visual reference for the
+current homepage and shared public shell. It contributes the full-bleed search-led hero,
+compact listing grid, narrow callout, paired editorial composition, concise location
+discovery, restrained dark footer, and lighter overall density. Its Compass branding,
+copy, inventory, claims, and product features are not part of the implementation.
+
 The [Lagom Development homepage](https://lagom-development.com/) is a visual reference
-for the home page only. The implementation borrows its editorial pacing: a tall media-led
-hero, restrained navigation, numbered section markers, asymmetric grids, generous white
-space, fine borders, large display type and measured transitions. No source code, media,
-copy or brand assets are copied.
+for the earlier public foundation only. Useful established principlesâ€”restrained
+navigation, asymmetric editorial media, generous whitespace, fine borders, and measured
+transitionsâ€”remain where they complement the supplied Figma. Decorative section numbers
+were removed from the rebuilt homepage. No source code, media, copy, or brand assets are
+copied from either reference.
 
 The [archived Presello snapshot](https://web.archive.org/web/20260105133339/https://www.presello.com/)
 is the functional reference because the live site was unavailable during the audit. The
@@ -100,6 +108,32 @@ selected.
 The last route records a request, not a confirmed appointment. Scheduling and booking
 management remain Phase 2B work.
 
+## Figma-driven homepage and shared shell
+
+The homepage keeps server-rendered, API-backed featured listings and location facets. Its
+hero search submits the existing allowlisted sales keyword state to `/properties`; it
+does not introduce rental inventory or a second search contract. Empty and unavailable
+states remain honest when the API or published inventory is absent.
+
+The desktop header overlays the homepage hero and uses a compact version of the approved
+logo, while other public routes retain a light sticky header. The mobile menu moves focus
+into the open panel, traps keyboard focus, closes on Escape, and returns focus to its
+trigger. Current-route state is exposed with `aria-current` where a stable page route can
+be determined.
+
+The three approved YouTube Shorts use a native horizontal scroll-snap carousel. Only the
+current slide is exposed to assistive technology and keyboard focus, only the explicitly
+selected player is mounted, changing slides unmounts the player, and player URLs do not
+request autoplay. No YouTube or thumbnail request occurs during the initial page load.
+
+The shared footer now exposes the current public phone, `rcpropertiesss@gmail.com`, and
+the supplied Facebook, Instagram, YouTube, and TikTok profiles. This scoped shell update
+does not represent the later repository-wide contact-copy migration.
+
+The app icon remains the approved mark. Its display derivative is a square 512-pixel PNG
+with only a small transparent safe area; the oversized vertical canvas was removed
+without redrawing or recoloring the artwork.
+
 ## Responsive page blueprints
 
 These blueprints are the design contract implemented by the pages. The application
@@ -107,11 +141,11 @@ itself is the clickable design; separate throw-away mockups are not maintained.
 
 ### Home
 
-- Mobile: compact header, full-height hero, stacked search fields, one-column editorial
-  sections and horizontally comfortable tap targets.
+- Mobile: compact header, full-bleed hero, one clear sales-search entry, one-column
+  editorial sections, and horizontally comfortable tap targets.
 - Tablet: two-column content where hierarchy benefits, with media still dominant.
-- Desktop: wide editorial grid, asymmetric media/text compositions and numbered section
-  rails inspired by the reference pacing.
+- Desktop: a bounded reference-led composition with compact cards, asymmetric media/text
+  sections, and restrained section spacing.
 
 ### Properties
 

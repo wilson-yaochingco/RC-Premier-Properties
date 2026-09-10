@@ -19,7 +19,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { level: 1, name: "Find a home that feels right." }),
+    page.getByRole("heading", { level: 1, name: "Find your place." }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Clark Garden Residence" }),
@@ -29,7 +29,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   ).toBeVisible();
   await expect(page.getByText("9 Properties")).toBeVisible();
   await expect(page.locator("iframe")).toHaveCount(0);
-  const videoLinks = page.getByRole("link", { name: /Watch Short on YouTube/ });
+  const videoLinks = page.locator(".featured-video__details a");
   await expect(videoLinks).toHaveCount(3);
   for (const [index, href] of [
     "https://youtube.com/shorts/8tGEOhF_o8M?si=UQqAiJ90eS4-f0_Q",
@@ -39,6 +39,23 @@ test("home renders fixture inventory and primary navigation works", async ({
     await expect(videoLinks.nth(index)).toHaveAttribute("href", href);
   }
 
+  const footer = page.getByRole("contentinfo");
+  await expect(
+    footer.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
+  ).toHaveAttribute("href", "mailto:rcpropertiesss@gmail.com");
+  await expect(footer.getByRole("link", { name: "Instagram" })).toHaveAttribute(
+    "href",
+    "https://www.instagram.com/rcpremierproperties?stkn=MXZvanZrdDYydmpyeQ==",
+  );
+  await expect(footer.getByRole("link", { name: "YouTube" })).toHaveAttribute(
+    "href",
+    "https://www.youtube.com/@RCPremierProperties",
+  );
+  await expect(footer.getByRole("link", { name: "TikTok" })).toHaveAttribute(
+    "href",
+    "https://www.tiktok.com/@rcpremierpropertiesss",
+  );
+
   const primaryNavigation = page.getByRole("navigation", {
     name: "Primary navigation",
   });
@@ -47,6 +64,7 @@ test("home renders fixture inventory and primary navigation works", async ({
     "Home",
     "Properties",
     "Locations",
+    "Sell",
     "About",
     "Contact",
   ]);
@@ -57,6 +75,25 @@ test("home renders fixture inventory and primary navigation works", async ({
     page.getByRole("heading", { level: 1, name: /Property decisions/ }),
   ).toBeVisible();
   expect(browserErrors).toEqual([]);
+});
+
+test("homepage search carries a sales keyword into real property discovery", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("search", { name: "Search properties for sale" })
+    .getByLabel("Location, Property ID, or keyword")
+    .fill("Clark");
+  await page.getByRole("button", { name: "Search properties", exact: true }).click();
+
+  const searchUrl = new URL(page.url());
+  expect(searchUrl.pathname).toBe("/properties");
+  expect(searchUrl.searchParams.get("keyword")).toBe("Clark");
+  expect(searchUrl.searchParams.get("purpose")).toBe("sale");
+  await expect(
+    page.getByRole("heading", { name: "Clark Garden Residence" }),
+  ).toBeVisible();
 });
 
 test("property filters stay in the URL, affect results, and expose an empty state", async ({
@@ -353,6 +390,33 @@ test("featured video activation transfers focus to the titled player", async ({
   const player = page.getByTitle("RC Premier featured property video 1");
   await expect(player).toBeVisible();
   await expect(player).toBeFocused();
+  await expect(player).not.toHaveAttribute("src", /autoplay=1/);
+  await expect(page.locator("iframe")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Next featured property video" }).click();
+  await expect(page.locator("iframe")).toHaveCount(0);
+  await expect(page.locator(".featured-videos__controls > p")).toContainText("2 / 3");
+});
+
+test("featured videos use native mobile scroll snap with one exposed slide", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const track = page.locator(".featured-videos__track");
+  const slides = track.locator(".featured-video");
+  await expect(track).toHaveCSS("scroll-snap-type", "x mandatory");
+  await expect(slides.nth(0)).toHaveAttribute("aria-hidden", "false");
+  await expect(slides.nth(1)).toHaveAttribute("aria-hidden", "true");
+
+  await track.evaluate((element) => {
+    element.scrollTo({ left: element.clientWidth, behavior: "auto" });
+  });
+
+  await expect(slides.nth(0)).toHaveAttribute("aria-hidden", "true");
+  await expect(slides.nth(1)).toHaveAttribute("aria-hidden", "false");
+  await expect(page.locator(".featured-videos__controls > p")).toContainText("2 / 3");
 });
 
 test("malformed, rental, and missing property slugs render the public not-found state", async ({
@@ -546,6 +610,7 @@ test("mobile navigation closes on Escape and restores trigger focus", async ({
   await expect(
     page.getByRole("navigation", { name: "Mobile navigation" }),
   ).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Home" })).toBeFocused();
   await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
 
   await page.keyboard.press("Escape");

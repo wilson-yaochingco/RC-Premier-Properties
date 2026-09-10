@@ -129,10 +129,10 @@ test("critical images are singular and gallery media stays progressive", async (
   const hero = page.getByAltText(
     "Modern Pampanga home with a sloping roof and landscaped frontage",
   );
-  await expect(hero).toHaveAttribute("sizes", "(max-width: 800px) 92vw, 52vw");
+  await expect(hero).toHaveAttribute("sizes", "100vw");
   await expect(hero).not.toHaveAttribute("loading", "lazy");
   await expect(
-    page.getByAltText("Residential courtyard with a tiled pool and blue sky"),
+    page.getByAltText("Warm modern living room with a staircase"),
   ).toHaveAttribute("loading", "lazy");
   await expect(page.locator('link[rel="preload"][as="image"]')).toHaveCount(1);
   await expect(page.locator("iframe")).toHaveCount(0);
