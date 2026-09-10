@@ -8,6 +8,7 @@ import {
   VIEWING_STAFF_TRANSITION_STATUSES,
   type AddInquiryNoteRequest,
   type AdminInquiryListRequest,
+  type AdminInquirySearchRequest,
   type AdminInquiryTransitionRequest,
   type CreateInquiryRequest,
   type InquiryWorkflowStatus,
@@ -333,6 +334,31 @@ export function parseAdminInquiryListQuery(rawQuery: unknown): AdminInquiryListR
     page,
     limit,
   };
+}
+
+export function parseAdminInquirySearchQuery(
+  rawQuery: unknown,
+): AdminInquirySearchRequest {
+  if (!isPlainObject(rawQuery)) {
+    throw new HttpError(400, "Invalid inquiry search parameters.", [
+      { field: "query", message: "Must be query parameters." },
+    ]);
+  }
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(rawQuery)) {
+    if (field !== "query" && field !== "limit") {
+      issues.push({ field, message: "Unknown query parameter." });
+    }
+  }
+  const query = queryText(rawQuery, "query", issues, 100);
+  const limit = positiveIntegerQuery(rawQuery, "limit", 5, 10, issues);
+  if (!query || query.length < 2) {
+    issues.push({ field: "query", message: "Enter at least 2 characters." });
+  }
+  if (issues.length > 0 || !query) {
+    throw new HttpError(400, "Invalid inquiry search parameters.", issues);
+  }
+  return { query, limit };
 }
 
 export function parseAdminInquiryId(rawId: unknown): string {

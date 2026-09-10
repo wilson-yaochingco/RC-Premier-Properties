@@ -32,12 +32,21 @@ private reconciliation; they cannot enter production-visible workflows.
 
 Search state lives in the URL, so filtered pages can be linked, reloaded and traversed
 with normal browser controls. The frontend keeps only documented scalar keys before
-calling the API. The catalog requests nine items per page and retains active filters
+calling the API and consistently uses the first value when a scalar parameter is
+repeated. The catalog requests nine items per page and retains active filters
 when pagination links change pages. Active filters and non-default sort render as
 keyboard-accessible removable chips; removing one resets pagination while retaining the
 other normalized URL state, and **Clear all** returns to the unfiltered catalog.
 
-Location and property-type choices come only from real eligible inventory facets. If
+If a once-valid filtered URL points beyond the current last page after inventory changes,
+the server redirects to that last real page instead of presenting a false zero-match
+state. Page size is an internal call-site policy: browser query strings cannot override
+the nine-item catalog bound. The sitemap traversal explicitly requests the supported
+48-item maximum and therefore does not silently serialize catalog-sized pages.
+
+Location and property-type choices come only from real eligible inventory facets. The
+location aggregation is bounded to the canonical 22 Pampanga areas before values enter
+the response, rather than accumulating every legacy location in one document. If
 facets fail, free-text location and all numeric/status controls remain usable; no manual
 "popular" locations or property types are substituted. A facet failure never substitutes
 property results. Catalog outcomes are distinct:
@@ -120,7 +129,11 @@ The stable public route uses the listing slug. The page provides:
 
 Print and related-property data use public DTOs only. They cannot expose private address,
 internal coordinates, notes, customer data, or hidden records. A related-data failure is
-non-fatal and shows no invented fallback. A QR code remains deliberately absent because
+non-fatal and shows no invented fallback. Related inventory is streamed behind a
+`Suspense` boundary, so this secondary query does not delay the primary detail response.
+Share always uses the canonical property URL without inbound browsing/tracking state;
+the legacy clipboard fallback restores focus to the control that invoked it. A QR code
+remains deliberately absent because
 the printed URL is an accessible fallback and optional QR weight was not justified.
 
 The viewing action creates no appointment by itself. It carries the Property ID into the

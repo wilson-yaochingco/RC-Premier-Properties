@@ -5,6 +5,7 @@ import {
   type AdminAuditListResponse,
   type AdminDashboardResponse,
   type AdminInquiryListResponse,
+  type AdminInquirySearchResponse,
   type AdminPropertyListResponse,
   type AdminStaffListResponse,
   type AdminViewingCalendarResponse,
@@ -56,7 +57,8 @@ const CALENDAR: AdminViewingCalendarResponse = {
   items: DASHBOARD.upcomingViewings,
   start: "2026-08-30",
   end: "2026-10-10",
-  truncated: false,
+  pagination: { page: 1, limit: 200, total: 201, totalPages: 2 },
+  truncated: true,
 };
 
 const AUDIT: AdminAuditListResponse = {
@@ -138,6 +140,17 @@ const INQUIRIES: AdminInquiryListResponse = {
   pagination: { page: 1, limit: 5, total: 1, totalPages: 1 },
 };
 
+const INQUIRY_SEARCH: AdminInquirySearchResponse = {
+  items: [
+    {
+      id: INQUIRY_ID,
+      inquiryType: "viewing",
+      status: "new",
+      propertyId: "RCPP-001",
+    },
+  ],
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": FRONTEND_ORIGIN,
   "Access-Control-Allow-Credentials": "true",
@@ -150,17 +163,45 @@ async function json(route: Route, body: unknown) {
 async function mockOperations(page: Page) {
   await page.route(`**${API_PREFIX}/auth/session`, (route) => json(route, SESSION));
   await page.route(`**${API_PREFIX}/admin/operations/**`, (route) => {
-    const path = new URL(route.request().url()).pathname;
+    const url = new URL(route.request().url());
+    const path = url.pathname;
     if (path.endsWith("/dashboard")) return json(route, DASHBOARD);
-    if (path.endsWith("/viewings/calendar")) return json(route, CALENDAR);
-    if (path.endsWith("/audit-events")) return json(route, AUDIT);
+    if (path.endsWith("/viewings/calendar")) {
+      return json(
+        route,
+        url.searchParams.get("page") === "2"
+          ? {
+              ...CALENDAR,
+              items: [
+                {
+                  inquiryId: "507f191e810c19729de860eb",
+                  propertyId: "RCPP-002",
+                  status: "requested",
+                  requestedDate: "2026-09-16",
+                  requestedTime: "14:00",
+                },
+              ],
+              pagination: { ...CALENDAR.pagination, page: 2 },
+            }
+          : CALENDAR,
+      );
+    }
+    if (path.endsWith("/audit-events")) {
+      const page = Number(url.searchParams.get("page") ?? "1");
+      return json(route, {
+        ...AUDIT,
+        pagination: { ...AUDIT.pagination, page, total: 26, totalPages: 2 },
+      });
+    }
     return json(route, STAFF);
   });
   await page.route(`**${API_PREFIX}/admin/properties?*`, (route) =>
     json(route, PROPERTIES),
   );
-  await page.route(`**${API_PREFIX}/admin/inquiries?*`, (route) =>
-    json(route, INQUIRIES),
+  await page.route(`**${API_PREFIX}/admin/inquiries**`, (route) =>
+    new URL(route.request().url()).pathname.endsWith("/search")
+      ? json(route, INQUIRY_SEARCH)
+      : json(route, INQUIRIES),
   );
 }
 
@@ -232,16 +273,21 @@ test("dashboard and calendar remain useful and reflow at 320px", async ({ page }
   await expectNoDocumentOverflow(page);
 
   await page.goto("/admin/viewings");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Viewing requests" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Viewings" })).toBeVisible();
+  const schedulePages = page.getByRole("navigation", {
+    name: "Viewing schedule pages",
+  });
+  await expect(schedulePages).toContainText("Page 1 of 2");
+  await schedulePages.getByRole("button", { name: "Next" }).click();
+  await expect(schedulePages).toContainText("Page 2 of 2");
+  await expect(page.getByText("Premier Property #RCPP-002")).toBeVisible();
   await expect(
     page.getByRole("region", { name: "September 2026 viewing calendar" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { level: 3, name: "Schedule list" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "2026-09-15 at 10:00" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "2026-09-16 at 14:00" })).toBeVisible();
   await expectNoDocumentOverflow(page);
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
@@ -258,6 +304,41 @@ test("audit and staff surfaces expose only their bounded operational views", asy
     page.getByRole("heading", { level: 1, name: "Audit events" }),
   ).toBeVisible();
   await expect(page.getByText("safe-request-id")).toBeVisible();
+  const staffFilter = page.getByRole("textbox", { name: "Staff ID", exact: true });
+  await expect(staffFilter).toBeVisible();
+  const filteredRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname.endsWith("/audit-events") &&
+      url.searchParams.get("actorStaffIdentityId") === "507f191e810c19729de860ec"
+    );
+  });
+  await staffFilter.fill("507f191e810c19729de860ec");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await filteredRequest;
+  const auditPages = page.getByRole("navigation", { name: "Audit event pages" });
+  const paginatedRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname.endsWith("/audit-events") &&
+      url.searchParams.get("actorStaffIdentityId") === "507f191e810c19729de860ec" &&
+      url.searchParams.get("page") === "2"
+    );
+  });
+  await auditPages.getByRole("button", { name: "Next" }).click();
+  await paginatedRequest;
+  await expect(auditPages).toContainText("Page 2 of 2");
+  const resetRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname.endsWith("/audit-events") &&
+      !url.searchParams.has("actorStaffIdentityId") &&
+      url.searchParams.get("page") === "1"
+    );
+  });
+  await staffFilter.fill("");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await resetRequest;
   await expect(
     page.getByText(/customer messages, property values, tokens/),
   ).toBeVisible();

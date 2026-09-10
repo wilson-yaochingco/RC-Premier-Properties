@@ -379,28 +379,35 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
                 </time>
               </dd>
             </div>
-            <div>
-              <dt>Inquiry status changed</dt>
-              <dd>
-                <time
-                  dateTime={
-                    inquiry.statusHistory.at(-1)?.changedAt ?? inquiry.createdAt
-                  }
-                >
-                  {dateTime(
-                    inquiry.statusHistory.at(-1)?.changedAt ?? inquiry.createdAt,
-                  )}
-                </time>
-              </dd>
-            </div>
+            {inquiry.statusHistory.at(-1) ? (
+              <div>
+                <dt>Inquiry status changed</dt>
+                <dd>
+                  <time dateTime={inquiry.statusHistory.at(-1)!.changedAt}>
+                    {dateTime(inquiry.statusHistory.at(-1)!.changedAt)}
+                  </time>
+                </dd>
+              </div>
+            ) : (
+              <div>
+                <dt>Inquiry created</dt>
+                <dd>
+                  <time dateTime={inquiry.createdAt}>
+                    {dateTime(inquiry.createdAt)}
+                  </time>
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Notification delivery</dt>
               <dd>
-                {label(inquiry.notification.status)} · {inquiry.notification.attempts}{" "}
-                attempt{inquiry.notification.attempts === 1 ? "" : "s"}
+                {inquiry.notification.status === "untracked"
+                  ? "Not tracked for this legacy inquiry"
+                  : `${label(inquiry.notification.status)} · ${inquiry.notification.attempts} attempt${inquiry.notification.attempts === 1 ? "" : "s"}`}
               </dd>
             </div>
-            {inquiry.notification.lastAttemptAt ? (
+            {inquiry.notification.status !== "untracked" &&
+            inquiry.notification.lastAttemptAt ? (
               <div>
                 <dt>Notification last attempted</dt>
                 <dd>
@@ -410,12 +417,24 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
                 </dd>
               </div>
             ) : null}
-            {inquiry.notification.nextAttemptAt ? (
+            {inquiry.notification.status !== "untracked" &&
+            inquiry.notification.nextAttemptAt ? (
               <div>
                 <dt>Notification next retry</dt>
                 <dd>
                   <time dateTime={inquiry.notification.nextAttemptAt}>
                     {dateTime(inquiry.notification.nextAttemptAt)}
+                  </time>
+                </dd>
+              </div>
+            ) : null}
+            {inquiry.notification.status !== "untracked" &&
+            inquiry.notification.deliveredAt ? (
+              <div>
+                <dt>Notification delivered</dt>
+                <dd>
+                  <time dateTime={inquiry.notification.deliveredAt}>
+                    {dateTime(inquiry.notification.deliveredAt)}
                   </time>
                 </dd>
               </div>
@@ -435,22 +454,27 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
                     )}
                   </dd>
                 </div>
-                <div>
-                  <dt>Viewing status changed</dt>
-                  <dd>
-                    <time
-                      dateTime={
-                        inquiry.viewingRequest.statusHistory.at(-1)?.changedAt ??
-                        inquiry.createdAt
-                      }
-                    >
-                      {dateTime(
-                        inquiry.viewingRequest.statusHistory.at(-1)?.changedAt ??
-                          inquiry.createdAt,
-                      )}
-                    </time>
-                  </dd>
-                </div>
+                {inquiry.viewingRequest.statusHistory.at(-1) ? (
+                  <div>
+                    <dt>Viewing status changed</dt>
+                    <dd>
+                      <time
+                        dateTime={
+                          inquiry.viewingRequest.statusHistory.at(-1)!.changedAt
+                        }
+                      >
+                        {dateTime(
+                          inquiry.viewingRequest.statusHistory.at(-1)!.changedAt,
+                        )}
+                      </time>
+                    </dd>
+                  </div>
+                ) : (
+                  <div>
+                    <dt>Viewing history</dt>
+                    <dd>Not recorded for this legacy inquiry</dd>
+                  </div>
+                )}
               </>
             ) : null}
           </dl>
@@ -627,37 +651,47 @@ export function AdminInquiryDetailView({ inquiryId }: { inquiryId: string }) {
 
       <section className={styles.detailCard} aria-labelledby="status-history-title">
         <h2 id="status-history-title">Status history</h2>
-        <ol className={styles.timeline}>
-          {[...inquiry.statusHistory].reverse().map((entry, index) => (
-            <li key={`${entry.changedAt}-${index}`}>
-              <time dateTime={entry.changedAt}>{dateTime(entry.changedAt)}</time>
-              <p>
-                {entry.fromStatus
-                  ? `${label(entry.fromStatus)} → ${label(entry.toStatus)}`
-                  : `Created as ${label(entry.toStatus)}`}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {inquiry.viewingRequest ? (
-        <section className={styles.detailCard} aria-labelledby="viewing-history-title">
-          <h2 id="viewing-history-title">Viewing history</h2>
+        {inquiry.statusHistory.length === 0 ? (
+          <p>Status history was not recorded for this legacy inquiry.</p>
+        ) : (
           <ol className={styles.timeline}>
-            {[...inquiry.viewingRequest.statusHistory].reverse().map((entry, index) => (
+            {[...inquiry.statusHistory].reverse().map((entry, index) => (
               <li key={`${entry.changedAt}-${index}`}>
                 <time dateTime={entry.changedAt}>{dateTime(entry.changedAt)}</time>
                 <p>
                   {entry.fromStatus
                     ? `${label(entry.fromStatus)} → ${label(entry.toStatus)}`
                     : `Created as ${label(entry.toStatus)}`}
-                  {" · "}
-                  {viewingDateTime(entry.requestedDate, entry.requestedTime)}
                 </p>
               </li>
             ))}
           </ol>
+        )}
+      </section>
+
+      {inquiry.viewingRequest ? (
+        <section className={styles.detailCard} aria-labelledby="viewing-history-title">
+          <h2 id="viewing-history-title">Viewing history</h2>
+          {inquiry.viewingRequest.statusHistory.length === 0 ? (
+            <p>Viewing history was not recorded for this legacy inquiry.</p>
+          ) : (
+            <ol className={styles.timeline}>
+              {[...inquiry.viewingRequest.statusHistory]
+                .reverse()
+                .map((entry, index) => (
+                  <li key={`${entry.changedAt}-${index}`}>
+                    <time dateTime={entry.changedAt}>{dateTime(entry.changedAt)}</time>
+                    <p>
+                      {entry.fromStatus
+                        ? `${label(entry.fromStatus)} → ${label(entry.toStatus)}`
+                        : `Created as ${label(entry.toStatus)}`}
+                      {" · "}
+                      {viewingDateTime(entry.requestedDate, entry.requestedTime)}
+                    </p>
+                  </li>
+                ))}
+            </ol>
+          )}
         </section>
       ) : null}
     </section>

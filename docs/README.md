@@ -180,6 +180,9 @@ Current:
 - [`level-16-final-production-readiness.md`](audits/level-16-final-production-readiness.md)
   — final post-enhancement forensic findings, Level 14 revalidation, live blocker matrix,
   readiness score, classification, and conditional Level 17 plan
+- [`level-17-final-remediation.md`](audits/level-17-final-remediation.md) — finding-by-finding
+  closure evidence, complete repository gate, unchanged live blocker matrix, and final
+  repository readiness classification
 
 ## Rules
 

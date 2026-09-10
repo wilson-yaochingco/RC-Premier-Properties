@@ -120,9 +120,16 @@ browser confirmation. The established inquiry statuses remain `new`, `in-progres
 Level 15 adds notification-delivery visibility to list/detail, actual last status-change
 times from history, accessible copy controls for authorized contact fields, and
 formula-neutralized export of the already loaded current page without phone, message,
-consent, notes, or history. The viewing page also includes a 42-day/200-record bounded
-Philippine-time calendar with an equivalent list; it visualizes the existing state machine
-and does not create availability or confirmation.
+consent, notes, or history. Legacy records without notification state are explicitly
+`untracked`; absent inquiry or viewing history is shown as unavailable instead of being
+fabricated from creation timestamps. The viewing page also includes a 42-day,
+200-record-per-page Philippine-time calendar with an equivalent list; all pages remain
+reachable, and the view does not create availability or confirmation.
+
+The broad admin search uses a dedicated bounded inquiry projection. It may match private
+identity/contact fields server-side but returns only the opaque inquiry ID, type, status,
+and optional Premier Property number. Full contact data remains exclusive to the
+permission-protected detail route.
 
 Spam is excluded from the default active queue. Marking an inquiry as spam remembers its
 previous non-spam status; **Mark not spam** restores that status. Archived records leave

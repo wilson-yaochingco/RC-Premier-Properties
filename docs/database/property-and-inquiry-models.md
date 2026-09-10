@@ -84,6 +84,9 @@ Indexes follow actual Phase 2A/Level 15 access patterns: unique property ID and 
 published listing recency, published purpose/type/price, location filtering,
 bedroom/bathroom filtering, and featured lookup. Related inventory reuses those predicates
 and caps candidates at 12. No speculative index, owner, or CRM schema is introduced.
+The property ID is immutable after creation. The slug is mutable only until first
+publication; `publishedAt` permanently closes that identity transition even after the
+record is unpublished.
 
 ## Media
 
@@ -111,7 +114,9 @@ external scheduled retry command. Inquiry acceptance never depends on email succ
 The initial status is `new`. Staff management adds append-only status history, bounded
 internal notes, a recoverable archive timestamp, the pre-spam status and an
 optimistic-concurrency version. Inquiry records contain personal information and never
-have an unauthenticated read endpoint.
+have an unauthenticated read endpoint. Legacy records that predate history are not
+backfilled at read time; missing inquiry or viewing history remains explicit and is
+reported by the integrity scan.
 
 Viewing inquiries embed a one-to-one `viewingRequest` subdocument containing status,
 requested `YYYY-MM-DD` date, requested `HH:mm` Philippine time and append-only status
@@ -173,7 +178,7 @@ boundary, but no retention duration or hard-delete job exists until policy is ap
 
 Level 15 dashboard counts use server-side property/inquiry aggregations rather than
 loading collections. Upcoming/calendar reads project only schedule identifiers and are
-bounded at six and 200 respectively. Audit/staff reads use their existing time, actor,
+bounded at six and paginated in 200-record calendar pages. Audit/staff reads use their existing time, actor,
 action, status/role, and email indexes with bounded pages. No new index was added without
 representative `executionStats`; that evidence remains production/staging gate X04.
 

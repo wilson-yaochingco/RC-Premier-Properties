@@ -16,6 +16,7 @@ import {
 } from "../src/modules/inquiries/inquiry-notification-retry.service.js";
 import { nextInquiryNotificationAttempt } from "../src/modules/inquiries/inquiry.notification.js";
 import {
+  duplicateRecordPipeline,
   inspectDataIntegrity,
   type IntegritySnapshot,
 } from "../src/modules/operations/integrity.service.js";
@@ -208,6 +209,45 @@ describe("media cleanup debt", () => {
 });
 
 describe("read-only data integrity", () => {
+  it("uses one-row duplicate pipelines without unbounded same-key ID arrays", () => {
+    for (const pipeline of [
+      duplicateRecordPipeline("propertyId", true),
+      duplicateRecordPipeline("slug"),
+      duplicateRecordPipeline("notification.notificationId"),
+    ]) {
+      expect(JSON.stringify(pipeline)).toContain("$setWindowFields");
+      expect(JSON.stringify(pipeline)).not.toContain("$push");
+      expect(pipeline.at(-1)).toEqual({ $project: { _id: 1 } });
+    }
+  });
+
+  it("reports absent legacy workflow history without fabricating transitions", () => {
+    const report = inspectDataIntegrity({
+      properties: [],
+      inquiries: [
+        {
+          _id: "507f191e810c19729de86004",
+          inquiryType: "viewing",
+          status: "in-progress",
+          statusHistory: [],
+          viewingRequest: {
+            status: "confirmed",
+            statusHistory: [],
+          },
+        },
+      ],
+      cleanupDebt: [],
+    });
+
+    expect(report.findings.map((finding) => finding.code)).toEqual(
+      expect.arrayContaining([
+        "inquiry_history_missing",
+        "viewing_history_missing",
+        "notification_state_missing",
+      ]),
+    );
+  });
+
   it("reports relationships and cleanup debt without PII or mutation instructions", () => {
     const snapshot: IntegritySnapshot = {
       properties: [

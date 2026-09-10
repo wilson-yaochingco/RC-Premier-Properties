@@ -38,6 +38,8 @@ availability: available -> reserved -> sold
 - Restore returns a never-published record to draft and a previously public record to unpublished. It never republishes automatically.
 - Availability changes are accepted only while published. Available may become reserved or sold, reserved may return to available or become sold, and sold is terminal.
 - Content is editable only while draft or unpublished.
+- The Premier Property number is fixed after creation. The slug may change before first
+  publication, then remains fixed through unpublish/edit cycles to preserve issued URLs.
 - Image references, ordering, cover selection, alt text, captions and removals are
   editable only while draft or unpublished. Staff unpublish before changing live media.
 - Location text, private address, verified exact coordinates, public disclosure precision,
@@ -78,6 +80,12 @@ CSRF data, provider tokens, private addresses, or coordinate values. A location 
 recorded only as the changed top-level field `location`.
 
 Property persistence and audit insertion remain separate MongoDB writes, matching the documented session-audit limitation. A failed audit insert fails the HTTP request but does not roll back a completed property mutation.
+
+For media compensation and removal, the database is also the ownership authority. Before
+deleting an adapter-owned reference, the service checks every gallery and cover reference;
+a still-referenced object is retained, and an unavailable reference check fails safe into
+private cleanup debt. Client metadata updates cannot introduce a new adapter-owned
+reference outside the validated device-upload path.
 
 ## Deferred boundaries
 

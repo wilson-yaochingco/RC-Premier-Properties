@@ -4,6 +4,9 @@ import {
   type AdminInquiryDetail,
   type AdminInquiryListRequest,
   type AdminInquiryListResponse,
+  type AdminInquirySearchItem,
+  type AdminInquirySearchRequest,
+  type AdminInquirySearchResponse,
   type AdminInquirySummary,
   type AdminInquiryTransitionRequest,
   type AddInquiryNoteRequest,
@@ -380,6 +383,36 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
     return { records, total };
   }
 
+  async search(request: AdminInquirySearchRequest): Promise<AdminInquirySearchItem[]> {
+    const expression = new RegExp(escapeRegExp(request.query), "i");
+    const exactId = Types.ObjectId.isValid(request.query)
+      ? [{ _id: new Types.ObjectId(request.query) }]
+      : [];
+    const records = await this.model
+      .find({
+        $or: [
+          ...exactId,
+          { name: expression },
+          { email: expression },
+          { phone: expression },
+          { propertyId: expression },
+          { subject: expression },
+        ],
+      })
+      .select("inquiryType status propertyId")
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(request.limit)
+      .lean<
+        Array<Pick<AdminInquiryRecord, "_id" | "inquiryType" | "status" | "propertyId">>
+      >();
+    return records.map((record) => ({
+      id: String(record._id),
+      inquiryType: record.inquiryType,
+      status: record.status,
+      ...(record.propertyId ? { propertyId: record.propertyId } : {}),
+    }));
+  }
+
   async findById(id: string): Promise<AdminInquiryRecord | null> {
     return this.model
       .findById(id)
@@ -562,11 +595,7 @@ export class MongooseInquiryAdminRepository implements InquiryAdminRepository {
 }
 
 function toSummary(record: AdminInquiryRecord): AdminInquirySummary {
-  const notification = record.notification ?? {
-    notificationId: "redacted",
-    status: "pending",
-    attempts: 0,
-  };
+  const notification = record.notification;
   return {
     id: String(record._id),
     name: record.name,
@@ -585,22 +614,24 @@ function toSummary(record: AdminInquiryRecord): AdminInquirySummary {
           },
         }
       : {}),
-    notification: {
-      status: notification.status,
-      attempts: notification.attempts,
-      ...(notification.nextAttemptAt
-        ? { nextAttemptAt: notification.nextAttemptAt.toISOString() }
-        : {}),
-      ...(notification.lastAttemptAt
-        ? { lastAttemptAt: notification.lastAttemptAt.toISOString() }
-        : {}),
-      ...(notification.deliveredAt
-        ? { deliveredAt: notification.deliveredAt.toISOString() }
-        : {}),
-      ...(notification.lastErrorCode
-        ? { lastErrorCode: notification.lastErrorCode }
-        : {}),
-    },
+    notification: notification
+      ? {
+          status: notification.status,
+          attempts: notification.attempts,
+          ...(notification.nextAttemptAt
+            ? { nextAttemptAt: notification.nextAttemptAt.toISOString() }
+            : {}),
+          ...(notification.lastAttemptAt
+            ? { lastAttemptAt: notification.lastAttemptAt.toISOString() }
+            : {}),
+          ...(notification.deliveredAt
+            ? { deliveredAt: notification.deliveredAt.toISOString() }
+            : {}),
+          ...(notification.lastErrorCode
+            ? { lastErrorCode: notification.lastErrorCode }
+            : {}),
+        }
+      : { status: "untracked" },
     version: record.__v ?? 0,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
@@ -610,10 +641,7 @@ function toSummary(record: AdminInquiryRecord): AdminInquirySummary {
 
 function toDetail(record: AdminInquiryRecord): AdminInquiryDetail {
   const summary = toSummary(record);
-  const history =
-    record.statusHistory?.length > 0
-      ? record.statusHistory
-      : [{ toStatus: record.status, changedAt: record.createdAt }];
+  const history = record.statusHistory ?? [];
   return {
     ...summary,
     ...(record.phone ? { phone: record.phone } : {}),
@@ -663,6 +691,12 @@ export class DefaultAdminInquiryService implements AdminInquiryService {
         totalPages: total === 0 ? 0 : Math.ceil(total / request.limit),
       },
     };
+  }
+
+  async search(
+    request: AdminInquirySearchRequest,
+  ): Promise<AdminInquirySearchResponse> {
+    return { items: await this.repository.search(request) };
   }
 
   async detail(id: string): Promise<AdminInquiryDetail | null> {

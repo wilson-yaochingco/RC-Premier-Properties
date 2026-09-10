@@ -11,6 +11,23 @@ import {
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
+/** Preserve repeated values so server and hydrated-client normalization choose alike. */
+export function rawSearchParamsFromEntries(
+  searchParams: Pick<URLSearchParams, "forEach">,
+): RawSearchParams {
+  const output: RawSearchParams = Object.create(null) as RawSearchParams;
+  searchParams.forEach((value, key) => {
+    const current = output[key];
+    output[key] =
+      current !== undefined
+        ? Array.isArray(current)
+          ? [...current, value]
+          : [current, value]
+        : value;
+  });
+  return output;
+}
+
 export interface PropertyFormValues {
   keyword: string;
   propertyId: string;
@@ -76,7 +93,11 @@ export function propertyFormValues(searchParams: RawSearchParams): PropertyFormV
 /** Keep only the documented property-search keys before calling the API. */
 export function propertyApiSearchParams(
   searchParams: RawSearchParams,
+  pageSize = 9,
 ): URLSearchParams {
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 48) {
+    throw new Error("Property API page size must be an integer from 1 to 48.");
+  }
   const values = propertyFormValues(searchParams);
   const output = new URLSearchParams();
 
@@ -94,7 +115,7 @@ export function propertyApiSearchParams(
 
   output.set("sort", values.sort);
   output.set("page", values.page);
-  output.set("limit", "9");
+  output.set("limit", String(pageSize));
 
   return output;
 }

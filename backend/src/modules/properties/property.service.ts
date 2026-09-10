@@ -1,6 +1,7 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   MAX_PROPERTY_IMAGES,
+  PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
   RESIDENTIAL_SALE_PROPERTY_TYPES,
   type AdminPropertyContentField,
@@ -522,7 +523,6 @@ interface FacetAggregate {
   _id: null;
   min: number;
   max: number;
-  locations: string[];
   propertyTypes: PropertyFacetsResponse["propertyTypes"];
 }
 
@@ -677,9 +677,6 @@ export class MongoosePropertyService implements PropertyService {
           $project: {
             price: "$price.amount",
             propertyType: 1,
-            location: {
-              $concat: ["$location.city", ", ", "$location.province"],
-            },
           },
         },
         {
@@ -687,7 +684,6 @@ export class MongoosePropertyService implements PropertyService {
             _id: null,
             min: { $min: "$price" },
             max: { $max: "$price" },
-            locations: { $addToSet: "$location" },
             propertyTypes: { $addToSet: "$propertyType" },
           },
         },
@@ -698,6 +694,8 @@ export class MongoosePropertyService implements PropertyService {
             publicationStatus: "published",
             purpose: "sale",
             propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+            "location.province": "Pampanga",
+            "location.city": { $in: PUBLIC_PROPERTY_AREAS },
           },
         },
         {
@@ -707,12 +705,15 @@ export class MongoosePropertyService implements PropertyService {
           },
         },
         { $sort: { count: -1, _id: 1 } },
+        { $limit: PUBLIC_PROPERTY_AREAS.length },
       ]),
     ]);
     const result = facetResults[0];
 
     return {
-      locations: result ? result.locations.sort((a, b) => a.localeCompare(b)) : [],
+      locations: locationCounts
+        .map((item) => item._id)
+        .sort((a, b) => a.localeCompare(b)),
       locationCounts: locationCounts.map((item) => ({
         location: item._id,
         count: item.count,
@@ -778,6 +779,17 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
       .findById(id)
       .select(ADMIN_PROPERTY_DETAIL_PROJECTION)
       .lean<AdminPropertyRecord | null>();
+  }
+
+  async isMediaReferenced(objectReference: string): Promise<boolean> {
+    return Boolean(
+      await this.model.exists({
+        $or: [
+          { "gallery.url": objectReference },
+          { "coverMedia.url": objectReference },
+        ],
+      }),
+    );
   }
 
   async createDraft(
@@ -949,6 +961,35 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
   ): Promise<void> {
     if (this.mediaStorage.owns && !this.mediaStorage.owns(objectReference)) return;
     try {
+      if (await this.repository.isMediaReferenced(objectReference)) {
+        operationalLogger.warn("property_media_cleanup_reference_retained", {
+          dependency: "mongodb",
+          entityType: "property",
+          entityId: propertyId,
+          requestId,
+          errorCode: "media_object_still_referenced",
+        });
+        return;
+      }
+    } catch (error) {
+      operationalLogger.warn("property_media_cleanup_reference_check_failed", {
+        dependency: "mongodb",
+        entityType: "property",
+        entityId: propertyId,
+        requestId,
+        errorCode: "media_reference_check_failed",
+        ...errorIdentity(error),
+      });
+      await this.recordCleanupDebt(
+        propertyId,
+        objectReference,
+        reason,
+        "media_reference_check_failed",
+        requestId,
+      );
+      return;
+    }
+    try {
       await this.mediaStorage.remove(objectReference);
     } catch (error) {
       const errorCode = propertyMediaStorageErrorCode(error);
@@ -1065,6 +1106,16 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     try {
       const current = await this.findExpectedRecord(id, input.expectedVersion);
       if (!current) return null;
+      if (input.propertyId !== undefined && input.propertyId !== current.propertyId) {
+        throw new HttpError(409, "Property ID cannot be changed after creation.");
+      }
+      if (
+        current.publishedAt &&
+        input.slug !== undefined &&
+        input.slug !== current.slug
+      ) {
+        throw new HttpError(409, "URL slug cannot be changed after first publication.");
+      }
       const requestedPurpose = (input as { purpose?: unknown }).purpose;
       if (
         current.purpose !== "sale" ||
@@ -1126,6 +1177,19 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       throw new HttpError(
         400,
         "Development sample media cannot be saved in production.",
+      );
+    }
+    const existingUrls = new Set(
+      current.gallery.flatMap((item) => (item.url ? [item.url] : [])),
+    );
+    const newlyClaimedManagedReference = input.media.find(
+      (item) =>
+        Boolean(this.mediaStorage.owns?.(item.url)) && !existingUrls.has(item.url),
+    );
+    if (newlyClaimedManagedReference) {
+      throw new HttpError(
+        400,
+        "Managed property media must be added through the device upload endpoint.",
       );
     }
     const coverMedia = input.coverMediaId

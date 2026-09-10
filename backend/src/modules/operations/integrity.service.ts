@@ -188,11 +188,18 @@ export function inspectDataIntegrity(
       add("error", "viewing_relationship_unexpected", "inquiry", inquiry._id);
     }
     const latestInquiryStatus = inquiry.statusHistory?.at(-1)?.toStatus;
-    if (latestInquiryStatus && latestInquiryStatus !== inquiry.status) {
+    if (!inquiry.statusHistory?.length) {
+      add("warning", "inquiry_history_missing", "inquiry", inquiry._id);
+    } else if (latestInquiryStatus !== inquiry.status) {
       add("error", "inquiry_history_inconsistent", "inquiry", inquiry._id);
     }
     const latestViewingStatus = inquiry.viewingRequest?.statusHistory?.at(-1)?.toStatus;
-    if (latestViewingStatus && latestViewingStatus !== inquiry.viewingRequest?.status) {
+    if (inquiry.viewingRequest && !inquiry.viewingRequest.statusHistory?.length) {
+      add("warning", "viewing_history_missing", "inquiry", inquiry._id);
+    } else if (
+      inquiry.viewingRequest &&
+      latestViewingStatus !== inquiry.viewingRequest.status
+    ) {
       add("error", "viewing_history_inconsistent", "inquiry", inquiry._id);
     }
 
@@ -250,12 +257,31 @@ export function inspectDataIntegrity(
 const INTEGRITY_MAX_FINDINGS = 500;
 const INTEGRITY_QUERY_TIMEOUT_MS = 30_000;
 
-interface DuplicateGroup {
-  ids: unknown[];
-}
-
 interface IdOnly {
   _id: unknown;
+}
+
+/**
+ * Return one row per duplicate record without collecting every same-key ID into one
+ * MongoDB document. A corrupt group can therefore be arbitrarily large without a
+ * `$push` array exceeding the document-size limit.
+ */
+export function duplicateRecordPipeline(
+  field: "propertyId" | "slug" | "notification.notificationId",
+  caseInsensitive = false,
+) {
+  const reference = `$${field}`;
+  return [
+    { $match: { [field]: { $type: "string" } } },
+    {
+      $setWindowFields: {
+        partitionBy: caseInsensitive ? { $toUpper: reference } : reference,
+        output: { duplicateCount: { $count: {} } },
+      },
+    },
+    { $match: { duplicateCount: { $gt: 1 } } },
+    { $project: { _id: 1 } },
+  ];
 }
 
 /**
@@ -294,73 +320,46 @@ export async function scanDataIntegrity(
     }).maxTimeMS(INTEGRITY_QUERY_TIMEOUT_MS),
   ]);
 
-  const duplicatePropertyIds = PropertyModel.aggregate<DuplicateGroup>([
-    { $match: { propertyId: { $type: "string" } } },
-    {
-      $group: {
-        _id: { $toUpper: "$propertyId" },
-        ids: { $push: "$_id" },
-        count: { $sum: 1 },
-      },
-    },
-    { $match: { count: { $gt: 1 } } },
-    { $project: { _id: 0, ids: 1 } },
-  ])
+  const duplicatePropertyIds = PropertyModel.aggregate<IdOnly>(
+    duplicateRecordPipeline("propertyId", true),
+  )
     .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
     .cursor({ batchSize });
-  for await (const group of duplicatePropertyIds) {
-    for (const id of group.ids) {
-      add({
-        severity: "error",
-        code: "property_id_duplicate",
-        entityType: "property",
-        entityId: entityId(id),
-      });
-    }
+  for await (const record of duplicatePropertyIds) {
+    add({
+      severity: "error",
+      code: "property_id_duplicate",
+      entityType: "property",
+      entityId: entityId(record._id),
+    });
   }
 
-  const duplicateSlugs = PropertyModel.aggregate<DuplicateGroup>([
-    { $match: { slug: { $type: "string" } } },
-    { $group: { _id: "$slug", ids: { $push: "$_id" }, count: { $sum: 1 } } },
-    { $match: { count: { $gt: 1 } } },
-    { $project: { _id: 0, ids: 1 } },
-  ])
+  const duplicateSlugs = PropertyModel.aggregate<IdOnly>(
+    duplicateRecordPipeline("slug"),
+  )
     .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
     .cursor({ batchSize });
-  for await (const group of duplicateSlugs) {
-    for (const id of group.ids) {
-      add({
-        severity: "error",
-        code: "property_slug_duplicate",
-        entityType: "property",
-        entityId: entityId(id),
-      });
-    }
+  for await (const record of duplicateSlugs) {
+    add({
+      severity: "error",
+      code: "property_slug_duplicate",
+      entityType: "property",
+      entityId: entityId(record._id),
+    });
   }
 
-  const duplicateNotifications = InquiryModel.aggregate<DuplicateGroup>([
-    { $match: { "notification.notificationId": { $type: "string" } } },
-    {
-      $group: {
-        _id: "$notification.notificationId",
-        ids: { $push: "$_id" },
-        count: { $sum: 1 },
-      },
-    },
-    { $match: { count: { $gt: 1 } } },
-    { $project: { _id: 0, ids: 1 } },
-  ])
+  const duplicateNotifications = InquiryModel.aggregate<IdOnly>(
+    duplicateRecordPipeline("notification.notificationId"),
+  )
     .option({ maxTimeMS: INTEGRITY_QUERY_TIMEOUT_MS })
     .cursor({ batchSize });
-  for await (const group of duplicateNotifications) {
-    for (const id of group.ids) {
-      add({
-        severity: "error",
-        code: "notification_identity_duplicate",
-        entityType: "inquiry",
-        entityId: entityId(id),
-      });
-    }
+  for await (const record of duplicateNotifications) {
+    add({
+      severity: "error",
+      code: "notification_identity_duplicate",
+      entityType: "inquiry",
+      entityId: entityId(record._id),
+    });
   }
 
   const missingPropertyReferences = InquiryModel.aggregate<IdOnly>([

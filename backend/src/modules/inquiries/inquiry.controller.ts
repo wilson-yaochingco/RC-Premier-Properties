@@ -1,6 +1,7 @@
 import type {
   AdminInquiryDetail,
   AdminInquiryListResponse,
+  AdminInquirySearchResponse,
   CreateInquiryResponse,
 } from "@rc/shared";
 import type { Request, Response } from "express";
@@ -18,6 +19,7 @@ import {
   parseAddInquiryNoteBody,
   parseAdminInquiryId,
   parseAdminInquiryListQuery,
+  parseAdminInquirySearchQuery,
   parseAdminInquiryTransitionBody,
   parseCreateInquiryBody,
   parseInquiryIdempotencyKey,
@@ -72,6 +74,12 @@ export function createAdminInquiryController(
   return {
     async list(req: Request, res: Response<AdminInquiryListResponse>) {
       res.status(200).json(await service.list(parseAdminInquiryListQuery(req.query)));
+    },
+
+    async search(req: Request, res: Response<AdminInquirySearchResponse>) {
+      res
+        .status(200)
+        .json(await service.search(parseAdminInquirySearchQuery(req.query)));
     },
 
     async detail(req: Request<{ id: string }>, res: Response<AdminInquiryDetail>) {

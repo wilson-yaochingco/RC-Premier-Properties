@@ -617,6 +617,18 @@ function makeAdminInquiryService() {
         },
       };
     },
+    async search() {
+      return {
+        items: [
+          {
+            id: inquiry.id,
+            inquiryType: inquiry.inquiryType,
+            status: inquiry.status,
+            ...(inquiry.propertyId ? { propertyId: inquiry.propertyId } : {}),
+          },
+        ],
+      };
+    },
     async detail(id) {
       return id === inquiry.id ? structuredClone(inquiry) : null;
     },
@@ -2030,6 +2042,7 @@ describe("staff inquiry management HTTP boundary", () => {
     const app = buildApp(makeAuth());
     const responses = await Promise.all([
       request(app).get(`${API_PREFIX}/admin/inquiries`),
+      request(app).get(`${API_PREFIX}/admin/inquiries/search?query=private`),
       request(app).get(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}`),
       request(app)
         .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
@@ -2059,7 +2072,7 @@ describe("staff inquiry management HTTP boundary", () => {
         .send({ expectedVersion: 0 }),
     ]);
     expect(responses.map((response) => response.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ]);
   });
 
@@ -2075,6 +2088,9 @@ describe("staff inquiry management HTTP boundary", () => {
     const read = await request(app)
       .get(`${API_PREFIX}/admin/inquiries`)
       .set("Cookie", session.cookie);
+    const search = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries/search?query=private`)
+      .set("Cookie", session.cookie);
     const write = await request(app)
       .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
       .set("Cookie", session.cookie)
@@ -2082,6 +2098,7 @@ describe("staff inquiry management HTTP boundary", () => {
       .set("X-CSRF-Token", session.csrfToken)
       .send({ expectedVersion: 0 });
     expect(read.status).toBe(403);
+    expect(search.status).toBe(403);
     expect(write.status).toBe(403);
   });
 
@@ -2106,6 +2123,9 @@ describe("staff inquiry management HTTP boundary", () => {
     const detail = await request(app)
       .get(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}`)
       .set("Cookie", session.cookie);
+    const search = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries/search?query=private&limit=5`)
+      .set("Cookie", session.cookie);
 
     expect(list.status).toBe(200);
     expect(list.headers["cache-control"]).toBe("no-store");
@@ -2116,6 +2136,19 @@ describe("staff inquiry management HTTP boundary", () => {
       propertyId: "RCPP-ADMIN-001",
       status: "new",
     });
+    expect(search.status).toBe(200);
+    expect(search.headers["cache-control"]).toBe("no-store");
+    expect(search.body).toEqual({
+      items: [
+        {
+          id: ADMIN_INQUIRY_ID,
+          inquiryType: "property",
+          status: "new",
+          propertyId: "RCPP-ADMIN-001",
+        },
+      ],
+    });
+    expect(JSON.stringify(search.body)).not.toContain("Private inquiry fixture");
     expect(adminInquiries.listRequests).toEqual([
       {
         query: "Maria",

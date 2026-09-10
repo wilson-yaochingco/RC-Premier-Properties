@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import type { AdminInquirySummary, AdminPropertySummary } from "@rc/shared";
+import type { AdminInquirySearchItem, AdminPropertySummary } from "@rc/shared";
 import { ApiClientError } from "@/services/api-client";
-import { getAdminInquiries, getAdminProperties } from "./admin.service";
+import { getAdminProperties, searchAdminInquiries } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
 import styles from "./admin.module.css";
 
@@ -14,7 +14,7 @@ type SearchState =
   | {
       kind: "ready";
       properties: AdminPropertySummary[];
-      inquiries: AdminInquirySummary[];
+      inquiries: AdminInquirySearchItem[];
     }
   | { kind: "error"; message: string };
 
@@ -40,10 +40,7 @@ export function AdminSearch() {
           pagination: { page: 1, limit: 5, total: 0, totalPages: 0 },
         });
     const inquiries = canReadInquiries
-      ? getAdminInquiries(
-          { query: submitted, queue: "all", page: 1, limit: 5 },
-          controller.signal,
-        )
+      ? searchAdminInquiries(submitted, controller.signal)
       : Promise.resolve({
           items: [],
           pagination: { page: 1, limit: 5, total: 0, totalPages: 0 },

@@ -109,9 +109,11 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
           <p className={styles.eyebrow}>
             {viewingOnly ? "Viewing appointment requests" : "Staff inquiry management"}
           </p>
-          <h1 id="admin-inquiries-title">
-            {viewingOnly ? "Viewing requests" : "Inquiries"}
-          </h1>
+          {viewingOnly ? (
+            <h2 id="admin-inquiries-title">Viewing request list</h2>
+          ) : (
+            <h1 id="admin-inquiries-title">Inquiries</h1>
+          )}
           <p>
             {viewingOnly
               ? "Review requested schedules and open a request to confirm, reschedule, or cancel it."

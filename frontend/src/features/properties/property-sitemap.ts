@@ -38,10 +38,13 @@ export async function getSitemapIndexUrls(
   dependencies: PropertySitemapDependencies = propertySitemapDependencies,
 ): Promise<string[]> {
   if (!dependencies.siteUrl) return [];
-  const firstPage = await dependencies.getProperties({
-    page: "1",
-    limit: String(SITEMAP_API_PAGE_SIZE),
-  });
+  const firstPage = await dependencies.getProperties(
+    {
+      page: "1",
+    },
+    undefined,
+    SITEMAP_API_PAGE_SIZE,
+  );
   return Array.from(
     { length: sitemapShardCount(firstPage.pagination.totalPages) },
     (_, shard) => `${dependencies.siteUrl}/sitemaps/${shard}.xml`,
@@ -56,10 +59,13 @@ export async function getSitemapShard(
   const pages = sitemapApiPages(shard);
   const properties: PublicPropertySummary[] = [];
   const firstPageNumber = pages[0]!;
-  const firstPage = await dependencies.getProperties({
-    page: String(firstPageNumber),
-    limit: String(SITEMAP_API_PAGE_SIZE),
-  });
+  const firstPage = await dependencies.getProperties(
+    {
+      page: String(firstPageNumber),
+    },
+    undefined,
+    SITEMAP_API_PAGE_SIZE,
+  );
   properties.push(...firstPage.items);
   const remainingPages = sitemapApiPages(shard, firstPage.pagination.totalPages).slice(
     1,
@@ -73,10 +79,13 @@ export async function getSitemapShard(
       remainingPages
         .slice(firstPending, firstPending + SITEMAP_FETCH_CONCURRENCY)
         .map((page) =>
-          dependencies.getProperties({
-            page: String(page),
-            limit: String(SITEMAP_API_PAGE_SIZE),
-          }),
+          dependencies.getProperties(
+            {
+              page: String(page),
+            },
+            undefined,
+            SITEMAP_API_PAGE_SIZE,
+          ),
         ),
     );
     properties.push(...batch.flatMap((result) => result.items));

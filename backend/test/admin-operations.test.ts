@@ -6,6 +6,7 @@ import { MongooseAdminOperationsService } from "../src/modules/operations/admin-
 import {
   parseAdminAuditQuery,
   parseAdminStaffQuery,
+  parseNoQuery,
   parseViewingCalendarQuery,
 } from "../src/modules/operations/admin-operations.validation.js";
 import { PropertyModel } from "../src/modules/properties/property.model.js";
@@ -32,7 +33,12 @@ describe("admin operations validation", () => {
   it("accepts only a real viewing range of at most 42 days", () => {
     expect(
       parseViewingCalendarQuery({ start: "2026-09-01", end: "2026-10-12" }),
-    ).toEqual({ start: "2026-09-01", end: "2026-10-12" });
+    ).toEqual({
+      start: "2026-09-01",
+      end: "2026-10-12",
+      page: 1,
+      limit: 200,
+    });
     expect(() =>
       parseViewingCalendarQuery({ start: "2026-09-01", end: "2026-10-13" }),
     ).toThrowError(expect.objectContaining({ status: 400 }));
@@ -55,6 +61,9 @@ describe("admin operations validation", () => {
       expect.objectContaining({ status: 400 }),
     );
     expect(() => parseAdminAuditQuery({ details: "private" })).toThrowError(
+      expect.objectContaining({ status: 400 }),
+    );
+    expect(() => parseNoQuery({ unexpected: "value" })).toThrowError(
       expect.objectContaining({ status: 400 }),
     );
   });
@@ -145,8 +154,8 @@ describe("admin dashboard queries", () => {
     expect(upcoming.limit).toHaveBeenCalledWith(6);
   });
 
-  it("caps calendar responses and reports truncation without returning contact data", async () => {
-    const records = Array.from({ length: 201 }, (_, index) => ({
+  it("paginates calendar responses so every request remains reviewable", async () => {
+    const records = Array.from({ length: 200 }, (_, index) => ({
       _id: `calendar-${index}`,
       viewingRequest: {
         status: "requested",
@@ -156,15 +165,25 @@ describe("admin dashboard queries", () => {
     }));
     const query = readQuery(records);
     vi.spyOn(InquiryModel, "find").mockReturnValue(query as never);
+    vi.spyOn(InquiryModel, "countDocuments").mockResolvedValue(401);
 
     const result = await new MongooseAdminOperationsService().viewingCalendar({
       start: "2026-08-30",
       end: "2026-10-10",
+      page: 2,
+      limit: 200,
     });
 
     expect(result.items).toHaveLength(200);
     expect(result.truncated).toBe(true);
-    expect(query.limit).toHaveBeenCalledWith(201);
+    expect(result.pagination).toEqual({
+      page: 2,
+      limit: 200,
+      total: 401,
+      totalPages: 3,
+    });
+    expect(query.skip).toHaveBeenCalledWith(200);
+    expect(query.limit).toHaveBeenCalledWith(200);
     expect(query.select.mock.calls[0]?.[0]).not.toMatch(/name|email|phone|message/);
   });
 });
@@ -200,5 +219,61 @@ describe("admin audit viewer queries", () => {
     expect(query.limit).toHaveBeenCalledWith(25);
     expect(result.pagination).toEqual({ page: 2, limit: 25, total: 26, totalPages: 2 });
     expect(JSON.stringify(result)).not.toContain("must not be serialized");
+  });
+
+  it("treats date filters as inclusive Philippine calendar days", async () => {
+    const query = readQuery([]);
+    const find = vi
+      .spyOn(SecurityAuditEventModel, "find")
+      .mockReturnValue(query as never);
+    vi.spyOn(SecurityAuditEventModel, "countDocuments").mockResolvedValue(0);
+
+    await new MongooseAdminOperationsService().auditEvents({
+      from: "2026-09-10",
+      to: "2026-09-10",
+      page: 1,
+      limit: 25,
+    });
+
+    expect(find).toHaveBeenCalledWith({
+      occurredAt: {
+        $gte: new Date("2026-09-09T16:00:00.000Z"),
+        $lt: new Date("2026-09-10T16:00:00.000Z"),
+      },
+    });
+  });
+
+  it("redacts internal session entity identifiers but retains other entity IDs", async () => {
+    const query = readQuery([
+      {
+        _id: "session-event",
+        action: "auth.logout.succeeded",
+        entityType: "session",
+        entityId: "internal-session-document-id",
+        outcome: "succeeded",
+        requestId: "request-session",
+        occurredAt: new Date("2026-09-10T01:00:00.000Z"),
+      },
+      {
+        _id: "property-event",
+        action: "property.edited",
+        entityType: "property",
+        entityId: "public-property-record-id",
+        outcome: "succeeded",
+        requestId: "request-property",
+        occurredAt: new Date("2026-09-10T00:00:00.000Z"),
+      },
+    ]);
+    vi.spyOn(SecurityAuditEventModel, "find").mockReturnValue(query as never);
+    vi.spyOn(SecurityAuditEventModel, "countDocuments").mockResolvedValue(2);
+
+    const result = await new MongooseAdminOperationsService().auditEvents({
+      page: 1,
+      limit: 25,
+    });
+
+    expect(result.items[0]).not.toHaveProperty("entityId");
+    expect(result.items[1]).toHaveProperty("entityId", "public-property-record-id");
+    expect(JSON.stringify(result)).not.toContain("internal-session-document-id");
   });
 });

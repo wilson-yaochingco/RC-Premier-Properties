@@ -83,6 +83,7 @@ test("location discovery is indexable only for inventory-backed stable states", 
   await page.goto(
     "/properties?location=Angeles+City&minPrice=1000000&sort=price-desc&page=2",
   );
+  await expect.poll(() => new URL(page.url()).searchParams.get("page")).toBe("1");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
     `${SITE_ORIGIN}/properties`,

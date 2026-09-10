@@ -86,16 +86,18 @@ removes an adapter-owned object, a storage deletion failure does not re-add the 
 Instead, a private `PropertyMediaCleanupTask` upserts cleanup debt by a SHA-256 reference
 hash. The stable adapter reference is excluded from normal selection, the task records
 only reason, attempts, safe error code, and dates, and status stays `pending-review`.
-Likewise, if an upload reaches storage but metadata persistence fails, failed compensating
-deletion becomes cleanup debt without masking the original database error.
+Likewise, if an upload reaches storage but metadata persistence fails, compensation first
+checks all gallery and cover references. A referenced object is retained; a failed check
+or failed safe deletion becomes cleanup debt without masking the original database error.
 
-Metadata persistence, value-minimized audit insertion, and external-object deletion have
-an explicit order. Upload compensation may delete a newly stored object only if metadata
-did not commit. Once metadata commits, an audit failure is surfaced and the referenced
-object is retained. Removal commits metadata, then audit, then deletion; an audit failure
-therefore records cleanup debt without deleting, and a later deletion failure also records
-debt without restoring removed metadata. Local transformation cleanup failures expose a
-distinct safe error code instead of being silently discarded.
+Metadata persistence, value-minimized audit insertion, reference reconciliation, and
+external-object deletion have an explicit order. Upload compensation may delete a newly
+stored object only if no property references it. Once metadata commits, an audit failure
+is surfaced and the referenced object is retained. Removal commits metadata, then audit,
+then globally reconciles references before deletion; cross-property legacy references are
+therefore retained. An audit/reference/deletion failure records cleanup debt without
+restoring removed metadata. Local transformation cleanup failures expose a distinct safe
+error code instead of being silently discarded.
 
 No cleanup worker or automatic deletion exists. A future provider adapter must define a
 reviewed owned namespace and stable non-secret object references before removal. Object
@@ -116,15 +118,19 @@ monitoring provider must alert on those failures. A future outbox is reconsidere
 independent audit durability or centralized delivery becomes a verified requirement.
 
 `ops:check-integrity` reads only lifecycle/reference metadata through bounded database
-cursors. Database-side aggregations preserve duplicate and missing-reference detection
-across cursor batches. `--limit` is the cursor batch size (1–500), not a record cap; every
+cursors. Database-side window-count aggregations preserve duplicate and missing-reference
+detection across cursor batches without building an unbounded `$push` array per duplicate
+key. `--limit` is the cursor batch size (1–500), not a record cap; every
 record is checked. JSON retains complete severity counts but serializes at most 500
 PII-free findings and reports the omitted count. It reports duplicate or
 invalid property IDs/slugs, non-sale records, gallery/cover inconsistencies,
 inquiry/property/viewing/history inconsistencies, notification failures, and media
 cleanup debt. Output contains entity IDs and codes, not PII, addresses, coordinates, or
 media URLs. It is scan-only and contains no repair or delete mode. Property numbers and
-customer workflow history are never rewritten automatically.
+customer workflow history are never rewritten automatically. Legacy records without
+notification state or inquiry/viewing history are reported with explicit missing-state
+codes; the scan and staff serializers never invent pending delivery or historical
+timestamps.
 
 ## Bounded I/O deadlines
 

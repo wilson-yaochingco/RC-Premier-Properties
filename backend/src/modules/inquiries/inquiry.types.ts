@@ -3,6 +3,9 @@ import type {
   AdminInquiryDetail,
   AdminInquiryListRequest,
   AdminInquiryListResponse,
+  AdminInquirySearchItem,
+  AdminInquirySearchRequest,
+  AdminInquirySearchResponse,
   AdminInquiryTransitionRequest,
   CreateInquiryRequest,
   CreateInquiryResponse,
@@ -134,6 +137,7 @@ export interface InquiryAdminRepository {
   list(
     request: AdminInquiryListRequest,
   ): Promise<{ records: AdminInquiryRecord[]; total: number }>;
+  search(request: AdminInquirySearchRequest): Promise<AdminInquirySearchItem[]>;
   findById(id: string): Promise<AdminInquiryRecord | null>;
   updateStatus(
     id: string,
@@ -185,6 +189,7 @@ export interface InquiryMutationContext {
 
 export interface AdminInquiryService {
   list(request: AdminInquiryListRequest): Promise<AdminInquiryListResponse>;
+  search(request: AdminInquirySearchRequest): Promise<AdminInquirySearchResponse>;
   detail(id: string): Promise<AdminInquiryDetail | null>;
   updateStatus(
     id: string,

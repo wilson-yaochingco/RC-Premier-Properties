@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared";
 import propertiesImage from "@/assets/site/properties.png";
@@ -12,6 +13,7 @@ import { PropertyPagination } from "@/features/properties/PropertyPagination";
 import { PropertyResultsExperience } from "@/features/properties/PropertyResultsExperience";
 import { PropertySearchForm } from "@/features/properties/PropertySearchForm";
 import {
+  paginationHref,
   propertyFormValues,
   type RawSearchParams,
 } from "@/features/properties/property-query";
@@ -69,6 +71,16 @@ export default async function PropertiesPage({
       error instanceof ApiClientError
         ? error.message
         : "Property results are temporarily unavailable.";
+  }
+
+  if (
+    response &&
+    response.pagination.total > 0 &&
+    response.items.length === 0 &&
+    response.pagination.totalPages > 0 &&
+    Number(values.page) > response.pagination.totalPages
+  ) {
+    redirect(paginationHref(rawSearchParams, response.pagination.totalPages));
   }
 
   const facets = await facetsPromise;

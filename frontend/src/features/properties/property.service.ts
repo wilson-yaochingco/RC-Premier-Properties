@@ -21,8 +21,9 @@ function readOptions(init: RequestInit = {}): RequestInit {
 export function getProperties(
   searchParams: RawSearchParams,
   init?: RequestInit,
+  pageSize = 9,
 ): Promise<PropertySearchResponse> {
-  const query = propertyApiSearchParams(searchParams);
+  const query = propertyApiSearchParams(searchParams, pageSize);
   return apiRequest<PropertySearchResponse>(
     `${API_PREFIX}/properties?${query.toString()}`,
     readOptions(init),

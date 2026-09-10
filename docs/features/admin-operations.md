@@ -12,8 +12,8 @@ inquiry, viewing, audit, notification, cleanup-debt, and `StaffIdentity` records
   retry/cleanup attention counts;
 - `/admin/viewings` — a six-week calendar and equivalent chronological list over the
   existing viewing-request state;
-- `/admin/search` — at most five property and five inquiry results from the existing
-  paginated APIs;
+- `/admin/search` — at most five property and five value-minimized inquiry results from
+  dedicated bounded reads;
 - `/admin/audit` — paginated, filterable, value-minimized audit events; and
 - `/admin/staff` — paginated read-only visibility into existing local staff identities.
 
@@ -31,7 +31,8 @@ of existing pending-review records; no cleanup mutation is available.
 
 Upcoming viewings use `Asia/Manila` date/time semantics, exclude archived and terminal
 inquiry/viewing states, and return six records plus an independent count. The calendar
-accepts a real inclusive range of at most 42 days and returns at most 200 records. It
+accepts a real inclusive range of at most 42 days and pages through every matching
+record in chunks of at most 200. It
 contains inquiry and Premier Property identifiers, status, requested date, and requested
 time—never names, email addresses, phone numbers, or message text. A keyboard-focusable
 table and equivalent schedule list are both present. This visualizes requests that staff
@@ -40,15 +41,18 @@ appointments.
 
 ## Search, audit, and staff boundaries
 
-Cross-admin search delegates to the existing bounded property and inquiry list endpoints.
-The broad results render property titles/numbers and opaque inquiry identifiers/status;
-they do not render customer names, email addresses, phone numbers, or message bodies.
-Opening the protected inquiry detail remains the deliberate path to contact data.
+Cross-admin search delegates to the bounded property list and a dedicated inquiry-search
+endpoint whose database projection returns only opaque inquiry identifier, type, status,
+and optional Premier Property number. Names, email addresses, phone numbers, subjects,
+messages, and other inquiry values are neither transported nor rendered. Opening the
+protected inquiry detail remains the deliberate path to contact data.
 
 Audit responses select only actor staff ID, allowlisted action, entity type/ID, outcome,
 request ID, and occurrence time. Filters cover available action/entity/outcome/date/staff
-fields. Page size defaults to 25 and is capped at 100. Event details and before/after
-payloads are not returned.
+fields; date fields use Philippine calendar-day bounds. Session authentication events
+redact the session entity ID, while other operational entity IDs remain visible. Page
+size defaults to 25 and is capped at 100. Event details and before/after payloads are not
+returned.
 
 Staff visibility uses the existing `StaffIdentity` collection and administrator-only
 `staff:manage` permission. The response omits Auth0 issuer/subject and all session data.
@@ -81,9 +85,10 @@ version, origin, CSRF, audit, lease, and cleanup rules.
 
 The dashboard uses one property aggregation, one inquiry aggregation, a six-record
 projected viewing query, and count operations concurrently. Calendar, audit, and staff
-queries are capped and projected. Related public inventory uses one current-record query
-and one 12-candidate query, then returns at most three. No per-row query is issued, so no
-N+1 path was introduced.
+queries are paginated and projected. Related public inventory uses one current-record
+query and one 12-candidate query, then returns at most three; the detail route streams
+without waiting for that secondary read. No per-row query is issued, so no N+1 path was
+introduced.
 
 No index was added in Level 15. Existing indexes cover published property
 purpose/type/price, viewing status/date, notification status, audit actor/action/time,

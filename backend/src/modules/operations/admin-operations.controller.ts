@@ -10,6 +10,7 @@ import type { AdminOperationsService } from "./admin-operations.types.js";
 import {
   parseAdminAuditQuery,
   parseAdminStaffQuery,
+  parseNoQuery,
   parseViewingCalendarQuery,
 } from "./admin-operations.validation.js";
 
@@ -17,7 +18,8 @@ export function createAdminOperationsController(
   service: AdminOperationsService = mongooseAdminOperationsService,
 ) {
   return {
-    async dashboard(_request: Request, response: Response<AdminDashboardResponse>) {
+    async dashboard(request: Request, response: Response<AdminDashboardResponse>) {
+      parseNoQuery(request.query);
       response.status(200).json(await service.dashboard());
     },
     async viewingCalendar(

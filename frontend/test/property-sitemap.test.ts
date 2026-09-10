@@ -74,6 +74,7 @@ describe("bounded sitemap sharding", () => {
       "https://example.test/sitemaps/2.xml",
     ]);
     expect(getProperties).toHaveBeenCalledOnce();
+    expect(getProperties).toHaveBeenCalledWith({ page: "1" }, undefined, 48);
   });
 
   it("bounds each shard to twenty pages and isolates a later-shard failure", async () => {

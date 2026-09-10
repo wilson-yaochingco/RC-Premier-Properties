@@ -4,6 +4,7 @@ import {
   type AdminInquiryDetail,
   type AdminInquiryListRequest,
   type AdminInquiryListResponse,
+  type AdminInquirySearchResponse,
   type AdminInquiryTransitionRequest,
   type AdminAuditListRequest,
   type AdminAuditListResponse,
@@ -80,6 +81,14 @@ export function getAdminInquiries(
   );
 }
 
+export function searchAdminInquiries(queryValue: string, signal?: AbortSignal) {
+  const query = new URLSearchParams({ query: queryValue, limit: "5" });
+  return apiRequest<AdminInquirySearchResponse>(
+    `${API_PREFIX}/admin/inquiries/search?${query.toString()}`,
+    authenticatedRequest(signal),
+  );
+}
+
 export function getAdminInquiry(id: string, signal?: AbortSignal) {
   return apiRequest<AdminInquiryDetail>(
     `${API_PREFIX}/admin/inquiries/${encodeURIComponent(id)}`,
@@ -97,9 +106,15 @@ export function getAdminDashboard(signal?: AbortSignal) {
 export function getAdminViewingCalendar(
   start: string,
   end: string,
+  page: number,
   signal?: AbortSignal,
 ) {
-  const query = new URLSearchParams({ start, end });
+  const query = new URLSearchParams({
+    start,
+    end,
+    page: String(page),
+    limit: "200",
+  });
   return apiRequest<AdminViewingCalendarResponse>(
     `${API_PREFIX}/admin/operations/viewings/calendar?${query.toString()}`,
     authenticatedRequest(signal),

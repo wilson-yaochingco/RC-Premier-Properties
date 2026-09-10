@@ -33,7 +33,6 @@ const ACTIVE_VIEWING_STATUSES = [
   "confirmed",
   "reschedule-requested",
 ] as const;
-const CALENDAR_LIMIT = 200;
 
 interface PropertyCounts {
   _id: null;
@@ -129,8 +128,12 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function dayAfter(value: string): Date {
-  const date = new Date(`${value}T00:00:00.000Z`);
+function manilaDayStart(value: string): Date {
+  return new Date(`${value}T00:00:00.000+08:00`);
+}
+
+function manilaDayAfter(value: string): Date {
+  const date = manilaDayStart(value);
   date.setUTCDate(date.getUTCDate() + 1);
   return date;
 }
@@ -294,22 +297,33 @@ export class MongooseAdminOperationsService implements AdminOperationsService {
   async viewingCalendar(
     request: AdminViewingCalendarRequest,
   ): Promise<AdminViewingCalendarResponse> {
-    const records = await InquiryModel.find(calendarFilter(request.start, request.end))
-      .select(
-        "propertyId viewingRequest.status viewingRequest.requestedDate viewingRequest.requestedTime",
-      )
-      .sort({
-        "viewingRequest.requestedDate": 1,
-        "viewingRequest.requestedTime": 1,
-        _id: 1,
-      })
-      .limit(CALENDAR_LIMIT + 1)
-      .lean<CalendarRecord[]>();
+    const filter = calendarFilter(request.start, request.end);
+    const [records, total] = await Promise.all([
+      InquiryModel.find(filter)
+        .select(
+          "propertyId viewingRequest.status viewingRequest.requestedDate viewingRequest.requestedTime",
+        )
+        .sort({
+          "viewingRequest.requestedDate": 1,
+          "viewingRequest.requestedTime": 1,
+          _id: 1,
+        })
+        .skip((request.page - 1) * request.limit)
+        .limit(request.limit)
+        .lean<CalendarRecord[]>(),
+      InquiryModel.countDocuments(filter),
+    ]);
     return {
-      items: records.slice(0, CALENDAR_LIMIT).map(toCalendarItem),
+      items: records.map(toCalendarItem),
       start: request.start,
       end: request.end,
-      truncated: records.length > CALENDAR_LIMIT,
+      pagination: {
+        page: request.page,
+        limit: request.limit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / request.limit),
+      },
+      truncated: total > request.limit,
     };
   }
 
@@ -324,10 +338,8 @@ export class MongooseAdminOperationsService implements AdminOperationsService {
       ...(request.from || request.to
         ? {
             occurredAt: {
-              ...(request.from
-                ? { $gte: new Date(`${request.from}T00:00:00.000Z`) }
-                : {}),
-              ...(request.to ? { $lt: dayAfter(request.to) } : {}),
+              ...(request.from ? { $gte: manilaDayStart(request.from) } : {}),
+              ...(request.to ? { $lt: manilaDayAfter(request.to) } : {}),
             },
           }
         : {}),
@@ -350,7 +362,9 @@ export class MongooseAdminOperationsService implements AdminOperationsService {
         : {}),
       action: record.action,
       entityType: record.entityType,
-      ...(record.entityId ? { entityId: record.entityId } : {}),
+      ...(record.entityType !== "session" && record.entityId
+        ? { entityId: record.entityId }
+        : {}),
       outcome: record.outcome,
       requestId: record.requestId,
       occurredAt: record.occurredAt.toISOString(),

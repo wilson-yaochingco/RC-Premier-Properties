@@ -185,12 +185,13 @@ test("staff can operate the inquiry queue without exposing session data", async 
   });
 
   await page.goto("/admin/viewings");
-  await expect(page.getByRole("heading", { name: "Viewing requests" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Viewings" })).toBeVisible();
   await expect(page.getByText("Premier Property #RCPP-E2E-DRAFT")).toBeVisible();
   await page.getByRole("link", { name: "View details" }).click();
   await expect(
     page.getByText("This is a synthetic private inquiry used only by browser tests."),
   ).toBeVisible();
+  await expect(page.getByText("Notification delivered")).toBeVisible();
 
   await expect(page.getByText(/Sep 20, 2030.*Philippine time/).first()).toBeVisible();
   await page.getByLabel("Viewing status").selectOption("confirmed");

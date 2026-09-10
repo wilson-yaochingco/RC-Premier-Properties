@@ -35,7 +35,7 @@ make ownership and dependencies visible without treating skipped UI work as comp
 | 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated     | No          |
 | 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated     | No          |
 | 5     | Communication & AI                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Providers not selected         | No          |
-| 6     | Production Hardening & Launch         | 🟦      | 🟩 Levels 8–14 | 🟩 Levels 8–14   | ⛔ Live infrastructure/acceptance | Launch gate |
+| 6     | Production Hardening & Launch         | 🟦      | 🟩 Levels 8–17 | 🟩 Levels 8–17   | ⛔ Live infrastructure/acceptance | Launch gate |
 | 7     | Post-Launch Growth                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Prioritize after launch        | No          |
 
 **Phase 0 is Complete. Phases 1, 2A, 3A and 6 are In Progress.** The Atlas connection and
@@ -52,9 +52,11 @@ is not evidence that a capability works.
 The implemented Phase 3A repository slice includes the protected admin shell, complete
 property lifecycle, device media upload boundary, and lightweight inquiry/viewing
 administration. Its phase remains open for live Auth0/MongoDB acceptance and production
-media infrastructure. Phase 6 repository hardening through Level 14 is implemented, but
+media infrastructure. Phase 6 repository hardening through Level 17 is implemented, but
 the production launch gate remains open for the explicitly tracked live infrastructure,
-security, monitoring, device, and recovery evidence. Phase 2B remains deferred.
+security, monitoring, device, and recovery evidence. See the
+[Level 17 remediation report](audits/level-17-final-remediation.md). Phase 2B remains
+deferred.
 
 The approved Level 15 enhancement slice is repository-complete without opening Phase 2B
 or 3B: public residential-sale filtering/detail improvements and read-only admin
@@ -423,8 +425,10 @@ desktop panel squeezed onto a phone.
 area, status. Keep them visually clean; a card that shows everything communicates nothing.
 
 **Property details** — gallery, price, location, specifications, description, highlights,
-amenities, map, assigned agent, inquiry CTA, viewing CTA. Similar properties only as a
-placeholder until real recommendation logic exists in Phase 5E.
+amenities, map, inquiry CTA, and viewing CTA. Deterministic related properties now draw
+only from real published inventory; personalized or model-assisted recommendation logic
+remains deferred to Phase 5E. Assigned agent presentation remains deferred until that
+feature has real data and scope.
 
 The Phase 2A map is a privacy-preserving public discovery baseline, not a production map
 provider decision. It may render only a separately approved public point, approximate
@@ -913,7 +917,8 @@ structured answers against the lead record.
 
 ### 5E — Recommendations
 
-Similar properties drawn from real inventory only.
+Personalized or model-assisted recommendations drawn from real inventory only. The
+non-personalized deterministic related-property baseline already exists in Phase 2A.
 
 ### 5F — AI-assisted follow-up
 

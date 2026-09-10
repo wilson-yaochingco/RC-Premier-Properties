@@ -50,6 +50,11 @@ numbers; incomplete pairs, numeric strings, malformed objects, and extra nested 
 return `400`. Unique indexes protect both Premier Property number and slug; a collision
 returns `409`.
 
+The Premier Property number is immutable after creation. A slug remains editable only
+until the record has first been published; once `publishedAt` exists, it stays immutable
+through unpublish and later private edits so issued public URLs remain stable. The UI
+marks both constraints and the backend enforces them independently.
+
 Every other write requires a non-negative integer `expectedVersion` from the latest private response. Content updates include it alongside at least one allowlisted content field. Transition bodies contain only `expectedVersion`. Availability bodies contain `expectedVersion` and `availability`. Unknown fields are rejected.
 
 The mutation matches ID, current state, and version in one MongoDB operation and increments the version. A stale version or intervening state change returns `409`; no newer content is overwritten.
@@ -69,7 +74,9 @@ Production references accept only safe raster paths below `/media/properties/`.
 Development samples remain fixture-only and cannot be saved in production. Unknown hosts,
 SVG/executable paths, future media kinds, duplicate IDs, malformed metadata, stale
 versions and media changes to published/archived records are rejected. This JSON endpoint
-never accepts file bytes.
+never accepts file bytes. A client cannot claim a new adapter-owned reference through
+this metadata endpoint; server-owned references enter a gallery only through device
+upload.
 
 ## Device image upload
 
@@ -79,12 +86,17 @@ unknown parameters are rejected. Declared MIME must match the bytes, the image m
 as one frame, and dimensions are bounded. The server generates the storage ID and ignores
 no client filename because filenames are not accepted at all. A successful storage write
 and version-matched gallery update returns the updated private property with status 201.
-If MongoDB persistence fails, the newly written development object is removed.
+If MongoDB persistence fails, compensation first reconciles the object reference against
+all property gallery and cover records. It deletes only an owned reference that is not
+present anywhere. A failed reference check retains the object and records cleanup debt
+for operator review.
 
-Metadata commit and audit insertion are separate durable boundaries. A post-commit audit
-failure is surfaced and never deletes an object still referenced by the property. For a
-media removal, metadata and audit complete before physical deletion; failed deletion is
-recorded as cleanup debt and never makes removed media reappear.
+Metadata commit and audit insertion are separate durable boundaries. Compensation never
+relies on the shape of a URL to infer whether metadata committed: a post-commit audit
+failure is surfaced and the database reference check retains the object. The same global
+reference check protects legacy cross-property references during removal. Metadata and
+audit complete before physical deletion; failed or unsafe deletion is recorded as cleanup
+debt and never makes removed media reappear.
 
 Development retains the original privately and serves an optimized WebP derivative.
 Production returns 503 until an object-storage/CDN adapter is selected.

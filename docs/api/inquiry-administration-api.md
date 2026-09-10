@@ -13,6 +13,7 @@ authorization control.
 | Method  | Route                           | Purpose                         |
 | ------- | ------------------------------- | ------------------------------- |
 | `GET`   | `/admin/inquiries`              | Search and paginate queues      |
+| `GET`   | `/admin/inquiries/search`       | Minimized cross-admin lookup    |
 | `GET`   | `/admin/inquiries/:id`          | Read private inquiry details    |
 | `PATCH` | `/admin/inquiries/:id/status`   | Change workflow status          |
 | `PATCH` | `/admin/inquiries/:id/viewing`  | Transition a viewing request    |
@@ -30,12 +31,21 @@ escaped, maximum-100-character search over an exact valid inquiry database ID pl
 email, phone, Property ID and subject.
 Unknown, repeated/object-style or invalid parameters return `400` with field issues.
 
+The dedicated search route accepts only a trimmed 2–100 character `query` and a `limit`
+from 1 through 10 (default 5). Matching may inspect the exact database ID, name, email,
+phone, Property ID, and subject, but the database projection and response include only
+opaque ID, inquiry type, status, and optional Property ID. It exists specifically so the
+broad admin search does not transport customer identity or contact fields.
+
 List responses deliberately omit message bodies, phone numbers, consent timestamps,
 internal notes and history. They include only safe notification status, attempt count, and
 available attempt/delivery times/error code—not notification identity or lease data.
 Detail responses include the operational private fields, created/updated timestamps,
 archive time, current version, notes, status history, and the same safe notification
-summary. The staff UI derives status-changed times only from actual history entries.
+summary. Legacy records with no notification state return explicit `untracked` status;
+they never masquerade as pending delivery. The staff UI derives status-changed and
+viewing-transition times only from actual persisted history entries. Missing legacy
+history is identified as unavailable rather than synthesized from `createdAt`.
 
 ## Writes and concurrency
 

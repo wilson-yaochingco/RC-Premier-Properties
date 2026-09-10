@@ -135,6 +135,8 @@ export interface PropertyAdminRepository {
     request: AdminPropertyListRequest,
   ): Promise<{ records: AdminPropertyRecord[]; total: number }>;
   findById(id: string): Promise<AdminPropertyRecord | null>;
+  /** True when any property metadata still points at this storage object. */
+  isMediaReferenced(objectReference: string): Promise<boolean>;
   createDraft(input: DraftPropertyPersistenceInput): Promise<AdminPropertyRecord>;
   updateDraft(
     id: string,

@@ -594,6 +594,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 name="propertyId"
                 defaultValue={content.propertyId}
                 maxLength={40}
+                readOnly={mode === "edit"}
                 required
               />
             </Field>
@@ -604,6 +605,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 defaultValue={content.slug}
                 maxLength={160}
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                readOnly={Boolean(load.property?.publishedAt)}
                 required
               />
             </Field>

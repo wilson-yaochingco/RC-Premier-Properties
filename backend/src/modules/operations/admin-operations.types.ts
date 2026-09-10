@@ -10,6 +10,8 @@ import type {
 export interface AdminViewingCalendarRequest {
   start: string;
   end: string;
+  page: number;
+  limit: number;
 }
 
 export interface AdminOperationsService {

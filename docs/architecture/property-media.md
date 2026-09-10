@@ -58,11 +58,16 @@ but metadata persistence fails, failed compensating deletion creates the same du
 debt without hiding the original database error.
 
 Audit insertion is a separate durable boundary. A newly uploaded object is compensated
-only when metadata fails before commit; a post-commit audit failure never deletes an
-object referenced by the property. Removal orders metadata, audit, then physical cleanup.
-If audit fails after removal metadata commits, the object is retained as cleanup debt for
-operator review. Development transformation compensation reports its own cleanup-failure
-code when source/derivative removal fails.
+only after a repository-wide gallery/cover reference check proves that metadata did not
+commit anywhere. A post-commit audit failure therefore never deletes an object referenced
+by the property, including a commit-then-throw persistence result. Removal orders
+metadata, audit, reference reconciliation, then physical cleanup. The same reconciliation
+protects legacy cross-property references. If the reference check or audit fails after
+removal metadata commits, the object is retained as cleanup debt for operator review.
+Development transformation compensation reports its own cleanup-failure code when
+source/derivative removal fails. The metadata-only endpoint rejects attempts to introduce
+a new adapter-owned reference; validated upload is the sole creation path for such
+references.
 
 Production selects `UnavailablePropertyMediaStorage` and returns 503. This fail-closed
 choice makes it impossible to deploy local filesystem storage accidentally. Selecting a

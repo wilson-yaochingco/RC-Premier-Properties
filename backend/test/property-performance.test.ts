@@ -1,4 +1,4 @@
-import type { PropertySearchRequest } from "@rc/shared";
+import { PUBLIC_PROPERTY_AREAS, type PropertySearchRequest } from "@rc/shared";
 import type { Model } from "mongoose";
 import { describe, expect, it, vi } from "vitest";
 import { MongoosePropertyService } from "../src/modules/properties/property.service.js";
@@ -32,6 +32,31 @@ function projectionFields(select: ReturnType<typeof vi.fn>): string[] {
 }
 
 describe("public property read projections", () => {
+  it("bounds public location facets to the canonical supported area set", async () => {
+    const aggregate = vi
+      .fn()
+      .mockResolvedValueOnce([
+        { _id: null, min: 1_000_000, max: 9_000_000, propertyTypes: [] },
+      ])
+      .mockResolvedValueOnce(
+        PUBLIC_PROPERTY_AREAS.map((city, index) => ({
+          _id: `${city}, Pampanga`,
+          count: PUBLIC_PROPERTY_AREAS.length - index,
+        })),
+      );
+    const model = { aggregate } as unknown as Model<PropertyEntity>;
+
+    const result = await new MongoosePropertyService(model).getFacets();
+
+    expect(result.locations).toHaveLength(PUBLIC_PROPERTY_AREAS.length);
+    const locationPipeline = aggregate.mock.calls[1]?.[0];
+    expect(locationPipeline).toEqual(
+      expect.arrayContaining([{ $limit: PUBLIC_PROPERTY_AREAS.length }]),
+    );
+    expect(JSON.stringify(aggregate.mock.calls[0]?.[0])).not.toContain("locations");
+    expect(JSON.stringify(locationPipeline)).toContain("location.city");
+  });
+
   it("keeps list queries free of detail-only copy and gallery metadata", async () => {
     const query = createReadQuery([]);
     const model = {

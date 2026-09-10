@@ -5,13 +5,17 @@ import { useState } from "react";
 export function PropertyActions({
   propertyNumber,
   shareTitle,
+  shareUrl,
 }: {
   propertyNumber: string;
   shareTitle: string;
+  shareUrl: string;
 }) {
   const [message, setMessage] = useState("");
 
   function legacyCopy(value: string): boolean {
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const field = document.createElement("textarea");
     field.value = value;
     field.setAttribute("readonly", "");
@@ -19,9 +23,12 @@ export function PropertyActions({
     field.style.opacity = "0";
     document.body.append(field);
     field.select();
-    const copied = document.execCommand("copy");
-    field.remove();
-    return copied;
+    try {
+      return document.execCommand("copy");
+    } finally {
+      field.remove();
+      previousFocus?.focus();
+    }
   }
 
   async function copy(value: string, success: string, failure: string) {
@@ -40,12 +47,12 @@ export function PropertyActions({
   async function share() {
     try {
       if (navigator.share) {
-        await navigator.share({ title: shareTitle, url: window.location.href });
+        await navigator.share({ title: shareTitle, url: shareUrl });
         setMessage("Share options opened.");
         return;
       }
       await copy(
-        window.location.href,
+        shareUrl,
         "Property link copied.",
         "Copy unavailable. Copy the link from your browser address bar.",
       );

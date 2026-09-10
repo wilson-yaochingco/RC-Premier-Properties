@@ -10,7 +10,7 @@ routes do not mutate state; CSRF applies unchanged to the separate mutation APIs
 | Method | Path                                  | Permission(s)                              | Bound                            |
 | ------ | ------------------------------------- | ------------------------------------------ | -------------------------------- |
 | `GET`  | `/admin/operations/dashboard`         | `property:read-private` and `inquiry:read` | six upcoming records plus counts |
-| `GET`  | `/admin/operations/viewings/calendar` | `inquiry:read`                             | 42 days; 200 records             |
+| `GET`  | `/admin/operations/viewings/calendar` | `inquiry:read`                             | 42 days; paginated at 200        |
 | `GET`  | `/admin/operations/audit-events`      | `audit:read`                               | paginated; maximum 100           |
 | `GET`  | `/admin/operations/staff`             | administrator-only `staff:manage`          | paginated; maximum 50            |
 
@@ -26,16 +26,21 @@ returns customer contact or message data.
 `start` and `end` are required real `YYYY-MM-DD` dates. The inclusive range must be one
 through 42 days. Unknown, missing, malformed, reversed, or repeated values return `400`.
 The response contains only inquiry ID, optional Premier Property number, status,
-requested date, and requested time. `truncated: true` means more than 200 records matched.
+requested date, and requested time. `page` defaults to 1 and is capped at 10,000;
+`limit` defaults to and is capped at 200. Pagination metadata makes every matching
+request reachable. `truncated: true` means the range spans more than one 200-record page,
+not that later requests have been discarded.
 
 ## Audit events
 
 Optional filters are `action`, `entityType`, `outcome`, `actorStaffIdentityId`, `from`,
-and `to`. Enum values come from the shared contract; dates are inclusive real UTC
-calendar dates for this event-instant filter. `page` defaults to 1 and is capped at
+and `to`. Enum values come from the shared contract; dates are inclusive Philippine
+calendar dates and are converted to exact `Asia/Manila` instant bounds. `page` defaults to 1 and is capped at
 10,000; `limit` defaults to 25 and is capped at 100. The response deliberately excludes
 event details, customer content, property values, private locations, tokens, cookies, and
-session identifiers.
+session identifiers. Authentication session events also suppress their session entity
+IDs; property, inquiry, viewing, and staff entity IDs remain available for authorized
+operational correlation.
 
 ## Staff identities
 

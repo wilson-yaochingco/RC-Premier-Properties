@@ -74,6 +74,7 @@ export function createAdminInquiryRoutes(
   const csrf = requireCsrf(authService);
 
   router.get("/", authenticate, requireRead, controller.list);
+  router.get("/search", authenticate, requireRead, controller.search);
   router.get("/:id", authenticate, requireRead, controller.detail);
   router.patch(
     "/:id/status",

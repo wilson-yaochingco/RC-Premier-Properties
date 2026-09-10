@@ -49,6 +49,19 @@ class MemoryInquiryAdminRepository implements InquiryAdminRepository {
     return { records: this.record ? [this.record] : [], total: this.record ? 1 : 0 };
   }
 
+  async search() {
+    return this.record
+      ? [
+          {
+            id: String(this.record._id),
+            inquiryType: this.record.inquiryType,
+            status: this.record.status,
+            ...(this.record.propertyId ? { propertyId: this.record.propertyId } : {}),
+          },
+        ]
+      : [];
+  }
+
   async findById(id: string) {
     return id === INQUIRY_ID ? this.record : null;
   }
@@ -231,6 +244,46 @@ describe("admin inquiry service", () => {
       message: "Private message that must never enter an audit record.",
       statusHistory: [{ toStatus: "new" }],
     });
+  });
+
+  it("returns a value-minimized cross-admin search result", async () => {
+    const { service } = makeService();
+    const result = await service.search({ query: "Private", limit: 5 });
+
+    expect(result.items).toEqual([
+      {
+        id: INQUIRY_ID,
+        inquiryType: "property",
+        status: "new",
+        propertyId: "RCPP-ADMIN-001",
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("private@example.test");
+    expect(JSON.stringify(result)).not.toContain("Private Person");
+  });
+
+  it("keeps missing legacy notification and history explicitly untracked", async () => {
+    const { repository, service } = makeService();
+    repository.record = fixture({
+      status: "in-progress",
+      statusHistory: [],
+      notification: undefined as never,
+      inquiryType: "viewing",
+      viewingRequest: {
+        status: "confirmed",
+        requestedDate: "2026-09-20",
+        requestedTime: "10:30",
+        statusHistory: [],
+      },
+    });
+
+    const detail = await service.detail(INQUIRY_ID);
+    expect(detail).toMatchObject({
+      notification: { status: "untracked" },
+      statusHistory: [],
+      viewingRequest: { statusHistory: [] },
+    });
+    expect(detail?.notification).not.toHaveProperty("attempts");
   });
 
   it("tracks status, spam quarantine, and legitimate restoration with value-free audits", async () => {

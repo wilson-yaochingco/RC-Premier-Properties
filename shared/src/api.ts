@@ -682,14 +682,20 @@ export interface AdminInquirySummary {
   archivedAt?: string;
 }
 
-export interface AdminInquiryNotification {
-  status: "pending" | "sending" | "retry-pending" | "delivered" | "terminal-failure";
-  attempts: number;
-  nextAttemptAt?: string;
-  lastAttemptAt?: string;
-  deliveredAt?: string;
-  lastErrorCode?: string;
-}
+export type AdminInquiryNotification =
+  | {
+      /** Legacy record created before durable notification tracking existed. */
+      status: "untracked";
+    }
+  | {
+      status:
+        "pending" | "sending" | "retry-pending" | "delivered" | "terminal-failure";
+      attempts: number;
+      nextAttemptAt?: string;
+      lastAttemptAt?: string;
+      deliveredAt?: string;
+      lastErrorCode?: string;
+    };
 
 export interface AdminInquiryDetail extends AdminInquirySummary {
   phone?: string;
@@ -715,6 +721,23 @@ export interface AdminInquiryListRequest {
 export interface AdminInquiryListResponse {
   items: AdminInquirySummary[];
   pagination: PaginationMeta;
+}
+
+export interface AdminInquirySearchRequest {
+  query: string;
+  limit: number;
+}
+
+/** Value-minimized result used only by the cross-admin search surface. */
+export interface AdminInquirySearchItem {
+  id: string;
+  inquiryType: InquiryType;
+  status: InquiryStatus;
+  propertyId?: string;
+}
+
+export interface AdminInquirySearchResponse {
+  items: AdminInquirySearchItem[];
 }
 
 export interface UpdateInquiryStatusRequest {
@@ -819,6 +842,7 @@ export interface AdminViewingCalendarResponse {
   items: AdminViewingCalendarItem[];
   start: string;
   end: string;
+  pagination: PaginationMeta;
   truncated: boolean;
 }
 

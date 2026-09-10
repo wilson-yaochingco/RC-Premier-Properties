@@ -184,6 +184,9 @@ test("property detail renders public data and carries its ID into inquiry links"
   await expect(page.getByText("Property number copied.")).toBeVisible();
   await page.getByRole("button", { name: "Share Property" }).click();
   await expect(page.getByText("Property link copied.")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(`${new URL(page.url()).origin}/properties/clark-garden-residence`);
   await expect(page.getByRole("link", { name: "Back to Results" })).toHaveAttribute(
     "href",
     "/properties?propertyId=RCPP-E2E-001",
@@ -245,13 +248,92 @@ test("copy and share controls provide a safe fallback without modern browser API
   });
   await page.goto("/properties/clark-garden-residence");
 
-  await page.getByRole("button", { name: "Copy Property Number" }).click();
+  const copy = page.getByRole("button", { name: "Copy Property Number" });
+  await copy.click();
+  await expect(copy).toBeFocused();
   await expect(page.getByRole("status")).toContainText(
     "Select and copy the property number shown on this page.",
   );
-  await page.getByRole("button", { name: "Share Property" }).click();
+  const share = page.getByRole("button", { name: "Share Property" });
+  await share.click();
+  await expect(share).toBeFocused();
   await expect(page.getByRole("status")).toContainText(
     "Copy the link from your browser address bar.",
+  );
+});
+
+test("native share receives only the canonical property URL", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (data: ShareData) => {
+        (window as Window & { sharedPropertyUrl?: string }).sharedPropertyUrl =
+          data.url;
+      },
+    });
+  });
+  await page.goto(
+    "/properties/clark-garden-residence?from=private-state&tracking=discarded",
+  );
+
+  await page.getByRole("button", { name: "Share Property" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as Window & { sharedPropertyUrl?: string }).sharedPropertyUrl,
+      ),
+    )
+    .toBe(`${new URL(page.url()).origin}/properties/clark-garden-residence`);
+});
+
+test("legacy clipboard success restores focus to the activated control", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+    document.execCommand = () => true;
+  });
+  await page.goto("/properties/clark-garden-residence?tracking=discarded");
+
+  const copy = page.getByRole("button", { name: "Copy Property Number" });
+  await copy.click();
+  await expect(copy).toBeFocused();
+  const share = page.getByRole("button", { name: "Share Property" });
+  await share.click();
+  await expect(share).toBeFocused();
+  await expect(page.getByRole("status")).toContainText("Property link copied.");
+});
+
+test("out-of-range property pages recover to the last real filtered page", async ({
+  page,
+}) => {
+  await page.goto("/properties?sort=price-asc&page=999");
+
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.locator("main article")).toHaveCount(1);
+  await expect(
+    page.getByText("No published properties match these filters."),
+  ).toHaveCount(0);
+});
+
+test("slow related inventory does not hold back the property detail response", async ({
+  page,
+}) => {
+  await page.goto("/properties/streaming-regression-fixture", {
+    waitUntil: "commit",
+    timeout: 5_000,
+  });
+
+  await expect(page.getByRole("heading", { level: 1 }).last()).toContainText(
+    "Clark Garden Residence",
+    { timeout: 5_000 },
   );
 });
 

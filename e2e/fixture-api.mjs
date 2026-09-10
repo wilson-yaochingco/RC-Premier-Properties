@@ -305,6 +305,9 @@ const propertyService = {
     return mapFixtureProperties(request);
   },
   async findPublishedBySlug(slug) {
+    if (slug === "streaming-regression-fixture") {
+      return { ...TEST_PROPERTIES[0], id: "streaming-regression-fixture", slug };
+    }
     return (
       TEST_PROPERTIES.find(
         (property) =>
@@ -315,6 +318,10 @@ const propertyService = {
     );
   },
   async related(slug) {
+    if (slug === "streaming-regression-fixture") {
+      await new Promise((resolve) => setTimeout(resolve, 8_000));
+      return { items: [] };
+    }
     const current = TEST_PROPERTIES.find(
       (property) =>
         property.slug === slug &&

@@ -73,6 +73,9 @@ export function AdminAuditViewer() {
       ...(value("outcome")
         ? { outcome: value("outcome") as AdminAuditListRequest["outcome"] }
         : {}),
+      ...(value("actorStaffIdentityId")
+        ? { actorStaffIdentityId: value("actorStaffIdentityId") }
+        : {}),
       ...(value("from") ? { from: value("from") } : {}),
       ...(value("to") ? { to: value("to") } : {}),
       page: 1,
@@ -127,11 +130,20 @@ export function AdminAuditViewer() {
           </select>
         </label>
         <label>
-          From
+          Staff ID
+          <input
+            name="actorStaffIdentityId"
+            defaultValue={request.actorStaffIdentityId}
+            maxLength={24}
+            pattern="[0-9a-fA-F]{24}"
+          />
+        </label>
+        <label>
+          From (Philippine date)
           <input name="from" type="date" defaultValue={request.from} />
         </label>
         <label>
-          To
+          To (Philippine date)
           <input name="to" type="date" defaultValue={request.to} />
         </label>
         <button type="submit">Apply filters</button>

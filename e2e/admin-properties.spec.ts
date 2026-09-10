@@ -281,6 +281,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await expect(
     page.getByRole("heading", { name: "Editing PREMIER PROPERTY #RCPP-E2E-NEW" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Property ID")).toHaveAttribute("readonly", "");
   await page.getByLabel("Title").fill("E2E edited draft");
   await page.getByRole("button", { name: "Save property content" }).click();
   await expect(page.getByText("Property changes saved.")).toBeVisible();

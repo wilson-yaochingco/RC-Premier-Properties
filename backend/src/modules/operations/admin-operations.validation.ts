@@ -90,7 +90,7 @@ export function parseViewingCalendarQuery(
   query: RawQuery,
 ): AdminViewingCalendarRequest {
   const issues: ValidationIssue[] = [];
-  rejectUnknown(query, ["start", "end"], issues);
+  rejectUnknown(query, ["start", "end", "page", "limit"], issues);
   const start = text(query, "start", issues, 10);
   const end = text(query, "end", issues, 10);
   if (!validDate(start))
@@ -106,8 +106,16 @@ export function parseViewingCalendarQuery(
       issues.push({ field: "end", message: "Choose a range from 1 to 42 days." });
     }
   }
+  const page = integer(query, "page", issues, 1, 10_000);
+  const limit = integer(query, "limit", issues, 200, 200);
   throwIssues("Invalid viewing calendar parameters.", issues);
-  return { start: start!, end: end! };
+  return { start: start!, end: end!, page, limit };
+}
+
+export function parseNoQuery(query: RawQuery): void {
+  const issues: ValidationIssue[] = [];
+  rejectUnknown(query, [], issues);
+  throwIssues("This endpoint does not accept query parameters.", issues);
 }
 
 export function parseAdminAuditQuery(query: RawQuery): AdminAuditListRequest {

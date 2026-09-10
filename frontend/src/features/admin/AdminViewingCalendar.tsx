@@ -37,12 +37,13 @@ export function AdminViewingCalendar() {
   const { expireSession } = useAdminSession();
   const [month, setMonth] = useState(() => currentBusinessMonth());
   const [attempt, setAttempt] = useState(0);
+  const [page, setPage] = useState(1);
   const [state, setState] = useState<CalendarState>({ kind: "loading" });
   const window = useMemo(() => calendarWindow(month), [month]);
 
   useEffect(() => {
     const controller = new AbortController();
-    getAdminViewingCalendar(window.start, window.end, controller.signal)
+    getAdminViewingCalendar(window.start, window.end, page, controller.signal)
       .then((response) => setState({ kind: "ready", response }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -59,7 +60,7 @@ export function AdminViewingCalendar() {
         });
       });
     return () => controller.abort();
-  }, [attempt, expireSession, window.end, window.start]);
+  }, [attempt, expireSession, page, window.end, window.start]);
 
   const items = state.kind === "ready" ? state.response.items : [];
   const byDate = new Map<string, typeof items>();
@@ -71,6 +72,7 @@ export function AdminViewingCalendar() {
 
   function move(offset: number) {
     setState({ kind: "loading" });
+    setPage(1);
     setMonth((value) => shiftMonth(value, offset));
   }
 
@@ -110,8 +112,8 @@ export function AdminViewingCalendar() {
         <>
           {state.response.truncated ? (
             <p role="alert">
-              This month exceeds the 200-request calendar limit. Use the filtered list
-              below for complete review.
+              This range has more than 200 active viewing requests. Use the schedule
+              pages below to review every request.
             </p>
           ) : null}
           <div
@@ -180,6 +182,34 @@ export function AdminViewingCalendar() {
                 ))}
               </ol>
             )}
+            {state.response.pagination.totalPages > 1 ? (
+              <nav className={styles.pagination} aria-label="Viewing schedule pages">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => {
+                    setState({ kind: "loading" });
+                    setPage((value) => value - 1);
+                  }}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {state.response.pagination.page} of{" "}
+                  {state.response.pagination.totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= state.response.pagination.totalPages}
+                  onClick={() => {
+                    setState({ kind: "loading" });
+                    setPage((value) => value + 1);
+                  }}
+                >
+                  Next
+                </button>
+              </nav>
+            ) : null}
           </div>
         </>
       ) : null}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
@@ -31,6 +31,25 @@ import { formatBusinessDate } from "@/lib/date-time";
 import styles from "@/features/properties/property-detail.module.css";
 
 const getPublishedProperty = cache(getPropertyBySlug);
+
+async function RelatedProperties({ slug }: { slug: string }) {
+  const related = await getRelatedProperties(slug).catch(() => ({ items: [] }));
+  if (related.items.length === 0) return null;
+
+  return (
+    <section className={styles.relatedSection} aria-labelledby="related-title">
+      <Container>
+        <p className={styles.sectionLabel}>More published inventory</p>
+        <h2 id="related-title">Similar properties</h2>
+        <div className={styles.relatedGrid}>
+          {related.items.map((item) => (
+            <PropertyCard key={item.id} property={item} />
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -63,8 +82,6 @@ export default async function PropertyDetailPage({
       ? rawFrom
       : "/properties";
   let property;
-  const relatedPromise = getRelatedProperties(slug).catch(() => ({ items: [] }));
-
   try {
     property = await getPublishedProperty(slug);
   } catch (error) {
@@ -80,7 +97,6 @@ export default async function PropertyDetailPage({
   const location = formatLocation(property.location);
   const specifications = visibleSpecifications(property.specifications);
   const structuredData = buildPropertyStructuredData(property);
-  const related = await relatedPromise;
   const publicUrl =
     absoluteSiteUrl(`/properties/${property.slug}`) ?? `/properties/${property.slug}`;
 
@@ -138,6 +154,7 @@ export default async function PropertyDetailPage({
               <PropertyActions
                 propertyNumber={`PREMIER PROPERTY #${property.propertyId}`}
                 shareTitle={property.title}
+                shareUrl={publicUrl}
               />
             </div>
             <div className={styles.priceBlock}>
@@ -293,19 +310,9 @@ export default async function PropertyDetailPage({
         </Container>
       </section>
 
-      {related.items.length > 0 ? (
-        <section className={styles.relatedSection} aria-labelledby="related-title">
-          <Container>
-            <p className={styles.sectionLabel}>More published inventory</p>
-            <h2 id="related-title">Similar properties</h2>
-            <div className={styles.relatedGrid}>
-              {related.items.map((item) => (
-                <PropertyCard key={item.id} property={item} />
-              ))}
-            </div>
-          </Container>
-        </section>
-      ) : null}
+      <Suspense fallback={null}>
+        <RelatedProperties slug={slug} />
+      </Suspense>
     </main>
   );
 }
