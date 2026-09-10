@@ -1,0 +1,489 @@
+.page {
+  background: var(--brand-white);
+  color: var(--brand-primary);
+}
+
+.guideContainer {
+  width: min(calc(100% - (var(--container-gutter) * 2)), 80rem);
+}
+
+.intro {
+  padding-block: clamp(1.25rem, 2.5vw, 2.5rem) clamp(2.5rem, 4vw, 4rem);
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  margin-bottom: clamp(1.25rem, 2.5vw, 2.5rem);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.breadcrumbs a {
+  text-decoration: none;
+}
+
+.introGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr);
+  align-items: stretch;
+  gap: clamp(1rem, 2vw, 2rem);
+}
+
+.introGrid > *,
+.detailHeroGrid > *,
+.inventoryLayout > * {
+  min-width: 0;
+}
+
+.introStatement {
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(1.75rem, 3vw, 3rem);
+  background: var(--brand-primary-deep);
+  color: var(--brand-white);
+}
+
+.introStatement p {
+  color: var(--brand-secondary-light);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.introStatement h1 {
+  max-width: 12ch;
+  font-family: var(--font-editorial);
+  font-size: clamp(2.75rem, 4.25vw, 4.75rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.introMedia,
+.detailMedia {
+  position: relative;
+  min-height: 18rem;
+  overflow: hidden;
+  background: var(--surface-warm);
+}
+
+.introMedia img,
+.detailMedia img {
+  object-fit: cover;
+}
+
+.locationsSection {
+  padding-bottom: clamp(5rem, 9vw, 9rem);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sectionHeading h2 {
+  max-width: 16ch;
+  font-family: var(--font-editorial);
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.sectionHeading p {
+  max-width: 30rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.locationGrid {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.locationCard {
+  min-height: clamp(15rem, 22vw, 24rem);
+}
+
+.locationCard:nth-child(7n + 1),
+.locationCard:nth-child(7n + 5) {
+  grid-column: span 2;
+}
+
+.locationCard:nth-child(7n + 4) {
+  grid-row: span 2;
+}
+
+.locationCard a {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  color: var(--brand-white);
+}
+
+.locationCard img {
+  object-fit: cover;
+  transition: transform 420ms ease;
+}
+
+.locationShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(20 25 32 / 82%), rgb(20 25 32 / 4%) 68%);
+}
+
+.locationCardCopy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.35rem;
+  padding: clamp(1.25rem, 2.5vw, 2.25rem);
+}
+
+.locationCardCopy strong {
+  max-width: 16ch;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.75rem, 2.8vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.locationCardCopy span {
+  color: rgb(255 255 255 / 78%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.locationArrow {
+  position: absolute;
+  z-index: 1;
+  top: 1rem;
+  right: 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 66%);
+  border-radius: 50%;
+  transition:
+    background 200ms ease,
+    color 200ms ease;
+}
+
+.detailHero {
+  padding: clamp(2rem, 4vw, 4rem) 0 clamp(4rem, 8vw, 8rem);
+}
+
+.detailHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(20rem, 0.65fr);
+  align-items: stretch;
+}
+
+.detailMedia {
+  min-height: clamp(30rem, 52vw, 48rem);
+}
+
+.detailMedia::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, transparent 55%, rgb(20 25 32 / 28%));
+}
+
+.detailTitle {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(2rem, 4vw, 4rem);
+  background: var(--brand-primary-deep);
+  color: var(--brand-white);
+}
+
+.detailTitle p:first-child {
+  color: var(--brand-secondary-light);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.detailTitle h1 {
+  margin-block: 1.2rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(3rem, 5.5vw, 6rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+}
+
+.detailTitle p:last-child {
+  color: rgb(255 255 255 / 72%);
+  line-height: 1.7;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+}
+
+.facts div {
+  min-height: 8.5rem;
+  padding: 1.5rem;
+  border-right: 1px solid var(--line);
+}
+
+.facts div:last-child {
+  border-right: 0;
+}
+
+.facts dt {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: 1rem 0 0;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.35rem, 2.2vw, 2.15rem);
+  line-height: 1.05;
+}
+
+.detailIntro {
+  padding-bottom: clamp(4rem, 8vw, 8rem);
+}
+
+.detailIntroGrid {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.42fr) minmax(0, 1.58fr);
+  gap: clamp(2rem, 6vw, 8rem);
+}
+
+.detailIntroGrid > p:first-child {
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  color: var(--brand-secondary-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detailIntroGrid h2 {
+  max-width: 15ch;
+  font-family: var(--font-editorial);
+  font-size: clamp(2.5rem, 4.5vw, 5rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.detailIntroGrid div > p {
+  max-width: 46rem;
+  margin-top: 1.5rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.inventory {
+  padding-block: clamp(4rem, 8vw, 8rem);
+  background: var(--surface-soft);
+}
+
+.inventoryHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.inventoryHeader h2 {
+  font-family: var(--font-editorial);
+  font-size: clamp(2.3rem, 4.5vw, 4.8rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.inventoryHeader p {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inventoryFilters {
+  margin-bottom: clamp(2rem, 4vw, 4rem);
+}
+
+.inventoryLayout {
+  display: grid;
+  grid-template-columns: minmax(22rem, 0.78fr) minmax(0, 1.22fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-items: start;
+}
+
+.inventoryMap {
+  position: sticky;
+  top: calc(var(--header-height) + 1.5rem);
+}
+
+.inventoryResults {
+  min-width: 0;
+}
+
+.inventoryResults .locationPropertyGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inventoryResults > :global(.empty-state) {
+  min-height: 34rem;
+}
+
+@media (hover: hover) {
+  .locationCard a:hover img {
+    transform: scale(1.035);
+  }
+
+  .locationCard a:hover .locationArrow {
+    background: var(--brand-white);
+    color: var(--brand-primary);
+  }
+}
+
+@media (max-width: 63.99rem) {
+  .introGrid,
+  .detailHeroGrid,
+  .inventoryLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailMedia {
+    min-height: clamp(24rem, 65vw, 38rem);
+  }
+
+  .inventoryMap {
+    position: static;
+  }
+
+  .locationGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .locationCard:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .locationCard:nth-child(5n + 1) {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .sectionHeading,
+  .inventoryHeader {
+    display: grid;
+  }
+
+  .sectionHeading p {
+    text-align: left;
+  }
+
+  .detailIntroGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .facts div {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .facts div:last-child {
+    border-bottom: 0;
+  }
+
+  .inventoryResults .locationPropertyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .introGrid,
+  .locationGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .locationCard:nth-child(n) {
+    grid-column: auto;
+  }
+
+  .introStatement,
+  .introMedia {
+    min-height: 21rem;
+  }
+
+  .introStatement,
+  .detailTitle {
+    padding: min(1.75rem, 7vw);
+  }
+
+  .introStatement h1,
+  .sectionHeading h2,
+  .detailTitle h1,
+  .detailIntroGrid h2,
+  .inventoryHeader h2 {
+    overflow-wrap: anywhere;
+    font-size: min(3rem, 14vw);
+  }
+
+  .detailMedia {
+    min-height: 22rem;
+  }
+
+  .detailTitle {
+    min-height: 20rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locationCard img,
+  .locationArrow {
+    transition: none;
+  }
+}

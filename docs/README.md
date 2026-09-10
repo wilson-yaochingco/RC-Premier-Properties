@@ -74,6 +74,8 @@ Current:
 
 - [`properties.md`](features/properties.md) — published catalog, filters and property
   detail behavior
+- [`locations.md`](features/locations.md) — bounded inventory-backed location index and
+  detail behavior
 - [`property-administration.md`](features/property-administration.md) — protected admin
   shell, property lifecycle, draft content and image-reference workflow
 - [`admin-operations.md`](features/admin-operations.md) — Level 15 dashboard, viewing

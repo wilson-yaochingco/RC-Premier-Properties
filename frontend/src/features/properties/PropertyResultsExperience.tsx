@@ -170,6 +170,7 @@ export function PropertyResultsExperience({
             mapQuery={mapQuery}
             onPropertyActivate={activateCard}
             onRegionSelect={setLocation}
+            variant="catalog"
           />
         </aside>
       </div>

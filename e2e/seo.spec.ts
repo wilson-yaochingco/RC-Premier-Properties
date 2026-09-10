@@ -150,6 +150,7 @@ test("robots, noindex headers, sitemap, and property 404s preserve public bounda
     `${SITE_ORIGIN}/properties/clark-garden-residence`,
   );
   expect(sitemapShardText).toContain("location=Angeles+City%2C+Pampanga");
+  expect(sitemapShardText).toContain(`${SITE_ORIGIN}/locations/angeles-city`);
   expect(sitemapShardText).not.toContain("mabalacat-skyline-condominium");
   expect(sitemapShardText).not.toContain("/admin");
   expect(sitemapShardText).not.toContain("/api");

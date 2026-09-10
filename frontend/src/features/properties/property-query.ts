@@ -131,23 +131,32 @@ export function propertyMapApiSearchParams(
   return query;
 }
 
-export function paginationHref(searchParams: RawSearchParams, page: number): string {
+export function paginationHref(
+  searchParams: RawSearchParams,
+  page: number,
+  basePath = "/properties",
+  omitLocation = false,
+): string {
   const query = propertyApiSearchParams(searchParams);
   query.delete("limit");
+  if (omitLocation) query.delete("location");
   query.set("page", String(page));
-  return `/properties?${query.toString()}`;
+  return `${basePath}?${query.toString()}`;
 }
 
 export function removePropertyFilterHref(
   searchParams: RawSearchParams,
   key: keyof PropertyFormValues,
+  basePath = "/properties",
+  omitLocation = false,
 ): string {
   const query = propertyApiSearchParams(searchParams);
   query.delete("limit");
   query.delete("page");
+  if (omitLocation) query.delete("location");
   if (key === "sort") query.set("sort", "newest");
   else query.delete(key);
-  return `/properties${query.size ? `?${query.toString()}` : ""}`;
+  return `${basePath}${query.size ? `?${query.toString()}` : ""}`;
 }
 
 /** Apply a map-area selection to the same canonical URL state used by the form. */

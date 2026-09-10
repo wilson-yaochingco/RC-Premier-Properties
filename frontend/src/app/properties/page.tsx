@@ -87,14 +87,14 @@ export default async function PropertiesPage({
   const locationSeo = resolveLocationSeoState(rawSearchParams, facets);
 
   return (
-    <main id="main-content" tabIndex={-1}>
+    <main id="main-content" tabIndex={-1} className={styles.catalogPage}>
       <section className={styles.hero}>
         <Container className={styles.heroCopy}>
-          <p className={styles.heroEyebrow}>Property collection · Pampanga</p>
+          <p className={styles.heroEyebrow}>Residential properties for sale</p>
           <h1>
             {locationSeo.location
               ? `Properties for sale in ${locationSeo.location}`
-              : "Find the right place, with clarity."}
+              : "Properties for sale in Pampanga"}
           </h1>
           {locationSeo.location ? (
             <p className={styles.heroIntro}>
@@ -103,10 +103,12 @@ export default async function PropertiesPage({
               available to explore in this location.
             </p>
           ) : null}
-          <p className={styles.heroIntro}>
-            Search published inventory by reference, location, type and budget. Every
-            result comes from the property API—never from a decorative sample list.
-          </p>
+          {!locationSeo.location ? (
+            <p className={styles.heroIntro}>
+              Search current published inventory by Premier Property number, location,
+              type, specifications, and budget.
+            </p>
+          ) : null}
         </Container>
       </section>
 
@@ -119,7 +121,7 @@ export default async function PropertiesPage({
         className={styles.resultsSection}
         aria-labelledby="property-results-title"
       >
-        <Container>
+        <Container className={styles.catalogContainer}>
           <div className={styles.resultsHeader}>
             <h2 id="property-results-title">Available properties</h2>
             <p className={styles.resultCount} aria-live="polite">

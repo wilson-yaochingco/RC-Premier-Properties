@@ -1,8 +1,8 @@
 # Brand and Public Experience
 
-Status: approved branding and supplied website photography integrated; Part 1 of the
-Figma-driven public rebuild implemented; production listing inventory remains external.
-Last reviewed 2026-09-10.
+Status: approved branding and supplied website photography integrated; Parts 1 and 2 of
+the Figma-driven public rebuild implemented; production listing inventory remains
+external. Last reviewed 2026-09-11.
 
 This decision turns the supplied RC Premier Properties brief into durable rules for the
 public website. It intentionally records no claims about company history, awards,
@@ -30,6 +30,13 @@ useful pattern is a prominent five-field search (property ID, location, property
 minimum price and maximum price), followed by result feedback, listing cards and
 pagination. RC Premier Properties uses that information hierarchy inside its own visual
 system.
+
+The supplied Part 2 references (`02-properties-desktop-1440.png` through
+`05-location-detail-desktop-1440.png`) guide the denser split catalog, image-led property
+detail, mosaic location index, and editorial location-detail compositions. RC Premier
+data, controls, maps, public identifiers, and privacy rules replace all third-party
+content visible in those flattened references. Mobile and tablet layouts are deliberate
+reflows of that desktop direction rather than scaled screenshots.
 
 ## Brand system
 
@@ -95,15 +102,17 @@ selected.
 
 ## Information architecture
 
-| Route                | Primary task                                                                |
-| -------------------- | --------------------------------------------------------------------------- |
-| `/`                  | Understand the brand, begin a search and reach the next useful page         |
-| `/properties`        | Filter, sort and page through published inventory                           |
-| `/properties/[slug]` | Evaluate one published property and send an inquiry                         |
-| `/about`             | Understand the positioning and service-area focus without fabricated claims |
-| `/contact`           | Submit a general or property-related inquiry                                |
-| `/sell`              | Start a seller conversation; no documents are collected publicly            |
-| `/book-viewing`      | Request a viewing through the inquiry workflow; no time is promised         |
+| Route                   | Primary task                                                                |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `/`                     | Understand the brand, begin a search and reach the next useful page         |
+| `/properties`           | Filter, sort and page through published inventory                           |
+| `/properties/[slug]`    | Evaluate one published property and send an inquiry                         |
+| `/locations`            | Browse bounded, inventory-backed public locations                           |
+| `/locations/[location]` | Explore one inventory-backed location and its published listings            |
+| `/about`                | Understand the positioning and service-area focus without fabricated claims |
+| `/contact`              | Submit a general or property-related inquiry                                |
+| `/sell`                 | Start a seller conversation; no documents are collected publicly            |
+| `/book-viewing`         | Request a viewing through the inquiry workflow; no time is promised         |
 
 The last route records a request, not a confirmed appointment. Scheduling and booking
 management remain Phase 2B work.

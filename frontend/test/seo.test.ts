@@ -214,6 +214,8 @@ describe("site structured data and sitemap", () => {
     expect(urls).toContain(
       "https://www.example.test/properties?location=Angeles+City%2C+Pampanga",
     );
+    expect(urls).toContain("https://www.example.test/locations");
+    expect(urls).toContain("https://www.example.test/locations/angeles-city");
     expect(urls.some((url) => url.includes("rental-fixture"))).toBe(false);
     expect(urls.some((url) => url.includes("INVALID_SLUG"))).toBe(false);
     expect(urls.some((url) => url.includes("Empty+City"))).toBe(false);

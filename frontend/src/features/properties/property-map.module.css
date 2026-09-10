@@ -7,6 +7,32 @@
   position: relative;
 }
 
+.shell[data-map-variant="catalog"] {
+  border: 0;
+  min-height: 100%;
+}
+
+.shell[data-map-variant="catalog"] .mapHeading {
+  min-height: 4.5rem;
+  align-items: center;
+  padding-inline: 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink, #3a424f) 12%, white);
+}
+
+.shell[data-map-variant="catalog"] .mapHeading h3 {
+  font-family: var(--font-sans, Arial, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shell[data-map-variant="catalog"] .mapHeading span,
+.shell[data-map-variant="catalog"] .mapHeading p {
+  display: none;
+}
+
 .mapHeading {
   align-items: start;
   display: flex;

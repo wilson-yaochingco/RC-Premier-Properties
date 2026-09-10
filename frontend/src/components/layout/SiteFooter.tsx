@@ -5,7 +5,7 @@ import { BrandLogo } from "./BrandLogo";
 
 const footerNavigation = [
   { href: "/properties", label: "Properties" },
-  { href: "/#locations", label: "Locations" },
+  { href: "/locations", label: "Locations" },
   { href: "/sell", label: "Sell a Property" },
   { href: "/about", label: "About" },
   { href: "/book-viewing", label: "Request a Viewing" },

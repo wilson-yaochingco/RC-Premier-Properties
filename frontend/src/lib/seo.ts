@@ -1,6 +1,7 @@
 import type { Metadata, MetadataRoute } from "next";
 import type { PublicPropertySummary } from "@rc/shared";
 import { SITE_URL } from "./env";
+import { publicLocationPath } from "./public-location";
 
 export const SITE_NAME = "RC Premier Properties";
 export const OFFICIAL_EMAIL = "rcpremierph@gmail.com";
@@ -113,6 +114,7 @@ export function buildPublicSitemap(
   const staticRoutes = [
     { path: "", changeFrequency: "weekly", priority: 1 },
     { path: "/properties", changeFrequency: "weekly", priority: 0.9 },
+    { path: "/locations", changeFrequency: "weekly", priority: 0.85 },
     { path: "/about", changeFrequency: "monthly", priority: 0.7 },
     { path: "/contact", changeFrequency: "monthly", priority: 0.7 },
     { path: "/sell", changeFrequency: "monthly", priority: 0.7 },
@@ -138,6 +140,11 @@ export function buildPublicSitemap(
       url: `${siteUrl}/properties?${query.toString()}`,
       changeFrequency: "weekly",
       priority: 0.8,
+    });
+    entries.push({
+      url: `${siteUrl}${publicLocationPath(location)}`,
+      changeFrequency: "weekly",
+      priority: 0.85,
     });
   }
 

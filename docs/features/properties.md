@@ -1,8 +1,8 @@
 # Public Properties
 
-Status: implemented public read, Level 15 discovery/detail enhancements, and Phase 2A
-interactive-map experience. Live Atlas persistence verified; real inventory remains
-unsupplied. Last reviewed 2026-09-10.
+Status: implemented public read, Level 15 discovery/detail enhancements, Phase 2A
+interactive-map experience, and Part 2 visual reconstruction. Live Atlas persistence
+verified; real inventory remains unsupplied. Last reviewed 2026-09-11.
 
 ## Purpose and routes
 
@@ -12,6 +12,8 @@ exposing internal records:
 - `/properties` — searchable, sortable, paginated catalog
 - `/properties/[slug]` — one published listing with specifications, content, gallery
   slots, general-area location and inquiry actions
+- `/locations` — a bounded, inventory-derived location index
+- `/locations/[location]` — one canonical location with its filtered published inventory
 - `/` — sales-focused entry, up to three featured published listings, and
   inventory-derived location links/counts
 
@@ -60,6 +62,12 @@ property results. Catalog outcomes are distinct:
 Cards expose only fields supplied by the public summary: reference, location, type,
 sale purpose, PHP price, availability and up to three available specifications. Missing
 values are omitted rather than guessed; no popularity or recommendation badge exists.
+
+The Part 2 catalog reskin uses a compact Figma-led search toolbar and split map/list
+composition on wide screens. Every original filter remains present: secondary filters
+sit in a native disclosure panel, sort remains directly reachable, active chips retain
+their one-filter removal behavior, and mobile switches intentionally between full-width
+list and map views.
 
 ## Map discovery behavior
 
@@ -126,6 +134,11 @@ The stable public route uses the listing slug. The page provides:
   description, approved contact details, and the canonical public URL; and
 - zero to three related cards selected deterministically from at most 12 real published
   residential sale candidates, excluding the current property.
+
+The Part 2 detail composition moves the authorized gallery ahead of the title/price
+summary, presents up to four supporting images beside the primary image on desktop, and
+keeps the existing touch, keyboard, fullscreen, count, caption, and focus behavior. Purely
+decorative section numbering was removed; Premier Property identifiers remain unchanged.
 
 Print and related-property data use public DTOs only. They cannot expose private address,
 internal coordinates, notes, customer data, or hidden records. A related-data failure is

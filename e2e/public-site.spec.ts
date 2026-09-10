@@ -100,14 +100,16 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   page,
 }) => {
   const browserErrors = trackBrowserErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties");
 
   await page.getByLabel("Property ID").fill("RCPP-E2E-001");
   await page.getByLabel("Location").fill("Angeles City");
+  await page.locator("summary").filter({ hasText: "Filters" }).click();
   await page.getByLabel("Property type").selectOption("house-and-lot");
   await page.getByLabel("Minimum price").fill("12450000");
   await page.getByLabel("Maximum price").fill("12550000");
-  await page.getByRole("button", { name: "Search properties" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
 
   await expect(page).toHaveURL(/\/properties\?/);
   const filteredUrl = new URL(page.url());
@@ -145,9 +147,8 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   await expect(page.getByText("1 result", { exact: true })).toBeVisible();
 
   await page.goto("/properties");
-  await page.locator("summary").filter({ hasText: "More filters" }).click();
   await page.getByLabel("Sort results").selectOption("price-asc");
-  await page.getByRole("button", { name: "Search properties" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/sort=price-asc/);
   await expect(page.getByText("10 results", { exact: true })).toBeVisible();
   await expect(page.locator("main article h3").first()).toHaveText(
@@ -163,6 +164,79 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   await expect(page).toHaveURL(/sort=price-asc/);
   expect(new URL(page.url()).searchParams.get("page")).toBeNull();
   await expect(page.locator("main article")).toHaveCount(9);
+  expect(browserErrors).toEqual([]);
+});
+
+test("location discovery and detail use only inventory-backed facets", async ({
+  page,
+}) => {
+  const browserErrors = trackBrowserErrors(page);
+  await page.goto("/locations");
+
+  await expect(page).toHaveTitle("Locations | RC Premier Properties");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "http://127.0.0.1:3100/locations",
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Explore the places behind the properties.",
+    }),
+  ).toBeVisible();
+  const angeles = page.getByRole("link", {
+    name: /Angeles City 9 published properties/,
+  });
+  await expect(angeles).toHaveAttribute("href", "/locations/angeles-city");
+  await angeles.click();
+
+  await expect(page).toHaveURL(/\/locations\/angeles-city$/);
+  await expect(page).toHaveTitle(
+    "Properties for Sale in Angeles City | RC Premier Properties",
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "http://127.0.0.1:3100/locations/angeles-city",
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+  const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
+  expect(jsonLd).toContain('"@type":"BreadcrumbList"');
+  expect(jsonLd).not.toContain("coordinates");
+  expect(jsonLd).not.toContain("privateAddress");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Angeles City" }),
+  ).toBeVisible();
+  await expect(page.getByText("9 properties", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Clark Garden Residence" }),
+  ).toBeVisible();
+
+  await page.getByLabel("Minimum price").fill("999999999");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(/minPrice=999999999/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "http://127.0.0.1:3100/locations/angeles-city",
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    "content",
+    /noindex/,
+  );
+  await expect(
+    page.getByRole("heading", {
+      name: "No published properties match these filters.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Clear filters" })).toHaveAttribute(
+    "href",
+    "/locations/angeles-city",
+  );
+
+  await page.goto("/locations/angeles-city?page=999");
+  await expect.poll(() => new URL(page.url()).searchParams.get("page")).toBe("1");
+  await expect(
+    page.getByText("No published properties match these filters."),
+  ).toHaveCount(0);
   expect(browserErrors).toEqual([]);
 });
 

@@ -6,11 +6,10 @@ import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
-import { ApiClientError } from "@/services/api-client";
-import { PropertyGallery } from "@/features/properties/PropertyGallery";
-import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
 import { PropertyActions } from "@/features/properties/PropertyActions";
 import { PropertyCard } from "@/features/properties/PropertyCard";
+import { PropertyGallery } from "@/features/properties/PropertyGallery";
+import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
 import {
   formatLocation,
   formatPrice,
@@ -26,11 +25,20 @@ import {
   buildPropertyStructuredData,
   nonpublicPropertyMetadata,
 } from "@/features/properties/property-seo";
-import { absoluteSiteUrl, serializeJsonLd } from "@/lib/seo";
-import { formatBusinessDate } from "@/lib/date-time";
 import styles from "@/features/properties/property-detail.module.css";
+import { formatBusinessDate } from "@/lib/date-time";
+import { absoluteSiteUrl, serializeJsonLd } from "@/lib/seo";
+import { ApiClientError } from "@/services/api-client";
 
 const getPublishedProperty = cache(getPropertyBySlug);
+const LOCATION_RESULTS_HREF =
+  /^\/locations\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[A-Za-z0-9%+_.~=&-]*)?$/;
+
+function safeResultsHref(value: string | undefined): string {
+  if (!value) return "/properties";
+  if (value === "/properties" || value.startsWith("/properties?")) return value;
+  return LOCATION_RESULTS_HREF.test(value) ? value : "/properties";
+}
 
 async function RelatedProperties({ slug }: { slug: string }) {
   const related = await getRelatedProperties(slug).catch(() => ({ items: [] }));
@@ -39,8 +47,15 @@ async function RelatedProperties({ slug }: { slug: string }) {
   return (
     <section className={styles.relatedSection} aria-labelledby="related-title">
       <Container>
-        <p className={styles.sectionLabel}>More published inventory</p>
-        <h2 id="related-title">Similar properties</h2>
+        <div className={styles.relatedHeading}>
+          <div>
+            <p className={styles.sectionLabel}>More published inventory</p>
+            <h2 id="related-title">Similar properties</h2>
+          </div>
+          <Button href="/properties" variant="outline">
+            Browse all properties
+          </Button>
+        </div>
         <div className={styles.relatedGrid}>
           {related.items.map((item) => (
             <PropertyCard key={item.id} property={item} />
@@ -77,11 +92,9 @@ export default async function PropertyDetailPage({
   const { slug } = await params;
   const query = await searchParams;
   const rawFrom = Array.isArray(query.from) ? query.from[0] : query.from;
-  const resultsHref =
-    rawFrom && (rawFrom === "/properties" || rawFrom.startsWith("/properties?"))
-      ? rawFrom
-      : "/properties";
+  const resultsHref = safeResultsHref(rawFrom);
   let property;
+
   try {
     property = await getPublishedProperty(slug);
   } catch (error) {
@@ -129,63 +142,87 @@ export default async function PropertyDetailPage({
         <p>Public listing: {publicUrl}</p>
       </section>
 
-      <section className={styles.identity}>
+      <section className={styles.identity} aria-labelledby="property-title">
         <Container>
-          <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-            <Link href="/">Home</Link>
-            <span aria-hidden="true">/</span>
-            <Link href="/properties">Properties</Link>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">Premier Property #{property.propertyId}</span>
-          </nav>
-          <Link href={resultsHref} className={styles.backToResults}>
-            ← Back to Results
-          </Link>
+          <div className={styles.detailNavigation}>
+            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+              <Link href="/">Home</Link>
+              <span aria-hidden="true">/</span>
+              <Link href="/properties">Properties</Link>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">Premier Property #{property.propertyId}</span>
+            </nav>
+            <Link href={resultsHref} className={styles.backToResults}>
+              ← Back to Results
+            </Link>
+          </div>
+
+          <PropertyGallery
+            coverMedia={property.coverMedia}
+            gallery={property.gallery}
+            propertyIdentifier={property.id}
+          />
 
           <div className={styles.identityGrid}>
             <div>
-              <p className={styles.meta}>
-                {propertyTypeLabel(property.propertyType)} · For {property.purpose} ·
-                Premier Property #{property.propertyId}
-              </p>
-              <span className={styles.availabilityBadge}>{property.availability}</span>
-              <h1 className={styles.title}>{property.title}</h1>
+              <div className={styles.metaRow}>
+                <p className={styles.meta}>
+                  {propertyTypeLabel(property.propertyType)} · For {property.purpose} ·
+                  Premier Property #{property.propertyId}
+                </p>
+                <span className={styles.availabilityBadge}>
+                  {property.availability}
+                </span>
+              </div>
+              <h1 id="property-title" className={styles.title}>
+                {property.title}
+              </h1>
               <p className={styles.location}>{location}</p>
-              <PropertyActions
-                propertyNumber={`PREMIER PROPERTY #${property.propertyId}`}
-                shareTitle={property.title}
-                shareUrl={publicUrl}
-              />
             </div>
             <div className={styles.priceBlock}>
               <p className={styles.priceLabel}>Asking price</p>
               <p className={styles.price}>
                 {formatPrice(property.price.amount, property.price.currency)}
               </p>
+              {property.price.negotiable ? (
+                <p className={styles.negotiable}>Negotiable</p>
+              ) : null}
             </div>
+          </div>
+
+          <div className={styles.summaryBar}>
+            <dl className={styles.quickFacts}>
+              {specifications.slice(0, 4).map((item) => (
+                <div key={item.label}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+              <div>
+                <dt>Availability</dt>
+                <dd>{property.availability}</dd>
+              </div>
+            </dl>
+            <PropertyActions
+              propertyNumber={`PREMIER PROPERTY #${property.propertyId}`}
+              shareTitle={property.title}
+              shareUrl={publicUrl}
+            />
           </div>
         </Container>
       </section>
-
-      <Container>
-        <PropertyGallery
-          coverMedia={property.coverMedia}
-          gallery={property.gallery}
-          propertyIdentifier={property.id}
-        />
-      </Container>
 
       <section className={styles.contentSection}>
         <Container className={styles.contentGrid}>
           <div className={styles.mainContent}>
             <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>01 · Overview</p>
+              <p className={styles.sectionLabel}>Overview</p>
               <h2>A closer look</h2>
               <p className={styles.description}>{property.description}</p>
             </section>
 
             <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>02 · Specifications</p>
+              <p className={styles.sectionLabel}>Property details</p>
               <h2>Property at a glance</h2>
               <dl className={styles.specGrid}>
                 {specifications.map((item) => (
@@ -209,8 +246,8 @@ export default async function PropertyDetailPage({
             property.amenities.length > 0 ||
             property.features.length > 0 ? (
               <section className={styles.sectionBlock}>
-                <p className={styles.sectionLabel}>03 · Details</p>
-                <h2>Highlights and features</h2>
+                <p className={styles.sectionLabel}>Highlights and features</p>
+                <h2>What the listing includes</h2>
                 <div className={styles.listColumns}>
                   {[...property.highlights, ...property.amenities, ...property.features]
                     .filter((item, index, items) => items.indexOf(item) === index)
@@ -233,7 +270,7 @@ export default async function PropertyDetailPage({
             ) : null}
 
             <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>04 · Location</p>
+              <p className={styles.sectionLabel}>Location</p>
               <h2>{location}</h2>
               <div className={styles.mapBlock}>
                 {property.location.publicPoint ? (
@@ -254,8 +291,8 @@ export default async function PropertyDetailPage({
             <p className={styles.asideLabel}>Property guidance</p>
             <h2>Ask about this property.</h2>
             <p className={styles.asideCopy}>
-              Include the Premier Property number in your message so the team can
-              respond with the right listing context.
+              Include the Premier Property number so the team can respond with the right
+              listing context.
             </p>
             <div className={styles.asideActions}>
               {property.availability !== "sold" ? (

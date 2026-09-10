@@ -10,7 +10,7 @@ import { MobileNavigation } from "./MobileNavigation";
 const navigation = [
   { href: "/", label: "Home" },
   { href: "/properties", label: "Properties" },
-  { href: "/#locations", label: "Locations" },
+  { href: "/locations", label: "Locations" },
   { href: "/sell", label: "Sell" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

@@ -14,6 +14,13 @@ const CORE_ROUTES = [
   { path: "/not-a-public-route", artifact: "not-found" },
 ] as const;
 
+const LOCATION_ROUTES = [
+  { path: "/locations", artifact: "locations" },
+  { path: "/locations/angeles-city", artifact: "location-detail" },
+] as const;
+
+const PART_TWO_VIEWPORT_WIDTHS = [320, 390, 768, 1024, 1280, 1440, 1920] as const;
+
 const VIEWPORT_WIDTHS = [
   320, 360, 375, 390, 412, 414, 430, 480, 640, 768, 820, 1024, 1280, 1366, 1440, 1600,
   1920,
@@ -142,6 +149,45 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
     ).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(await inspectSiblingOverlaps(page, ".site-header__inner")).toEqual([]);
     expect(await inspectSiblingOverlaps(page, ".site-footer__main")).toEqual([]);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+});
+
+test("location layouts adapt across Part 2 widths and 200 percent text", async ({
+  page,
+}, testInfo) => {
+  for (const route of LOCATION_ROUTES) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(route.path);
+    await expectSemanticShell(page);
+
+    for (const width of PART_TWO_VIEWPORT_WIDTHS) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      const layout = await inspectHorizontalOverflow(page);
+      expect(
+        layout.documentWidth,
+        `${route.path} document overflow at ${width}px: ${JSON.stringify(layout.offenders)}`,
+      ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+      expect(
+        layout.bodyWidth,
+        `${route.path} body overflow at ${width}px: ${JSON.stringify(layout.offenders)}`,
+      ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+      expect(
+        layout.offenders,
+        `${route.path} visible elements outside ${width}px viewport`,
+      ).toEqual([]);
+      await captureViewport(page, testInfo, route.artifact, width);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    const reflowLayout = await inspectHorizontalOverflow(page);
+    expect(
+      reflowLayout.documentWidth,
+      `${route.path} overflow at 200% text: ${JSON.stringify(reflowLayout.offenders)}`,
+    ).toBeLessThanOrEqual(reflowLayout.viewportWidth + 1);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   }
 });

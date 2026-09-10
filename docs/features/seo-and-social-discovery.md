@@ -2,7 +2,7 @@
 
 Status: Level 8 engineering implemented; the final production origin, live inventory,
 production property media/CDN, and deployment-only crawler validation remain external
-gates. Last reviewed 2026-09-08.
+gates. Last reviewed 2026-09-11.
 
 This document describes the user-requested Level 8 delivery slice. It does not authorize
 Level 9 accessibility/browser work or any deferred roadmap feature.
@@ -24,10 +24,11 @@ Production must set an approved HTTPS origin at build time and rebuild the front
 the final domain has not been supplied and is not invented here.
 
 Indexable public routes are `/`, `/properties`, inventory-backed location discovery,
-`/properties/[slug]`, `/about`, `/contact`, `/sell`, and `/book-viewing`. Contact and
-viewing `propertyId` query values prefill the existing forms but canonicalize to their
-base pages; no submission or customer state enters metadata. Invalid and nonpublic
-property routes return 404 and `noindex` metadata.
+`/locations`, `/locations/[location]`, `/properties/[slug]`, `/about`, `/contact`, `/sell`,
+and `/book-viewing`. Contact and viewing `propertyId` query values prefill the existing
+forms but canonicalize to their base pages; no submission or customer state enters
+metadata. Invalid and nonpublic property or location routes return 404 and `noindex`
+metadata.
 
 React request memoization shares the published-property read between metadata and page
 rendering. Invalid/nonpublic detail requests render the existing framework not-found
@@ -48,8 +49,13 @@ published count and the URL has no substantive filter beyond location. Default
 `purpose=sale`, `sort=newest`, and `page=1` values may be normalized away. The canonical
 query uses the API's inventory-derived `City, Province` label. Its title, description,
 heading, and count are derived from that facet; unsupported or ambiguous locations are
-`noindex` and canonicalize to `/properties`. No location route, count, or coordinate is
-fabricated.
+`noindex` and canonicalize to `/properties`.
+
+The location guide exposes a stable lowercase slug only after resolving it against the
+same bounded, positive-count facets. Its canonical path is `/locations/[location]`;
+substantive filters and non-default pages keep that canonical but receive `noindex,
+follow`. Location JSON-LD contains a breadcrumb only. It never contains coordinates,
+addresses, editorial claims, or manually maintained popularity data.
 
 ## Social previews
 
@@ -103,8 +109,9 @@ slugs cannot render indexable property content.
 
 `sitemap.xml` is a bounded sitemap index. One 48-record discovery read determines stable
 `/sitemaps/{number}.xml` URLs. Each shard reads at most 20 API pages (960 summaries) in
-batches of four; only shard zero includes canonical static routes and positive-count
-location URLs. A failed later shard returns a retryable 503 for that shard without
+batches of four; only shard zero includes canonical static routes, positive-count
+location query URLs, canonical location-guide routes, and the `/locations` index. A
+failed later shard returns a retryable 503 for that shard without
 invalidating other shard responses. Property `publishedAt` is the only listing timestamp
 used for `lastModified`; invalid timestamps are omitted. Slugs are validated and
 deduplicated. Admin, API, auth, previews, arbitrary filters, rentals, and guessed

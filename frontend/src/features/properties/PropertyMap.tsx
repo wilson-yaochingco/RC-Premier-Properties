@@ -26,6 +26,7 @@ interface PropertyMapProps {
   mapQuery?: string;
   onPropertyActivate: (propertyId: string, reveal?: boolean) => void;
   onRegionSelect: (region: string) => void;
+  variant?: "catalog" | "location" | "detail";
 }
 
 export function PropertyMap({
@@ -36,6 +37,7 @@ export function PropertyMap({
   mapQuery,
   onPropertyActivate,
   onRegionSelect,
+  variant = "detail",
 }: PropertyMapProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [nearViewport, setNearViewport] = useState(false);
@@ -66,7 +68,12 @@ export function PropertyMap({
   const shouldLoad = forceLoad || manuallyRequested || nearViewport;
 
   return (
-    <div ref={rootRef} className={styles.shell} data-map-shell>
+    <div
+      ref={rootRef}
+      className={styles.shell}
+      data-map-shell
+      data-map-variant={variant}
+    >
       <div className={styles.mapHeading}>
         <div>
           <span>Interactive discovery</span>

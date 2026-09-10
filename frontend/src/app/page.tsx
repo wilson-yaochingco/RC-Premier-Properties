@@ -20,6 +20,7 @@ import {
 } from "@/features/properties/property.service";
 import propertyStyles from "@/features/properties/properties.module.css";
 import { buildSiteStructuredData, serializeJsonLd } from "@/lib/seo";
+import { publicLocationPath } from "@/lib/public-location";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +77,7 @@ async function ExploreLocations() {
       <ul className="location-list">
         {locations.map(({ location, count }) => (
           <li key={location}>
-            <Link href={`/properties?location=${encodeURIComponent(location)}`}>
+            <Link href={publicLocationPath(location)}>
               <span>{location}</span>
               <span>
                 {count} {count === 1 ? "Property" : "Properties"}

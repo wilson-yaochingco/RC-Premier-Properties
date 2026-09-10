@@ -47,6 +47,17 @@ describe("property query URLs", () => {
     );
   });
 
+  it("reuses bounded pagination for a canonical location route", () => {
+    expect(
+      paginationHref(
+        { location: "Angeles City", sort: "price-asc" },
+        2,
+        "/locations/angeles-city",
+        true,
+      ),
+    ).toBe("/locations/angeles-city?purpose=sale&sort=price-asc&page=2");
+  });
+
   it("sends map filters without exposing sort or result limits", () => {
     expect(
       propertyMapApiSearchParams({

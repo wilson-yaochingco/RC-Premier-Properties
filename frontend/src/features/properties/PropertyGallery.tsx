@@ -155,13 +155,14 @@ export function PropertyGallery({
           {media
             .map((item, index) => ({ item, index }))
             .filter(({ index }) => index !== selectedIndex)
-            .slice(0, 2)
+            .slice(0, 4)
             .map(({ item, index }) => (
               <button
                 key={mediaKey(item, index)}
                 type="button"
                 className={styles.galleryChoice}
                 aria-label={`Show image ${index + 1}: ${item.alt}`}
+                aria-pressed="false"
                 onClick={() => select(index)}
               >
                 <PropertyMedia media={item} sizes="28vw" />
@@ -170,7 +171,7 @@ export function PropertyGallery({
         </div>
       ) : null}
 
-      {media.length > 2 ? (
+      {media.length > 5 ? (
         <div className={styles.galleryRail} aria-label="All property images">
           {media.map((item, index) => (
             <button

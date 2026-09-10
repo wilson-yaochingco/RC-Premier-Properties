@@ -68,9 +68,15 @@ export function propertyFilterChips(values: PropertyFormValues): FilterChip[] {
 export function PropertyFilterChips({
   values,
   searchParams,
+  basePath = "/properties",
+  clearHref = "/properties",
+  omitLocation = false,
 }: {
   values: PropertyFormValues;
   searchParams: RawSearchParams;
+  basePath?: string;
+  clearHref?: string;
+  omitLocation?: boolean;
 }) {
   const chips = propertyFilterChips(values);
   if (chips.length === 0) return null;
@@ -82,7 +88,12 @@ export function PropertyFilterChips({
         {chips.map((chip) => (
           <li key={chip.key}>
             <Link
-              href={removePropertyFilterHref(searchParams, chip.key)}
+              href={removePropertyFilterHref(
+                searchParams,
+                chip.key,
+                basePath,
+                omitLocation,
+              )}
               aria-label={`Remove filter: ${chip.label}`}
             >
               {chip.label} <span aria-hidden="true">×</span>
@@ -90,7 +101,7 @@ export function PropertyFilterChips({
           </li>
         ))}
       </ul>
-      <Link href="/properties" className={styles.clearFilters}>
+      <Link href={clearHref} className={styles.clearFilters}>
         Clear all
       </Link>
     </div>
