@@ -177,6 +177,9 @@ Current:
   remediation evidence, full quality gate, residual live blockers, and recalculated score
 - [`level-15-product-operations-enhancements.md`](audits/level-15-product-operations-enhancements.md)
   — scoped product/operations implementation, deferrals, regression evidence, and gate
+- [`level-16-final-production-readiness.md`](audits/level-16-final-production-readiness.md)
+  — final post-enhancement forensic findings, Level 14 revalidation, live blocker matrix,
+  readiness score, classification, and conditional Level 17 plan
 
 ## Rules
 
