@@ -95,6 +95,8 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   let createRequest: Record<string, unknown> | undefined;
   let editRequest: Record<string, unknown> | undefined;
   let mediaRequest: Record<string, unknown> | undefined;
+  const featuredRequests: Record<string, unknown>[] = [];
+  let uploadCount = 0;
   let uploadRequest:
     | { alt: string | null; contentType: string | undefined; byteLength: number }
     | undefined;
@@ -148,8 +150,9 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     }
     if (request.method() === "POST" && path.endsWith("/media/uploads")) {
       const requestUrl = new URL(request.url());
+      uploadCount += 1;
       const uploaded: AdminPropertyDetail["gallery"][number] = {
-        id: "media-server-uploaded",
+        id: `media-server-uploaded-${uploadCount}`,
         kind: "image",
         url: "/media/properties/server-uploaded.webp",
         alt: requestUrl.searchParams.get("alt") ?? "",
@@ -210,6 +213,21 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       await json(route, 200, property);
       return;
     }
+    if (request.method() === "PATCH" && path.endsWith("/featured")) {
+      const featuredRequest = request.postDataJSON() as Record<string, unknown>;
+      featuredRequests.push(featuredRequest);
+      property = {
+        ...property,
+        featured: Boolean(featuredRequest.featured),
+        featuredOrder:
+          featuredRequest.featured && typeof featuredRequest.featuredOrder === "number"
+            ? featuredRequest.featuredOrder
+            : undefined,
+        version: property.version + 1,
+      };
+      await json(route, 200, property);
+      return;
+    }
     editRequest = request.postDataJSON() as Record<string, unknown>;
     property = {
       ...property,
@@ -242,7 +260,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     ["Properties", "/admin/properties"],
     ["Inquiries", "/admin/inquiries"],
     ["Viewings", "/admin/viewings"],
-    ["Create draft", "/admin/properties/new"],
+    ["Create Draft", "/admin/properties/new"],
   ]) {
     await expect(
       adminNavigation.getByRole("link", { name, exact: true }),
@@ -251,6 +269,11 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await expect(
     adminNavigation.getByRole("link", { name: "View Website" }),
   ).toHaveAttribute("href", "/");
+  await expect(
+    adminNavigation.getByRole("link", { name: "View Website" }),
+  ).toHaveAttribute("target", "_blank");
+  await expect(page.getByText("Renzo & Criezel").first()).toBeVisible();
+  await expect(page.getByText("RC Premier Properties Staff").first()).toBeVisible();
   await expect(
     adminNavigation.getByRole("link", { name: "Properties", exact: true }),
   ).toHaveAttribute("aria-current", "page");
@@ -261,11 +284,15 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   await page.keyboard.press("Enter");
   await expect(page.locator("main#main-content")).toBeFocused();
 
-  await page.getByRole("link", { name: "Create draft", exact: true }).last().click();
+  await page.getByRole("link", { name: "Create Draft", exact: true }).last().click();
   await page.getByLabel("Property ID").fill("RCPP-E2E-NEW");
   await page.getByLabel("URL slug").fill("e2e-new-draft");
   await page.getByLabel("Title").fill("E2E new draft");
   await page.getByLabel("Price (PHP)").fill("8250000");
+  await expect(page.getByLabel("City / municipality")).toHaveJSProperty(
+    "tagName",
+    "SELECT",
+  );
   await page
     .getByLabel("Short description")
     .fill("A newly created browser-test draft.");
@@ -329,15 +356,29 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   });
   expect(uploadRequest?.byteLength).toBeGreaterThan(0);
 
-  await page.getByRole("button", { name: "Add production image reference" }).click();
-  await page
-    .getByLabel("Image URL / storage reference")
-    .nth(1)
-    .fill("https://media.example.test/property-living-room.webp");
-  await page
-    .getByLabel("Alternative text")
-    .last()
-    .fill("Living room of the synthetic test property");
+  await fileInput.setInputFiles({
+    name: "second-home.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  const secondUpload = page
+    .getByRole("listitem")
+    .filter({ hasText: "second-home.png" });
+  await secondUpload.getByLabel("Alternative text").fill("Second uploaded test home");
+  await page.getByRole("button", { name: "Upload Photos" }).click();
+  await expect(secondUpload.getByText("Uploaded", { exact: true })).toBeVisible();
+
+  await expect(
+    page.getByRole("button", { name: "Add production image reference" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Image storage reference").first()).toHaveAttribute(
+    "readonly",
+    "",
+  );
+  await page.getByLabel("Caption (optional)").last().fill("Uploaded listing exterior");
   await page.getByRole("radio", { name: "Cover image" }).nth(1).check();
   await page.getByRole("button", { name: "Move image 2 earlier" }).click();
   await expect(page.getByRole("button", { name: "Move image 1 later" })).toBeFocused();
@@ -347,7 +388,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   expect(mediaRequest?.coverMediaId).toEqual(
     (mediaRequest?.media as Array<{ id: string }>)[0]?.id,
   );
-  for (const width of [320, 360, 390, 768, 1280, 1920]) {
+  for (const width of [320, 360, 390, 768, 1024, 1280, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
       await page.evaluate(() => ({
@@ -357,13 +398,44 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       })),
     ).toMatchObject({ viewport: width, document: width, body: width });
   }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  expect(
+    await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth,
+      body: document.body.scrollWidth,
+    })),
+  ).toMatchObject({ viewport: 390, document: 390, body: 390 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "100%";
+  });
   await page.getByRole("link", { name: "Preview property" }).last().click();
   await expect(page.getByText("Private property preview")).toBeVisible();
   await expect(page.getByText("Development sample — not this listing")).toHaveCount(0);
   await page.getByRole("link", { name: "Back to properties" }).click();
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByText(/was published/i)).toBeVisible();
+  await page
+    .getByLabel("Featured priority for Premier Property #RCPP-E2E-NEW")
+    .fill("75");
+  await page.getByRole("button", { name: "Feature", exact: true }).click();
+  await expect(page.getByText("is now Featured.")).toBeVisible();
+  await expect(
+    page.locator("[class*='featuredBadge']").filter({ hasText: "Featured" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Remove Featured" }).click();
+  await expect(page.getByText("was removed from Featured Properties.")).toBeVisible();
+  expect(featuredRequests).toEqual([
+    { expectedVersion: 6, featured: true, featuredOrder: 75 },
+    { expectedVersion: 7, featured: false, featuredOrder: null },
+  ]);
   expect(writeCsrfHeaders).toEqual([
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
     CSRF_TOKEN,
     CSRF_TOKEN,
     CSRF_TOKEN,
@@ -373,6 +445,50 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   ]);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
+});
+
+test("the admin shell collapses on desktop and traps focus in the mobile drawer", async ({
+  page,
+}) => {
+  await mockSession(page);
+  await page.route(`**${API_PREFIX}/admin/properties**`, (route) =>
+    json(route, 200, {
+      items: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    }),
+  );
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/admin/properties");
+  const collapse = page.getByRole("button", {
+    name: "Collapse administration sidebar",
+  });
+  await expect(collapse).toBeVisible();
+  await collapse.click();
+  await expect(
+    page.getByRole("button", { name: "Expand administration sidebar" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("rc-admin-sidebar-collapsed")),
+  ).toBe("true");
+  await page.getByRole("button", { name: "Expand administration sidebar" }).click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const trigger = page.getByRole("button", { name: "Open administration menu" });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  const drawer = page.getByRole("dialog", { name: "Administration menu" });
+  await expect(drawer).toBeVisible();
+  await expect(
+    drawer.getByRole("link", { name: "Dashboard", exact: true }),
+  ).toBeFocused();
+  await expect(drawer.getByRole("link", { name: "View Website" })).toHaveAttribute(
+    "target",
+    "_blank",
+  );
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+  await expect(trigger).toBeFocused();
 });
 
 test("admin HTML is private, non-indexable, and protected by browser headers", async ({

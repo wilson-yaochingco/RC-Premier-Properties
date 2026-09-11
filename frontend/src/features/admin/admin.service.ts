@@ -11,6 +11,7 @@ import {
   type AdminDashboardResponse,
   type AdminPropertyAvailabilityRequest,
   type AdminPropertyDetail,
+  type AdminPropertyFeaturedRequest,
   type AdminPropertyListRequest,
   type AdminPropertyListResponse,
   type AdminPropertyTransitionRequest,
@@ -54,6 +55,7 @@ export function getAdminProperties(
     query.set("publicationStatus", request.publicationStatus);
   }
   if (request.availability) query.set("availability", request.availability);
+  if (request.featured !== undefined) query.set("featured", String(request.featured));
   return apiRequest<AdminPropertyListResponse>(
     `${API_PREFIX}/admin/properties?${query.toString()}`,
     authenticatedRequest(signal),
@@ -229,6 +231,17 @@ export function changeAdminPropertyAvailability(
 ) {
   return apiRequest<AdminPropertyDetail>(
     `${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/availability`,
+    { ...writeRequest(body, csrfToken), method: "PATCH" },
+  );
+}
+
+export function updateAdminPropertyFeatured(
+  id: string,
+  body: AdminPropertyFeaturedRequest,
+  csrfToken: string,
+) {
+  return apiRequest<AdminPropertyDetail>(
+    `${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/featured`,
     { ...writeRequest(body, csrfToken), method: "PATCH" },
   );
 }

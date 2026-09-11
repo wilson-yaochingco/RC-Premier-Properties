@@ -13,6 +13,7 @@ import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   ADMIN_LISTING_PURPOSES,
   PROPERTY_TYPE_LABELS,
+  PUBLIC_PROPERTY_AREAS,
   RESIDENTIAL_SALE_PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentInput,
@@ -185,7 +186,7 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
       data,
       "propertyType",
     ) as CreateDraftPropertyRequest["propertyType"],
-    featured: data.get("featured") === "on",
+    featured: ["on", "true"].includes(String(data.get("featured") ?? "")),
     price: {
       amount: requiredNumber(data, "priceAmount"),
       negotiable: data.get("negotiable") === "on",
@@ -660,14 +661,11 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               />{" "}
               Price is negotiable
             </label>
-            <label className={styles.checkbox}>
-              <input
-                name="featured"
-                type="checkbox"
-                defaultChecked={content.featured}
-              />{" "}
-              Featured when eventually published
-            </label>
+            <input
+              name="featured"
+              type="hidden"
+              value={content.featured ? "true" : "false"}
+            />
           </div>
         </fieldset>
 
@@ -689,13 +687,25 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               />
             </Field>
             <Field field="location.city" label="City / municipality" issues={issues}>
-              <input
+              <select
                 id="location.city"
                 name="city"
                 defaultValue={content.location.city}
-                maxLength={100}
                 required
-              />
+              >
+                {!PUBLIC_PROPERTY_AREAS.includes(
+                  content.location.city as (typeof PUBLIC_PROPERTY_AREAS)[number],
+                ) ? (
+                  <option value={content.location.city}>
+                    Legacy locality: {content.location.city}
+                  </option>
+                ) : null}
+                {PUBLIC_PROPERTY_AREAS.map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field
               field="location.barangay"

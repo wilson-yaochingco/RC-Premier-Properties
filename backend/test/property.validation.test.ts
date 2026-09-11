@@ -23,6 +23,7 @@ import type {
 import {
   parseAdminPropertyId,
   parseAdminPropertyAvailabilityBody,
+  parseAdminPropertyFeaturedBody,
   parseAdminPropertyListQuery,
   parseAdminPropertyTransitionBody,
   parseCreateDraftPropertyBody,
@@ -129,6 +130,40 @@ describe("property search validation", () => {
 });
 
 describe("published property query construction", () => {
+  it("limits explicit Featured Property reads to public non-sold inventory", () => {
+    expect(
+      buildPublishedPropertyFilter({
+        featured: true,
+        sort: "newest",
+        page: 1,
+        limit: 3,
+      }),
+    ).toMatchObject({
+      publicationStatus: "published",
+      purpose: "sale",
+      featured: true,
+      availability: { $ne: "sold" },
+    });
+    expect(
+      buildPublishedPropertyFilter({
+        featured: true,
+        availability: "sold",
+        sort: "newest",
+        page: 1,
+        limit: 3,
+      }),
+    ).toMatchObject({ _id: { $exists: false } });
+    expect(
+      buildPublishedPropertyFilter({
+        featured: true,
+        availability: "reserved",
+        sort: "newest",
+        page: 1,
+        limit: 3,
+      }),
+    ).toMatchObject({ availability: "reserved" });
+  });
+
   it("always pins public list filters to published records and uses fixed operators", () => {
     const filter = buildPublishedPropertyFilter({
       keyword: "pool.*$where",
@@ -478,6 +513,28 @@ describe("property public map point schema", () => {
 });
 
 describe("admin property validation", () => {
+  it("defaults existing and new schema records to non-featured", () => {
+    const property = new PropertyModel({
+      ...DRAFT_REQUEST,
+      price: { ...DRAFT_REQUEST.price, currency: "PHP" },
+      featured: undefined,
+    });
+    expect(property.featured).toBe(false);
+    expect(property.featuredOrder).toBeUndefined();
+  });
+
+  it("enforces an integer Featured priority at the persistence boundary", async () => {
+    const property = new PropertyModel({
+      ...DRAFT_REQUEST,
+      price: { ...DRAFT_REQUEST.price, currency: "PHP" },
+      featuredOrder: 1.5,
+    });
+
+    await expect(property.validate()).rejects.toThrow(
+      "featuredOrder must be a whole number",
+    );
+  });
+
   it("keeps the approved lifecycle sales-only and omits an unused review state", () => {
     expect(PROPERTY_AVAILABILITY).toEqual(["available", "reserved", "sold"]);
     expect(PROPERTY_PUBLICATION_STATUSES).toEqual([
@@ -634,6 +691,41 @@ describe("admin property validation", () => {
         availability: "reserved",
       }),
     ).toEqual({ expectedVersion: 3, availability: "reserved" });
+    expect(
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: true,
+        featuredOrder: 40,
+      }),
+    ).toEqual({ expectedVersion: 3, featured: true, featuredOrder: 40 });
+    expect(
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: false,
+        featuredOrder: null,
+      }),
+    ).toEqual({ expectedVersion: 3, featured: false, featuredOrder: null });
+    expect(() =>
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: true,
+        featuredOrder: 0,
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: true,
+        featuredOrder: 1_000,
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: false,
+        featuredOrder: 40,
+      }),
+    ).toThrow(HttpError);
     expect(() =>
       parseAdminPropertyAvailabilityBody({
         expectedVersion: -1,
@@ -647,6 +739,7 @@ describe("admin property validation", () => {
       parseAdminPropertyListQuery({
         publicationStatus: "draft",
         availability: "available",
+        featured: "true",
         query: "RCPP-001",
         page: "2",
         limit: "10",
@@ -655,6 +748,7 @@ describe("admin property validation", () => {
       query: "RCPP-001",
       publicationStatus: "draft",
       availability: "available",
+      featured: true,
       page: 2,
       limit: 10,
     });
@@ -671,12 +765,14 @@ describe("admin property validation", () => {
       query: "RCPP-001",
       publicationStatus: "published",
       availability: "reserved",
+      featured: true,
       page: 2,
       limit: 20,
     });
     expect(filter).toMatchObject({
       publicationStatus: "published",
       availability: "reserved",
+      featured: true,
     });
     expect(filter.$or).toHaveLength(4);
     expect(String((filter.$or?.[0] as { propertyId: RegExp }).propertyId)).toBe(

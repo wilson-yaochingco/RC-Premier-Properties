@@ -274,6 +274,13 @@ test("dashboard and calendar remain useful and reflow at 320px", async ({ page }
 
   await page.goto("/admin/viewings");
   await expect(page.getByRole("heading", { level: 1, name: "Viewings" })).toBeVisible();
+  await page.getByRole("button", { name: "2026-09-15, 1 viewing" }).click();
+  await expect(
+    page.getByRole("heading", { level: 3, name: /Tuesday, September 15, 2026/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "10:00 · Premier Property #RCPP-001" }),
+  ).toBeVisible();
   const schedulePages = page.getByRole("navigation", {
     name: "Viewing schedule pages",
   });

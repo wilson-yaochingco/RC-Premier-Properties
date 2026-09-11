@@ -141,6 +141,15 @@ export function createAdminPropertyRoutes(
     requireJson,
     controller.changeAvailability,
   );
+  router.patch(
+    "/:id/featured",
+    authenticate,
+    allowedOrigin,
+    csrf,
+    requireWrite,
+    requireJson,
+    controller.updateFeatured,
+  );
 
   return router;
 }

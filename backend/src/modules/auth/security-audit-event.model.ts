@@ -25,7 +25,7 @@ export interface SecurityAuditEventEntity {
     reason?: AuditReason;
     permission?: AuthPermission;
     revokedSessionCount?: number;
-    changedFields?: AdminPropertyContentField[];
+    changedFields?: Array<AdminPropertyContentField | "featuredOrder">;
   };
   occurredAt: Date;
 }
@@ -35,7 +35,9 @@ const auditDetailsSchema = new Schema(
     reason: { type: String, enum: AUDIT_REASONS },
     permission: { type: String, enum: AUTH_PERMISSIONS },
     revokedSessionCount: { type: Number, min: 0 },
-    changedFields: [{ type: String, enum: ADMIN_PROPERTY_CONTENT_FIELDS }],
+    changedFields: [
+      { type: String, enum: [...ADMIN_PROPERTY_CONTENT_FIELDS, "featuredOrder"] },
+    ],
   },
   { _id: false },
 );

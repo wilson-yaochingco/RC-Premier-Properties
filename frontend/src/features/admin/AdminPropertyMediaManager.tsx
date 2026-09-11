@@ -202,18 +202,6 @@ export function AdminPropertyMediaManager({
     setDirty(true);
   }
 
-  function addProductionImage() {
-    if (media.length >= MAX_PROPERTY_IMAGES) return;
-    const id = `media-${crypto.randomUUID()}`;
-    setMedia((items) => [
-      ...items,
-      { id, kind: "image", url: "", alt: "", source: "production" },
-    ]);
-    if (!coverMediaId) setCoverMediaId(id);
-    setState({ kind: "idle" });
-    setDirty(true);
-  }
-
   function move(index: number, direction: -1 | 1) {
     const destination = index + direction;
     if (destination < 0 || destination >= media.length) return;
@@ -490,15 +478,13 @@ export function AdminPropertyMediaManager({
                 </div>
                 <div className={styles.mediaFields}>
                   <label>
-                    <span>Image URL / storage reference</span>
+                    <span>Image storage reference</span>
                     <input
                       value={item.url}
                       maxLength={2048}
+                      readOnly
                       aria-invalid={Boolean(urlError)}
                       aria-describedby={urlError ? urlErrorId : undefined}
-                      onChange={(event) =>
-                        updateItem(index, { url: event.target.value })
-                      }
                     />
                     {urlError ? <small id={urlErrorId}>{urlError}</small> : null}
                   </label>
@@ -617,16 +603,6 @@ export function AdminPropertyMediaManager({
           })}
         </ol>
       )}
-
-      <div className={styles.mediaAddActions}>
-        <button
-          type="button"
-          disabled={media.length >= MAX_PROPERTY_IMAGES || state.kind === "pending"}
-          onClick={addProductionImage}
-        >
-          Add production image reference
-        </button>
-      </div>
 
       <button
         type="button"

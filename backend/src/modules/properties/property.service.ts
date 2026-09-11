@@ -7,6 +7,7 @@ import {
   type AdminPropertyContentField,
   type AdminPropertyDetail,
   type AdminPropertyAvailabilityRequest,
+  type AdminPropertyFeaturedRequest,
   type AdminPropertyListRequest,
   type AdminPropertyListResponse,
   type AdminPropertySummary,
@@ -122,6 +123,7 @@ const ADMIN_PROPERTY_PROJECTION = [
   "availability",
   "publicationStatus",
   "featured",
+  "featuredOrder",
   "price",
   "location.province",
   "location.city",
@@ -212,6 +214,13 @@ export function buildPublishedPropertyFilter(
   if (request.availability) filter.availability = request.availability;
   if (request.purpose === "rent") filter._id = { $exists: false };
   if (request.featured !== undefined) filter.featured = request.featured;
+  if (request.featured === true) {
+    if (request.availability === "sold") {
+      filter._id = { $exists: false };
+    } else if (!request.availability) {
+      filter.availability = { $ne: "sold" };
+    }
+  }
 
   if (request.minPrice !== undefined || request.maxPrice !== undefined) {
     filter["price.amount"] = {
@@ -285,7 +294,8 @@ export function buildPublishedPropertyDetailFilter(
   };
 }
 
-function sortFor(sort: PropertySort): Record<string, SortOrder> {
+function sortFor(sort: PropertySort, featured = false): Record<string, SortOrder> {
+  if (featured) return { featuredOrder: -1, publishedAt: -1, _id: -1 };
   if (sort === "price-asc") return { "price.amount": 1, _id: 1 };
   if (sort === "price-desc") return { "price.amount": -1, _id: -1 };
   return { publishedAt: -1, _id: -1 };
@@ -378,7 +388,7 @@ export function toPublicPropertySummary(
     purpose: record.purpose,
     propertyType: record.propertyType,
     availability: record.availability,
-    featured: record.featured,
+    featured: record.featured ?? false,
     price: record.price,
     location: publicLocation(record),
     specifications: record.specifications,
@@ -458,7 +468,10 @@ export function toAdminPropertySummary(
     propertyType: record.propertyType,
     availability: record.availability,
     publicationStatus: record.publicationStatus,
-    featured: record.featured,
+    featured: record.featured ?? false,
+    ...(Number.isInteger(record.featuredOrder)
+      ? { featuredOrder: record.featuredOrder }
+      : {}),
     price: record.price,
     location: {
       province: record.location.province,
@@ -541,7 +554,7 @@ export class MongoosePropertyService implements PropertyService {
       this.model
         .find(filter)
         .select(PUBLIC_PROPERTY_SUMMARY_PROJECTION)
-        .sort(sortFor(request.sort))
+        .sort(sortFor(request.sort, request.featured === true))
         .skip(skip)
         .limit(request.limit)
         .lean<PublicPropertyRecord[]>(),
@@ -740,6 +753,7 @@ export function buildAdminPropertyFilter(
       ? { publicationStatus: request.publicationStatus }
       : {}),
     ...(request.availability ? { availability: request.availability } : {}),
+    ...(request.featured !== undefined ? { featured: request.featured } : {}),
   };
   if (request.query) {
     const query = new RegExp(escapeRegex(request.query), "i");
@@ -842,6 +856,33 @@ export class MongoosePropertyAdminRepository implements PropertyAdminRepository 
         {
           $set: { gallery: media, ...(coverMedia ? { coverMedia } : {}) },
           ...(!coverMedia ? { $unset: { coverMedia: 1 } } : {}),
+          $inc: { __v: 1 },
+        },
+        { new: true, runValidators: true },
+      )
+      .select(ADMIN_PROPERTY_DETAIL_PROJECTION)
+      .lean<AdminPropertyRecord | null>();
+  }
+
+  async updateFeatured(
+    id: string,
+    expectedVersion: number,
+    featured: boolean,
+    featuredOrder?: number,
+  ): Promise<AdminPropertyRecord | null> {
+    const versionFilter =
+      expectedVersion === 0
+        ? { $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+        : { __v: expectedVersion };
+    return this.model
+      .findOneAndUpdate(
+        { _id: id, ...versionFilter },
+        {
+          $set: {
+            featured,
+            ...(featuredOrder !== undefined ? { featuredOrder } : {}),
+          },
+          ...(featuredOrder === undefined ? { $unset: { featuredOrder: 1 } } : {}),
           $inc: { __v: 1 },
         },
         { new: true, runValidators: true },
@@ -1508,6 +1549,52 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       action,
       context,
     );
+  }
+
+  async updateFeatured(
+    id: string,
+    input: AdminPropertyFeaturedRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null> {
+    const current = await this.findExpectedRecord(id, input.expectedVersion);
+    if (!current) return null;
+    if (
+      input.featured &&
+      (current.publicationStatus !== "published" || current.availability === "sold")
+    ) {
+      throw new HttpError(
+        409,
+        "Only published available or reserved properties can be featured.",
+      );
+    }
+    const featuredOrder = input.featured
+      ? input.featuredOrder === null
+        ? undefined
+        : (input.featuredOrder ?? current.featuredOrder)
+      : undefined;
+    const record = await this.repository.updateFeatured(
+      id,
+      input.expectedVersion,
+      input.featured,
+      featuredOrder,
+    );
+    if (!record) throw this.concurrencyConflict();
+    const changedFields: Array<AdminPropertyContentField | "featuredOrder"> = [];
+    if (current.featured !== input.featured) changedFields.push("featured");
+    if (current.featuredOrder !== featuredOrder) {
+      changedFields.push("featuredOrder");
+    }
+    await this.audit.recordAudit({
+      actorStaffIdentityId: context.actorStaffIdentityId,
+      action: "property.edited",
+      entityType: "property",
+      entityId: String(record._id),
+      outcome: "succeeded",
+      requestId: context.requestId,
+      changedFields,
+      occurredAt: context.occurredAt ?? new Date(),
+    });
+    return toAdminPropertyDetail(record);
   }
 
   private async findExpectedRecord(

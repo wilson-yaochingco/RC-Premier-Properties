@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  FEATURED_PROPERTY_ORDER_MAX,
+  FEATURED_PROPERTY_ORDER_MIN,
   PROPERTY_AVAILABILITY,
   PROPERTY_PUBLICATION_STATUSES,
   type AdminPropertyListRequest,
@@ -15,6 +17,7 @@ import {
   changeAdminPropertyAvailability,
   getAdminProperties,
   transitionAdminProperty,
+  updateAdminPropertyFeatured,
 } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
 import { downloadCsv, propertyPageCsv } from "./admin-csv";
@@ -75,6 +78,7 @@ export function AdminPropertyList() {
     const query = String(data.get("query") ?? "").trim();
     const publicationStatus = String(data.get("publicationStatus") ?? "");
     const availability = String(data.get("availability") ?? "");
+    const featured = String(data.get("featured") ?? "");
     setRequest({
       ...(query ? { query } : {}),
       ...(publicationStatus
@@ -84,9 +88,52 @@ export function AdminPropertyList() {
           }
         : {}),
       ...(availability ? { availability: availability as PropertyAvailability } : {}),
+      ...(featured ? { featured: featured === "true" } : {}),
       page: 1,
       limit: PAGE_SIZE,
     });
+  }
+
+  async function mutateFeatured(
+    property: AdminPropertySummary,
+    featured: boolean,
+    featuredOrder?: number | null,
+  ) {
+    setPendingId(property.id);
+    setNotice(undefined);
+    try {
+      await updateAdminPropertyFeatured(
+        property.id,
+        {
+          expectedVersion: property.version,
+          featured,
+          ...(featuredOrder !== undefined ? { featuredOrder } : {}),
+        },
+        session.csrfToken,
+      );
+      setNotice({
+        kind: "success",
+        text: featured
+          ? `Premier Property #${property.propertyId} is now Featured.`
+          : `Premier Property #${property.propertyId} was removed from Featured Properties.`,
+      });
+      setState({ kind: "loading" });
+      setAttempt((value) => value + 1);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.statusCode === 401) {
+        expireSession();
+        return;
+      }
+      setNotice({
+        kind: "error",
+        text:
+          error instanceof ApiClientError
+            ? error.message
+            : "Featured Property settings could not be updated.",
+      });
+    } finally {
+      setPendingId(undefined);
+    }
   }
 
   async function mutate(
@@ -165,6 +212,7 @@ export function AdminPropertyList() {
   const canChangeAvailability = session.permissions.includes(
     "property:change-availability",
   );
+  const canFeature = session.permissions.includes("property:write");
 
   function changePage(page: number) {
     setState({ kind: "loading" });
@@ -234,6 +282,14 @@ export function AdminPropertyList() {
             ))}
           </select>
         </label>
+        <label>
+          Featured
+          <select name="featured" defaultValue={request.featured?.toString() ?? ""}>
+            <option value="">All properties</option>
+            <option value="true">Featured</option>
+            <option value="false">Not featured</option>
+          </select>
+        </label>
         <button type="submit">Apply filters</button>
       </form>
 
@@ -250,7 +306,7 @@ export function AdminPropertyList() {
 
       {state.kind === "loading" ? (
         <div className={styles.panel} aria-busy="true">
-          <p>Loading private propertiesâ€¦</p>
+          <p>Loading private properties…</p>
         </div>
       ) : null}
 
@@ -305,6 +361,7 @@ export function AdminPropertyList() {
                   <th scope="col">Location</th>
                   <th scope="col">Publication</th>
                   <th scope="col">Availability</th>
+                  <th scope="col">Featured</th>
                   <th scope="col">Readiness</th>
                   <th scope="col">Updated</th>
                   <th scope="col">
@@ -324,6 +381,74 @@ export function AdminPropertyList() {
                     </td>
                     <td>{label(property.publicationStatus)}</td>
                     <td>{label(property.availability)}</td>
+                    <td>
+                      <div className={styles.featuredCell}>
+                        {property.featured ? (
+                          <span className={styles.featuredBadge}>Featured</span>
+                        ) : (
+                          <span className={styles.mutedBadge}>Not featured</span>
+                        )}
+                        {canFeature &&
+                        property.publicationStatus === "published" &&
+                        property.availability !== "sold" ? (
+                          <form
+                            className={styles.featuredForm}
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const data = new FormData(event.currentTarget);
+                              const rawOrder = String(
+                                data.get("featuredOrder") ?? "",
+                              ).trim();
+                              void mutateFeatured(
+                                property,
+                                true,
+                                rawOrder ? Number(rawOrder) : null,
+                              );
+                            }}
+                          >
+                            <label>
+                              Priority
+                              <input
+                                name="featuredOrder"
+                                type="number"
+                                min={FEATURED_PROPERTY_ORDER_MIN}
+                                max={FEATURED_PROPERTY_ORDER_MAX}
+                                defaultValue={property.featuredOrder}
+                                aria-label={`Featured priority for Premier Property #${property.propertyId}`}
+                              />
+                            </label>
+                            <button type="submit" disabled={pendingId === property.id}>
+                              {property.featured ? "Save priority" : "Feature"}
+                            </button>
+                            {property.featured ? (
+                              <button
+                                type="button"
+                                disabled={pendingId === property.id}
+                                onClick={() =>
+                                  void mutateFeatured(property, false, null)
+                                }
+                              >
+                                Remove Featured
+                              </button>
+                            ) : null}
+                          </form>
+                        ) : null}
+                        {canFeature &&
+                        property.featured &&
+                        (property.publicationStatus !== "published" ||
+                          property.availability === "sold") ? (
+                          <button
+                            type="button"
+                            className={styles.featuredRemoveButton}
+                            disabled={pendingId === property.id}
+                            onClick={() => void mutateFeatured(property, false, null)}
+                          >
+                            Remove Featured
+                          </button>
+                        ) : null}
+                        <small>Higher priority appears first.</small>
+                      </div>
+                    </td>
                     <td>
                       {property.publicationReadiness.ready
                         ? "Complete"

@@ -36,6 +36,12 @@ frame, 12,000 pixels per side, and 80 million input pixels. No client filename b
 path or key; unknown metadata, traversal attempts, MIME mismatch, executable masquerading,
 damaged files, and animation are rejected.
 
+Normal administration exposes only this device-upload path for adding an image. Once
+uploaded, staff can preview, reorder, edit alt/caption/focal metadata, select any existing
+gallery image as cover, and remove it safely. Stored provider-neutral references remain
+readable and renderable but are read-only in the form; the old “Add production image
+reference” control is not part of the normal workflow.
+
 The protected endpoint is:
 
 `POST /api/v1/admin/properties/:id/media/uploads?expectedVersion=…&alt=…&caption=…`

@@ -1,8 +1,9 @@
 # Property and Inquiry Models
 
 Status: implemented Mongoose schemas and service contracts, including protected location
-authoring. Public persistence was verified against Atlas on 2026-09-05; the Level 5
-location changes still require a live admin acceptance pass. Last reviewed 2026-09-10.
+authoring and bounded Featured Property priority. Public persistence was verified against
+Atlas on 2026-09-05; the Level 5 location changes still require a live admin acceptance
+pass. Last reviewed 2026-09-11.
 
 The repository includes the models, indexes, projections and service queries described
 here. It does not include real listings or seed data. Automated tests verify query
@@ -34,6 +35,9 @@ Two concepts are stored separately:
   type set themselves; callers cannot override any public boundary.
 - `availability`: `available`, `reserved` or `sold`. This is safe to show on a
   published listing and does not grant publication by itself.
+- `featured`: a backwards-compatible boolean that defaults to false, plus optional
+  integer `featuredOrder` from 1 through 999. A missing order remains valid for legacy
+  Featured records and sorts after explicitly prioritized records.
 
 Separating these prevents a reserved property from accidentally becoming public merely
 because its market state changed. The vocabulary should still receive business approval
@@ -80,9 +84,10 @@ missing legacy precision is serialized as `city-only`, and no backfill derives o
 location data. No geospatial index is added because current queries filter administrative
 text and read explicitly approved points rather than querying by distance or bounds.
 
-Indexes follow actual Phase 2A/Level 15 access patterns: unique property ID and slug,
+Indexes follow actual Phase 2A/Level 15/Part 4 access patterns: unique property ID and slug,
 published listing recency, published purpose/type/price, location filtering,
-bedroom/bathroom filtering, and featured lookup. Related inventory reuses those predicates
+bedroom/bathroom filtering, and a compound published/Featured/non-sold priority lookup
+with `publishedAt` and `_id` tie breakers. Related inventory reuses those predicates
 and caps candidates at 12. No speculative index, owner, or CRM schema is introduced.
 The property ID is immutable after creation. The slug is mutable only until first
 publication; `publishedAt` permanently closes that identity transition even after the
@@ -170,6 +175,13 @@ permission-protected endpoints. Archived records retain whether they should rest
 `draft` or `unpublished`; restoring never republishes a listing. Sold is a terminal
 availability state. There is no hard-delete property endpoint: archiving is
 the recoverable deletion policy and preserves inquiry and audit references.
+
+Featured curation is a separate `property:write` mutation with the same version predicate.
+Only published available/reserved records can be featured; unfeature remains possible
+after a record becomes sold, unpublished, or archived. Lifecycle changes intentionally
+retain the stored flag/order, while the public query independently excludes ineligible
+records. Existing documents need no migration because missing `featured` serializes as
+false and missing `featuredOrder` is supported.
 
 Inquiry list queries use indexes on status/creation, Property ID/creation and
 archive/creation. The default active queue excludes spam and archived records. Archived

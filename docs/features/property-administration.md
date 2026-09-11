@@ -1,15 +1,24 @@
 # Property Administration
 
-Status: property lifecycle, Level 15 publish-readiness/current-page export, provider-neutral
-image administration, and privacy-conscious location administration implemented.
+Status: property lifecycle, Part 4 Featured Property curation, Level 15
+publish-readiness/current-page export, provider-neutral image administration, and
+privacy-conscious location administration implemented.
 Production upload remains blocked; inquiry administration is documented separately in
 [`inquiries.md`](inquiries.md).
 
 ## Staff experience
 
-The protected `/admin` shell checks the local staff session, keeps its CSRF token only in React memory, and exposes no cached or indexed private response. The property workspace provides:
+The protected `/admin` shell checks the local staff session, keeps its CSRF token only in
+React memory, and exposes no cached or indexed private response. The desktop workspace
+uses a collapsible, locally persisted navigation sidebar; smaller screens use a modal
+drawer with keyboard focus containment, Escape dismissal, and focus restoration. The
+brand-facing “Renzo & Criezel” label is presentation only: the authenticated
+`StaffIdentity` remains visible separately and continues to own permissions and audit
+actor identity. The public-site action opens a separate tab. The property workspace
+provides:
 
-- `/admin/properties` — server-paginated results with search, publication, and availability filters;
+- `/admin/properties` — server-paginated results with search, publication, availability,
+  and Featured filters;
 - `/admin/properties/new` — create an available private draft;
 - `/admin/properties/[id]/edit` — edit draft or unpublished content; and
 - `/admin/properties/[id]/preview` — protected pre-publication preview using the configured public location precision.
@@ -22,6 +31,10 @@ the list while incomplete. The backend remains authoritative and rejects the sam
 New/edit controls accept only house-and-lot, townhouse, and lot; historical non-residential
 records are read-only for deliberate reconciliation. The list can export its already
 authorized current page as formula-neutralized CSV without private coordinates or notes.
+It also shows Featured state and optional priority. Staff with `property:write` can feature
+an eligible published available/reserved record, adjust its bounded priority, or remove
+the flag. Higher priorities appear first; ties fall back to publication time and stable
+database identity.
 
 ## Lifecycle
 
@@ -44,10 +57,16 @@ availability: available -> reserved -> sold
   editable only while draft or unpublished. Staff unpublish before changing live media.
 - Location text, private address, verified exact coordinates, public disclosure precision,
   and an independently approved public map point use the same draft/unpublished edit.
+- Unpublish, archive, and sold transitions retain the stored Featured flag and priority
+  for history, but public Featured reads independently exclude those records. Staff can
+  remove the historical flag from an ineligible record.
 
 ## Location workflow
 
 The location fieldset explains which data is private and which can appear publicly.
+Normal authoring chooses City / Municipality from the canonical Pampanga area set used
+by public discovery. A legacy value that is not in that set remains selectable under its
+exact stored value, so merely opening and saving a record never silently rewrites it.
 `privateAddress` and the internal latitude/longitude pair are returned only by protected
 detail/edit responses. Admin list summaries omit them. `publicPoint` is a separate
 GeoJSON `[longitude, latitude]` pair; it is never populated or derived from the private
@@ -66,14 +85,17 @@ There is no property hard-delete endpoint. Staff archive a record after an expli
 
 ## Authorization and auditing
 
-Private reads and preview require `property:read-private`. Create, content edit and media
-management require `property:write`. Publish, unpublish, archive, and restore require
+Private reads and preview require `property:read-private`. Create, content edit, media
+management, and Featured curation require `property:write`. Publish, unpublish, archive,
+and restore require
 `property:publish`. Availability transitions require `property:change-availability`.
 Every write also requires the configured origin, session-bound CSRF token, and JSON
 content.
 
-Successful create, edit, media update, publish, unpublish, reserve, sold, general
-availability change, archive, and restore actions emit allowlisted audit events. Events
+Successful create, edit, Featured state/order change, media update, publish, unpublish,
+reserve, sold, general availability change, archive, and restore actions emit allowlisted
+audit events. Featured changes reuse `property.edited` and record only `featured` and/or
+`featuredOrder`. Events
 contain actor, property database ID, request ID, timestamp, outcome, and content field
 names when relevant; they contain no property values, media URLs, request body, cookies,
 CSRF data, provider tokens, private addresses, or coordinate values. A location edit is

@@ -83,6 +83,35 @@ describe("public property read projections", () => {
     expect(query.lean).toHaveBeenCalledOnce();
   });
 
+  it("keeps Featured Property results bounded and deterministically priority ordered", async () => {
+    const query = createReadQuery([]);
+    const model = {
+      find: vi.fn().mockReturnValue(query),
+      countDocuments: vi.fn().mockResolvedValue(0),
+    } as unknown as Model<PropertyEntity>;
+
+    await new MongoosePropertyService(model).search({
+      featured: true,
+      sort: "newest",
+      page: 1,
+      limit: 3,
+    });
+
+    expect(model.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publicationStatus: "published",
+        featured: true,
+        availability: { $ne: "sold" },
+      }),
+    );
+    expect(query.sort).toHaveBeenCalledWith({
+      featuredOrder: -1,
+      publishedAt: -1,
+      _id: -1,
+    });
+    expect(query.limit).toHaveBeenCalledWith(3);
+  });
+
   it("keeps map queries to fields used by pins and popup cards", async () => {
     const query = createReadQuery([]);
     const model = {

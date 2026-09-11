@@ -672,6 +672,8 @@ Create, edit, preview, draft, publish, unpublish, archive, mark reserved and mar
       availability and require the latest optimistic-concurrency version
 - [x] Protected preview, server-paginated search/filtering, publish/unpublish,
       archive/restore and availability transitions are implemented
+- [x] Part 4 responsive sidebar/drawer presentation and versioned Featured Property
+      curation/filtering are implemented without changing staff identity or lifecycle
 - [x] Property lifecycle audits record only safe actor/entity metadata and changed field
       names where applicable
 - [x] Automated HTTP, service and browser-fixture coverage passes without live Auth0
@@ -689,7 +691,8 @@ Multiple-image metadata, device upload, reordering, focal points, cover selectio
 replacement, safe removal, and portrait-safe public gallery rendering are implemented.
 Development uses isolated local source retention and optimized WebP delivery; production
 fails closed until a storage provider, CDN, and lifecycle policy are approved. The normal
-admin UI no longer offers development samples, and optimized builds refuse to render them
+admin UI adds images through validated device upload, does not offer arbitrary production
+reference creation or development samples, and optimized builds refuse to render samples
 as listing media. See
 [`architecture/property-media.md`](architecture/property-media.md).
 

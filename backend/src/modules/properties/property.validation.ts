@@ -1,6 +1,8 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
   ADMIN_LISTING_PURPOSES,
+  FEATURED_PROPERTY_ORDER_MAX,
+  FEATURED_PROPERTY_ORDER_MIN,
   LISTING_PURPOSES,
   MAX_PROPERTY_IMAGES,
   PROPERTY_AVAILABILITY,
@@ -13,6 +15,7 @@ import {
   type AdminPropertyContentInput,
   type AdminPropertyMediaInput,
   type AdminPropertyAvailabilityRequest,
+  type AdminPropertyFeaturedRequest,
   type AdminPropertyListRequest,
   type AdminPropertyTransitionRequest,
   type CreateDraftPropertyRequest,
@@ -824,11 +827,62 @@ export function parseAdminPropertyAvailabilityBody(
   return { expectedVersion, availability };
 }
 
+export function parseAdminPropertyFeaturedBody(
+  rawBody: unknown,
+): AdminPropertyFeaturedRequest {
+  const { body, expectedVersion } = parseVersionedBody(rawBody, [
+    "expectedVersion",
+    "featured",
+    "featuredOrder",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const featured = requiredBoolean(body.featured, "featured", issues);
+  let featuredOrder: number | null | undefined;
+  if (body.featuredOrder === null) {
+    featuredOrder = null;
+  } else if (body.featuredOrder !== undefined) {
+    featuredOrder = boundedBodyNumber(
+      body.featuredOrder,
+      "featuredOrder",
+      FEATURED_PROPERTY_ORDER_MAX,
+      issues,
+      true,
+    );
+    if (featuredOrder !== undefined && featuredOrder < FEATURED_PROPERTY_ORDER_MIN) {
+      issues.push({
+        field: "featuredOrder",
+        message: `Must be a whole number from ${FEATURED_PROPERTY_ORDER_MIN} to ${FEATURED_PROPERTY_ORDER_MAX}.`,
+      });
+    }
+  }
+  if (featured === false && typeof featuredOrder === "number") {
+    issues.push({
+      field: "featuredOrder",
+      message: "Remove display priority when removing Featured status.",
+    });
+  }
+  if (featured === undefined || issues.length > 0) {
+    throw new HttpError(400, "Invalid Featured Property request.", issues);
+  }
+  return {
+    expectedVersion,
+    featured,
+    ...(featuredOrder !== undefined ? { featuredOrder } : {}),
+  };
+}
+
 export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListRequest {
   const issues: ValidationIssue[] = [];
   for (const field of Object.keys(query)) {
     if (
-      !["query", "publicationStatus", "availability", "page", "limit"].includes(field)
+      ![
+        "query",
+        "publicationStatus",
+        "availability",
+        "featured",
+        "page",
+        "limit",
+      ].includes(field)
     ) {
       issues.push({ field, message: "Unknown query parameter." });
     }
@@ -840,6 +894,7 @@ export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListR
     issues,
   );
   const availability = enumValue(query, "availability", PROPERTY_AVAILABILITY, issues);
+  const featured = booleanValue(query, "featured", issues);
   const searchQuery = boundedString(query, "query", 120, issues);
   const page =
     nonNegativeNumber(query, "page", issues, {
@@ -860,6 +915,7 @@ export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListR
     ...(searchQuery ? { query: searchQuery } : {}),
     ...(publicationStatus ? { publicationStatus } : {}),
     ...(availability ? { availability } : {}),
+    ...(featured !== undefined ? { featured } : {}),
     page,
     limit,
   };

@@ -77,6 +77,12 @@ The response contains public summary items, pagination metadata, normalized appl
 filters and the active sort. A valid search with no matches returns `200`, an empty
 `items` array, and `totalPages: 0`.
 
+When `featured=true`, the service additionally excludes sold inventory and orders results
+by descending `featuredOrder`, then `publishedAt` and `_id` for deterministic ties.
+Reserved inventory remains eligible. The homepage uses this mode with `page=1` and
+`limit=3`, so drafts, unpublished/archived records, non-featured records, and sold records
+cannot enter its bounded Featured section.
+
 Each public location contains `province`, `city`, `publicPrecision` and the compatibility
 field `disclosure`. Optional text and point fields are redacted by precision:
 

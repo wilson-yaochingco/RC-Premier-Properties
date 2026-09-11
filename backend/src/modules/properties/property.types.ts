@@ -1,6 +1,7 @@
 import type {
   AdminPropertyDetail,
   AdminPropertyAvailabilityRequest,
+  AdminPropertyFeaturedRequest,
   AdminPropertyListRequest,
   AdminPropertyListResponse,
   AdminPropertyTransitionRequest,
@@ -78,6 +79,7 @@ export interface PropertyEntity {
   availability: PropertyAvailability;
   publicationStatus: PropertyPublicationStatus;
   featured: boolean;
+  featuredOrder?: number;
   price: {
     amount: number;
     currency: "PHP";
@@ -148,6 +150,12 @@ export interface PropertyAdminRepository {
     expectedVersion: number,
     media: AdminPropertyMediaInput[],
     coverMedia?: AdminPropertyMediaInput,
+  ): Promise<AdminPropertyRecord | null>;
+  updateFeatured(
+    id: string,
+    expectedVersion: number,
+    featured: boolean,
+    featuredOrder?: number,
   ): Promise<AdminPropertyRecord | null>;
   transition(
     id: string,
@@ -220,6 +228,11 @@ export interface AdminPropertyService {
   changeAvailability(
     id: string,
     input: AdminPropertyAvailabilityRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  updateFeatured(
+    id: string,
+    input: AdminPropertyFeaturedRequest,
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail | null>;
 }

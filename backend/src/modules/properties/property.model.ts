@@ -1,6 +1,8 @@
 import mongoose, { Schema, type Model } from "mongoose";
 import { randomUUID } from "node:crypto";
 import {
+  FEATURED_PROPERTY_ORDER_MAX,
+  FEATURED_PROPERTY_ORDER_MIN,
   LISTING_PURPOSES,
   PROPERTY_AVAILABILITY,
   PROPERTY_PUBLICATION_STATUSES,
@@ -137,6 +139,15 @@ const propertySchema = new Schema<PropertyEntity>(
       enum: ["draft", "unpublished"],
     },
     featured: { type: Boolean, required: true, default: false },
+    featuredOrder: {
+      type: Number,
+      min: FEATURED_PROPERTY_ORDER_MIN,
+      max: FEATURED_PROPERTY_ORDER_MAX,
+      validate: {
+        validator: Number.isInteger,
+        message: "featuredOrder must be a whole number.",
+      },
+    },
     price: {
       amount: { type: Number, required: true, min: 0, max: 1_000_000_000_000 },
       currency: { type: String, enum: ["PHP"], required: true, default: "PHP" },
@@ -205,7 +216,14 @@ propertySchema.index({
   "specifications.bedrooms": 1,
   "specifications.bathrooms": 1,
 });
-propertySchema.index({ publicationStatus: 1, featured: 1, publishedAt: -1 });
+propertySchema.index({
+  publicationStatus: 1,
+  featured: 1,
+  availability: 1,
+  featuredOrder: -1,
+  publishedAt: -1,
+  _id: -1,
+});
 
 export const PropertyModel: Model<PropertyEntity> =
   (mongoose.models.Property as Model<PropertyEntity> | undefined) ??

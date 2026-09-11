@@ -126,6 +126,23 @@ class MemoryAdminPropertyRepository implements PropertyAdminRepository {
     return this.record;
   }
 
+  async updateFeatured(
+    _id: string,
+    expectedVersion: number,
+    featured: boolean,
+    featuredOrder?: number,
+  ) {
+    if ((this.record.__v ?? 0) !== expectedVersion) return null;
+    this.record = {
+      ...this.record,
+      featured,
+      featuredOrder,
+      __v: (this.record.__v ?? 0) + 1,
+      updatedAt: NOW,
+    };
+    return this.record;
+  }
+
   async transition(
     _id: string,
     expectedVersion: number,
@@ -185,6 +202,100 @@ function makeService(
 }
 
 describe("admin property service", () => {
+  it("features and orders an eligible published property with versioned audit metadata", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record = {
+      ...repository.record,
+      publicationStatus: "published",
+      publishedAt: NOW,
+    };
+
+    const result = await service.updateFeatured(
+      PROPERTY_ID,
+      { expectedVersion: 0, featured: true, featuredOrder: 30 },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "feature-request",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(result).toMatchObject({ featured: true, featuredOrder: 30, version: 1 });
+    expect(audits).toEqual([
+      expect.objectContaining({
+        action: "property.edited",
+        changedFields: ["featured", "featuredOrder"],
+      }),
+    ]);
+  });
+
+  it("unfeatures without changing the stable property identity", async () => {
+    const { repository, service } = makeService();
+    repository.record = {
+      ...repository.record,
+      publicationStatus: "archived",
+      featured: true,
+      featuredOrder: 30,
+    };
+
+    const result = await service.updateFeatured(
+      PROPERTY_ID,
+      { expectedVersion: 0, featured: false, featuredOrder: null },
+      { actorStaffIdentityId: "staff-safe-id", requestId: "unfeature-request" },
+    );
+
+    expect(result).toMatchObject({
+      id: PROPERTY_ID,
+      propertyId: CREATE_REQUEST.propertyId,
+      slug: CREATE_REQUEST.slug,
+      featured: false,
+      version: 1,
+    });
+    expect(result).not.toHaveProperty("featuredOrder");
+  });
+
+  it("rejects ineligible and stale Featured Property changes", async () => {
+    const { repository, service } = makeService();
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "feature-rejected",
+    };
+
+    await expect(
+      service.updateFeatured(
+        PROPERTY_ID,
+        { expectedVersion: 0, featured: true },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    repository.record = {
+      ...repository.record,
+      publicationStatus: "published",
+      availability: "sold",
+    };
+    await expect(
+      service.updateFeatured(
+        PROPERTY_ID,
+        { expectedVersion: 0, featured: true },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    repository.record = {
+      ...repository.record,
+      availability: "reserved",
+      __v: 2,
+    };
+    await expect(
+      service.updateFeatured(
+        PROPERTY_ID,
+        { expectedVersion: 1, featured: true },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
   it("stores a validated device upload under a server-controlled name and persists its metadata", async () => {
     const stored = {
       id: "media-server-generated",

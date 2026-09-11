@@ -21,6 +21,12 @@ The browser renders API data only. There is no decorative property array, seed c
 or production listing bundled with the repository. An empty database therefore produces
 honest empty states rather than invented inventory.
 
+The home Featured section requests exactly the first three `featured=true`, published
+sale listings. Sold, unpublished, and archived records are excluded; reserved listings
+remain eligible. Results use staff-assigned descending Featured priority, then
+`publishedAt` and the stable database ID as deterministic tie breakers. The existing
+public property summary and media renderer remain the only card data source.
+
 ## Catalog behavior
 
 The search surface supports Property ID, location, residential property type,

@@ -90,7 +90,7 @@ export interface SecurityAuditEventInput {
   reason?: AuditReason;
   permission?: AuthPermission;
   revokedSessionCount?: number;
-  changedFields?: AdminPropertyContentField[];
+  changedFields?: Array<AdminPropertyContentField | "featuredOrder">;
   occurredAt: Date;
 }
 

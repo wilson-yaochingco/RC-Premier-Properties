@@ -14,6 +14,7 @@ All paths are relative to `API_PREFIX` from `@rc/shared`. Request and response s
 | `PATCH` | `/admin/properties/:id`               | `property:write`               | Edit draft or unpublished content     |
 | `PUT`   | `/admin/properties/:id/media`         | `property:write`               | Replace ordered image metadata        |
 | `POST`  | `/admin/properties/:id/media/uploads` | `property:write`               | Validate, store, and attach one image |
+| `PATCH` | `/admin/properties/:id/featured`      | `property:write`               | Curate public Featured placement      |
 | `POST`  | `/admin/properties/:id/publish`       | `property:publish`             | Publish                               |
 | `POST`  | `/admin/properties/:id/unpublish`     | `property:publish`             | Withdraw from public reads            |
 | `POST`  | `/admin/properties/:id/archive`       | `property:publish`             | Archive safely                        |
@@ -24,7 +25,10 @@ Every route requires a valid local staff session and returns `Cache-Control: no-
 
 ## Private list
 
-`GET /admin/properties` accepts optional `query`, `publicationStatus`, and `availability` filters plus bounded `page` and `limit` values. Search is case-insensitive across Premier Property number, slug, title, and city. The default page size is 25 and maximum is 50. Unknown query parameters are rejected.
+`GET /admin/properties` accepts optional `query`, `publicationStatus`, `availability`,
+and boolean `featured` filters plus bounded `page` and `limit` values. Search is
+case-insensitive across Premier Property number, slug, title, and city. The default page
+size is 25 and maximum is 50. Unknown query parameters are rejected.
 
 List and detail responses include `version`. Lists exclude media and sensitive location
 details. Protected details include the ordered `gallery`, selected `coverMedia`, optional
@@ -55,7 +59,19 @@ until the record has first been published; once `publishedAt` exists, it stays i
 through unpublish and later private edits so issued public URLs remain stable. The UI
 marks both constraints and the backend enforces them independently.
 
-Every other write requires a non-negative integer `expectedVersion` from the latest private response. Content updates include it alongside at least one allowlisted content field. Transition bodies contain only `expectedVersion`. Availability bodies contain `expectedVersion` and `availability`. Unknown fields are rejected.
+Every other write requires a non-negative integer `expectedVersion` from the latest
+private response. Content updates include it alongside at least one allowlisted content
+field. Transition bodies contain only `expectedVersion`. Availability bodies contain
+`expectedVersion` and `availability`. Featured bodies contain `expectedVersion`, a
+boolean `featured`, and optional `featuredOrder` (`null` or an integer from 1 through
+999). Removing Featured also removes the order. Unknown fields are rejected.
+
+Only published available or reserved properties may be set or kept as Featured through
+the curation endpoint. A sold, draft, unpublished, or archived record can still be
+unfeatured. Public Featured reads independently require `featured: true`, published sale
+inventory, and a non-sold availability; they sort by descending `featuredOrder`, then
+descending `publishedAt` and `_id` for deterministic ties. The homepage requests page 1
+with a limit of three.
 
 The mutation matches ID, current state, and version in one MongoDB operation and increments the version. A stale version or intervening state change returns `409`; no newer content is overwritten.
 
@@ -114,3 +130,5 @@ Successful actions emit `property.created`, `property.edited`,
 media URLs, raw data, or authentication secrets.
 Location edits reuse `property.edited` with `changedFields: ["location"]`; audit records
 never include a private address or any coordinate value.
+Featured state and priority mutations reuse `property.edited` with only `featured` and/or
+`featuredOrder` in `changedFields`.

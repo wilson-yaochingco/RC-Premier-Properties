@@ -386,6 +386,17 @@ export interface AdminPropertyAvailabilityRequest {
   availability: PropertyAvailability;
 }
 
+export const FEATURED_PROPERTY_ORDER_MIN = 1;
+export const FEATURED_PROPERTY_ORDER_MAX = 999;
+
+/** Body accepted by `PATCH /api/v1/admin/properties/:id/featured`. */
+export interface AdminPropertyFeaturedRequest {
+  expectedVersion: number;
+  featured: boolean;
+  /** Higher values appear first; omitted values follow explicitly ordered items. */
+  featuredOrder?: number | null;
+}
+
 export interface AdminPropertySummary {
   id: string;
   propertyId: string;
@@ -396,6 +407,7 @@ export interface AdminPropertySummary {
   availability: PropertyAvailability;
   publicationStatus: PropertyPublicationStatus;
   featured: boolean;
+  featuredOrder?: number;
   price: {
     amount: number;
     currency: PropertyCurrency;
@@ -431,6 +443,7 @@ export interface AdminPropertyListRequest {
   query?: string;
   publicationStatus?: PropertyPublicationStatus;
   availability?: PropertyAvailability;
+  featured?: boolean;
   page: number;
   limit: number;
 }

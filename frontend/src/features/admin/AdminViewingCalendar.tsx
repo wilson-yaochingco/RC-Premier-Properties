@@ -33,9 +33,18 @@ function label(value: string): string {
   return value.replaceAll("-", " ").replace(/^./, (first) => first.toUpperCase());
 }
 
+function fullDateLabel(date: string): string {
+  return new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "full",
+    timeZone: "Asia/Manila",
+  }).format(new Date(`${date}T00:00:00.000Z`));
+}
+
 export function AdminViewingCalendar() {
   const { expireSession } = useAdminSession();
-  const [month, setMonth] = useState(() => currentBusinessMonth());
+  const initialMonth = currentBusinessMonth();
+  const [month, setMonth] = useState(initialMonth);
+  const [selectedDate, setSelectedDate] = useState(`${initialMonth}-01`);
   const [attempt, setAttempt] = useState(0);
   const [page, setPage] = useState(1);
   const [state, setState] = useState<CalendarState>({ kind: "loading" });
@@ -69,11 +78,16 @@ export function AdminViewingCalendar() {
     dateItems.push(item);
     byDate.set(item.requestedDate, dateItems);
   }
+  const selectedItems = byDate.get(selectedDate) ?? [];
 
   function move(offset: number) {
     setState({ kind: "loading" });
     setPage(1);
-    setMonth((value) => shiftMonth(value, offset));
+    setMonth((value) => {
+      const next = shiftMonth(value, offset);
+      setSelectedDate(`${next}-01`);
+      return next;
+    });
   }
 
   return (
@@ -136,30 +150,84 @@ export function AdminViewingCalendar() {
               <tbody>
                 {Array.from({ length: 6 }, (_, week) => (
                   <tr key={week}>
-                    {window.days.slice(week * 7, week * 7 + 7).map((date) => (
-                      <td
-                        key={date}
-                        className={
-                          date.startsWith(month) ? undefined : styles.outsideMonth
-                        }
-                      >
-                        <time dateTime={date}>{Number(date.slice(-2))}</time>
-                        {(byDate.get(date) ?? []).map((item) => (
-                          <Link
-                            key={item.inquiryId}
-                            href={`/admin/inquiries/${item.inquiryId}`}
+                    {window.days.slice(week * 7, week * 7 + 7).map((date) => {
+                      const dateItems = byDate.get(date) ?? [];
+                      return (
+                        <td
+                          key={date}
+                          className={`${
+                            date.startsWith(month) ? "" : styles.outsideMonth
+                          } ${selectedDate === date ? styles.selectedDay : ""}`}
+                        >
+                          <button
+                            type="button"
+                            className={styles.dayButton}
+                            aria-pressed={selectedDate === date}
+                            aria-label={`${date}, ${dateItems.length} ${
+                              dateItems.length === 1 ? "viewing" : "viewings"
+                            }`}
+                            onClick={() => setSelectedDate(date)}
                           >
-                            {item.requestedTime} ·{" "}
-                            {item.propertyId ? `#${item.propertyId}` : "Viewing"}
-                          </Link>
-                        ))}
-                      </td>
-                    ))}
+                            <time dateTime={date}>{Number(date.slice(-2))}</time>
+                            {dateItems.length > 0 ? (
+                              <span className={styles.dayCount}>
+                                {dateItems.length}
+                                <span className={styles.srOnly}>
+                                  {dateItems.length === 1 ? " viewing" : " viewings"}
+                                </span>
+                              </span>
+                            ) : null}
+                          </button>
+                          <div className={styles.calendarEvents}>
+                            {dateItems.slice(0, 2).map((item) => (
+                              <Link
+                                key={item.inquiryId}
+                                href={`/admin/inquiries/${item.inquiryId}`}
+                              >
+                                {item.requestedTime} ·{" "}
+                                {item.propertyId ? `#${item.propertyId}` : "Viewing"}
+                              </Link>
+                            ))}
+                            {dateItems.length > 2 ? (
+                              <span className={styles.moreEvents}>
+                                +{dateItems.length - 2} more
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          <section className={styles.dayAgenda} aria-labelledby="selected-day-title">
+            <div>
+              <p className={styles.eyebrow}>Selected day · Philippine time</p>
+              <h3 id="selected-day-title">
+                <time dateTime={selectedDate}>{fullDateLabel(selectedDate)}</time>
+              </h3>
+            </div>
+            {selectedItems.length === 0 ? (
+              <p>No active viewing requests for this date.</p>
+            ) : (
+              <ol>
+                {selectedItems.map((item) => (
+                  <li key={item.inquiryId}>
+                    <Link href={`/admin/inquiries/${item.inquiryId}`}>
+                      {item.requestedTime} ·{" "}
+                      {item.propertyId
+                        ? `Premier Property #${item.propertyId}`
+                        : "General viewing"}
+                    </Link>
+                    <span>{label(item.status)}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
           <div className={styles.calendarList}>
             <h3>Schedule list</h3>

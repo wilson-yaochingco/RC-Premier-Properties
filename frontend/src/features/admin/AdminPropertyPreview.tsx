@@ -47,7 +47,7 @@ export function AdminPropertyPreview({ propertyId }: { propertyId: string }) {
   if (state.kind === "loading") {
     return (
       <div className={styles.panel} aria-busy="true">
-        Loading previewâ€¦
+        Loading preview…
       </div>
     );
   }
@@ -104,8 +104,8 @@ export function AdminPropertyPreview({ propertyId }: { propertyId: string }) {
 
       <article className={styles.preview}>
         <p className={styles.eyebrow}>
-          {propertyTypeLabel(property.propertyType)} Â· For {property.purpose} Â·
-          Premier Property #{property.propertyId}
+          {propertyTypeLabel(property.propertyType)} · For {property.purpose} · Premier
+          Property #{property.propertyId}
         </p>
         <h2>{property.title}</h2>
         <p className={styles.previewLocation}>{location}</p>

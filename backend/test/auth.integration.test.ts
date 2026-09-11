@@ -3,6 +3,7 @@ import type {
   AdminInquiryDetail,
   AdminInquiryListRequest,
   AdminPropertyDetail,
+  AdminPropertyFeaturedRequest,
   AdminPropertyListRequest,
   CreateDraftPropertyRequest,
   AuthPermission,
@@ -423,6 +424,11 @@ function makeAdminPropertyService() {
     context: PropertyMutationContext;
   }> = [];
   const mediaUploads: Array<{ id: string; byteLength: number }> = [];
+  const featuredUpdates: Array<{
+    id: string;
+    input: AdminPropertyFeaturedRequest;
+    context: PropertyMutationContext;
+  }> = [];
   let property = structuredClone(ADMIN_PROPERTY);
   const service: AdminPropertyService = {
     async listPrivate(listRequest) {
@@ -549,8 +555,30 @@ function makeAdminPropertyService() {
       };
       return structuredClone(property);
     },
+    async updateFeatured(id, input, context) {
+      featuredUpdates.push({ id, input, context });
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        featured: input.featured,
+        featuredOrder:
+          input.featured && typeof input.featuredOrder === "number"
+            ? input.featuredOrder
+            : undefined,
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
   };
-  return { creates, listRequests, mediaUpdates, mediaUploads, service, updates };
+  return {
+    creates,
+    featuredUpdates,
+    listRequests,
+    mediaUpdates,
+    mediaUploads,
+    service,
+    updates,
+  };
 }
 
 const ADMIN_INQUIRY: AdminInquiryDetail = {
@@ -1636,10 +1664,13 @@ describe("Phase 3A admin property HTTP boundary", () => {
       request(app)
         .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
         .send({ expectedVersion: 0, availability: "reserved" }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+        .send({ expectedVersion: 0, featured: true, featuredOrder: 20 }),
     ]);
 
     expect(responses.map((response) => response.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ]);
     for (const response of responses) {
       expect(response.body).toMatchObject({ status: "error", statusCode: 401 });
@@ -1702,6 +1733,12 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", ORIGIN)
         .set("X-CSRF-Token", session.csrfToken)
         .send({ expectedVersion: 0, availability: "reserved" }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, featured: true }),
     ]);
 
     for (const response of [...readResponses, ...writeResponses]) {
@@ -1743,6 +1780,12 @@ describe("Phase 3A admin property HTTP boundary", () => {
           .set("Origin", ORIGIN)
           .set("Content-Type", "image/png")
           .send(Buffer.from("image")),
+      () =>
+        request(app)
+          .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+          .set("Cookie", first.cookie)
+          .set("Origin", ORIGIN)
+          .send({ expectedVersion: 0, featured: true, featuredOrder: 20 }),
     ];
 
     for (const write of writes) {
@@ -1758,6 +1801,7 @@ describe("Phase 3A admin property HTTP boundary", () => {
     expect(adminProperties.updates).toHaveLength(0);
     expect(adminProperties.mediaUpdates).toHaveLength(0);
     expect(adminProperties.mediaUploads).toHaveLength(0);
+    expect(adminProperties.featuredUpdates).toHaveLength(0);
   });
 
   it("rejects a disallowed origin on every write", async () => {
@@ -1792,13 +1836,22 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("X-CSRF-Token", session.csrfToken)
         .set("Content-Type", "image/png")
         .send(Buffer.from("image")),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+        .set("Cookie", session.cookie)
+        .set("Origin", "https://attacker.invalid")
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, featured: true, featuredOrder: 20 }),
     ]);
 
-    expect(responses.map((response) => response.status)).toEqual([403, 403, 403, 403]);
+    expect(responses.map((response) => response.status)).toEqual([
+      403, 403, 403, 403, 403,
+    ]);
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
     expect(adminProperties.mediaUpdates).toHaveLength(0);
     expect(adminProperties.mediaUploads).toHaveLength(0);
+    expect(adminProperties.featuredUpdates).toHaveLength(0);
   });
 
   it("allows administrators to list, read, create, and edit drafts", async () => {
@@ -1992,6 +2045,42 @@ describe("Phase 3A admin property HTTP boundary", () => {
     });
     expect(archived.body).toMatchObject({ publicationStatus: "archived", version: 4 });
     expect(restored.body).toMatchObject({ publicationStatus: "draft", version: 5 });
+  });
+
+  it("allows an authorized staff member to feature, order, and unfeature a published property", async () => {
+    const auth = makeAuth();
+    const adminProperties = makeAdminPropertyService();
+    const app = buildApp(auth, { adminProperties });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+
+    await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+      .set(headers)
+      .send({ expectedVersion: 0 });
+    const featured = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+      .set(headers)
+      .send({ expectedVersion: 1, featured: true, featuredOrder: 20 });
+    const unfeatured = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+      .set(headers)
+      .send({ expectedVersion: 2, featured: false, featuredOrder: null });
+
+    expect(featured.status).toBe(200);
+    expect(featured.body).toMatchObject({
+      featured: true,
+      featuredOrder: 20,
+      version: 2,
+    });
+    expect(unfeatured.status).toBe(200);
+    expect(unfeatured.body).toMatchObject({ featured: false, version: 3 });
+    expect(unfeatured.body).not.toHaveProperty("featuredOrder");
+    expect(adminProperties.featuredUpdates).toHaveLength(2);
   });
 
   it("keeps a privately readable draft unavailable through public property routes", async () => {

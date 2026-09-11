@@ -1,7 +1,8 @@
 # Admin Operations
 
-Status: Level 15 read-only operational workspace implemented. Live Auth0, Atlas,
-provider, retention, and physical-device acceptance remain external gates.
+Status: Level 15 operational workspace and Part 4 responsive admin presentation
+implemented. Live Auth0, Atlas, provider, retention, and physical-device acceptance
+remain external gates.
 
 ## Scope
 
@@ -21,6 +22,22 @@ This is not a CRM, analytics platform, scheduling engine, or second identity sys
 does not create clients, agents, calendar availability, revenue metrics, popularity,
 notifications, or provider configuration.
 
+## Shell and navigation
+
+The public MVP supplies the admin visual language: warm neutral surfaces, navy structure,
+gold accents, compact serif headings, consistent controls, and visible focus states. On
+desktop, the ordered navigation lives in a collapsible sidebar whose presentation state
+is stored locally in the browser. Collapsed links keep programmatic names. On tablet and
+mobile, the same destinations move into a labelled modal drawer that traps keyboard focus,
+closes on Escape or route selection, and restores focus to the menu trigger. Reduced-motion
+preferences disable shell transitions.
+
+The shell does not replace identity or authorization. “Renzo & Criezel” and “RC Premier
+Properties Staff” are presentational labels; the current local staff display name remains
+separate. Search, Audit, and Staff links still follow existing permissions, Sign Out uses
+the established CSRF-protected session endpoint, and View Website opens the public root
+in a new tab.
+
 ## Dashboard and viewing calendar
 
 Dashboard property counts include residential sale records only. Publication counts are
@@ -35,7 +52,10 @@ accepts a real inclusive range of at most 42 days and pages through every matchi
 record in chunks of at most 200. It
 contains inquiry and Premier Property identifiers, status, requested date, and requested
 time—never names, email addresses, phone numbers, or message text. A keyboard-focusable
-table and equivalent schedule list are both present. This visualizes requests that staff
+table and equivalent schedule list are both present. Wide screens show concise events in
+the full calendar. Tablet uses a compact calendar, while mobile keeps a seven-column date
+grid with textual viewing counts and renders the selected date's appointment links in an
+agenda below instead of squeezing cards into cells. This visualizes requests that staff
 may confirm through the established inquiry workflow; it does not expose slots or confirm
 appointments.
 

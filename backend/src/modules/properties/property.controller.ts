@@ -19,6 +19,7 @@ import type { AdminPropertyService, PropertyService } from "./property.types.js"
 import {
   parseAdminPropertyId,
   parseAdminPropertyAvailabilityBody,
+  parseAdminPropertyFeaturedBody,
   parseAdminPropertyListQuery,
   parseAdminPropertyTransitionBody,
   parseCreateDraftPropertyBody,
@@ -199,6 +200,19 @@ export function createAdminPropertyController(
       const property = await service.changeAvailability(
         parseAdminPropertyId(req.params.id),
         parseAdminPropertyAvailabilityBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async updateFeatured(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ) {
+      const property = await service.updateFeatured(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyFeaturedBody(req.body),
         mutationContext(res),
       );
       if (!property) throw new HttpError(404, "Property not found.");
