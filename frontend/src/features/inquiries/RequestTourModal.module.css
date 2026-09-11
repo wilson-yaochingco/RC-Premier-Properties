@@ -7,7 +7,7 @@
   border: 0;
   border-radius: 0.35rem;
   background: #fff;
-  color: #17191d;
+  color: var(--brand-primary);
   box-shadow: 0 1.5rem 5rem rgb(12 15 20 / 28%);
 }
 
@@ -226,7 +226,7 @@
 }
 
 .dateCard input:checked + span {
-  border: 2px solid #0c0d0f;
+  border: 2px solid var(--brand-primary);
   background: #f2f2f2;
 }
 
@@ -263,11 +263,21 @@
   align-items: center;
   justify-content: center;
   padding: 0.75rem 1.25rem;
-  border: 1px solid #050607;
+  border: 1px solid var(--brand-secondary);
   border-radius: 999px;
-  background: #050607;
-  color: #fff;
+  background: #fff;
+  color: var(--brand-primary);
   font-weight: 650;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+@media (hover: hover) {
+  .primaryAction:hover:not(:disabled) {
+    background: var(--brand-primary);
+    color: #fff;
+  }
 }
 
 .primaryAction:disabled {

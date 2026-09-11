@@ -91,6 +91,7 @@ export function PropertyMap({
             mapQuery={mapQuery}
             onPropertyActivate={onPropertyActivate}
             onRegionSelect={onRegionSelect}
+            aggregateLocalities={variant === "catalog"}
           />
         </PropertyMapErrorBoundary>
       ) : (

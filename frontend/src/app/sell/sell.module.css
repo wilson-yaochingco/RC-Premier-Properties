@@ -33,7 +33,7 @@
 }
 
 .heroShade {
-  background: linear-gradient(90deg, rgb(17 22 29 / 70%), rgb(17 22 29 / 12%) 68%);
+  background: linear-gradient(90deg, rgb(58 66 79 / 70%), rgb(58 66 79 / 12%) 68%);
 }
 
 .heroInner {
@@ -160,49 +160,6 @@
   padding-bottom: 0;
 }
 
-.advantageVisual {
-  position: relative;
-  width: min(100%, 58rem);
-  margin: clamp(3rem, 5vw, 5rem) auto 0;
-  padding-bottom: 3rem;
-}
-
-.advantageVisual figure {
-  position: relative;
-  min-height: clamp(27rem, 48vw, 38rem);
-  margin: 0;
-  overflow: hidden;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-}
-
-.advantageVisual img {
-  object-fit: cover;
-  object-position: 50% 46%;
-}
-
-.advantageVisual aside {
-  position: absolute;
-  right: clamp(1rem, 5vw, 4rem);
-  bottom: 0;
-  width: min(16rem, 65%);
-  padding: 1.5rem;
-  background: var(--brand-primary);
-  color: #fff;
-  box-shadow: 0 0.8rem 2rem rgb(32 38 48 / 24%);
-}
-
-.advantageVisual aside span {
-  color: var(--brand-secondary-light);
-  font-family: var(--font-editorial);
-  font-size: 2rem;
-}
-
-.advantageVisual aside p {
-  margin-top: 0.4rem;
-  font-size: 0.82rem;
-}
-
 .choiceGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -249,7 +206,7 @@
 }
 
 .controlShade {
-  background: linear-gradient(90deg, rgb(19 24 31 / 82%), rgb(19 24 31 / 28%));
+  background: linear-gradient(90deg, rgb(58 66 79 / 82%), rgb(58 66 79 / 28%));
 }
 
 .controlInner {
@@ -347,7 +304,7 @@
 
 .results {
   padding-block: clamp(5rem, 8vw, 8rem);
-  background: #08090a;
+  background: var(--brand-primary);
   color: #fff;
 }
 
@@ -413,7 +370,7 @@
   right: 0.7rem;
   bottom: 0.7rem;
   padding: 0.4rem 0.55rem;
-  background: rgb(17 21 27 / 76%);
+  background: rgb(58 66 79 / 88%);
   color: #fff;
   font-size: 0.62rem;
 }
@@ -531,7 +488,7 @@
   }
 
   .heroShade {
-    background: linear-gradient(0deg, rgb(17 22 29 / 78%), rgb(17 22 29 / 12%));
+    background: linear-gradient(0deg, rgb(58 66 79 / 78%), rgb(58 66 79 / 12%));
   }
 
   .heroInner {
@@ -556,7 +513,6 @@
     object-position: 61% 50%;
   }
 
-  .advantageVisual figure,
   .benefitList figure,
   .termsGrid figure,
   .presentation figure {

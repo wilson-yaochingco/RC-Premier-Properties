@@ -39,6 +39,7 @@ export function buildContentSecurityPolicy(config) {
     `img-src ${imageSources.join(" ")}`,
     `connect-src 'self' ${config.apiOrigin}`,
     "frame-src https://www.youtube-nocookie.com",
+    "media-src 'self' https://videos.ctfassets.net",
     "manifest-src 'self'",
   ];
   if (config.upgradeInsecureRequests) directives.push("upgrade-insecure-requests");

@@ -199,13 +199,15 @@
 .mapCanvas :global(.leaflet-popup-content-wrapper),
 .mapCanvas :global(.leaflet-popup-tip) {
   background: #fff;
-  border-radius: 0;
   color: var(--color-ink, #3a424f);
 }
 
 .mapCanvas :global(.leaflet-popup-content-wrapper) {
+  border: 1px solid var(--color-gold, #b4893d);
+  border-radius: 0.65rem;
   box-shadow: 0 1.5rem 4rem rgb(24 30 38 / 22%);
   padding: 0;
+  overflow: hidden;
 }
 
 .mapCanvas :global(.leaflet-popup-content) {
@@ -217,6 +219,13 @@
   display: grid;
   gap: 0.45rem;
   padding: 1.1rem;
+}
+
+.mapCanvas :global(.rc-map-popup__image) {
+  width: calc(100% + 2.2rem);
+  height: 8.5rem;
+  margin: -1.1rem -1.1rem 0.55rem;
+  object-fit: cover;
 }
 
 .mapCanvas :global(.rc-map-popup > span) {
@@ -245,6 +254,11 @@
   font-weight: 700;
 }
 
+.mapCanvas :global(.rc-map-popup .rc-map-popup__details) {
+  color: color-mix(in srgb, var(--color-ink, #3a424f) 76%, white);
+  font-size: 0.7rem;
+}
+
 .mapCanvas :global(.rc-map-popup a) {
   align-items: center;
   border-top: 1px solid rgb(58 66 79 / 14%);
@@ -259,9 +273,65 @@
 }
 
 .mapCanvas :global(.rc-map-marker-shell),
-.mapCanvas :global(.rc-map-cluster-shell) {
+.mapCanvas :global(.rc-map-cluster-shell),
+.mapCanvas :global(.rc-map-locality-shell) {
   background: transparent;
   border: 0;
+}
+
+.mapCanvas :global(.rc-map-locality) {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  padding: 0.25rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--color-ink, #3a424f);
+  box-shadow: 0 0.45rem 1.2rem rgb(24 30 38 / 28%);
+  color: #fff;
+  line-height: 1;
+  text-align: center;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.mapCanvas :global(.rc-map-locality strong) {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.mapCanvas :global(.rc-map-locality--empty) {
+  border-color: rgb(58 66 79 / 58%);
+  background: rgb(255 255 255 / 92%);
+  color: var(--color-ink, #3a424f);
+  opacity: 0.82;
+}
+
+.mapCanvas :global(.rc-map-locality--empty strong) {
+  color: var(--color-ink, #3a424f);
+}
+
+@media (hover: hover) {
+  .mapCanvas :global(.rc-map-locality-shell:hover .rc-map-locality) {
+    background: var(--color-gold, #b4893d);
+    transform: scale(1.06);
+  }
+
+  .mapCanvas :global(.rc-map-popup a:hover) {
+    color: var(--brand-secondary-text, #806024);
+    text-decoration: underline;
+    text-underline-offset: 0.22rem;
+  }
+}
+
+.mapCanvas :global(.rc-map-locality-shell:focus-visible .rc-map-locality) {
+  border-color: var(--color-gold, #b4893d);
+  outline: 3px solid rgb(255 255 255 / 88%);
+  transform: scale(1.06);
 }
 
 .mapCanvas :global(.rc-map-marker) {
@@ -324,6 +394,15 @@
     text-align: left;
   }
 
+  .regionPicker {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+
   .mapCanvas,
   .consentPlaceholder,
   .loading,
@@ -334,7 +413,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mapCanvas :global(.rc-map-marker) {
+  .mapCanvas :global(.rc-map-marker),
+  .mapCanvas :global(.rc-map-locality) {
     transition: none;
   }
 }

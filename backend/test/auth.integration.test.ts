@@ -358,6 +358,7 @@ function makePropertyService(): PropertyService {
     async map(search): Promise<PropertyMapResponse> {
       return {
         items: [],
+        locationCounts: [],
         matchingTotal: 0,
         mappableTotal: 0,
         returned: 0,

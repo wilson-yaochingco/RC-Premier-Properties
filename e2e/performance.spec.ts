@@ -127,7 +127,7 @@ test("critical images are singular and gallery media stays progressive", async (
   await page.goto("/");
 
   const hero = page.getByAltText(
-    "Modern Pampanga home with a sloping roof and landscaped frontage",
+    "Modern two-storey home at dusk with mature trees and a landscaped frontage",
   );
   await expect(hero).toHaveAttribute("sizes", "100vw");
   await expect(hero).not.toHaveAttribute("loading", "lazy");

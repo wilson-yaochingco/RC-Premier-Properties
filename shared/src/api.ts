@@ -544,6 +544,8 @@ export type PublicPropertyMapItem = Pick<
 /** Body of the lazy `GET /api/v1/properties/map` request. */
 export interface PropertyMapResponse {
   items: PublicPropertyMapItem[];
+  /** Filtered published-inventory counts grouped by the public city label. */
+  locationCounts: Array<{ location: string; count: number }>;
   /** All published records matching the filters, including records without a pin. */
   matchingTotal: number;
   /** Matching records with an explicitly approved, public map point. */

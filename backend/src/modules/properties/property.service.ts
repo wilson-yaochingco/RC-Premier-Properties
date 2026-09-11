@@ -588,7 +588,7 @@ export class MongoosePropertyService implements PropertyService {
       ],
     };
 
-    const [records, matchingTotal, mappableTotal] = await Promise.all([
+    const [records, matchingTotal, mappableTotal, locationCounts] = await Promise.all([
       this.model
         .find(mappableFilter)
         .select(PUBLIC_PROPERTY_MAP_PROJECTION)
@@ -597,6 +597,22 @@ export class MongoosePropertyService implements PropertyService {
         .lean<PublicPropertyRecord[]>(),
       this.model.countDocuments(publishedFilter),
       this.model.countDocuments(mappableFilter),
+      this.model.aggregate<LocationCountAggregate>([
+        {
+          $match: {
+            $and: [
+              publishedFilter,
+              {
+                "location.province": "Pampanga",
+                "location.city": { $in: PUBLIC_PROPERTY_AREAS },
+              },
+            ],
+          },
+        },
+        { $group: { _id: "$location.city", count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+        { $limit: PUBLIC_PROPERTY_AREAS.length },
+      ]),
     ]);
     const items = records
       .map(toPublicPropertyMapItem)
@@ -608,6 +624,10 @@ export class MongoosePropertyService implements PropertyService {
 
     return {
       items,
+      locationCounts: locationCounts.map((item) => ({
+        location: item._id,
+        count: item.count,
+      })),
       matchingTotal,
       mappableTotal,
       returned: items.length,

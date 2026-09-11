@@ -117,9 +117,10 @@ describe("public property read projections", () => {
     const model = {
       find: vi.fn().mockReturnValue(query),
       countDocuments: vi.fn().mockResolvedValue(0),
+      aggregate: vi.fn().mockResolvedValue([{ _id: "Angeles City", count: 7 }]),
     } as unknown as Model<PropertyEntity>;
 
-    await new MongoosePropertyService(model).map(SEARCH);
+    const result = await new MongoosePropertyService(model).map(SEARCH);
 
     const fields = projectionFields(query.select);
     expect(fields).toEqual(
@@ -136,6 +137,14 @@ describe("public property read projections", () => {
     }
     expect(query.skip).not.toHaveBeenCalled();
     expect(query.limit).toHaveBeenCalledWith(200);
+    expect(model.aggregate).toHaveBeenCalledOnce();
+    const countPipeline = model.aggregate.mock.calls[0]?.[0];
+    expect(countPipeline).toEqual(
+      expect.arrayContaining([{ $limit: PUBLIC_PROPERTY_AREAS.length }]),
+    );
+    expect(JSON.stringify(countPipeline)).not.toContain("privateAddress");
+    expect(JSON.stringify(countPipeline)).not.toContain("location.coordinates");
+    expect(result.locationCounts).toEqual([{ location: "Angeles City", count: 7 }]);
   });
 
   it("retains complete public content only for the detail query", async () => {

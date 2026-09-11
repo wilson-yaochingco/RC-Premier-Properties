@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import logo from "@/assets/brand/rc-premier-logo.png";
-import heroExterior from "@/assets/site/home-hero-1.png";
+import heroExterior from "@/assets/site/home-hero-level18.jpg";
 import locationImage from "@/assets/site/location.png";
 import propertiesImage from "@/assets/site/properties.png";
 import whyImage from "@/assets/site/why-rc-premier.png";
@@ -13,6 +13,7 @@ import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { FeaturedVideos } from "@/features/home/FeaturedVideos";
 import { HeroPropertySearch } from "@/features/home/HeroPropertySearch";
+import { getLocationEditorialContent } from "@/features/locations/location-content";
 import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { PropertyCard } from "@/features/properties/PropertyCard";
 import {
@@ -75,19 +76,38 @@ async function ExploreLocations() {
   const locations = facets?.locationCounts ?? [];
   if (locations.length > 0) {
     return (
-      <ul className="location-list">
-        {locations.map(({ location, count }) => (
-          <li key={location}>
-            <Link href={publicLocationPath(location)}>
-              <span>{location}</span>
-              <span>
-                {count} {count === 1 ? "Property" : "Properties"}
-              </span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <>
+        <ul className="home-location-grid">
+          {locations.slice(0, 6).map(({ location, count }) => (
+            <li key={location}>
+              <Link href={publicLocationPath(location)}>
+                <Image
+                  src={
+                    getLocationEditorialContent(location)?.landmark.imagePath ??
+                    locationImage
+                  }
+                  alt=""
+                  fill
+                  sizes="(max-width: 600px) 100vw, (max-width: 1088px) 50vw, 33vw"
+                />
+                <span className="home-location-card__shade" aria-hidden="true" />
+                <span className="home-location-card__copy">
+                  <strong>{location}</strong>
+                  <span>
+                    {count} {count === 1 ? "Property" : "Properties"}
+                  </span>
+                </span>
+                <span className="home-location-card__arrow" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Button href="/locations" className="home-locations__action">
+          View all locations
+        </Button>
+      </>
     );
   }
 
@@ -127,7 +147,7 @@ export default function HomePage() {
       <section className="home-hero" aria-labelledby="home-heading">
         <Image
           src={heroExterior}
-          alt="Modern Pampanga home with a sloping roof and landscaped frontage"
+          alt="Modern two-storey home at dusk with mature trees and a landscaped frontage"
           fill
           preload
           sizes="100vw"
@@ -136,12 +156,7 @@ export default function HomePage() {
         <div className="home-hero__shade" aria-hidden="true" />
         <Container className="home-hero__inner">
           <div className="home-hero__content">
-            <p className="eyebrow">Homes for sale in Pampanga</p>
             <h1 id="home-heading">Find your place.</h1>
-            <p className="home-hero__intro">
-              Search current residential listings and take the next step with clear,
-              direct support.
-            </p>
             <HeroPropertySearch />
           </div>
         </Container>
@@ -228,17 +243,9 @@ export default function HomePage() {
           <SectionHeading
             className="home-heading"
             eyebrow="Explore by location"
-            title={<span id="locations-heading">Find the area for you.</span>}
-            intro="Every location and property count comes directly from current published inventory."
+            title={<span id="locations-heading">Find the location for you.</span>}
+            intro="Explore areas represented by current published inventory."
           />
-          <figure className="home-locations__image">
-            <Image
-              src={locationImage}
-              alt="Contemporary multi-story Pampanga residence under a blue sky"
-              fill
-              sizes="(max-width: 800px) 100vw, 70rem"
-            />
-          </figure>
           <Suspense
             fallback={
               <EmptyState
@@ -252,7 +259,7 @@ export default function HomePage() {
         </Container>
       </Section>
 
-      <Section className="home-videos" tone="dark" aria-labelledby="videos-heading">
+      <Section className="home-videos" aria-labelledby="videos-heading">
         <Container className="home-container">
           <SectionHeading
             className="home-heading"

@@ -70,8 +70,9 @@ export function SiteFooter() {
         </nav>
 
         <div className="site-footer__bottom">
-          <p>© {new Date().getFullYear()} RC Premier Properties</p>
-          <p>Pampanga, Philippines</p>
+          <p>
+            © {new Date().getFullYear()} RC Premier Properties. All rights reserved.
+          </p>
         </div>
       </Container>
     </footer>

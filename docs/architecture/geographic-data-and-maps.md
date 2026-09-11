@@ -1,7 +1,7 @@
 # Geographic Data and Public Maps
 
-Status: public discovery and protected location administration implemented; production
-provider and expanded map capabilities remain deferred. Last reviewed 2026-09-08.
+Status: locality aggregation, public-pin discovery and protected location administration
+implemented; production provider remains external. Last reviewed 2026-09-11.
 
 The public map helps visitors understand where published properties are in Pampanga
 without turning an internal address or coordinate into public data. It is a discovery
@@ -23,9 +23,15 @@ adds a progressively enhanced view:
    while the property list remains paginated.
 3. Selecting a city or municipality writes its name to the same `location` query
    parameter, clears pagination and refreshes both cards and map pins.
-4. Card hover/focus highlights the matching marker. Marker popups expose the public
-   Property ID, title, general location, price and detail link.
-5. Nearby pins cluster so dense results remain legible.
+4. Below zoom 11 the catalog shows one named count marker for every boundary, including a
+   visible zero state. Counts describe the complete filtered public result set, not only
+   records that have pins.
+5. Selecting a boundary or locality marker fits that area, updates the shared URL filter
+   and crosses the deterministic zoom threshold into individual approved public pins.
+   Zooming out below that threshold restores the aggregate markers.
+6. Card focus highlights and focuses its approved marker. Popup cards use the public map
+   DTO for cover media, Property ID, title, public location, price, available bed/bath
+   values, availability and the stable detail link.
 
 On small screens the List view is the default and Map is an explicit choice. Tablet
 layouts stack the map and cards; wide desktop layouts use a split discovery surface. An
@@ -144,10 +150,14 @@ field name `location`, never the address or coordinate values.
 `GET /api/v1/properties/map` accepts the same allowlisted discovery filters as the list
 route, but rejects caller-supplied `sort`, `page` and `limit`. It counts all matching
 published records, counts the mappable subset, and returns at most 200 newest approved
-map items. `truncated` tells a caller when that cap was reached. Records without a public
-point contribute to `matchingTotal` but never appear as pins.
+map items. It also runs one bounded aggregation grouped only by the public city label and
+returns `locationCounts`; its pipeline uses the identical published/filter predicate and
+is capped to the 22 supported areas. `truncated` tells a caller when the pin cap was
+reached. Records without a public point contribute to `matchingTotal` and locality counts
+but never appear as pins.
 
-The endpoint returns a deliberately reduced marker/preview shape. It does not expose
+The endpoint returns a deliberately reduced marker/preview shape plus aggregate public
+city labels and counts. It does not expose
 description, gallery, internal address, internal coordinates, owner references or notes.
 The catalog requests it only after map activation and preserves its server-rendered,
 paginated list as the accessible source of results. A marker for the current page can

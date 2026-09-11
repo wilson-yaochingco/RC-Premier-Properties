@@ -85,16 +85,20 @@ highlights an available marker, and marker popups link to the published detail r
 
 Mobile defaults to List and requires an explicit Map selection. Tablet layouts stack the
 views and wide desktop layouts use a split surface. The area selector provides a
-keyboard/screen-reader path independent of polygon clicking. Pins cluster when close.
+keyboard/screen-reader path independent of polygon clicking. Below zoom 11 one accessible
+locality marker appears for each of the 22 real boundaries and displays the filtered
+published count, including zero. Selecting it fits the area and crosses into approved
+public property pins; zooming back out deterministically restores aggregate markers.
+Popup cards add public cover media, available specifications and availability while the
+list remains the accessible primary path.
 
 Leaflet, the boundary artifact and `GET /properties/map` are dynamically/lazily loaded;
-public entry routes do not eagerly request the boundary file. The catalog maps only the
-already-fetched nine-item result page, so each marker always corresponds to a visible
-card. The separate public map endpoint applies allowlisted filters to all published
-inventory, returns only records with separately approved points, caps output at 200 and
-reports both matching and mappable totals; it is retained for future dedicated map
-clients but is not consumed by the current catalog UI. Boundary and tile failures do
-not remove the listing cards.
+public entry routes do not eagerly request the boundary file. The catalog initially has
+its already-fetched result page as a safe fallback. Its lazy public map endpoint then
+applies allowlisted filters to all published inventory, returns only records with
+separately approved points, caps output at 200, reports matching and mappable totals, and
+returns bounded public-city counts for aggregation. Boundary and tile failures do not
+remove the listing cards.
 
 The checked-in boundary layer contains approximate city/municipality geometry only.
 Certified barangay geometry has not been supplied, so no barangay polygons are invented.

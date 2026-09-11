@@ -1,8 +1,8 @@
 # Brand and Public Experience
 
-Status: approved branding and supplied website photography integrated; Parts 1 through 3
-of the Figma-driven public rebuild implemented; production listing inventory remains
-external. Last reviewed 2026-09-11.
+Status: approved branding and supplied website photography integrated; Level 18 public
+experience polish implemented; production listing inventory remains external. Last
+reviewed 2026-09-11.
 
 This decision turns the supplied RC Premier Properties brief into durable rules for the
 public website. It intentionally records no claims about company history, awards,
@@ -124,8 +124,8 @@ hero search submits the existing allowlisted sales keyword state to `/properties
 does not introduce rental inventory or a second search contract. Empty and unavailable
 states remain honest when the API or published inventory is absent.
 
-The desktop header overlays the homepage hero and uses a compact version of the approved
-logo, while other public routes retain a light sticky header. The mobile menu moves focus
+The public header and approved logo now use the same dimensions, spacing and light
+surface on the homepage and interior routes. The mobile menu moves focus
 into the open panel, traps keyboard focus, closes on Escape, and returns focus to its
 trigger. Current-route state is exposed with `aria-current` where a stable page route can
 be determined.
@@ -142,6 +142,30 @@ does not represent the later repository-wide contact-copy migration.
 The app icon remains the approved mark. Its display derivative is a square 512-pixel PNG
 with only a small transparent safe area; the oversized vertical canvas was removed
 without redrawing or recoloring the artwork.
+
+## Level 18 public polish
+
+The primary client dark is `#3a424f`; gold is normally a border or detail on public
+buttons rather than a large fill. Public buttons use a light surface, gold border, dark
+text and a dark hover/focus response. Page canvases remain light. Interactive navigation,
+text links, cards and footer links have restrained hover feedback plus stronger
+`:focus-visible` treatment, with non-essential transitions removed for reduced motion.
+
+The homepage uses the supplied residence photograph with a controlled brand-color
+gradient so search text stays readable. Its search is the existing keyword/Property-ID
+workflow in a larger tabbed, reference-led visual frame. Location discovery is now a
+three-column image-led grid populated only from public facet counts and the documented
+locality photography. Featured Property Videos remain a three-item, click-to-load,
+single-player scroll-snap carousel on a white section. The footer uses the primary dark
+and ends with the dynamic-year copyright line; no office or locality claim is appended.
+
+The About hero loads the approved Contentful video only on `/about`, begins at about four
+seconds, stays muted/looping/inline, and retains the authorized About photograph as its
+poster. Reduced-motion CSS hides the moving layer so the poster remains. The adjacent
+regional photograph is replaced with a non-interactive SVG projection of the same local
+22-feature boundary artifact used by the property map. The Sell page uses three existing
+authorized RC Premier photographs in a dependency-free stack with named controls,
+left/right keyboard support, swipe gestures, no autoplay and reduced-motion styling.
 
 ## Responsive page blueprints
 

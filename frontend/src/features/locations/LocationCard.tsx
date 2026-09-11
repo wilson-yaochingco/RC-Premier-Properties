@@ -10,12 +10,12 @@ export function LocationCard({
 }: {
   location: string;
   count: number;
-  image: StaticImageData;
+  image: StaticImageData | string;
 }) {
   const name = shortPublicLocation(location);
 
   return (
-    <li className={styles.locationCard}>
+    <li className={styles.locationCard} data-location-card>
       <Link href={publicLocationPath(location)}>
         <Image
           src={image}

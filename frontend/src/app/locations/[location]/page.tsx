@@ -7,7 +7,9 @@ import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared"
 import locationImage from "@/assets/site/location.png";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { LocationEditorial } from "@/features/locations/LocationEditorial";
 import { LocationInventoryMap } from "@/features/locations/LocationInventoryMap";
+import { getLocationEditorialContent } from "@/features/locations/location-content";
 import {
   buildLocationMetadata,
   buildLocationStructuredData,
@@ -93,11 +95,12 @@ export async function generateMetadata({
   ]);
   const match = findPublicLocationBySlug(slug, facets?.locationCounts ?? []);
   if (!match) return nonpublicLocationMetadata();
+  const editorial = getLocationEditorialContent(match.location);
 
   return buildLocationMetadata({
     location: match.location,
     count: match.count,
-    imagePath: locationImage.src,
+    imagePath: editorial?.landmark.imagePath ?? locationImage.src,
     noIndex: !isStableLocationState(rawSearchParams),
   });
 }
@@ -133,6 +136,7 @@ export default async function LocationDetailPage({
   if (!locationFacet) notFound();
 
   const locationName = shortPublicLocation(locationFacet.location);
+  const editorial = getLocationEditorialContent(locationFacet.location);
   const canonicalPath = publicLocationPath(locationFacet.location);
   const values = propertyFormValues(rawSearchParams);
   const requestParams: RawSearchParams = {
@@ -193,7 +197,7 @@ export default async function LocationDetailPage({
             <figure className={styles.detailMedia}>
               <Image
                 src={locationImage}
-                alt="Contemporary multi-story Pampanga residence under a blue sky"
+                alt="Contemporary multi-storey residence under a blue sky"
                 fill
                 preload
                 sizes="(max-width: 1023px) 100vw, 70vw"
@@ -241,6 +245,10 @@ export default async function LocationDetailPage({
           </div>
         </Container>
       </section>
+
+      {editorial ? (
+        <LocationEditorial content={editorial} inventoryCount={locationFacet.count} />
+      ) : null}
 
       <section className={styles.inventory} aria-labelledby="location-inventory-title">
         <Container className={styles.guideContainer}>

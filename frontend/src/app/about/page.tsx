@@ -3,11 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import aboutImage from "@/assets/site/about.png";
 import contactImage from "@/assets/site/contact.png";
-import locationImage from "@/assets/site/location.png";
 import propertiesImage from "@/assets/site/properties.png";
 import whyImage from "@/assets/site/why-rc-premier.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { AboutHeroVideo } from "@/features/about/AboutHeroVideo";
+import { PampangaBoundaryMap } from "@/features/about/PampangaBoundaryMap";
 import { buildPageMetadata } from "@/lib/seo";
 import styles from "./about.module.css";
 
@@ -69,13 +70,7 @@ export default function AboutPage() {
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
       <section className={styles.hero} aria-labelledby="about-heading">
-        <Image
-          src={aboutImage}
-          alt="Contemporary RC Premier residence viewed through an open-air courtyard"
-          fill
-          priority
-          sizes="100vw"
-        />
+        <AboutHeroVideo poster={aboutImage.src} />
         <div className={styles.heroShade} aria-hidden="true" />
         <div className={styles.heroContent}>
           <h1 id="about-heading">A property company with a clear purpose.</h1>
@@ -137,14 +132,7 @@ export default function AboutPage() {
               Explore locations
             </Button>
           </div>
-          <figure className={styles.regionImage}>
-            <Image
-              src={locationImage}
-              alt="Contemporary Pampanga home under a clear blue sky"
-              fill
-              sizes="(max-width: 900px) 92vw, 48vw"
-            />
-          </figure>
+          <PampangaBoundaryMap />
         </Container>
       </section>
 

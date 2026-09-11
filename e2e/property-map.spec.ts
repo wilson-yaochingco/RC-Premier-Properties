@@ -49,6 +49,36 @@ test("the heavy map stays lazy and mobile List/Map discovery shares URL filters"
   await expect(
     page.getByText(/2 approved public pins for 10 matching properties/),
   ).toBeVisible();
+  await expect(page.locator(".rc-map-locality-shell")).toHaveCount(22);
+  await expect(
+    page.getByRole("button", { name: "Angeles City, 9 properties" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Arayat, 0 properties" }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Angeles City, 9 properties" })
+    .click({ force: true });
+  await expect(page).toHaveURL(/location=Angeles\+City/);
+  await expect(page.locator('[data-map-view="properties"]')).toBeVisible();
+  await expect(
+    page.getByText(/1 approved public pin for 9 matching properties/),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Premier Property RCPP-E2E-001, view property",
+    })
+    .click({ force: true });
+  await expect(page.getByText("4 bed · 3 bath · Available")).toBeVisible();
+  await expect(page.getByRole("link", { name: /View property/ })).toHaveAttribute(
+    "href",
+    "/properties/clark-garden-residence",
+  );
+
+  await page.getByRole("button", { name: "Zoom out" }).click();
+  await expect(page.locator('[data-map-view="localities"]')).toBeVisible();
+  await expect(page.locator(".rc-map-locality-shell")).toHaveCount(22);
 
   await page.getByLabel("Browse an area").selectOption("City of San Fernando");
   await expect(page).toHaveURL(/location=City\+of\+San\+Fernando/);
@@ -61,7 +91,14 @@ test("the heavy map stays lazy and mobile List/Map discovery shares URL filters"
     page.getByText(/1 approved public pin for 1 matching property/),
   ).toBeVisible();
 
-  await page.locator(".leaflet-marker-icon").click();
+  await page
+    .getByRole("button", {
+      name: "Premier Property RCPP-E2E-003, view property",
+    })
+    .click({ force: true });
+  await expect(
+    page.getByAltText("Synthetic San Fernando fixture cover image"),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: /View property/ })).toHaveAttribute(
     "href",
     "/properties/san-fernando-townhouse",
@@ -77,10 +114,16 @@ test("card focus highlights its approved marker and a boundary-data failure is i
   const mapShell = page.locator("[data-map-shell]");
   await mapShell.scrollIntoViewIfNeeded();
   await expect(page.locator(".leaflet-container")).toBeVisible();
-  await expect(page.locator(".leaflet-marker-icon")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Angeles City, 1 property" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Arayat, 0 properties" }),
+  ).toBeVisible();
 
   const propertyLink = page.getByRole("link", { name: "View Clark Garden Residence" });
   await propertyLink.focus();
+  await expect(page.locator('[data-map-view="properties"]')).toBeVisible();
   await expect(page.locator(".rc-map-marker--active")).toHaveCount(1);
 
   await page.route(`**${BOUNDARY_PATH}`, (route) => route.abort("failed"));

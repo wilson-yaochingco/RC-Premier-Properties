@@ -9,6 +9,7 @@ import whyImage from "@/assets/site/why-rc-premier.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { InquiryForm } from "@/features/inquiries/InquiryForm";
+import { SellPhotoStack } from "@/features/sell/SellPhotoStack";
 import { buildPageMetadata } from "@/lib/seo";
 import styles from "./sell.module.css";
 
@@ -71,13 +72,31 @@ const benefits = [
   },
 ] as const;
 
+const sellerPhotos = [
+  {
+    src: whyImage,
+    alt: "Double-height RC Premier home entrance with sculptural lighting",
+    label: "One connected inquiry workflow",
+  },
+  {
+    src: aboutImage,
+    alt: "Open-air entrance of a contemporary RC Premier residence",
+    label: "Property context before assumptions",
+  },
+  {
+    src: contactImage,
+    alt: "Warm dining area inside an RC Premier residence",
+    label: "Direct follow-up with the team",
+  },
+] as const;
+
 export default function SellPage() {
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
       <section className={styles.hero} aria-labelledby="sell-heading">
         <Image
           src={locationImage}
-          alt="Contemporary Pampanga residence under a blue sky"
+          alt="Contemporary residence with timber cladding under a blue sky"
           fill
           priority
           sizes="100vw"
@@ -134,20 +153,7 @@ export default function SellPage() {
             <h2 id="advantage-heading">A clear path from question to next step.</h2>
             <p>Built around current information and direct staff follow-up.</p>
           </div>
-          <div className={styles.advantageVisual}>
-            <figure>
-              <Image
-                src={whyImage}
-                alt="Double-height RC Premier home entrance with sculptural lighting"
-                fill
-                sizes="(max-width: 800px) 92vw, 60rem"
-              />
-            </figure>
-            <aside>
-              <span>01</span>
-              <p>One connected inquiry workflow</p>
-            </aside>
-          </div>
+          <SellPhotoStack photos={sellerPhotos} />
         </Container>
       </section>
 

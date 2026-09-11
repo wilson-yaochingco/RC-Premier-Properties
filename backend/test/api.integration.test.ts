@@ -71,6 +71,7 @@ function makePropertyService() {
       void limit;
       return {
         items: [],
+        locationCounts: [{ location: "Angeles City", count: 1 }],
         matchingTotal: 1,
         mappableTotal: 0,
         returned: 0,
@@ -185,12 +186,15 @@ describe("Phase 2A public API", () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       items: [],
+      locationCounts: [{ location: "Angeles City", count: 1 }],
       matchingTotal: 1,
       mappableTotal: 0,
       returned: 0,
       truncated: false,
       appliedFilters: { location: "Angeles City", maxPrice: 9_000_000 },
     });
+    expect(JSON.stringify(response.body)).not.toContain("privateAddress");
+    expect(JSON.stringify(response.body)).not.toContain("coordinates");
     expect(properties.maps).toEqual([
       {
         location: "Angeles City",

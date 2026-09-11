@@ -21,6 +21,7 @@ import styles from "./property-map.module.css";
 
 const BOUNDARY_URL = "/geo/pampanga-admin3.geojson";
 const MAP_ASSET_TIMEOUT_MS = 8_000;
+const PROPERTY_PIN_ZOOM = 11;
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -50,6 +51,7 @@ interface PropertyMapCanvasProps {
   mapQuery?: string;
   onPropertyActivate: (propertyId: string, reveal?: boolean) => void;
   onRegionSelect: (region: string) => void;
+  aggregateLocalities?: boolean;
 }
 
 type MappableProperty = PublicPropertySummary | PublicPropertyMapItem;
@@ -117,12 +119,38 @@ function markerIcon(active: boolean): L.DivIcon {
   });
 }
 
+function localityIcon(count: number): L.DivIcon {
+  return L.divIcon({
+    className: "rc-map-locality-shell",
+    html: `<span class="rc-map-locality${count === 0 ? " rc-map-locality--empty" : ""}" aria-hidden="true"><strong>${count}</strong></span>`,
+    iconAnchor: [22, 22],
+    iconSize: [44, 44],
+    tooltipAnchor: [0, -21],
+  });
+}
+
+function titleCaseStatus(value: string): string {
+  return value
+    .split("-")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
 function popupCard(property: MappableProperty): HTMLElement {
   const root = document.createElement("article");
   root.className = "rc-map-popup";
 
   const eyebrow = document.createElement("span");
-  eyebrow.textContent = `ID ${property.propertyId}`;
+  eyebrow.textContent = `Premier Property #${property.propertyId}`;
+
+  if (property.coverMedia?.url) {
+    const image = document.createElement("img");
+    image.className = "rc-map-popup__image";
+    image.src = property.coverMedia.url;
+    image.alt = property.coverMedia.alt || `Cover of ${property.title}`;
+    image.loading = "lazy";
+    root.append(image);
+  }
 
   const title = document.createElement("strong");
   title.textContent = property.title;
@@ -134,11 +162,25 @@ function popupCard(property: MappableProperty): HTMLElement {
   price.className = "rc-map-popup__price";
   price.textContent = formatPrice(property.price.amount, property.price.currency);
 
+  const details = document.createElement("p");
+  details.className = "rc-map-popup__details";
+  details.textContent = [
+    property.specifications.bedrooms === undefined
+      ? undefined
+      : `${property.specifications.bedrooms} bed`,
+    property.specifications.bathrooms === undefined
+      ? undefined
+      : `${property.specifications.bathrooms} bath`,
+    titleCaseStatus(property.availability),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const link = document.createElement("a");
   link.href = `/properties/${encodeURIComponent(property.slug)}`;
   link.textContent = "View property \u2197";
 
-  root.append(eyebrow, title, location, price, link);
+  root.append(eyebrow, title, location, price, details, link);
   return root;
 }
 
@@ -149,6 +191,7 @@ export function PropertyMapCanvas({
   mapQuery,
   onPropertyActivate,
   onRegionSelect,
+  aggregateLocalities = false,
 }: PropertyMapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | undefined>(undefined);
@@ -156,6 +199,7 @@ export function PropertyMapCanvas({
   const boundaryLayersRef = useRef(new Map<string, Layer>());
   const markersRef = useRef(new Map<string, Marker>());
   const markerGroupRef = useRef<L.MarkerClusterGroup | undefined>(undefined);
+  const localityGroupRef = useRef<L.LayerGroup | undefined>(undefined);
   const propertyCallbackRef = useRef(onPropertyActivate);
   const regionCallbackRef = useRef(onRegionSelect);
   const [boundaries, setBoundaries] = useState<RegionCollection>();
@@ -237,6 +281,7 @@ export function PropertyMapCanvas({
     const map = L.map(container, {
       scrollWheelZoom: false,
       zoomControl: true,
+      zoomAnimation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     });
     mapRef.current = map;
 
@@ -251,6 +296,19 @@ export function PropertyMapCanvas({
     });
     tiles.addTo(map);
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const focusRegion = (layer: L.Polygon, filterValue: string) => {
+      map.fitBounds(layer.getBounds(), {
+        animate: !reducedMotion,
+        maxZoom: 12,
+        padding: [24, 24],
+      });
+      if (map.getZoom() < PROPERTY_PIN_ZOOM) {
+        map.setZoom(PROPERTY_PIN_ZOOM, { animate: !reducedMotion });
+      }
+      regionCallbackRef.current(filterValue);
+    };
+
     const regions = L.geoJSON<RegionProperties>(boundaries, {
       style: (feature) =>
         boundaryStyle(
@@ -263,9 +321,7 @@ export function PropertyMapCanvas({
         layer.bindTooltip(name, { direction: "top", sticky: true });
         layer.on("click", () => {
           if (layer instanceof L.Path) layer.setStyle(boundaryStyle(true));
-          const boundsLayer = layer as L.Polygon;
-          map.fitBounds(boundsLayer.getBounds(), { maxZoom: 12, padding: [24, 24] });
-          regionCallbackRef.current(filterValue);
+          focusRegion(layer as L.Polygon, filterValue);
         });
         layer.on("add", () => {
           if (!(layer instanceof L.Path)) return;
@@ -289,6 +345,7 @@ export function PropertyMapCanvas({
 
     const markerGroup = L.markerClusterGroup({
       chunkedLoading: true,
+      disableClusteringAtZoom: PROPERTY_PIN_ZOOM,
       maxClusterRadius: 45,
       showCoverageOnHover: false,
       iconCreateFunction: (cluster) =>
@@ -298,8 +355,23 @@ export function PropertyMapCanvas({
           iconSize: [42, 42],
         }),
     });
-    markerGroup.addTo(map);
     markerGroupRef.current = markerGroup;
+
+    const localityGroup = L.layerGroup();
+    localityGroupRef.current = localityGroup;
+    const syncLayerVisibility = () => {
+      const showLocalities = aggregateLocalities && map.getZoom() < PROPERTY_PIN_ZOOM;
+      container.dataset.mapView = showLocalities ? "localities" : "properties";
+      if (showLocalities) {
+        if (map.hasLayer(markerGroup)) map.removeLayer(markerGroup);
+        if (!map.hasLayer(localityGroup)) localityGroup.addTo(map);
+      } else {
+        if (map.hasLayer(localityGroup)) map.removeLayer(localityGroup);
+        if (!map.hasLayer(markerGroup)) markerGroup.addTo(map);
+      }
+    };
+    map.on("zoomend", syncLayerVisibility);
+    syncLayerVisibility();
 
     L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
 
@@ -314,10 +386,11 @@ export function PropertyMapCanvas({
       mapRef.current = undefined;
       boundaryRef.current = undefined;
       markerGroupRef.current = undefined;
+      localityGroupRef.current = undefined;
     };
     // The initial selection is applied again by the dedicated effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boundaries]);
+  }, [aggregateLocalities, boundaries]);
 
   useEffect(() => {
     const selected = normalized(selectedRegion);
@@ -332,12 +405,79 @@ export function PropertyMapCanvas({
 
     const selectedLayer = boundaryLayersRef.current.get(selected);
     if (selectedLayer && selectedLayer instanceof L.Polygon && mapRef.current) {
-      mapRef.current.fitBounds(selectedLayer.getBounds(), {
+      const map = mapRef.current;
+      const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      map.fitBounds(selectedLayer.getBounds(), {
+        animate,
         maxZoom: 12,
         padding: [24, 24],
       });
+      if (map.getZoom() < PROPERTY_PIN_ZOOM) {
+        map.setZoom(PROPERTY_PIN_ZOOM, { animate });
+      }
     }
   }, [selectedRegion, boundaries]);
+
+  useEffect(() => {
+    if (!aggregateLocalities || !boundaries) return;
+    const group = localityGroupRef.current;
+    const map = mapRef.current;
+    if (!group || !map) return;
+    if (mapQuery !== undefined && !effectiveMapResult?.response) return;
+
+    const counts = new Map<string, number>();
+    const responseCounts = effectiveMapResult?.response?.locationCounts;
+    if (responseCounts) {
+      for (const item of responseCounts)
+        counts.set(normalized(item.location), item.count);
+    } else {
+      for (const property of properties) {
+        const key = normalized(property.location.city);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+
+    group.clearLayers();
+    for (const feature of boundaries.features) {
+      const { filterValue, name } = feature.properties;
+      const layer = boundaryLayersRef.current.get(normalized(filterValue));
+      if (!(layer instanceof L.Polygon)) continue;
+      const count = counts.get(normalized(filterValue)) ?? 0;
+      const accessibleName = `${name}, ${count} ${count === 1 ? "property" : "properties"}`;
+      const marker = L.marker(layer.getBounds().getCenter(), {
+        icon: localityIcon(count),
+        keyboard: true,
+        title: accessibleName,
+        zIndexOffset: count > 0 ? 200 : 0,
+      });
+      marker.bindTooltip(accessibleName, { direction: "top" });
+      marker.on("click", () => {
+        const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        map.fitBounds(layer.getBounds(), {
+          animate,
+          maxZoom: 12,
+          padding: [24, 24],
+        });
+        if (map.getZoom() < PROPERTY_PIN_ZOOM) {
+          map.setZoom(PROPERTY_PIN_ZOOM, { animate });
+        }
+        regionCallbackRef.current(filterValue);
+      });
+      marker.on("add", () => {
+        const element = marker.getElement();
+        if (!element) return;
+        element.setAttribute("role", "button");
+        element.setAttribute("aria-label", accessibleName);
+      });
+      group.addLayer(marker);
+    }
+  }, [
+    aggregateLocalities,
+    boundaries,
+    effectiveMapResult?.response,
+    mapQuery,
+    properties,
+  ]);
 
   useEffect(() => {
     const group = markerGroupRef.current;
@@ -353,13 +493,21 @@ export function PropertyMapCanvas({
       const marker = L.marker(point, {
         icon: markerIcon(false),
         keyboard: true,
-        title: `${property.title}, ${formatLocation(property.location)}`,
+        title: `Premier Property ${property.propertyId}, view property`,
       });
       marker.bindPopup(popupCard(property), { closeButton: true, minWidth: 220 });
       marker.on("mouseover focus", () =>
         propertyCallbackRef.current(property.id, false),
       );
       marker.on("click", () => propertyCallbackRef.current(property.id, true));
+      marker.on("add", () => {
+        const element = marker.getElement();
+        if (!element) return;
+        element.setAttribute(
+          "aria-label",
+          `Premier Property ${property.propertyId}, view property`,
+        );
+      });
       markersRef.current.set(property.id, marker);
       group.addLayer(marker);
     }
@@ -368,10 +516,17 @@ export function PropertyMapCanvas({
   useEffect(() => {
     markersRef.current.forEach((marker, propertyId) => {
       marker.setIcon(markerIcon(propertyId === activePropertyId));
-      if (propertyId === activePropertyId) marker.setZIndexOffset(1000);
-      else marker.setZIndexOffset(0);
+      if (propertyId === activePropertyId) {
+        marker.setZIndexOffset(1000);
+        const map = mapRef.current;
+        if (map && aggregateLocalities && map.getZoom() < PROPERTY_PIN_ZOOM) {
+          map.setView(marker.getLatLng(), PROPERTY_PIN_ZOOM, {
+            animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+          });
+        }
+      } else marker.setZIndexOffset(0);
     });
-  }, [activePropertyId, displayedProperties]);
+  }, [activePropertyId, aggregateLocalities, displayedProperties]);
 
   if (boundaryError) {
     return (
@@ -412,7 +567,10 @@ export function PropertyMapCanvas({
     : "";
 
   return (
-    <div className={styles.canvasFrame}>
+    <div
+      className={styles.canvasFrame}
+      data-map-mode={aggregateLocalities ? "aggregate" : "pins"}
+    >
       <label className={styles.regionPicker}>
         <span>Browse an area</span>
         <select

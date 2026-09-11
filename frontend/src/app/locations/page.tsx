@@ -4,11 +4,13 @@ import homeHeroOne from "@/assets/site/home-hero-1.png";
 import homeHeroTwo from "@/assets/site/home-hero-2.png";
 import homeHeroThree from "@/assets/site/home-hero-3.png";
 import locationImage from "@/assets/site/location.png";
+import locationsDoodle from "@/assets/site/locations-doodle.png";
 import propertiesImage from "@/assets/site/properties.png";
 import whyImage from "@/assets/site/why-rc-premier.png";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LocationCard } from "@/features/locations/LocationCard";
+import { getLocationEditorialContent } from "@/features/locations/location-content";
 import { buildLocationsMetadata } from "@/features/locations/location-seo";
 import styles from "@/features/locations/locations.module.css";
 import { getPropertyFacets } from "@/features/properties/property.service";
@@ -50,8 +52,8 @@ export default async function LocationsPage() {
             </div>
             <figure className={styles.introMedia}>
               <Image
-                src={locationImage}
-                alt="Contemporary multi-story Pampanga residence under a blue sky"
+                src={locationsDoodle}
+                alt="Line drawing of homes, trees, a bicycle, and neighborhood streets"
                 fill
                 preload
                 sizes="(max-width: 1023px) 100vw, 50vw"
@@ -81,7 +83,10 @@ export default async function LocationsPage() {
                   key={location}
                   location={location}
                   count={count}
-                  image={locationImages[index % locationImages.length]!}
+                  image={
+                    getLocationEditorialContent(location)?.landmark.imagePath ??
+                    locationImages[index % locationImages.length]!
+                  }
                 />
               ))}
             </ul>

@@ -273,6 +273,10 @@ function mapFixtureProperties(request) {
     limit: TEST_PROPERTIES.length,
   });
   const mappable = search.items.filter((property) => property.location.publicPoint);
+  const counts = new Map();
+  for (const property of search.items) {
+    counts.set(property.location.city, (counts.get(property.location.city) ?? 0) + 1);
+  }
   const items = mappable.map((property) => ({
     id: property.id,
     propertyId: property.propertyId,
@@ -284,11 +288,23 @@ function mapFixtureProperties(request) {
     price: property.price,
     location: property.location,
     specifications: property.specifications,
-    ...(property.coverMedia ? { coverMedia: property.coverMedia } : {}),
+    ...(property.propertyId === "RCPP-E2E-003"
+      ? {
+          coverMedia: {
+            id: "fixture-map-cover-003",
+            kind: "image",
+            url: "/images/locations/city-of-san-fernando.jpg",
+            alt: "Synthetic San Fernando fixture cover image",
+          },
+        }
+      : property.coverMedia
+        ? { coverMedia: property.coverMedia }
+        : {}),
   }));
 
   return {
     items,
+    locationCounts: [...counts].map(([location, count]) => ({ location, count })),
     matchingTotal: search.pagination.total,
     mappableTotal: mappable.length,
     returned: items.length,

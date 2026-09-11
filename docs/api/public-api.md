@@ -109,6 +109,8 @@ a valid, separately approved public point.
 
 The response contains:
 
+- `locationCounts` — filtered published counts grouped by public city label and bounded
+  to the supported Pampanga locality set; records need no public point to be counted;
 - `items` — the reduced marker/preview shape; records without an approved point are
   omitted;
 - `matchingTotal` — all matching published records, including records without pins;

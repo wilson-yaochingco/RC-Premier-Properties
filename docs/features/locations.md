@@ -1,8 +1,8 @@
 # Public Locations
 
-Status: Part 2 inventory-backed location index and detail routes implemented. Real
-production inventory and location-specific editorial media remain external. Last
-reviewed 2026-09-11.
+Status: inventory-backed index/detail routes and the Level 18 landmark presentation are
+implemented. Real production property inventory remains external. Last reviewed
+2026-09-11.
 
 ## Routes and source of truth
 
@@ -17,10 +17,18 @@ returns the public not-found surface.
 
 ## Discovery behavior
 
-The index uses the supplied Part 2 location-grid reference for composition and cycles
-only existing approved RC Premier design photography as decorative tile media. Those
-photographs are not represented as documentary images of a specific municipality. The
-reference site's photographs and location claims are not copied.
+The index uses the supplied line drawing beside its introduction. Every inventory-backed
+card uses the locality's documented reusable photograph with a brand-color hover/focus
+overlay; required names and counts are always visible. The homepage uses the same content
+lookup for up to six real facet locations.
+
+Every supported detail route adds one reusable editorial landmark block below its lead
+composition. A typed slug-to-content structure owns factual title/caption, local path,
+alternative text, creator, source and license. It deliberately avoids popularity,
+neighborhood, travel, history and market claims that are not supported by project data.
+The inventory number shown beside the landmark remains the current facet count. Asset
+provenance is recorded in
+[`location-editorial-assets.md`](location-editorial-assets.md).
 
 Location detail reuses the existing property query normalization, bounded nine-record
 page size, strict first-value handling for repeated scalar filters, active filter chips,

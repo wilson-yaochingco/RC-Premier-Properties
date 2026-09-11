@@ -13,17 +13,13 @@
   color: #fff;
 }
 
-.hero > img {
-  z-index: -2;
-  object-fit: cover;
-  object-position: 50% 47%;
-}
-
 .heroShade {
   position: absolute;
   z-index: -1;
   inset: 0;
-  background: linear-gradient(90deg, rgb(22 28 36 / 66%), rgb(22 28 36 / 48%));
+  background:
+    linear-gradient(90deg, rgb(58 66 79 / 61%), rgb(58 66 79 / 35%)),
+    linear-gradient(rgb(255 255 255 / 10%), rgb(255 255 255 / 4%));
 }
 
 .heroContent {
@@ -171,20 +167,6 @@
   margin-top: 1.5rem;
 }
 
-.regionImage {
-  position: relative;
-  min-height: clamp(27rem, 48vw, 41rem);
-  margin: 0;
-  overflow: hidden;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-}
-
-.regionImage img {
-  object-fit: cover;
-  object-position: 50% 56%;
-}
-
 .narrowWide {
   width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
 }
@@ -291,19 +273,42 @@
   padding: 1.25rem;
   font-size: 0.82rem;
   font-weight: 650;
+  transition:
+    box-shadow 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .explore a span:last-child {
   color: var(--brand-secondary-text);
+  transition: transform 180ms ease;
+}
+
+@media (hover: hover) {
+  .explore a:hover {
+    color: var(--brand-primary-deep);
+    box-shadow: 0 0.8rem 1.8rem rgb(58 66 79 / 11%);
+    transform: translateY(-0.2rem);
+  }
+
+  .explore a:hover span:last-child {
+    transform: translateX(0.25rem);
+  }
+}
+
+.explore a:focus-visible {
+  border-color: var(--brand-secondary);
+  box-shadow: 0 0 0 3px rgb(180 137 61 / 22%);
+  transform: translateY(-0.2rem);
+}
+
+.explore a:focus-visible span:last-child {
+  transform: translateX(0.25rem);
 }
 
 @media (max-width: 56rem) {
   .regionInner {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .regionImage {
-    min-height: 28rem;
   }
 
   .explore ul {
@@ -314,10 +319,6 @@
 @media (max-width: 42rem) {
   .hero {
     min-height: 34rem;
-  }
-
-  .hero > img {
-    object-position: 56% 48%;
   }
 
   .purposeGrid,
@@ -333,7 +334,6 @@
   }
 
   .statementImage,
-  .regionImage,
   .editorialInner figure {
     min-height: 22rem;
   }
@@ -344,5 +344,12 @@
 
   .editorialInner > div:nth-of-type(2) {
     grid-row: 4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore a,
+  .explore a span:last-child {
+    transition: none;
   }
 }
