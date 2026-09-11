@@ -83,7 +83,7 @@ export default async function LocationsPage() {
                   location={location}
                   count={count}
                   image={
-                    getLocationEditorialContent(location)?.landmark.imagePath ??
+                    getLocationEditorialContent(location)?.scenery.imagePath ??
                     locationImages[index % locationImages.length]!
                   }
                 />

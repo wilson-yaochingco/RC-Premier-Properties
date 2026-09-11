@@ -1,6 +1,6 @@
 # Public Locations
 
-Status: inventory-backed index/detail routes and the final responsive landmark
+Status: inventory-backed index/detail routes and the final responsive scenery
 presentation are implemented. Real production property inventory remains external. Last
 reviewed 2026-09-12.
 
@@ -25,17 +25,21 @@ documented reusable photograph with a brand-color hover/focus overlay; required 
 counts are always visible. The homepage uses the same content lookup for up to six real
 facet locations.
 
-Every supported detail route adds one reusable editorial landmark block below its lead
+Every supported detail route adds one reusable editorial scenery block below its lead
 composition. A typed slug-to-content structure owns factual title/caption, local path,
 alternative text, creator, source and license. It deliberately avoids popularity,
 neighborhood, travel, history and market claims that are not supported by project data.
-The inventory number shown beside the landmark remains the current facet count. Asset
+The inventory number shown beside the scene remains the current facet count. Asset
 provenance is recorded in
 [`location-editorial-assets.md`](location-editorial-assets.md).
 
 Location detail reuses the existing property query normalization, bounded nine-record
 page size, strict first-value handling for repeated scalar filters, active filter chips,
-sort options, pagination, invalid-page recovery, property cards, and lazy Leaflet map.
+sort options, pagination, invalid-page recovery, property cards, and the exact same lazy
+Leaflet catalog-map engine used by `/properties`. The route location is the initial map
+focus and fixed request filter; map markers and cards share active state, and selecting a
+different area navigates to that area's canonical location route while retaining other
+safe filters.
 The route fixes its location from the validated path and never accepts a query value as
 the location source of truth. Property links may carry a validated location-results URL
 for Back to Results without changing the property's canonical URL.

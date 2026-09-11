@@ -2067,12 +2067,13 @@ video {
   border-bottom-color: rgb(58 66 79 / 12%);
   background: rgb(255 255 255 / 96%);
   backdrop-filter: blur(14px);
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
   transition: transform 220ms ease;
+  will-change: transform;
 }
 
 .site-header[data-hidden="true"] {
-  transform: translateY(calc(-100% - 1px));
+  transform: translate3d(0, calc(-100% - 1rem), 0);
 }
 
 .site-header__inner {
@@ -2324,10 +2325,6 @@ video {
   min-height: 18rem;
 }
 
-.home-featured__action {
-  margin-top: 1.35rem;
-}
-
 .home-viewing-callout {
   padding-bottom: clamp(3rem, 5vw, 5rem);
   background: var(--brand-white);
@@ -2440,7 +2437,27 @@ video {
 }
 
 .home-service__content .button {
+  width: auto;
+  min-width: 10rem;
+  justify-content: center;
   margin-top: 1.5rem;
+  border-color: var(--brand-secondary-light);
+  background: transparent;
+  color: var(--brand-white);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .home-service__content .button:hover {
+    border-color: var(--brand-secondary);
+    background: var(--brand-white);
+    color: var(--brand-primary);
+  }
+}
+
+.home-service__content .button:focus-visible {
+  border-color: var(--brand-secondary-light);
+  outline-color: var(--brand-white);
 }
 
 .home-locations {

@@ -28,14 +28,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
-      <section className={styles.hero} aria-labelledby="contact-heading">
-        <div>
-          <h1 id="contact-heading">Say hello.</h1>
-          <p>Tell us how we can help with your next property decision.</p>
-        </div>
-      </section>
-
-      <section className={styles.imagePanel} aria-labelledby="guidance-heading">
+      <section className={styles.hero} aria-labelledby="guidance-heading">
         <Image
           src={contactImage}
           alt="Dining area with warm wood finishes and sculptural lighting"
@@ -43,10 +36,10 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
           priority
           sizes="100vw"
         />
-        <Container className={styles.imagePanelInner}>
+        <Container className={styles.heroInner}>
           <article className={styles.guidanceCard}>
             <p className={styles.eyebrow}>Property guidance</p>
-            <h2 id="guidance-heading">Looking for the right next step?</h2>
+            <h1 id="guidance-heading">Looking for the right next step?</h1>
             <p>
               Ask about a published property, share what you are looking for, or begin a
               private seller conversation. The team will follow up directly.

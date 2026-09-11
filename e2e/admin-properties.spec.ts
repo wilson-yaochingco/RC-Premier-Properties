@@ -449,7 +449,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
 
 test("the admin shell collapses on desktop and traps focus in the mobile drawer", async ({
   page,
-}) => {
+}, testInfo) => {
   await mockSession(page);
   await page.route(`**${API_PREFIX}/admin/properties**`, (route) =>
     json(route, 200, {
@@ -471,24 +471,70 @@ test("the admin shell collapses on desktop and traps focus in the mobile drawer"
   expect(
     await page.evaluate(() => localStorage.getItem("rc-admin-sidebar-collapsed")),
   ).toBe("true");
-  await page.getByRole("button", { name: "Expand administration sidebar" }).click();
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  const trigger = page.getByRole("button", { name: "Open administration menu" });
-  await expect(trigger).toBeVisible();
-  await trigger.click();
-  const drawer = page.getByRole("dialog", { name: "Administration menu" });
-  await expect(drawer).toBeVisible();
+  const labels = [
+    "Dashboard",
+    "Properties",
+    "Inquiries",
+    "Viewings",
+    "Search",
+    "Audit",
+    "Staff",
+    "Create Draft",
+    "View Website",
+    "Sign Out",
+  ];
+  for (const width of [320, 390, 768, 1024]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    const trigger = page.getByRole("button", { name: "Open administration menu" });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+    const drawer = page.getByRole("dialog", { name: "Administration menu" });
+    await expect(drawer).toBeVisible();
+    const dashboard = drawer.getByRole("link", {
+      name: "Dashboard",
+      exact: true,
+    });
+    await expect(dashboard).toBeFocused();
+    for (const label of labels) {
+      await expect(drawer.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(drawer.locator("nav svg")).toHaveCount(10);
+    await expect(
+      drawer.getByRole("link", { name: "Properties", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(drawer.getByRole("link", { name: "View Website" })).toHaveAttribute(
+      "target",
+      "_blank",
+    );
+    await page.screenshot({
+      path: testInfo.outputPath(`admin-drawer-${width}px.png`),
+      animations: "disabled",
+    });
+    expect(
+      await page
+        .locator('button[class*="drawerBackdrop"]')
+        .evaluate((element) => getComputedStyle(element).backdropFilter),
+    ).toBe("none");
+
+    await page.keyboard.press("Shift+Tab");
+    const close = drawer.getByRole("button", { name: "Close" });
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(drawer.getByRole("button", { name: "Sign Out" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dashboard).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
   await expect(
-    drawer.getByRole("link", { name: "Dashboard", exact: true }),
-  ).toBeFocused();
-  await expect(drawer.getByRole("link", { name: "View Website" })).toHaveAttribute(
-    "target",
-    "_blank",
-  );
-  await page.keyboard.press("Escape");
-  await expect(drawer).toHaveCount(0);
-  await expect(trigger).toBeFocused();
+    page.getByRole("button", { name: "Expand administration sidebar" }),
+  ).toBeVisible();
 });
 
 test("admin HTML is private, non-indexable, and protected by browser headers", async ({

@@ -37,12 +37,40 @@ test("public header hides deliberately and remains available during interaction"
   expect(headerGeometry.logoWidth).toBeLessThanOrEqual(97);
   await page.evaluate(() => window.scrollTo(0, 800));
   await expect(header).toHaveAttribute("data-hidden", "true");
+  await expect
+    .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
+    .toBeLessThanOrEqual(0);
+  await expect
+    .poll(() =>
+      header.evaluate(
+        (element) =>
+          element.querySelector(".brand-logo")!.getBoundingClientRect().bottom,
+      ),
+    )
+    .toBeLessThanOrEqual(0);
 
   await page.evaluate(() => window.scrollBy(0, -100));
   await expect(header).toHaveAttribute("data-hidden", "false");
   await page.evaluate(() => window.scrollBy(0, 100));
   await expect(header).toHaveAttribute("data-hidden", "true");
   await header.getByRole("link", { name: "Home", exact: true }).focus();
+  await expect(header).toHaveAttribute("data-hidden", "false");
+  await page.locator("main#main-content").focus();
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(header).toHaveAttribute("data-hidden", "true");
+  await header.dispatchEvent("pointerdown");
+  await expect(header).toHaveAttribute("data-hidden", "false");
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointerup")));
+
+  await page.evaluate(() => window.scrollBy(0, -100));
+  await expect(header).toHaveAttribute("data-hidden", "false");
+  await page.evaluate(() => window.scrollBy(0, 100));
+  await expect(header).toHaveAttribute("data-hidden", "true");
+  await page
+    .getByRole("contentinfo")
+    .getByRole("link", { name: "Contact", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/contact$/);
   await expect(header).toHaveAttribute("data-hidden", "false");
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -131,8 +159,21 @@ test("location guide removes the mobile doodle without weakening the desktop pai
   ).toBeVisible();
 });
 
-test("contact renders recognizable, named social icons", async ({ page }) => {
+test("contact starts with its image hero and social links expose motion-aware interaction", async ({
+  page,
+}) => {
   await page.goto("/contact");
+  await expect(page.getByText("Say hello", { exact: true })).toHaveCount(0);
+  const firstSection = page.locator("main > section").first();
+  await expect(firstSection.getByRole("heading", { level: 1 })).toHaveText(
+    "Looking for the right next step?",
+  );
+  await expect(
+    firstSection.getByAltText(
+      "Dining area with warm wood finishes and sculptural lighting",
+    ),
+  ).toBeVisible();
+
   const socialSection = page
     .getByRole("heading", { name: "Follow along" })
     .locator("..");
@@ -142,6 +183,32 @@ test("contact renders recognizable, named social icons", async ({ page }) => {
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link.locator("svg")).toHaveCount(1);
   }
+
+  const facebook = socialSection.getByRole("link", { name: /Facebook/ });
+  const facebookIcon = facebook.locator("span").first();
+  await facebook.hover();
+  expect(await facebook.evaluate((link) => getComputedStyle(link).transform)).not.toBe(
+    "none",
+  );
+  await expect(facebookIcon).toHaveCSS("background-color", "rgb(180, 137, 61)");
+  await facebook.focus();
+  await expect(facebook).toBeFocused();
+  expect(
+    await facebook.evaluate((link) => getComputedStyle(link).outlineStyle),
+  ).not.toBe("none");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  const reducedFacebook = page.getByRole("link", {
+    name: /Facebook — RC Premier Properties/,
+  });
+  expect(
+    Number.parseFloat(
+      await reducedFacebook.evaluate(
+        (link) => getComputedStyle(link).transitionDuration,
+      ),
+    ),
+  ).toBeLessThanOrEqual(0.001);
 });
 
 test("tour steps fit normal viewports and remain reachable at 200 percent text", async ({
@@ -262,19 +329,51 @@ test("About reduced-motion entry remains on the static poster", async ({ page })
   ).toBe(0);
 });
 
-test("public geometry is square and the desktop footer stays compact", async ({
+test("the targeted Home action stays usable while the duplicate property action is removed", async ({
   page,
 }) => {
+  for (const width of [320, 768, 1440]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "View all properties" })).toHaveCount(
+      0,
+    );
+
+    const learn = page.getByRole("link", { name: "Learn about us" });
+    await learn.scrollIntoViewIfNeeded();
+    await expect(learn).toBeVisible();
+    await expect(learn).toHaveAttribute("href", "/about");
+    await expect(learn).toHaveCSS("border-radius", "0px");
+    const bounds = await learn.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.height).toBeGreaterThanOrEqual(44);
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
+    await learn.focus();
+    expect(
+      await learn.evaluate((link) => getComputedStyle(link).outlineStyle),
+    ).not.toBe("none");
+  }
+
+  const learn = page.getByRole("link", { name: "Learn about us" });
+  await learn.hover();
+  await expect(learn).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await learn.click();
+  await expect(page).toHaveURL(/\/about$/);
+
+  await page.goto("/properties/clark-garden-residence");
+  const browse = page.getByRole("link", { name: "Browse all properties" }).last();
+  await browse.scrollIntoViewIfNeeded();
+  await expect(browse).toHaveAttribute("href", "/properties");
+  await browse.click();
+  await expect(page).toHaveURL(/\/properties$/);
+
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
   const card = page.locator("[data-property-card]").first();
   await expect(card).toBeVisible();
   await expect(card).toHaveCSS("border-radius", "0px");
-  await expect(page.getByRole("link", { name: "View all properties" })).toHaveCSS(
-    "border-radius",
-    "0px",
-  );
 
   const footer = page.getByRole("contentinfo");
   const footerPresentation = await footer.evaluate((element) => ({
@@ -336,10 +435,12 @@ test("location discovery uses the supplied drawing and documented local photogra
 
   await page.goto("/locations/angeles-city");
   await expect(
-    page.getByRole("heading", { name: "A documented local landmark." }),
+    page.getByRole("heading", { name: "A view of the local setting." }),
   ).toBeVisible();
   await expect(
-    page.getByAltText("Facade of the Holy Rosary Parish Church in Angeles City"),
+    page.getByAltText(
+      "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
+    ),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Wikimedia Commons" })).toHaveAttribute(
     "href",

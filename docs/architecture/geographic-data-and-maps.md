@@ -1,7 +1,7 @@
 # Geographic Data and Public Maps
 
 Status: locality aggregation, public-pin discovery and protected location administration
-implemented; production provider remains external. Last reviewed 2026-09-11.
+implemented; production provider remains external. Last reviewed 2026-09-12.
 
 The public map helps visitors understand where published properties are in Pampanga
 without turning an internal address or coordinate into public data. It is a discovery
@@ -23,15 +23,23 @@ adds a progressively enhanced view:
    while the property list remains paginated.
 3. Selecting a city or municipality writes its name to the same `location` query
    parameter, clears pagination and refreshes both cards and map pins.
-4. Below zoom 11 the catalog shows one named count marker for every boundary, including a
-   visible zero state. Counts describe the complete filtered public result set, not only
-   records that have pins.
+4. Below zoom 11 the catalog shows one gold teardrop count marker for each locality with
+   a positive count. Zero-count localities are omitted. Counts describe the complete
+   filtered public result set, not only records that have pins.
 5. Selecting a boundary or locality marker fits that area, updates the shared URL filter
    and crosses the deterministic zoom threshold into individual approved public pins.
    Zooming out below that threshold restores the aggregate markers.
 6. Card focus highlights and focuses its approved marker. Popup cards use the public map
    DTO for cover media, Property ID, title, public location, price, available bed/bath
    values, availability and the stable detail link.
+
+Every `/locations/[location]` inventory view mounts this same `PropertyMap` and
+`PropertyMapCanvas` catalog engine rather than a parallel map implementation. It starts
+focused on the validated route locality, requests the map endpoint with the identical
+normalized route-and-query filters, shares marker/card activation, and uses the area
+selector to navigate to canonical location routes. This keeps filtering, privacy,
+failure isolation, lazy loading, popup content, and marker rendering on one code path and
+does not duplicate a Leaflet bundle or map data request.
 
 On small screens the List view is the default and Map is an explicit choice. Tablet
 layouts stack the map and cards; wide desktop layouts use a split discovery surface. An

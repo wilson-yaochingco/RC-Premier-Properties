@@ -10,7 +10,7 @@ export function LocationEditorial({
   content: LocationEditorialContent;
   inventoryCount: number;
 }) {
-  const { landmark } = content;
+  const { scenery } = content;
 
   return (
     <section className={styles.editorial} aria-labelledby="location-editorial-title">
@@ -18,9 +18,9 @@ export function LocationEditorial({
         <div className={styles.editorialHeading}>
           <p>Around {content.locality}</p>
           <div>
-            <h2 id="location-editorial-title">A documented local landmark.</h2>
+            <h2 id="location-editorial-title">A view of the local setting.</h2>
             <p>
-              This guide pairs a verified photograph from {content.locality} with the
+              This guide pairs a sourced photograph of everyday {content.locality} with
               current published property inventory. It does not rank neighborhoods or
               make unsupported area claims.
             </p>
@@ -30,25 +30,25 @@ export function LocationEditorial({
         <div className={styles.editorialFeature}>
           <figure>
             <Image
-              src={landmark.imagePath}
-              alt={landmark.alt}
+              src={scenery.imagePath}
+              alt={scenery.alt}
               fill
               sizes="(max-width: 1023px) 100vw, 62rem"
             />
             <figcaption>
-              <span>{landmark.caption}</span>
+              <span>{scenery.caption}</span>
               <span>
-                Photo: {landmark.creator} ·{" "}
-                <a href={landmark.sourceUrl} target="_blank" rel="noreferrer">
+                Photo: {scenery.creator} ·{" "}
+                <a href={scenery.sourceUrl} target="_blank" rel="noreferrer">
                   Wikimedia Commons
                 </a>{" "}
                 ·{" "}
-                {landmark.licenseUrl ? (
-                  <a href={landmark.licenseUrl} target="_blank" rel="noreferrer">
-                    {landmark.license}
+                {scenery.licenseUrl ? (
+                  <a href={scenery.licenseUrl} target="_blank" rel="noreferrer">
+                    {scenery.license}
                   </a>
                 ) : (
-                  landmark.license
+                  scenery.license
                 )}
               </span>
             </figcaption>
@@ -56,8 +56,8 @@ export function LocationEditorial({
 
           <dl>
             <div>
-              <dt>Place</dt>
-              <dd>{landmark.title}</dd>
+              <dt>Scene</dt>
+              <dd>{scenery.title}</dd>
             </div>
             <div>
               <dt>Locality type</dt>

@@ -44,6 +44,10 @@ export function SiteHeader() {
   );
 
   useEffect(() => {
+    showHeader();
+  }, [pathname, showHeader]);
+
+  useEffect(() => {
     let frame: number | undefined;
     let lastScrollY = Math.max(window.scrollY, 0);
     let direction: -1 | 0 | 1 = 0;

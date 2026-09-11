@@ -24,6 +24,7 @@ import {
   paginationHref,
   propertyApiSearchParams,
   propertyFormValues,
+  propertyMapApiSearchParams,
   type RawSearchParams,
 } from "@/features/properties/property-query";
 import {
@@ -100,7 +101,7 @@ export async function generateMetadata({
   return buildLocationMetadata({
     location: match.location,
     count: match.count,
-    imagePath: editorial?.landmark.imagePath ?? locationImage.src,
+    imagePath: editorial?.scenery.imagePath ?? locationImage.src,
     noIndex: !isStableLocationState(rawSearchParams),
   });
 }
@@ -144,6 +145,7 @@ export default async function LocationDetailPage({
     location: locationName,
   };
   const resultsHref = locationResultsHref(canonicalPath, rawSearchParams);
+  const mapQuery = propertyMapApiSearchParams(requestParams).toString();
   let response: PropertySearchResponse | undefined;
   let errorMessage: string | undefined;
 
@@ -289,48 +291,41 @@ export default async function LocationDetailPage({
           ) : null}
 
           {response ? (
-            <div className={styles.inventoryLayout}>
-              <aside
-                className={styles.inventoryMap}
-                aria-label={`${locationName} property map`}
-              >
-                <LocationInventoryMap
-                  properties={response.items}
-                  location={locationName}
-                />
-              </aside>
-              <div className={styles.inventoryResults}>
-                {response.items.length > 0 ? (
-                  <>
-                    <div
-                      className={`${propertyStyles.grid} ${styles.locationPropertyGrid}`}
-                    >
-                      {response.items.map((property) => (
-                        <PropertyCard
-                          key={property.id}
-                          property={property}
-                          resultsHref={resultsHref}
-                        />
-                      ))}
-                    </div>
-                    <PropertyPagination
-                      pagination={response.pagination}
-                      searchParams={rawSearchParams}
-                      basePath={canonicalPath}
-                      omitLocation
-                    />
-                  </>
-                ) : (
-                  <EmptyState
-                    eyebrow="No matching inventory"
-                    title="No published properties match these filters."
-                    description={`Adjust the filters or view all published properties in ${locationName}.`}
-                    actionLabel="Clear filters"
-                    actionHref={canonicalPath}
+            <LocationInventoryMap
+              properties={response.items}
+              location={locationName}
+              mapQuery={mapQuery}
+            >
+              {response.items.length > 0 ? (
+                <>
+                  <div
+                    className={`${propertyStyles.grid} ${styles.locationPropertyGrid}`}
+                  >
+                    {response.items.map((property) => (
+                      <PropertyCard
+                        key={property.id}
+                        property={property}
+                        resultsHref={resultsHref}
+                      />
+                    ))}
+                  </div>
+                  <PropertyPagination
+                    pagination={response.pagination}
+                    searchParams={rawSearchParams}
+                    basePath={canonicalPath}
+                    omitLocation
                   />
-                )}
-              </div>
-            </div>
+                </>
+              ) : (
+                <EmptyState
+                  eyebrow="No matching inventory"
+                  title="No published properties match these filters."
+                  description={`Adjust the filters or view all published properties in ${locationName}.`}
+                  actionLabel="Clear filters"
+                  actionHref={canonicalPath}
+                />
+              )}
+            </LocationInventoryMap>
           ) : null}
         </Container>
       </section>

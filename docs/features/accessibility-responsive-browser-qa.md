@@ -122,7 +122,9 @@ Automated public overflow checks use widths 320, 360, 375, 390, 412, 414, 430, 4
 768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 CSS pixels. They cover home, catalog,
 property detail and contact. Admin coverage includes 320, 360, 390, 768, 1280 and 1920.
 The matrix checks absence of horizontal page overflow, visible primary headings and usable
-media/forms; it supplements rather than replaces visual review on physical devices.
+media/forms; it supplements rather than replaces visual review on physical devices. The
+targeted admin-drawer regression matrix also covers 320, 390, 768 and 1024 CSS pixels
+while a separate 1280-pixel assertion preserves the collapsed desktop state.
 
 Mobile navigation, gallery overlays and the sticky inquiry action respect safe areas.
 Admin tables use named focusable horizontal-scroll regions. Filters and forms wrap rather
@@ -163,6 +165,11 @@ About background video remains decorative and unfocusable, is muted before playb
 is removed in favor of its poster under reduced motion. Contact social links combine
 recognizable inline marks with visible platform names and explicit new-tab accessible
 names.
+
+The contact page begins with its existing local image as the page hero, keeps one H1,
+and removes the former introductory “Say hello” composition without leaving a spacer.
+Its named social links expose equivalent hover and keyboard-focus feedback, and their
+decorative transforms and transitions are disabled under reduced motion.
 
 The targeted final matrix covers 320, 390, 768, 1024, 1280, 1440, and 1920 CSS pixels for
 the viewport-derived Home/About heroes, mobile Home crop, Locations illustration,

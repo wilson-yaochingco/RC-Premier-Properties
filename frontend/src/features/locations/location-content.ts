@@ -1,6 +1,6 @@
 import { publicLocationSlug } from "../../lib/public-location";
 
-export interface LocationLandmark {
+export interface LocationScenery {
   title: string;
   caption: string;
   imagePath: string;
@@ -15,11 +15,12 @@ export interface LocationEditorialContent {
   slug: string;
   locality: string;
   classification: "City" | "Municipality";
-  landmark: LocationLandmark;
+  scenery: LocationScenery;
 }
 
+const PUBLIC_DOMAIN = "https://creativecommons.org/publicdomain/mark/1.0/deed.en";
 const CC0 = "https://creativecommons.org/publicdomain/zero/1.0/deed.en";
-const CC_BY_SA_3 = "https://creativecommons.org/licenses/by-sa/3.0";
+const CC_BY_3 = "https://creativecommons.org/licenses/by/3.0";
 const CC_BY_SA_4 = "https://creativecommons.org/licenses/by-sa/4.0";
 
 export const LOCATION_EDITORIAL_CONTENT = [
@@ -27,123 +28,126 @@ export const LOCATION_EDITORIAL_CONTENT = [
     slug: "angeles-city",
     locality: "Angeles City",
     classification: "City",
-    landmark: {
-      title: "Holy Rosary Parish Church",
-      caption: "The Holy Rosary Parish Church in Angeles City.",
+    scenery: {
+      title: "Balibago skyline at sunset",
+      caption: "The Angeles City skyline with Mount Arayat on the horizon.",
       imagePath: "/images/locations/angeles-city.jpg",
-      alt: "Facade of the Holy Rosary Parish Church in Angeles City",
-      creator: "Ramon FVelasquez",
+      alt: "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
+      creator: "Patrickroque01",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Holy_Rosary_Parish_Church_(Angeles_City,_Pampanga).jpg",
-      license: "CC BY-SA 3.0",
-      licenseUrl: CC_BY_SA_3,
+        "https://commons.wikimedia.org/wiki/File:Angeles_City_Balibago_skyline_sunset_(Angeles,_Pampanga;_05-27-2023).jpg",
+      license: "CC BY-SA 4.0",
+      licenseUrl: CC_BY_SA_4,
     },
   },
   {
     slug: "apalit",
     locality: "Apalit",
     classification: "Municipality",
-    landmark: {
-      title: "Nuestra Señora del Rosario Chapel",
-      caption: "The Apung Maria chapel in Cansinala, Apalit.",
+    scenery: {
+      title: "Sulipan riverside",
+      caption: "A riverside view in Sulipan, Apalit.",
       imagePath: "/images/locations/apalit.jpg",
-      alt: "Nuestra Señora del Rosario chapel in Cansinala, Apalit",
+      alt: "Calm river bordered by grasses and homes in Sulipan, Apalit",
       creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:09318jfNuestra_Se%C3%B1ora_del_Rosario_Apung_Maria_Chapel_Cansinala_Apalit_Pampangafvf_08.jpg",
-      license: "CC0 1.0",
-      licenseUrl: CC0,
+        "https://commons.wikimedia.org/wiki/File:01812jfOld_New_Rivers_Landscape_Sulipan_Apalit_Pampanga_Bridgesfvf_14.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "arayat",
     locality: "Arayat",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Catherine of Alexandria Parish Church",
-      caption: "The parish church in Arayat town center.",
+    scenery: {
+      title: "Arayat-Magalang Road",
+      caption: "A residential stretch of the Arayat-Magalang Road.",
       imagePath: "/images/locations/arayat.jpg",
-      alt: "Saint Catherine of Alexandria Parish Church in Arayat",
-      creator: "Joelaldor",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:Arayat_Church,_Pampanga.jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+      alt: "Tree-lined residential road in Arayat beneath a bright clouded sky",
+      creator: "Judgefloro",
+      sourceUrl:
+        "https://commons.wikimedia.org/wiki/File:9887Mexico_Arayat_Magalang_Road,_Pampanga_06.jpg",
+      license: "CC0 1.0",
+      licenseUrl: CC0,
     },
   },
   {
     slug: "bacolor",
     locality: "Bacolor",
     classification: "Municipality",
-    landmark: {
-      title: "San Guillermo Parish Church",
-      caption: "The San Guillermo Parish Church in Bacolor.",
+    scenery: {
+      title: "Macabacle barangay road",
+      caption: "The barangay road through Macabacle, Bacolor.",
       imagePath: "/images/locations/bacolor.jpg",
-      alt: "San Guillermo Parish Church in Bacolor",
-      creator: "Elmer B. Domingo",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:Bacolor_Church,_Pampanga.jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+      alt: "Quiet barangay road beside open grassland in Macabacle, Bacolor",
+      creator: "Judgefloro",
+      sourceUrl:
+        "https://commons.wikimedia.org/wiki/File:02071jfMacabacle_Bacolor_Pampanga_Day_Care_Grass_Olongapo_Gapan_Roadfvf_12.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "candaba",
     locality: "Candaba",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Andrew the Apostle Parish Church",
-      caption: "The Saint Andrew the Apostle Parish Church in Candaba.",
+    scenery: {
+      title: "Pansinao countryside",
+      caption: "Fields and vegetation beside a barangay road in Pansinao, Candaba.",
       imagePath: "/images/locations/candaba.jpg",
-      alt: "Saint Andrew the Apostle Parish Church in Candaba",
+      alt: "Green fields and rural homes in Pansinao, Candaba",
       creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:09817jfSaint_Andrew_the_Apostle_Parish_Church_Candaba_Pampangafvf_02.jpg",
-      license: "CC0 1.0",
-      licenseUrl: CC0,
+        "https://commons.wikimedia.org/wiki/File:06233jfBarangay_Road_Pansinao_Candaba_Mount_Arayat_Pampanga_Riverfvf_08.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "floridablanca",
     locality: "Floridablanca",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Joseph the Worker Parish Church",
-      caption: "The Saint Joseph the Worker Parish Church in Floridablanca.",
+    scenery: {
+      title: "Santo Rosario rice fields",
+      caption: "Flooded rice fields in Santo Rosario, Floridablanca.",
       imagePath: "/images/locations/floridablanca.jpg",
-      alt: "Saint Joseph the Worker Parish Church in Floridablanca",
-      creator: "Ramon FVelasquez",
+      alt: "Flooded rice fields framed by a large tree in Floridablanca",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Floridablancapampangajfhh.JPG",
-      license: "CC BY-SA 3.0",
-      licenseUrl: CC_BY_SA_3,
+        "https://commons.wikimedia.org/wiki/File:8272Floridablanca_Pampanga_Roads_Barangays_08.jpg",
+      license: "CC0 1.0",
+      licenseUrl: CC0,
     },
   },
   {
     slug: "guagua",
     locality: "Guagua",
     classification: "Municipality",
-    landmark: {
-      title: "Immaculate Conception Parish Church",
-      caption: "The Immaculate Conception Parish Church in Guagua.",
+    scenery: {
+      title: "Guagua Road",
+      caption: "Everyday street life along Guagua Road.",
       imagePath: "/images/locations/guagua.jpg",
-      alt: "Immaculate Conception Parish Church in Guagua",
-      creator: "Judgefloro",
+      alt: "A leafy residential and commercial street along Guagua Road",
+      creator: "Ralff Nestor Nacor",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:9114Immaculate_Conception_Church_Guagua_Pampanga_01.jpg",
-      license: "CC0 1.0",
-      licenseUrl: CC0,
+        "https://commons.wikimedia.org/wiki/File:Guagua_Road,_Guagua,_Pampanga,_Aug_2025_(1).jpg",
+      license: "CC BY-SA 4.0",
+      licenseUrl: CC_BY_SA_4,
     },
   },
   {
     slug: "lubao",
     locality: "Lubao",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Augustine Parish Church",
-      caption: "The Saint Augustine Parish Church in Lubao.",
+    scenery: {
+      title: "Lubao-Sasmuan Road wetlands",
+      caption: "A waterside view from the Lubao-Sasmuan Road.",
       imagePath: "/images/locations/lubao.jpg",
-      alt: "Saint Augustine Parish Church in Lubao",
-      creator: "Elmer B. Domingo",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:Lubao_Church.jpg",
+      alt: "Open water and blue sky viewed from the Lubao-Sasmuan Road",
+      creator: "Ralff Nestor Nacor",
+      sourceUrl:
+        "https://commons.wikimedia.org/wiki/File:View_from_Lubao-Sasmuan_Road,_Lubao,_Pampanga,_Jan_2026.jpg",
       license: "CC BY-SA 4.0",
       licenseUrl: CC_BY_SA_4,
     },
@@ -152,78 +156,78 @@ export const LOCATION_EDITORIAL_CONTENT = [
     slug: "mabalacat-city",
     locality: "Mabalacat City",
     classification: "City",
-    landmark: {
-      title: "Our Lady of Divine Grace Parish Church",
-      caption: "The Our Lady of Divine Grace Parish Church in Mabalacat City.",
+    scenery: {
+      title: "Bical road and Mount Arayat",
+      caption: "A road through Bical, Mabalacat City, with Mount Arayat ahead.",
       imagePath: "/images/locations/mabalacat-city.jpg",
-      alt: "Our Lady of Divine Grace Parish Church in Mabalacat City",
-      creator: "Pancit Canton Media",
+      alt: "Road through Bical in Mabalacat City with Mount Arayat in the distance",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Our_Lady_of_Grace_Parish_Church,_Mabalacat_City,_Pampanga,_Philippines_(8).jpg",
-      license: "CC0 1.0",
-      licenseUrl: CC0,
+        "https://commons.wikimedia.org/wiki/File:00111jfCamachiles_Sapang_Biabas_Bical_Roads_City_Pampangafvf_09.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "macabebe",
     locality: "Macabebe",
     classification: "Municipality",
-    landmark: {
-      title: "San Nicolas de Tolentino Parish Church",
-      caption: "The parish church in Macabebe town center.",
+    scenery: {
+      title: "Telacsan-Tacasan road",
+      caption: "A residential road in the Telacsan-Tacasan area of Macabebe.",
       imagePath: "/images/locations/macabebe.jpg",
-      alt: "San Nicolas de Tolentino Parish Church in Macabebe",
-      creator: "Ralff Nestor Nacor",
+      alt: "Homes, trees, and a tricycle beside a road in Macabebe",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Macabebe_Church,_Pampanga,_Jun_2025_(1).jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+        "https://commons.wikimedia.org/wiki/File:0036jfRiverside_Rice_Fields_Roads_Tacasan_Telacsan_Macabebe_Pampangafvf_16.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "magalang",
     locality: "Magalang",
     classification: "Municipality",
-    landmark: {
-      title: "Magalang Town Plaza and San Bartolome Parish Church",
-      caption: "The town plaza and parish church in Magalang.",
+    scenery: {
+      title: "San Ildefonso school road",
+      caption: "Students walking along San Ildefonso Road in Magalang.",
       imagePath: "/images/locations/magalang.jpg",
-      alt: "Magalang Town Plaza and San Bartolome Parish Church",
-      creator: "Ralff Nestor Nacor",
+      alt: "Students walking beside a colorful school wall on San Ildefonso Road, Magalang",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Magalang_Town_Plaza_%26_Church,_Pampanga,_May_2026.jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+        "https://commons.wikimedia.org/wiki/File:7685San_Ildefonso_Escaler_Magalang,_Pampanga_44.jpg",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "masantol",
     locality: "Masantol",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Michael the Archangel Parish Church",
-      caption: "The Saint Michael the Archangel Parish Church in Masantol.",
+    scenery: {
+      title: "Masantol fishponds",
+      caption: "Fishponds and homes in Masantol's lowland landscape.",
       imagePath: "/images/locations/masantol.jpg",
-      alt: "Saint Michael the Archangel Parish Church in Masantol",
-      creator: "Ralff Nestor Nacor",
+      alt: "A broad fishpond bordered by homes and palms in Masantol",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Masantol_Church_Main_Entrance,_Pampanga,_Jun_2025.jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+        "https://commons.wikimedia.org/wiki/File:08668jfLandscape_Fishponds_Fields_Masantol_Pampanga_Roadfvf_14.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "mexico",
     locality: "Mexico",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Monica Parish Church",
-      caption: "The Saint Monica Parish Church in Mexico, Pampanga.",
+    scenery: {
+      title: "San Miguel rice fields",
+      caption: "Rice fields in San Miguel, Mexico, with Mount Arayat beyond.",
       imagePath: "/images/locations/mexico.jpg",
-      alt: "Saint Monica Parish Church in Mexico, Pampanga",
-      creator: "FBenjr123",
+      alt: "Green rice fields and Mount Arayat in Mexico, Pampanga",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Saint_Monica_Parish_Church_Mexico_Pampanga_01.jpg",
+        "https://commons.wikimedia.org/wiki/File:Jf367SanMiguel%26SanVicenteMexicoPampangafvf.JPG",
       license: "CC BY-SA 4.0",
       licenseUrl: CC_BY_SA_4,
     },
@@ -232,30 +236,30 @@ export const LOCATION_EDITORIAL_CONTENT = [
     slug: "minalin",
     locality: "Minalin",
     classification: "Municipality",
-    landmark: {
-      title: "Santa Monica Parish Church",
-      caption: "The Santa Monica Parish Church in Minalin.",
+    scenery: {
+      title: "Dawe riverside road",
+      caption: "A small bridge and village road in Dawe, Minalin.",
       imagePath: "/images/locations/minalin.jpg",
-      alt: "Santa Monica Parish Church in Minalin",
-      creator: "Lucky lleo",
+      alt: "A small concrete bridge and village home in Dawe, Minalin",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Santa_Monica_Parish_Church_(Minalin_Church).jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+        "https://commons.wikimedia.org/wiki/File:02600jfRiverside_Landscapes_Roads_River_Dawe_Minalin_Pampanga_villagesfvf_01.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "porac",
     locality: "Porac",
     classification: "Municipality",
-    landmark: {
-      title: "Santa Catalina de Alexandria Parish Church",
-      caption: "The Santa Catalina de Alexandria Parish Church in Porac.",
+    scenery: {
+      title: "Jose Abad Santos Avenue",
+      caption: "Traffic and daily activity along Jose Abad Santos Avenue in Porac.",
       imagePath: "/images/locations/porac.jpg",
-      alt: "Santa Catalina de Alexandria Parish Church in Porac",
+      alt: "Vehicles and roadside activity along Jose Abad Santos Avenue in Porac",
       creator: "Ralff Nestor Nacor",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Porac_Church,_Pampanga,_Aug_2025_(1).jpg",
+        "https://commons.wikimedia.org/wiki/File:Jose_Abad_Santos_Road,_Porac,_Pampanga,_Aug_2025.jpg",
       license: "CC BY-SA 4.0",
       licenseUrl: CC_BY_SA_4,
     },
@@ -264,60 +268,61 @@ export const LOCATION_EDITORIAL_CONTENT = [
     slug: "city-of-san-fernando",
     locality: "City of San Fernando",
     classification: "City",
-    landmark: {
-      title: "Pampanga Provincial Capitol",
-      caption: "The Pampanga Provincial Capitol in the City of San Fernando.",
+    scenery: {
+      title: "Mount Arayat from San Fernando",
+      caption: "Mount Arayat seen across fields in the City of San Fernando.",
       imagePath: "/images/locations/city-of-san-fernando.jpg",
-      alt: "Pampanga Provincial Capitol in the City of San Fernando",
-      creator: "Patrickroque01",
-      sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Pampanga_Provincial_Capitol_(Capitol_Boulevard,_San_Fernando,_Pampanga;_05-27-2023).jpg",
-      license: "CC BY-SA 4.0",
-      licenseUrl: CC_BY_SA_4,
+      alt: "Mount Arayat rising behind green fields in the City of San Fernando",
+      creator: "Shioan",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Mt_Arayat.JPG",
+      license: "CC BY 3.0",
+      licenseUrl: CC_BY_3,
     },
   },
   {
     slug: "san-luis",
     locality: "San Luis",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Aloysius Gonzaga Parish Church",
-      caption: "The Saint Aloysius Gonzaga Parish Church in San Luis.",
+    scenery: {
+      title: "San Isidro road",
+      caption: "A residential road in San Isidro, San Luis.",
       imagePath: "/images/locations/san-luis.jpg",
-      alt: "Saint Aloysius Gonzaga Parish Church in San Luis",
+      alt: "A wide residential road with homes and palms in San Luis",
       creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:02749jfTowers_Bells_Saint_Aloysius_Gonzaga_Church_San_Luis,_Pampangafvf_32.jpg",
-      license: "CC0 1.0",
-      licenseUrl: CC0,
+        "https://commons.wikimedia.org/wiki/File:01008jfSan_Isidro_Santa_Monica_Candaba_San_Luis_Pampanga_Welcome_Roadsfvf_06.JPG",
+      license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "san-simon",
     locality: "San Simon",
     classification: "Municipality",
-    landmark: {
-      title: "Nuestra Señora del Pilar Parish Church",
-      caption: "The Nuestra Señora del Pilar Parish Church in San Simon.",
+    scenery: {
+      title: "Concepcion rice fields",
+      caption: "Flooded rice fields beside Cortez Road in Concepcion, San Simon.",
       imagePath: "/images/locations/san-simon.jpg",
-      alt: "Nuestra Señora del Pilar Parish Church in San Simon",
+      alt: "Flooded rice fields under a clear blue sky in San Simon",
       creator: "Judgefloro",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:FvfSanSimonChurch9458_01.JPG",
+      sourceUrl:
+        "https://commons.wikimedia.org/wiki/File:02912jfPaddy_fields_grasslands_trees_Goats_Cortez_Road_Concepcion_San_Simon_Pampangafvf_10.jpg",
       license: "Public domain",
+      licenseUrl: PUBLIC_DOMAIN,
     },
   },
   {
     slug: "santa-ana",
     locality: "Santa Ana",
     classification: "Municipality",
-    landmark: {
-      title: "Santa Ana Parish Church",
-      caption: "The parish church in Santa Ana, Pampanga.",
+    scenery: {
+      title: "San Nicolas barangay road",
+      caption: "A shaded barangay road in San Nicolas, Santa Ana.",
       imagePath: "/images/locations/santa-ana.jpg",
-      alt: "Santa Ana Parish Church in Pampanga",
+      alt: "A tree-lined barangay road in San Nicolas, Santa Ana",
       creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:01047jfSanta_Ana_Pampanga_Church_Landmarks_Roadsfvf_26.jpg",
+        "https://commons.wikimedia.org/wiki/File:1377San_Nicolas_barangay_road,_Santa_Ana,_Pampanga_50.jpg",
       license: "CC0 1.0",
       licenseUrl: CC0,
     },
@@ -326,13 +331,14 @@ export const LOCATION_EDITORIAL_CONTENT = [
     slug: "santa-rita",
     locality: "Santa Rita",
     classification: "Municipality",
-    landmark: {
-      title: "Santa Rita Parish Church",
-      caption: "The parish church in Santa Rita, Pampanga.",
+    scenery: {
+      title: "Becuran street life",
+      caption: "Residents and tricycles along a local road in Becuran, Santa Rita.",
       imagePath: "/images/locations/santa-rita.jpg",
-      alt: "Santa Rita Parish Church in Pampanga",
-      creator: "Elmer B. Domingo",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:Sta_Rita_Church_Pampanga.jpg",
+      alt: "Residents, tricycles, and shade trees along a road in Santa Rita",
+      creator: "Judgefloro",
+      sourceUrl:
+        "https://commons.wikimedia.org/wiki/File:Jf6074Santa_Rita_Becuran_Roads_Pampangafvf_05.JPG",
       license: "CC BY-SA 4.0",
       licenseUrl: CC_BY_SA_4,
     },
@@ -341,30 +347,30 @@ export const LOCATION_EDITORIAL_CONTENT = [
     slug: "santo-tomas",
     locality: "Santo Tomas",
     classification: "Municipality",
-    landmark: {
-      title: "Saint Matthias Parish Church",
-      caption: "The Saint Matthias Parish Church in Santo Tomas.",
+    scenery: {
+      title: "San Bartolome wetlands",
+      caption: "Wetland vegetation and open fields in San Bartolome, Santo Tomas.",
       imagePath: "/images/locations/santo-tomas.jpg",
-      alt: "Saint Matthias Parish Church in Santo Tomas, Pampanga",
-      creator: "Ramon FVelasquez",
+      alt: "Wetland plants and open fields in Santo Tomas, Pampanga",
+      creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:Saint_Matthias_Church_in_Santo_Tomas,_Pampanga.jpg",
-      license: "CC BY-SA 3.0",
-      licenseUrl: CC_BY_SA_3,
+        "https://commons.wikimedia.org/wiki/File:0051jfSan_Bartolome_Culcul_Santo_Tomas,_Pampanga_Roads_Farmsfvf_35.jpg",
+      license: "CC0 1.0",
+      licenseUrl: CC0,
     },
   },
   {
     slug: "sasmuan",
     locality: "Sasmuan",
     classification: "Municipality",
-    landmark: {
-      title: "Santo Rosario Parish Church",
-      caption: "The Santo Rosario Parish Church in Malusac, Sasmuan.",
+    scenery: {
+      title: "Sasmuan river district",
+      caption: "Open water in one of Sasmuan's river districts.",
       imagePath: "/images/locations/sasmuan.jpg",
-      alt: "Santo Rosario Parish Church in Malusac, Sasmuan",
+      alt: "Broad blue water bordered by low green vegetation in Sasmuan",
       creator: "Judgefloro",
       sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:500Santo_Rosario_Parish_Church_Malusac,_Sasmuan,_Pampanga_13.jpg",
+        "https://commons.wikimedia.org/wiki/File:Sasmuan_Landmarks_Pampanga_River_Districts_05.jpg",
       license: "CC0 1.0",
       licenseUrl: CC0,
     },

@@ -32,6 +32,13 @@ mobile, the same destinations move into a labelled modal drawer that traps keybo
 closes on Escape or route selection, and restores focus to the menu trigger. Reduced-motion
 preferences disable shell transitions.
 
+At widths through 1024 CSS pixels, the drawer always renders the full icon-and-label
+navigation even when the separately persisted desktop sidebar preference is collapsed.
+All permitted destinations, Create Draft, View Website, and Sign Out remain visible;
+the current route retains `aria-current="page"`. The modal backdrop uses a simple
+translucent fill without a costly blur, while the desktop sidebar keeps its independent
+compact mode above the tablet breakpoint.
+
 The shell does not replace identity or authorization. “Renzo & Criezel” and “RC Premier
 Properties Staff” are presentational labels; the current local staff display name remains
 separate. Search, Audit, and Staff links still follow existing permissions, Sign Out uses

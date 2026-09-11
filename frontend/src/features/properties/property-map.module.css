@@ -281,18 +281,18 @@
 
 .mapCanvas :global(.rc-map-locality) {
   width: 2.75rem;
-  min-height: 2.75rem;
+  height: 2.75rem;
   display: grid;
   place-items: center;
-  align-content: center;
   padding: 0.25rem;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: var(--color-ink, #3a424f);
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-gold, #b4893d);
   box-shadow: 0 0.45rem 1.2rem rgb(24 30 38 / 28%);
   color: #fff;
   line-height: 1;
   text-align: center;
+  transform: rotate(-45deg);
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -302,23 +302,13 @@
 .mapCanvas :global(.rc-map-locality strong) {
   color: #fff;
   font-size: 1.05rem;
-}
-
-.mapCanvas :global(.rc-map-locality--empty) {
-  border-color: rgb(58 66 79 / 58%);
-  background: rgb(255 255 255 / 92%);
-  color: var(--color-ink, #3a424f);
-  opacity: 0.82;
-}
-
-.mapCanvas :global(.rc-map-locality--empty strong) {
-  color: var(--color-ink, #3a424f);
+  transform: rotate(45deg);
 }
 
 @media (hover: hover) {
   .mapCanvas :global(.rc-map-locality-shell:hover .rc-map-locality) {
-    background: var(--color-gold, #b4893d);
-    transform: scale(1.06);
+    background: var(--color-ink, #3a424f);
+    transform: rotate(-45deg) scale(1.06);
   }
 
   .mapCanvas :global(.rc-map-popup a:hover) {
@@ -329,9 +319,9 @@
 }
 
 .mapCanvas :global(.rc-map-locality-shell:focus-visible .rc-map-locality) {
-  border-color: var(--color-gold, #b4893d);
+  border-color: var(--color-ink, #3a424f);
   outline: 3px solid rgb(255 255 255 / 88%);
-  transform: scale(1.06);
+  transform: rotate(-45deg) scale(1.06);
 }
 
 .mapCanvas :global(.rc-map-marker) {

@@ -122,10 +122,10 @@ function markerIcon(active: boolean): L.DivIcon {
 function localityIcon(count: number): L.DivIcon {
   return L.divIcon({
     className: "rc-map-locality-shell",
-    html: `<span class="rc-map-locality${count === 0 ? " rc-map-locality--empty" : ""}" aria-hidden="true"><strong>${count}</strong></span>`,
-    iconAnchor: [22, 22],
-    iconSize: [44, 44],
-    tooltipAnchor: [0, -21],
+    html: `<span class="rc-map-locality" aria-hidden="true"><strong>${count}</strong></span>`,
+    iconAnchor: [22, 53],
+    iconSize: [44, 54],
+    tooltipAnchor: [0, -50],
   });
 }
 
@@ -443,12 +443,13 @@ export function PropertyMapCanvas({
       const layer = boundaryLayersRef.current.get(normalized(filterValue));
       if (!(layer instanceof L.Polygon)) continue;
       const count = counts.get(normalized(filterValue)) ?? 0;
+      if (count <= 0) continue;
       const accessibleName = `${name}, ${count} ${count === 1 ? "property" : "properties"}`;
       const marker = L.marker(layer.getBounds().getCenter(), {
         icon: localityIcon(count),
         keyboard: true,
         title: accessibleName,
-        zIndexOffset: count > 0 ? 200 : 0,
+        zIndexOffset: 200,
       });
       marker.bindTooltip(accessibleName, { direction: "top" });
       marker.on("click", () => {

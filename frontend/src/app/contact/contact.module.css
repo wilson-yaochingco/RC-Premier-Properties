@@ -4,54 +4,20 @@
 }
 
 .hero {
-  min-height: clamp(19rem, 30vw, 27rem);
-  display: grid;
-  place-items: center;
-  padding: 4rem var(--container-gutter);
-  background-color: #fff;
-  background-image: repeating-linear-gradient(
-    135deg,
-    transparent 0 30px,
-    rgb(58 66 79 / 12%) 31px 32px,
-    transparent 33px 57px
-  );
-  background-size: 42px 42px;
-  text-align: center;
-}
-
-.hero > div {
-  padding: 1.5rem 2rem;
-  background: rgb(255 255 255 / 92%);
-}
-
-.hero h1 {
-  font-family: var(--font-editorial);
-  font-size: clamp(2.5rem, 4vw, 4.25rem);
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1;
-}
-
-.hero p {
-  margin-top: 0.75rem;
-  font-size: 0.92rem;
-}
-
-.imagePanel {
   position: relative;
-  min-height: clamp(28rem, 42vw, 39rem);
+  min-height: clamp(32rem, 72svh, 43rem);
   display: grid;
   isolation: isolate;
   overflow: hidden;
 }
 
-.imagePanel > img {
+.hero > img {
   z-index: -1;
   object-fit: cover;
   object-position: 50% 63%;
 }
 
-.imagePanelInner {
+.heroInner {
   width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
   display: flex;
   align-items: center;
@@ -73,7 +39,7 @@
   text-transform: uppercase;
 }
 
-.guidanceCard h2,
+.guidanceCard h1,
 .conversationIntro h2,
 .direct h2 {
   margin-top: 0.65rem;
@@ -215,7 +181,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  color: var(--brand-primary);
   font-size: 0.72rem;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .socialLinks a > span:first-child {
@@ -226,6 +196,51 @@
   border: 1px solid var(--line);
   border-radius: 50%;
   color: var(--brand-secondary-text);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.socialLinks a > span:last-child {
+  border-bottom: 1px solid transparent;
+  transition: border-color 160ms ease;
+}
+
+@media (hover: hover) {
+  .socialLinks a:hover {
+    color: var(--brand-secondary-text);
+    transform: translateY(-2px);
+  }
+
+  .socialLinks a:hover > span:first-child {
+    border-color: var(--brand-secondary);
+    background: var(--brand-secondary);
+    color: var(--brand-primary);
+    transform: scale(1.04);
+  }
+
+  .socialLinks a:hover > span:last-child {
+    border-color: currentColor;
+  }
+}
+
+.socialLinks a:focus-visible {
+  border-radius: 0.25rem;
+  color: var(--brand-secondary-text);
+  outline: 2px solid var(--brand-secondary);
+  outline-offset: 0.3rem;
+}
+
+.socialLinks a:focus-visible > span:first-child {
+  border-color: var(--brand-secondary);
+  background: var(--brand-secondary);
+  color: var(--brand-primary);
+}
+
+.socialLinks a:focus-visible > span:last-child {
+  border-color: currentColor;
 }
 
 .socialLinks svg {
@@ -262,19 +277,15 @@
 
 @media (max-width: 42rem) {
   .hero {
-    min-height: 20rem;
-  }
-
-  .imagePanel {
-    min-height: 38rem;
+    min-height: 34rem;
     align-items: end;
   }
 
-  .imagePanel > img {
+  .hero > img {
     object-position: 48% 58%;
   }
 
-  .imagePanelInner {
+  .heroInner {
     align-items: end;
     padding-bottom: 1rem;
   }
@@ -297,5 +308,17 @@
 
   .directGrid article {
     min-height: 13rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .socialLinks a,
+  .socialLinks a > span {
+    transition: none;
+  }
+
+  .socialLinks a:hover,
+  .socialLinks a:hover > span:first-child {
+    transform: none;
   }
 }

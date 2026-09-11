@@ -83,7 +83,7 @@ async function ExploreLocations() {
               <Link href={publicLocationPath(location)}>
                 <Image
                   src={
-                    getLocationEditorialContent(location)?.landmark.imagePath ??
+                    getLocationEditorialContent(location)?.scenery.imagePath ??
                     locationImage
                   }
                   alt=""
@@ -182,9 +182,6 @@ export default function HomePage() {
           >
             <FeaturedProperties />
           </Suspense>
-          <Button href="/properties" className="home-featured__action">
-            View all properties
-          </Button>
         </Container>
       </Section>
 

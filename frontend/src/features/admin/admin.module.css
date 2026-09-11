@@ -1692,15 +1692,15 @@
 }
 
 .admin[data-collapsed="true"] .sidebarIdentityCopy,
-.admin[data-collapsed="true"] .navList a > span:not(.externalMark),
-.admin[data-collapsed="true"] .navList button > span:not(.externalMark),
-.admin[data-collapsed="true"] .externalMark,
-.admin[data-collapsed="true"] .signedInAs {
+.admin[data-collapsed="true"] .desktopSidebar .navList a > span:not(.externalMark),
+.admin[data-collapsed="true"] .desktopSidebar .navList button > span:not(.externalMark),
+.admin[data-collapsed="true"] .desktopSidebar .externalMark,
+.admin[data-collapsed="true"] .desktopSidebar .signedInAs {
   display: none;
 }
 
-.admin[data-collapsed="true"] .navList a,
-.admin[data-collapsed="true"] .navList button {
+.admin[data-collapsed="true"] .desktopSidebar .navList a,
+.admin[data-collapsed="true"] .desktopSidebar .navList button {
   grid-template-columns: 1.35rem;
   justify-content: center;
   padding-inline: 0;
@@ -2109,7 +2109,6 @@
     grid-row: 1;
     border: 0;
     background: rgb(20 24 31 / 62%);
-    backdrop-filter: blur(2px);
   }
 
   .drawer {
@@ -2148,6 +2147,19 @@
 
   .drawer nav {
     margin-top: 1rem;
+  }
+
+  .drawer .navList a,
+  .drawer .navList button {
+    grid-template-columns: 1.35rem minmax(0, 1fr) auto;
+    justify-content: stretch;
+    padding-inline: 0.72rem;
+  }
+
+  .drawer .navList a > span:not(.externalMark),
+  .drawer .navList button > span:not(.externalMark),
+  .drawer .externalMark {
+    display: block;
   }
 
   .drawerSession {
