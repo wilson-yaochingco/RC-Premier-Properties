@@ -294,3 +294,19 @@ Physical low-end phones, Philippine mobile networks, Safari/iOS, Android browser
 Firefox/WebKit, production inventory with full galleries, image fidelity on real media,
 live map tiles, provider CDN behavior, and production Mongo `explain` evidence remain
 external. These are not reasons to weaken or replace the verified Level 10 architecture.
+
+## Final UI optimization constraints
+
+The final header interaction adds one passive scroll listener and coalesces reads through
+`requestAnimationFrame`; React state changes only when the thresholded visible state
+actually changes. Focus, mobile-menu, and pointer-interaction state is kept in refs so
+ordinary scroll pixels do not cause component renders.
+
+The About route remains the only route that initializes its background video. Playback
+uses one guarded request, a metadata-gated one-time seek, a poster-first render, and no
+new player dependency. The Locations illustration is no longer preloaded and remains lazy,
+so a CSS-hidden phone presentation does not compete with initial content. The Home hero
+remains the sole prioritized homepage photograph. Existing click-to-load featured videos,
+deferred Leaflet/map initialization, memoized map calculations, public-coordinate privacy,
+and bounded admin data reads are unchanged; no speculative server, cache, database, or
+admin refactor was introduced for visual polish.

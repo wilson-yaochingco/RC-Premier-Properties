@@ -167,6 +167,33 @@ regional photograph is replaced with a non-interactive SVG projection of the sam
 authorized RC Premier photographs in a dependency-free stack with named controls,
 left/right keyboard support, swipe gestures, no autoplay and reduced-motion styling.
 
+## Final public geometry and hero behavior
+
+The public shell uses a compact 64-pixel header and a proportional 96-pixel-wide logo.
+The header stays visible at the top, after upward travel, whenever focus is inside it, and
+while the mobile menu or a pointer interaction is active. Meaningful downward travel hides
+it with a transform-only transition driven by one passive, animation-frame-bounded scroll
+listener. Reduced-motion users receive the same state changes without a visible slide.
+
+Desktop Home and About heroes intentionally occupy the dynamic viewport remaining below
+the header, so the first composition ends at the viewport edge without a white strip. The
+Home search stays centered in both the hero and its content column. At phone widths, the
+Home photograph occupies a shallower wide frame above the search content, exposing more
+of the authorized scene instead of enlarging a landscape source to fill a tall portrait
+box.
+
+Public cards, panels, search surfaces, form fields, map previews, and modal surfaces use
+square or effectively square geometry. Circular shapes remain only where they communicate
+an icon control, map marker, radio/checkbox state, or another established functional
+meaning. The footer retains `#3a424f` while using tighter invitation, column, and closing
+spacing.
+
+The About video starts only after the browser motion preference is known. Its muted state
+is applied before the single guarded `play()` request, metadata readiness gates the
+one-time four-second seek, and rejected autoplay promises are handled without console
+noise. Native looping is preserved without repeatedly seeking during normal playback;
+reduced motion keeps the authorized poster in the same responsive hero composition.
+
 ## Responsive page blueprints
 
 These blueprints are the design contract implemented by the pages. The application

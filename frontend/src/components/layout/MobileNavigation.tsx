@@ -11,9 +11,14 @@ interface NavigationItem {
 interface MobileNavigationProps {
   items: readonly NavigationItem[];
   currentPath: string;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export function MobileNavigation({ items, currentPath }: MobileNavigationProps) {
+export function MobileNavigation({
+  items,
+  currentPath,
+  onOpenChange,
+}: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -33,8 +38,13 @@ export function MobileNavigation({ items, currentPath }: MobileNavigationProps) 
     firstLinkRef.current?.focus();
   }, [isOpen]);
 
+  function updateMenu(isOpenNext: boolean) {
+    setIsOpen(isOpenNext);
+    onOpenChange?.(isOpenNext);
+  }
+
   function closeMenu() {
-    setIsOpen(false);
+    updateMenu(false);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -71,7 +81,7 @@ export function MobileNavigation({ items, currentPath }: MobileNavigationProps) 
         className="mobile-navigation__trigger"
         aria-expanded={isOpen}
         aria-controls="mobile-navigation-panel"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => updateMenu(!isOpen)}
       >
         <span>{isOpen ? "Close" : "Menu"}</span>
         <span className="menu-icon" aria-hidden="true">

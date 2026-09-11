@@ -12,7 +12,7 @@ export function BrandLogo({ footer = false }: { footer?: boolean }) {
       <Image
         src={logo}
         alt="RC Premier Properties"
-        sizes={footer ? "180px" : "112px"}
+        sizes={footer ? "144px" : "96px"}
         loading="lazy"
       />
     </Link>

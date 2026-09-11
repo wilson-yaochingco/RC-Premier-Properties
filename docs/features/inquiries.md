@@ -92,6 +92,20 @@ a duplicate inquiry. Validation failures clear the key so corrected input can be
 submitted normally; there is no heuristic matching that might discard a legitimate
 second inquiry from the same person.
 
+## Request a Tour presentation
+
+Request a Tour remains the same two-step inquiry workflow and retains property context,
+date, Philippine time, name, email, phone, consent, optional notes, validation, focus
+trapping, Escape, and opener-focus restoration. The dialog uses a wider desktop surface,
+compact media and date controls, paired schedule columns where space permits, and a
+three-column phone date row. At normal supported desktop and phone viewport heights, each
+step fits without a dedicated internal scrollbar.
+
+The dialog keeps bounded vertical overflow as an accessibility fallback. Very short
+viewports, 200% text, browser zoom, and on-screen keyboards may scroll inside the native
+dialog so no required field or action is clipped merely to preserve the normal-height
+composition.
+
 ## Persistence and privacy boundary
 
 Valid submissions are written through the Mongoose inquiry service with a consent

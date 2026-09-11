@@ -156,6 +156,20 @@ links remain useful in server-rendered HTML. Interactive filters, inquiry submis
 map controls, dialogs and protected admin editing require JavaScript and expose loading
 or error boundaries when enhancement fails.
 
+The final public header direction threshold ignores tiny scroll changes. Focus capture,
+an open mobile menu, and an active pointer interaction force it visible; keyboard users
+can therefore enter the header even when it was previously translated out of view. The
+About background video remains decorative and unfocusable, is muted before playback, and
+is removed in favor of its poster under reduced motion. Contact social links combine
+recognizable inline marks with visible platform names and explicit new-tab accessible
+names.
+
+The targeted final matrix covers 320, 390, 768, 1024, 1280, 1440, and 1920 CSS pixels for
+the viewport-derived Home/About heroes, mobile Home crop, Locations illustration,
+compact footer, tour dialog, public overflow, and protected-admin layout. At 200% text,
+the tour dialog is permitted to scroll so every required field and action remains
+reachable.
+
 ## Browser and manual acceptance boundary
 
 Local Windows Playwright uses installed Microsoft Edge. The CI configuration uses system

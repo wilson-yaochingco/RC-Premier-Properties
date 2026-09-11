@@ -1482,6 +1482,8 @@
 
 /* Part 4: public-brand language adapted for the denser staff workspace. */
 .admin {
+  --radius-card: 0.4rem;
+
   width: 100%;
   max-width: 100vw;
   min-width: 0;

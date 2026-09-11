@@ -145,14 +145,16 @@ export default function HomePage() {
       ) : null}
 
       <section className="home-hero" aria-labelledby="home-heading">
-        <Image
-          src={heroExterior}
-          alt="Modern two-storey home at dusk with mature trees and a landscaped frontage"
-          fill
-          preload
-          sizes="100vw"
-          className="home-hero__image"
-        />
+        <div className="home-hero__backdrop">
+          <Image
+            src={heroExterior}
+            alt="Modern two-storey home at dusk with mature trees and a landscaped frontage"
+            fill
+            preload
+            sizes="100vw"
+            className="home-hero__image"
+          />
+        </div>
         <div className="home-hero__shade" aria-hidden="true" />
         <Container className="home-hero__inner">
           <div className="home-hero__content">

@@ -32,7 +32,7 @@
 
 .introGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: clamp(1rem, 2vw, 2rem);
 }
@@ -44,7 +44,7 @@
 }
 
 .introStatement {
-  min-height: 18rem;
+  min-height: clamp(22rem, 31vw, 28rem);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -73,7 +73,7 @@
 .introMedia,
 .detailMedia {
   position: relative;
-  min-height: 18rem;
+  min-height: clamp(22rem, 31vw, 28rem);
   overflow: hidden;
   background: var(--surface-warm);
 }
@@ -88,7 +88,7 @@
 
 .introMedia img {
   object-fit: contain;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(0.25rem, 1vw, 0.75rem);
 }
 
 .locationsSection {
@@ -549,6 +549,11 @@
     min-height: clamp(24rem, 65vw, 38rem);
   }
 
+  .introStatement,
+  .introMedia {
+    min-height: clamp(20rem, 48vw, 28rem);
+  }
+
   .inventoryMap {
     position: static;
   }
@@ -568,6 +573,10 @@
 }
 
 @media (max-width: 47.99rem) {
+  .introMedia {
+    display: none;
+  }
+
   .sectionHeading,
   .inventoryHeader {
     display: grid;
@@ -633,8 +642,7 @@
     grid-column: auto;
   }
 
-  .introStatement,
-  .introMedia {
+  .introStatement {
     min-height: 21rem;
   }
 

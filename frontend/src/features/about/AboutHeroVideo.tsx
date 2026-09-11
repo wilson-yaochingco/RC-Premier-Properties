@@ -1,33 +1,66 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import styles from "./about-experience.module.css";
 
 const START_TIME_SECONDS = 4;
 
-function seekToOpening(video: HTMLVideoElement) {
-  if (Number.isFinite(video.duration) && video.duration > START_TIME_SECONDS + 0.5) {
+function seekToOpening(video: HTMLVideoElement, hasSeeked: MutableRefObject<boolean>) {
+  if (
+    !hasSeeked.current &&
+    video.readyState >= HTMLMediaElement.HAVE_METADATA &&
+    Number.isFinite(video.duration) &&
+    video.duration > START_TIME_SECONDS + 0.5
+  ) {
     video.currentTime = START_TIME_SECONDS;
+    hasSeeked.current = true;
   }
 }
 
 export function AboutHeroVideo({ poster }: { poster: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const reducedMotionRef = useRef(true);
+  const hasSeekedRef = useRef(false);
+  const playRequestedRef = useRef(false);
+  const previousTimeRef = useRef(START_TIME_SECONDS);
+  const [reducedMotion, setReducedMotion] = useState(true);
+
+  const startPlayback = useCallback((video: HTMLVideoElement) => {
+    video.defaultMuted = true;
+    video.muted = true;
+    if (reducedMotionRef.current || playRequestedRef.current || !video.paused) return;
+
+    playRequestedRef.current = true;
+    void video.play().catch(() => {
+      playRequestedRef.current = false;
+    });
+  }, []);
 
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const syncPreference = () => {
+      const video = videoRef.current;
+      reducedMotionRef.current = preference.matches;
       setReducedMotion(preference.matches);
-      if (preference.matches) videoRef.current?.pause();
-      else void videoRef.current?.play().catch(() => undefined);
+      if (!video) return;
+
+      video.defaultMuted = true;
+      video.muted = true;
+      if (preference.matches) {
+        playRequestedRef.current = false;
+        video.pause();
+        return;
+      }
+
+      seekToOpening(video, hasSeekedRef);
+      startPlayback(video);
     };
 
     syncPreference();
     preference.addEventListener("change", syncPreference);
     return () => preference.removeEventListener("change", syncPreference);
-  }, []);
+  }, [startPlayback]);
 
   return (
     <div className={styles.videoFrame} aria-hidden="true">
@@ -51,15 +84,27 @@ export function AboutHeroVideo({ poster }: { poster: string }) {
         preload="metadata"
         tabIndex={-1}
         data-start-time={START_TIME_SECONDS}
-        onLoadedMetadata={(event) => seekToOpening(event.currentTarget)}
+        data-reduced-motion={reducedMotion}
+        onLoadedMetadata={(event) => {
+          seekToOpening(event.currentTarget, hasSeekedRef);
+          if (!reducedMotionRef.current) startPlayback(event.currentTarget);
+        }}
         onCanPlay={(event) => {
-          seekToOpening(event.currentTarget);
-          if (!reducedMotion) void event.currentTarget.play().catch(() => undefined);
+          if (!reducedMotionRef.current) startPlayback(event.currentTarget);
         }}
         onTimeUpdate={(event) => {
-          if (event.currentTarget.currentTime < START_TIME_SECONDS - 0.5) {
-            seekToOpening(event.currentTarget);
+          const video = event.currentTarget;
+          const currentTime = video.currentTime;
+          if (
+            hasSeekedRef.current &&
+            previousTimeRef.current > START_TIME_SECONDS + 1 &&
+            currentTime < 1
+          ) {
+            video.currentTime = START_TIME_SECONDS;
+            previousTimeRef.current = START_TIME_SECONDS;
+            return;
           }
+          previousTimeRef.current = currentTime;
         }}
       />
     </div>

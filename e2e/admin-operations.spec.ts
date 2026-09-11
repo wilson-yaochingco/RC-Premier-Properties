@@ -302,6 +302,56 @@ test("dashboard and calendar remain useful and reflow at 320px", async ({ page }
   await expectNoDocumentOverflow(page);
 });
 
+test("admin routes remain contained across the final responsive matrix", async ({
+  page,
+}) => {
+  await mockOperations(page);
+  const routes = [
+    ["/admin", "Dashboard"],
+    ["/admin/properties", "Properties"],
+    ["/admin/properties/new", "Create a draft property"],
+    ["/admin/inquiries", "Inquiries"],
+    ["/admin/viewings", "Viewings"],
+    ["/admin/search", "Search"],
+    ["/admin/audit", "Audit events"],
+    ["/admin/staff", "Staff identities"],
+  ] as const;
+
+  for (const width of [320, 390, 768, 1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    for (const [path, heading] of routes) {
+      await page.goto(path);
+      await expect(
+        page.getByRole("heading", { level: 1, name: heading }),
+      ).toBeVisible();
+      const layout = await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+      }));
+      expect(
+        layout.documentWidth,
+        `${path} overflow at ${width}px`,
+      ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const [path, heading] of routes) {
+    await page.goto(path);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+    const layout = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+    }));
+    expect(layout.documentWidth, `${path} overflow at 200% text`).toBeLessThanOrEqual(
+      layout.viewportWidth + 1,
+    );
+  }
+});
+
 test("audit and staff surfaces expose only their bounded operational views", async ({
   page,
 }) => {

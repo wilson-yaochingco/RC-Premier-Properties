@@ -1,11 +1,12 @@
 .dialog {
-  width: min(32.625rem, calc(100% - 2rem));
-  max-height: calc(100dvh - 2rem);
+  width: min(48rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
   margin: auto;
   padding: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 0;
-  border-radius: 0.35rem;
+  border-radius: 0;
   background: #fff;
   color: var(--brand-primary);
   box-shadow: 0 1.5rem 5rem rgb(12 15 20 / 28%);
@@ -17,7 +18,7 @@
 }
 
 .shell {
-  padding: 2.2rem 2.4rem 2.5rem;
+  padding: 1.5rem 1.75rem 1.75rem;
 }
 
 .header {
@@ -25,7 +26,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 1.45rem;
+  padding-bottom: 0.9rem;
   border-bottom: 1px solid #d4d6d9;
 }
 
@@ -54,25 +55,25 @@
 
 .scheduleStep {
   display: grid;
-  gap: 1.75rem;
-  padding-top: 1.25rem;
+  gap: 1rem;
+  padding-top: 1rem;
 }
 
 .propertySummary {
   display: grid;
-  grid-template-columns: 12.5rem minmax(0, 1fr);
-  gap: 1.8rem;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: center;
-  padding-bottom: 1.2rem;
+  padding-bottom: 0.9rem;
   border-bottom: 1px solid #d4d6d9;
 }
 
 .propertyMedia {
   position: relative;
-  min-height: 9.4rem;
+  min-height: 7.25rem;
   margin: 0;
   overflow: hidden;
-  border-radius: 0.35rem;
+  border-radius: 0;
   background: var(--surface-soft);
 }
 
@@ -81,7 +82,7 @@
 }
 
 .propertyMedia > :global(.property-media) {
-  height: 9.4rem;
+  height: 7.25rem;
 }
 
 .propertyTitle {
@@ -118,15 +119,15 @@
 .field input,
 .field textarea {
   width: 100%;
-  min-height: 3rem;
-  padding: 0.72rem 0.9rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid #b8bcc1;
-  border-radius: 0.3rem;
+  border-radius: 0;
   background: #fff;
 }
 
 .field textarea {
-  min-height: 6.5rem;
+  min-height: 4.5rem;
   resize: vertical;
 }
 
@@ -147,13 +148,15 @@
 .scheduleFields {
   min-width: 0;
   display: grid;
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(12rem, 0.8fr);
+  gap: 0.55rem 1rem;
   padding: 0;
   border: 0;
 }
 
 .scheduleFields legend {
-  margin-bottom: 1.45rem;
+  grid-column: 1 / -1;
+  margin-bottom: 0.65rem;
   font-size: 1.42rem;
   font-weight: 650;
   letter-spacing: -0.025em;
@@ -163,7 +166,8 @@
 .datePicker {
   display: grid;
   grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem;
-  gap: 0.45rem;
+  grid-row: span 2;
+  gap: 0.35rem;
   align-items: center;
 }
 
@@ -171,7 +175,7 @@
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.4rem;
 }
 
 .dateNavigation {
@@ -204,13 +208,13 @@
 }
 
 .dateCard > span {
-  min-height: 7rem;
+  min-height: 5.5rem;
   display: grid;
   place-content: center;
   gap: 0.2rem;
   padding: 0.7rem 0.35rem;
   border: 1px solid #c9ccd0;
-  border-radius: 0.65rem;
+  border-radius: 0;
   text-align: center;
   cursor: pointer;
 }
@@ -236,7 +240,7 @@
 }
 
 .timeField {
-  margin-top: 0.1rem;
+  align-self: end;
 }
 
 .timeField > span {
@@ -258,13 +262,13 @@
 
 .primaryAction {
   width: 100%;
-  min-height: 3.2rem;
+  min-height: 3rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.75rem 1.25rem;
   border: 1px solid var(--brand-secondary);
-  border-radius: 999px;
+  border-radius: 0;
   background: #fff;
   color: var(--brand-primary);
   font-weight: 650;
@@ -288,15 +292,15 @@
 .detailsStep,
 .successStep {
   display: grid;
-  gap: 1.25rem;
-  padding-top: 1.5rem;
+  gap: 0.9rem;
+  padding-top: 1rem;
 }
 
 .detailsIntro h3,
 .successStep h3 {
   margin-top: 0.35rem;
   font-family: var(--font-editorial);
-  font-size: clamp(1.85rem, 5vw, 2.55rem);
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1;
@@ -304,7 +308,7 @@
 
 .detailsIntro > p:last-child,
 .successStep > p:not(.stepLabel, .reference) {
-  margin-top: 0.75rem;
+  margin-top: 0.45rem;
   color: #666b72;
   font-size: 0.86rem;
   line-height: 1.55;
@@ -317,7 +321,7 @@
 .fieldGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.65rem 0.8rem;
 }
 
 .field > span {
@@ -388,10 +392,10 @@
 }
 
 .backAction {
-  min-height: 3.2rem;
+  min-height: 3rem;
   padding: 0.75rem 1rem;
   border: 1px solid #b8bcc1;
-  border-radius: 999px;
+  border-radius: 0;
   background: #fff;
   font-weight: 650;
 }
@@ -413,63 +417,50 @@
 
 @media (max-width: 40rem) {
   .dialog {
-    width: calc(100% - 1rem);
-    max-height: calc(100dvh - 1rem);
+    width: calc(100% - 0.75rem);
+    max-height: calc(100dvh - 0.75rem);
   }
 
   .shell {
-    padding: 1.25rem;
+    padding: 1rem;
   }
 
   .propertySummary {
-    grid-template-columns: 7.5rem minmax(0, 1fr);
-    gap: 1rem;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 0.8rem;
   }
 
   .propertyMedia,
   .propertyMedia > :global(.property-media) {
-    min-height: 7.2rem;
-    height: 7.2rem;
+    min-height: 6.5rem;
+    height: 6.5rem;
   }
 
   .propertyTitle {
     font-size: 1.05rem;
   }
 
-  .dateCards,
+  .scheduleFields,
   .fieldGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .datePicker {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-row: auto;
   }
 
   .dateCards {
-    grid-column: 1 / -1;
-  }
-
-  .dateNavigation {
-    width: 100%;
-  }
-
-  .dateCards {
-    gap: 0.45rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
   }
 
   .dateCard > span {
-    min-height: 3.6rem;
-    grid-template-columns: auto auto;
-    gap: 0.6rem;
-    align-items: center;
+    min-height: 4.5rem;
+    gap: 0.1rem;
   }
 
   .wide {
     grid-column: auto;
-  }
-
-  .formActions {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -480,8 +471,22 @@
 
   .propertyMedia,
   .propertyMedia > :global(.property-media) {
-    min-height: 8rem;
-    height: 8rem;
+    min-height: 6.5rem;
+    height: 6.5rem;
+  }
+
+  .datePicker {
+    grid-template-columns: 1.75rem minmax(0, 1fr) 1.75rem;
+    gap: 0.2rem;
+  }
+
+  .dateNavigation {
+    width: 1.75rem;
+  }
+
+  .dateCard strong,
+  .dateCard small {
+    font-size: 0.72rem;
   }
 }
 

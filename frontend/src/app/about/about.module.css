@@ -5,7 +5,8 @@
 
 .hero {
   position: relative;
-  min-height: clamp(29rem, 45vw, 40rem);
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
   display: grid;
   place-items: center;
   isolation: isolate;
@@ -18,8 +19,8 @@
   z-index: -1;
   inset: 0;
   background:
-    linear-gradient(90deg, rgb(58 66 79 / 61%), rgb(58 66 79 / 35%)),
-    linear-gradient(rgb(255 255 255 / 10%), rgb(255 255 255 / 4%));
+    linear-gradient(90deg, rgb(58 66 79 / 58%), rgb(58 66 79 / 30%)),
+    linear-gradient(rgb(255 255 255 / 15%), rgb(255 255 255 / 7%));
 }
 
 .heroContent {
@@ -318,7 +319,8 @@
 
 @media (max-width: 42rem) {
   .hero {
-    min-height: 34rem;
+    min-height: clamp(32rem, calc(100svh - var(--header-height)), 42rem);
+    min-height: clamp(32rem, calc(100dvh - var(--header-height)), 42rem);
   }
 
   .purposeGrid,

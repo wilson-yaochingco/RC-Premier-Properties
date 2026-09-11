@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import contactImage from "@/assets/site/contact.png";
 import { Container } from "@/components/ui/Container";
+import { SocialMediaIcon } from "@/features/contact/SocialMediaIcon";
 import { InquiryForm } from "@/features/inquiries/InquiryForm";
 import {
   OFFICIAL_EMAIL,
@@ -115,7 +116,9 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
                       rel="noopener noreferrer"
                       aria-label={`${link.label} — RC Premier Properties (opens in a new tab)`}
                     >
-                      <span aria-hidden="true">{link.label.slice(0, 2)}</span>
+                      <span aria-hidden="true">
+                        <SocialMediaIcon platform={link.label} />
+                      </span>
                       <span>{link.label}</span>
                     </a>
                   </li>

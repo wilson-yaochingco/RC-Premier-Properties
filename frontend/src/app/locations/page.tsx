@@ -55,8 +55,7 @@ export default async function LocationsPage() {
                 src={locationsDoodle}
                 alt="Line drawing of homes, trees, a bicycle, and neighborhood streets"
                 fill
-                preload
-                sizes="(max-width: 1023px) 100vw, 50vw"
+                sizes="(max-width: 767px) 1px, (max-width: 1023px) 100vw, 50vw"
               />
             </figure>
           </div>

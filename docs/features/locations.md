@@ -1,8 +1,8 @@
 # Public Locations
 
-Status: inventory-backed index/detail routes and the Level 18 landmark presentation are
-implemented. Real production property inventory remains external. Last reviewed
-2026-09-11.
+Status: inventory-backed index/detail routes and the final responsive landmark
+presentation are implemented. Real production property inventory remains external. Last
+reviewed 2026-09-12.
 
 ## Routes and source of truth
 
@@ -17,10 +17,13 @@ returns the public not-found surface.
 
 ## Discovery behavior
 
-The index uses the supplied line drawing beside its introduction. Every inventory-backed
-card uses the locality's documented reusable photograph with a brand-color hover/focus
-overlay; required names and counts are always visible. The homepage uses the same content
-lookup for up to six real facet locations.
+The index uses the supplied line drawing beside its introduction on tablet and desktop.
+Its desktop panel is sized to carry approximately the same visual height and weight as the
+text panel. Phone layouts omit the drawing and its grid slot entirely, leaving the text
+panel to consume the available width. Every inventory-backed card uses the locality's
+documented reusable photograph with a brand-color hover/focus overlay; required names and
+counts are always visible. The homepage uses the same content lookup for up to six real
+facet locations.
 
 Every supported detail route adds one reusable editorial landmark block below its lead
 composition. A typed slug-to-content structure owns factual title/caption, local path,
