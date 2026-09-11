@@ -158,7 +158,7 @@ Accepts `CreateInquiryRequest` as JSON. The request must use an
 | ---------------- | ---------------------------------------------------------------------------------------------- |
 | `name`           | required, 2–100 characters                                                                     |
 | `email`          | required valid address, up to 254 characters; normalized to lowercase                          |
-| `phone`          | optional, up to 30 characters, validated as a phone-like value                                 |
+| `phone`          | required for viewing; otherwise optional, up to 30 characters, validated as a phone-like value |
 | `inquiryType`    | required: `general`, `property`, `viewing` or `selling`                                        |
 | `source`         | required: `contact-page`, `property-detail`, `viewing-page` or `sell-page`                     |
 | `propertyId`     | optional; if supplied it must exist; viewing also requires a published, not-sold sale property |

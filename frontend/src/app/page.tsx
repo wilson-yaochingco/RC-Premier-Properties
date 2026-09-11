@@ -13,6 +13,7 @@ import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { FeaturedVideos } from "@/features/home/FeaturedVideos";
 import { HeroPropertySearch } from "@/features/home/HeroPropertySearch";
+import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { PropertyCard } from "@/features/properties/PropertyCard";
 import {
   getFeaturedProperties,
@@ -173,9 +174,7 @@ export default function HomePage() {
       <aside className="home-viewing-callout" aria-label="Viewing requests">
         <Container className="home-container home-viewing-callout__inner">
           <p>Found a property you want to see?</p>
-          <Button href="/book-viewing" variant="secondary">
-            Request a viewing
-          </Button>
+          <RequestTourButton variant="secondary" />
         </Container>
       </aside>
 

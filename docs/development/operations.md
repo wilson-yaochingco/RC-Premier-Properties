@@ -103,7 +103,7 @@ Recommended target, not configured policy:
   location, persistent advertising identifiers, and customer contact data are out.
 
 Provider status links, alert channels, on-call contacts, and escalation timeouts remain
-**BLOCKED / EXTERNAL**. `rcpremierph@gmail.com` is a business inquiry destination and is
+**BLOCKED / EXTERNAL**. `rcpropertiesss@gmail.com` is a business inquiry destination and is
 not an incident-alert inbox unless the business explicitly approves it.
 
 ## Severity and incident workflow

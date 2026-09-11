@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { BrandLogo } from "./BrandLogo";
 import { MobileNavigation } from "./MobileNavigation";
 
@@ -44,9 +44,7 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <Button href="/book-viewing" variant="outline" className="site-header__cta">
-          Book a Viewing
-        </Button>
+        <RequestTourButton variant="outline" className="site-header__cta" />
 
         <MobileNavigation items={navigation} currentPath={pathname} />
       </Container>

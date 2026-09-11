@@ -46,7 +46,7 @@ test("public pages render canonical and social metadata", async ({ page }) => {
     ["/properties", "Properties for Sale in Pampanga | RC Premier Properties"],
     ["/about", "About | RC Premier Properties"],
     ["/contact", "Contact | RC Premier Properties"],
-    ["/book-viewing", "Book a Property Viewing | RC Premier Properties"],
+    ["/book-viewing", "Request a Property Tour | RC Premier Properties"],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);
@@ -104,7 +104,7 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
     .textContent();
   expect(siteJsonLd).toContain('"@type":"Organization"');
   expect(siteJsonLd).toContain('"@type":"WebSite"');
-  expect(siteJsonLd).toContain("rcpremierph@gmail.com");
+  expect(siteJsonLd).toContain("rcpropertiesss@gmail.com");
   expect(siteJsonLd).toContain("+63 918 429 1873");
   expect(siteJsonLd).toContain(FACEBOOK_URL);
   expect(siteJsonLd).not.toContain("streetAddress");

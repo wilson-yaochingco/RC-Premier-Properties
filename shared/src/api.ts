@@ -613,6 +613,7 @@ export type AdminInquiryQueue = (typeof ADMIN_INQUIRY_QUEUES)[number];
 export interface CreateInquiryRequest {
   name: string;
   email: string;
+  /** Required for viewing requests; optional for every other inquiry type. */
   phone?: string;
   inquiryType: InquiryType;
   source: InquirySource;

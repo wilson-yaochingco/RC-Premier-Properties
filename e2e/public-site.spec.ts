@@ -72,7 +72,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   await primaryNavigation.getByRole("link", { name: "About" }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: /Property decisions/ }),
+    page.getByRole("heading", { level: 1, name: /clear purpose/ }),
   ).toBeVisible();
   expect(browserErrors).toEqual([]);
 });
@@ -305,11 +305,56 @@ test("property detail renders public data and carries its ID into inquiry links"
   await expect(
     page.getByRole("complementary", { name: "Property inquiry" }),
   ).toBeVisible();
+  const tourTrigger = page
+    .getByRole("complementary", { name: "Property inquiry" })
+    .getByRole("button", { name: "Request a Tour" });
+  await expect(tourTrigger).toBeVisible();
+  await tourTrigger.click();
+  const tourDialog = page.getByRole("dialog", { name: "Request a Tour" });
+  await expect(tourDialog).toBeVisible();
+  await expect(tourDialog.getByText("Clark Garden Residence")).toBeVisible();
+  await expect(tourDialog.locator('input[name="requestedDate"]:checked')).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
   await expect(
-    page
-      .getByRole("complementary", { name: "Property inquiry" })
-      .getByRole("link", { name: "Book a Viewing" }),
-  ).toHaveAttribute("href", "/book-viewing?propertyId=RCPP-E2E-001");
+    tourDialog.getByRole("button", { name: "Close Request a Tour" }),
+  ).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(tourDialog.getByRole("button", { name: "Next" })).toBeFocused();
+  await tourDialog.getByRole("button", { name: "Next" }).click();
+  const fullName = tourDialog.getByLabel("Full name");
+  const phone = tourDialog.getByLabel("Phone number");
+  const email = tourDialog.getByLabel("Email");
+  await expect(fullName).toHaveAttribute("required", "");
+  await expect(phone).toHaveAttribute("required", "");
+  await expect(email).toHaveAttribute("required", "");
+  let inquiryRequests = 0;
+  page.on("request", (request) => {
+    if (
+      request.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
+      request.method() === "POST"
+    ) {
+      inquiryRequests += 1;
+    }
+  });
+  await tourDialog.getByRole("button", { name: "Submit request" }).click();
+  expect(await fullName.evaluate((input) => input.validity.valueMissing)).toBe(true);
+  await fullName.fill("   ");
+  await phone.fill("+63 917 555 0110");
+  await email.fill("viewer@example.test");
+  await tourDialog.getByRole("checkbox").check();
+  await tourDialog.getByRole("button", { name: "Submit request" }).click();
+  await expect(tourDialog.getByRole("alert")).toContainText("full name");
+  await expect(tourDialog.getByRole("alert")).toBeFocused();
+  expect(inquiryRequests).toBe(0);
+  await fullName.fill("Playwright Viewer");
+  await phone.fill("not-a-phone");
+  await tourDialog.getByRole("button", { name: "Submit request" }).click();
+  await expect(tourDialog.getByRole("alert")).toContainText("valid phone number");
+  await expect(tourDialog.getByRole("alert")).toBeFocused();
+  expect(inquiryRequests).toBe(0);
+  await page.keyboard.press("Escape");
+  await expect(tourDialog).toHaveCount(0);
+  await expect(tourTrigger).toBeFocused();
   await expect(page.getByRole("link", { name: "Send an inquiry" })).toHaveAttribute(
     "href",
     "/contact?propertyId=RCPP-E2E-001",
@@ -519,13 +564,12 @@ test("contact form sends its typed payload and displays API success feedback", a
 
   const main = page.locator("main#main-content");
   await expect(
-    main.getByRole("link", { name: "rcpremierph@gmail.com" }),
-  ).toHaveAttribute("href", "mailto:rcpremierph@gmail.com");
-  await expect(main.getByRole("link", { name: "+63 918 429 1873" })).toHaveAttribute(
-    "href",
-    "tel:+639184291873",
-  );
-  await expect(main.getByRole("link", { name: "Facebook" })).toHaveAttribute(
+    main.getByRole("link", { name: "rcpropertiesss@gmail.com" }).first(),
+  ).toHaveAttribute("href", "mailto:rcpropertiesss@gmail.com");
+  await expect(
+    main.getByRole("link", { name: "+63 918 429 1873" }).first(),
+  ).toHaveAttribute("href", "tel:+639184291873");
+  await expect(main.getByRole("link", { name: /Facebook/ })).toHaveAttribute(
     "href",
     "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/",
   );
@@ -564,6 +608,39 @@ test("contact form sends its typed payload and displays API success feedback", a
   await expect(page.getByRole("status")).toContainText("Inquiry received.");
   await expect(page.getByRole("status")).toContainText("E2E-INQUIRY-001");
   expect(browserErrors).toEqual([]);
+});
+
+test("Part 3 editorial pages keep factual RC Premier content and current channels", async ({
+  page,
+}) => {
+  await page.goto("/about");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /clear purpose/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/offers houses and residential properties/),
+  ).toBeVisible();
+
+  await page.goto("/sell");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Your property. Your next move." }),
+  ).toBeVisible();
+  await expect(page.getByText(/not a valuation, listing agreement/)).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Seller inquiry", exact: true }),
+  ).toBeVisible();
+
+  await page.goto("/contact");
+  await expect(
+    page.getByRole("heading", { name: "Start a Conversation." }),
+  ).toBeVisible();
+  for (const channel of ["Facebook", "Instagram", "YouTube", "TikTok"]) {
+    await expect(
+      page
+        .locator("main#main-content")
+        .getByRole("link", { name: new RegExp(channel) }),
+    ).toBeVisible();
+  }
 });
 
 test("server validation is focused, linked, and preserved beside each inquiry field", async ({
@@ -627,20 +704,26 @@ test("an unrelated admin-prefixed 404 retains the public chrome", async ({ page 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("viewing form submits a structured unconfirmed appointment request", async ({
+test("Request a Tour submits one structured unconfirmed viewing request", async ({
   page,
 }) => {
   await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
 
-  await expect(
-    page.getByText("This is a request, not an instant booking."),
-  ).toBeVisible();
-  await expect(page.getByLabel(/^Property ID/)).toHaveValue("RCPP-E2E-001");
-  await page.getByLabel("Name").fill("Playwright Viewer");
-  await page.getByLabel("Email").fill("viewer@example.test");
-  await page.getByLabel("Requested date").fill("2030-09-20");
-  await page.getByLabel("Requested time").fill("10:30");
-  await page.getByRole("checkbox").check();
+  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Premier Property #RCPP-E2E-001")).toBeVisible();
+  const selectedDate = dialog.locator('input[name="requestedDate"]:checked');
+  await expect(selectedDate).toHaveCount(1);
+  const firstDatePage = await selectedDate.inputValue();
+  await dialog.getByRole("button", { name: "Later dates" }).click();
+  await expect(selectedDate).not.toHaveValue(firstDatePage);
+  const requestedDate = await selectedDate.inputValue();
+  await expect(dialog.getByLabel("Preferred time")).toHaveValue("11:30");
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByLabel("Full name").fill("Playwright Viewer");
+  await dialog.getByLabel("Phone number").fill("+63 917 555 0110");
+  await dialog.getByLabel("Email").fill("viewer@example.test");
+  await dialog.getByRole("checkbox").check();
 
   const [apiResponse] = await Promise.all([
     page.waitForResponse(
@@ -648,7 +731,7 @@ test("viewing form submits a structured unconfirmed appointment request", async 
         response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
         response.request().method() === "POST",
     ),
-    page.getByRole("button", { name: "Request viewing" }).click(),
+    dialog.getByRole("button", { name: "Submit request" }).click(),
   ]);
 
   expect(apiResponse.status()).toBe(201);
@@ -656,12 +739,32 @@ test("viewing form submits a structured unconfirmed appointment request", async 
     inquiryType: "viewing",
     source: "viewing-page",
     propertyId: "RCPP-E2E-001",
-    requestedDate: "2030-09-20",
-    requestedTime: "10:30",
+    phone: "+63 917 555 0110",
+    requestedDate,
+    requestedTime: "11:30",
     privacyConsent: true,
   });
-  await expect(page.getByRole("status")).toContainText("Viewing request received.");
-  await expect(page.getByRole("status")).toContainText("Staff must confirm");
+  await expect(dialog.getByRole("status")).toContainText("Request submitted");
+  await expect(dialog.getByRole("status")).toContainText("Staff must confirm");
+  await expect(dialog.getByRole("status")).toContainText("not confirmed");
+});
+
+test("the global Request a Tour entry requires a property before continuing", async ({
+  page,
+}) => {
+  await page.goto("/about");
+  const trigger = page.getByRole("banner").getByRole("button", {
+    name: "Request a Tour",
+  });
+  await trigger.click();
+
+  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
+  const propertyId = dialog.getByLabel("Property ID");
+  await expect(propertyId).toBeFocused();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  expect(await propertyId.evaluate((input) => input.validity.valueMissing)).toBe(true);
+  await dialog.getByRole("button", { name: "Close Request a Tour" }).click();
+  await expect(trigger).toBeFocused();
 });
 
 test("mobile navigation closes on Escape and restores trigger focus", async ({

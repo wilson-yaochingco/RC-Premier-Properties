@@ -50,7 +50,7 @@ needs an account or live environment; **Level 12** is intentionally deferred.
 | 11AA sender               | External: verified sender/domain, SPF, DKIM, and DMARC await provider/domain; no Gmail password                                |
 | 11AB email failure        | Existing plus improved logging: persistence remains source of truth; failure logs only inquiry ID                              |
 | 11AC email config         | Provider-dependent: secret stays server-side; exact variables added only with real adapter                                     |
-| 11AD email live           | Staging/external: actual receipt at `rcpremierph@gmail.com` not observed                                                       |
+| 11AD email live           | Staging/external: actual receipt at `rcpropertiesss@gmail.com` not observed                                                    |
 | 11AE map provider         | Implemented config boundary/external: public builds require URL and attribution; provider unselected                           |
 | 11AF map failure          | Existing/verified: text, cards, retry, boundaries, and privacy remain available                                                |
 | 11AG MongoDB              | Implemented/configuration: encrypted certificate-valid non-local URI, explicit database, and downgrade rejection in production |
@@ -253,7 +253,7 @@ forms, videos, maps, logo/media, Auth0, admin property/inquiry/viewing flows, CS
 logout, and the privacy/sales-only boundaries. With real storage, test PNG/JPEG/WebP,
 multiple images, cover, reorder, focal point, removal, public derivative, CDN URL, and
 sample guard. With real email, persist a legitimate staging inquiry and observe actual
-receipt at `rcpremierph@gmail.com`; verify safe content and a protected admin link.
+receipt at `rcpropertiesss@gmail.com`; verify safe content and a protected admin link.
 
 Carry these manual accessibility gates until they are actually performed: real screen
 reader, physical Safari/iOS, Android browser, Firefox and WebKit, physical upload picker,
@@ -283,7 +283,7 @@ field Core Web Vitals/RUM belongs to Level 12 after real traffic.
       originals/derivatives policy, exact public media origin, caching, safe removal,
       CORS, versioning, retention, and lifecycle are approved and tested.
 - [ ] Transactional email provider, verified sender, server-only key, failure logging,
-      and actual receiver delivery to `rcpremierph@gmail.com` are accepted.
+      and actual receiver delivery to `rcpropertiesss@gmail.com` are accepted.
 - [ ] Final licensed map provider, HTTPS tile template, exposure rules, attribution, CSP,
       performance, fallback, and privacy behavior pass.
 - [ ] Canonical, Open Graph, HTTPS images, JSON-LD, robots, sitemap, filter noindex,

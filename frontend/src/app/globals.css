@@ -2695,7 +2695,7 @@ body:has(.home-hero) .site-header__cta:hover {
 }
 
 .site-footer__main {
-  grid-template-columns: minmax(14rem, 1.5fr) repeat(3, minmax(8rem, 0.65fr));
+  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 0.65fr));
   gap: clamp(2rem, 5vw, 5rem);
   padding-block: clamp(3rem, 5vw, 4.5rem) 2rem;
 }
@@ -2712,6 +2712,13 @@ body:has(.home-hero) .site-header__cta:hover {
   margin-top: 1.25rem;
   font-size: 0.82rem;
   line-height: 1.65;
+}
+
+.site-footer__brand,
+.site-footer__navigation,
+.site-footer__contact,
+.site-footer__social {
+  min-width: 0;
 }
 
 .site-footer__navigation .eyebrow,

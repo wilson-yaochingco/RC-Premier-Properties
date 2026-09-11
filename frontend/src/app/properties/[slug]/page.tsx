@@ -6,6 +6,7 @@ import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
+import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { PropertyActions } from "@/features/properties/PropertyActions";
 import { PropertyCard } from "@/features/properties/PropertyCard";
 import { PropertyGallery } from "@/features/properties/PropertyGallery";
@@ -138,7 +139,7 @@ export default async function PropertyDetailPage({
           ))}
         </dl>
         <p>{property.description}</p>
-        <p>rcpremierph@gmail.com · +63 918 429 1873</p>
+        <p>rcpropertiesss@gmail.com · +63 918 429 1873</p>
         <p>Public listing: {publicUrl}</p>
       </section>
 
@@ -296,12 +297,14 @@ export default async function PropertyDetailPage({
             </p>
             <div className={styles.asideActions}>
               {property.availability !== "sold" ? (
-                <Button
-                  href={`/book-viewing?propertyId=${encodeURIComponent(property.propertyId)}`}
+                <RequestTourButton
                   variant="secondary"
-                >
-                  Book a Viewing
-                </Button>
+                  property={{
+                    propertyId: property.propertyId,
+                    title: property.title,
+                    ...(property.coverMedia ? { media: property.coverMedia } : {}),
+                  }}
+                />
               ) : null}
               <Button
                 href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
@@ -329,12 +332,14 @@ export default async function PropertyDetailPage({
           Inquire
         </Button>
         {property.availability !== "sold" ? (
-          <Button
-            href={`/book-viewing?propertyId=${encodeURIComponent(property.propertyId)}`}
+          <RequestTourButton
             variant="secondary"
-          >
-            Book a Viewing
-          </Button>
+            property={{
+              propertyId: property.propertyId,
+              title: property.title,
+              ...(property.coverMedia ? { media: property.coverMedia } : {}),
+            }}
+          />
         ) : null}
       </div>
 

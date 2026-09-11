@@ -188,7 +188,7 @@ describe("public inquiry idempotency", () => {
     expect(create).toHaveBeenCalledBefore(send);
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "rcpremierph@gmail.com",
+        to: "rcpropertiesss@gmail.com",
         subject: "New RC Premier Inquiry — General inquiry",
       }),
       { idempotencyKey: expect.stringMatching(/^[a-f0-9-]{36}$/) },
@@ -266,6 +266,7 @@ describe("public inquiry idempotency", () => {
     const response = await service.create({
       name: "Maria Viewing",
       email: "viewing@example.test",
+      phone: "+63 917 555 0110",
       inquiryType: "viewing",
       source: "viewing-page",
       propertyId: "RCPP-ADMIN-001",
@@ -292,6 +293,7 @@ describe("public inquiry idempotency", () => {
       service.create({
         name: "Maria Viewing",
         email: "viewing@example.test",
+        phone: "+63 917 555 0110",
         inquiryType: "viewing",
         source: "viewing-page",
         propertyId: "RCPP-SOLD-001",

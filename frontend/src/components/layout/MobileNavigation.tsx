@@ -115,7 +115,7 @@ export function MobileNavigation({ items, currentPath }: MobileNavigationProps) 
         <div className="mobile-navigation__footer">
           <p>Homes and residential properties for sale across Pampanga.</p>
           <Link href="/book-viewing" onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
-            Book a Viewing
+            Request a Tour
             <span aria-hidden="true">→</span>
           </Link>
         </div>

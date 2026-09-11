@@ -1,13 +1,16 @@
 import type { Metadata, MetadataRoute } from "next";
 import type { PublicPropertySummary } from "@rc/shared";
 import { SITE_URL } from "./env";
+import {
+  OFFICIAL_EMAIL,
+  OFFICIAL_FACEBOOK_URL,
+  OFFICIAL_PHONE,
+  OFFICIAL_SOCIAL_LINKS,
+} from "./public-contact";
 import { publicLocationPath } from "./public-location";
 
 export const SITE_NAME = "RC Premier Properties";
-export const OFFICIAL_EMAIL = "rcpremierph@gmail.com";
-export const OFFICIAL_PHONE = "+63 918 429 1873";
-export const OFFICIAL_FACEBOOK_URL =
-  "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/";
+export { OFFICIAL_EMAIL, OFFICIAL_FACEBOOK_URL, OFFICIAL_PHONE };
 
 export interface PageMetadataInput {
   title: string;
@@ -83,7 +86,7 @@ export function buildSiteStructuredData(logoPath: string) {
           "@type": "AdministrativeArea",
           name: "Pampanga, Philippines",
         },
-        sameAs: [OFFICIAL_FACEBOOK_URL],
+        sameAs: OFFICIAL_SOCIAL_LINKS.map((link) => link.href),
       },
       {
         "@type": "WebSite",

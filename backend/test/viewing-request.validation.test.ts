@@ -10,6 +10,7 @@ function viewingBody(overrides: Record<string, unknown> = {}) {
   return {
     name: "Maria Viewer",
     email: "viewer@example.test",
+    phone: "+63 917 555 0110",
     inquiryType: "viewing",
     source: "viewing-page",
     propertyId: "RCPP-ADMIN-001",
@@ -34,10 +35,13 @@ describe("viewing request validation", () => {
   });
 
   it.each([
+    [{ requestedDate: undefined }, "requestedDate"],
     [{ requestedDate: "2026-02-30" }, "requestedDate"],
     [{ requestedDate: "2026-09-06" }, "requestedDate"],
+    [{ requestedTime: undefined }, "requestedTime"],
     [{ requestedTime: "25:10" }, "requestedTime"],
     [{ propertyId: undefined }, "propertyId"],
+    [{ phone: undefined }, "phone"],
   ])("rejects invalid viewing input %#", (override, field) => {
     expect(() => parseCreateInquiryBody(viewingBody(override), NOW)).toThrowError(
       expect.objectContaining({

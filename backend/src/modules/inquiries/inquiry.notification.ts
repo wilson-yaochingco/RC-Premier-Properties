@@ -1,7 +1,7 @@
 import type { CreateInquiryRequest } from "@rc/shared";
 import { env } from "../../config/env.js";
 
-export const INQUIRY_NOTIFICATION_DESTINATION = "rcpremierph@gmail.com";
+export const INQUIRY_NOTIFICATION_DESTINATION = "rcpropertiesss@gmail.com";
 
 export interface InquiryNotificationMessage {
   to: string;

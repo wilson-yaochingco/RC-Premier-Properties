@@ -606,7 +606,7 @@
 @media (max-width: 63.99rem) {
   .identityGrid,
   .contentGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .summaryBar {
@@ -638,6 +638,14 @@
   .quickFacts {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quickFacts div {
+    min-width: 0;
+  }
+
+  .gallerySide {
+    grid-auto-columns: minmax(0, 74%);
   }
 
   .specGrid,

@@ -312,6 +312,7 @@ describe("Phase 2A public API", () => {
     const valid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
       name: "Maria Santos",
       email: "maria@example.com",
+      phone: "+63 917 555 0110",
       inquiryType: "viewing",
       source: "viewing-page",
       propertyId: "rc-100",
@@ -332,6 +333,7 @@ describe("Phase 2A public API", () => {
     const invalid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
       name: "Maria Santos",
       email: "maria@example.com",
+      phone: "+63 917 555 0110",
       inquiryType: "viewing",
       source: "viewing-page",
       propertyId: "RC-100",

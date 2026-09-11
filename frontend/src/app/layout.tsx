@@ -3,6 +3,7 @@ import heroExterior from "@/assets/site/home-hero-1.png";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PublicChrome } from "@/components/layout/PublicChrome";
+import { RequestTourProvider } from "@/features/inquiries/RequestTourProvider";
 import { SITE_URL } from "@/lib/env";
 import { buildPageMetadata } from "@/lib/seo";
 import "./globals.css";
@@ -32,13 +33,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <a className="skip-link" href="#main-content">
           Skip to main content
         </a>
-        <PublicChrome>
-          <SiteHeader />
-        </PublicChrome>
-        {children}
-        <PublicChrome>
-          <SiteFooter />
-        </PublicChrome>
+        <RequestTourProvider>
+          <PublicChrome>
+            <SiteHeader />
+          </PublicChrome>
+          {children}
+          <PublicChrome>
+            <SiteFooter />
+          </PublicChrome>
+        </RequestTourProvider>
       </body>
     </html>
   );

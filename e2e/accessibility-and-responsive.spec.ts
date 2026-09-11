@@ -192,6 +192,45 @@ test("location layouts adapt across Part 2 widths and 200 percent text", async (
   }
 });
 
+test("Request a Tour remains contained and operable across Part 3 viewports and reflow", async ({
+  page,
+}) => {
+  for (const width of [320, 390, 768, 1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    const dialog = page.getByRole("dialog", { name: "Request a Tour" });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Close Request a Tour" }),
+    ).toBeVisible();
+    const layout = await inspectHorizontalOverflow(page);
+    expect(
+      layout.documentWidth,
+      `tour dialog document overflow at ${width}px: ${JSON.stringify(layout.offenders)}`,
+    ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.offenders).toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
+  await expect(dialog).toBeVisible();
+  const reflowLayout = await inspectHorizontalOverflow(page);
+  expect(
+    reflowLayout.documentWidth,
+    `tour dialog overflow at 200% text: ${JSON.stringify(reflowLayout.offenders)}`,
+  ).toBeLessThanOrEqual(reflowLayout.viewportWidth + 1);
+  expect(reflowLayout.offenders).toEqual([]);
+  await expect(
+    dialog.getByRole("button", { name: "Close Request a Tour" }),
+  ).toBeVisible();
+});
+
 test("admin skip link focuses the loading session-state main", async ({ page }) => {
   let releaseSession!: () => void;
   const sessionGate = new Promise<void>((resolve) => {

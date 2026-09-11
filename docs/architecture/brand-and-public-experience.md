@@ -1,7 +1,7 @@
 # Brand and Public Experience
 
-Status: approved branding and supplied website photography integrated; Parts 1 and 2 of
-the Figma-driven public rebuild implemented; production listing inventory remains
+Status: approved branding and supplied website photography integrated; Parts 1 through 3
+of the Figma-driven public rebuild implemented; production listing inventory remains
 external. Last reviewed 2026-09-11.
 
 This decision turns the supplied RC Premier Properties brief into durable rules for the
@@ -174,9 +174,20 @@ itself is the clickable design; separate throw-away mockups are not maintained.
 
 ### About, contact, sell and viewing
 
-- Mobile: one narrative column followed by the relevant action.
-- Tablet: supporting content and action can sit side-by-side.
-- Desktop: an asymmetric two-column composition keeps forms below a readable line length.
+- Mobile: editorial sections become one narrative column; forms retain full-width,
+  touch-friendly controls and the tour dialog becomes a near-full-width scrollable sheet.
+- Tablet: supporting content and action reflow deliberately without compressed fields.
+- Desktop: the About, Contact and Sell references become bounded image-led editorial
+  compositions. Contact and seller forms keep a readable asymmetric split. Request a Tour
+  uses one two-step modal, with the selected property carried automatically from property
+  detail pages.
+
+The Part 3 references guide composition, spacing and hierarchy only. Every photograph is
+an existing authorized RC Premier asset because the exact flattened-reference sources
+were not available. About and Sell avoid third-party facts, metrics, founders, programs,
+valuation promises and syndication claims. Contact uses the current email, phone and four
+approved social profiles. The legacy `/book-viewing` route remains indexable and compatible
+but no longer maintains a second booking-page presentation.
 
 ## Accessibility contract
 

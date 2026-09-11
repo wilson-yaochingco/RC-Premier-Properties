@@ -12,24 +12,29 @@ One connected form supports the public entry points currently exposed by the UI:
 | --------------------------------- | -------------------------------------------------- | -------------- |
 | `/contact`                        | general, or property when a Property ID is present | `contact-page` |
 | property-detail “Send an inquiry” | links to `/contact` with its Property ID           | `contact-page` |
-| `/book-viewing`                   | viewing                                            | `viewing-page` |
+| Request a Tour dialog             | viewing with property context when available       | `viewing-page` |
+| `/book-viewing`                   | opens the compatible Request a Tour dialog         | `viewing-page` |
 | `/sell`                           | selling                                            | `sell-page`    |
 
-`/contact` and `/book-viewing` accept `propertyId` in the URL and prefill the form. The
-form remains editable so a visitor can correct a mistyped reference.
+`/contact` accepts `propertyId` in the URL and prefills the form. `/book-viewing` remains
+as a stable legacy entry point and opens the same Request a Tour dialog used by the
+header, homepage and eligible property detail pages.
 
-Approved public contact details are `rcpremierph@gmail.com`, `+63 918 429 1873`, and the
-official RC Premier Properties Facebook Page. The repository contains no approved office
-address, business hours, or additional social account, so none is displayed.
+Approved public contact details are `rcpropertiesss@gmail.com` and
+`+63 918 429 1873`. The approved Facebook, Instagram, YouTube and TikTok profiles appear
+in the Contact page and shared footer. The repository contains no approved office address
+or business hours, so neither is displayed.
 
 ## Form behavior
 
 The general form collects name, email, optional phone, inquiry type, optional Property ID,
 optional subject, message and explicit privacy consent. The viewing form locks the type,
-requires a Property ID plus structured requested date and time, and makes the additional
-message optional. It has persistent labels, native input constraints, pending state, an
-accessible live success/error message and field issues returned by the API. A successful
-response shows the opaque inquiry reference.
+requires full name, phone, email, a Property ID and structured requested date and time,
+and makes the additional subject and message optional. The two-step dialog selects the
+schedule before collecting contact details. It has persistent labels, native input
+constraints, pending state, an accessible live success/error message and field issues
+returned by the API. A successful response shows the opaque inquiry reference and repeats
+that staff confirmation is still required.
 
 No account is created. Public seller inquiries do not accept identity, title or ownership
 documents. The submission is not a valuation, listing agreement, offer, approval or
@@ -172,7 +177,7 @@ timezone.
 - A requested time still requires staff confirmation; there is no live calendar or
   availability provider.
 - MongoDB/Admin Inquiries remain authoritative. After persistence, the application builds
-  a provider-neutral notification for `rcpremierph@gmail.com`. Delivery failure is caught
+  a provider-neutral notification for `rcpropertiesss@gmail.com`. Delivery failure is caught
   and cannot roll back the accepted inquiry. The initial sender persists and owns a
   five-minute lease before sending, which excludes the retry worker until success,
   failure, or lease expiry. A stable non-sensitive identity, 5/30/120/360-minute backoff,

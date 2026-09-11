@@ -9,7 +9,7 @@ the roadmap's post-launch Phase 7 and does not authorize any later roadmap funct
 ## Approved public information
 
 - Business name: RC Premier Properties
-- Email: `rcpremierph@gmail.com`
+- Email: `rcpropertiesss@gmail.com`
 - Phone: `+63 918 429 1873` (`tel:+639184291873`)
 - Facebook Page:
   `https://www.facebook.com/people/RC-Premier-Properties/61588365958516/`
@@ -91,7 +91,7 @@ frontend builds refuse to render them as listing media.
 
 MongoDB and Admin → Inquiries remain the source of truth. The sequence is validate, store,
 acknowledge persistence, and attempt a provider-neutral notification to
-`rcpremierph@gmail.com`. Notification construction includes only appropriate contact and
+`rcpropertiesss@gmail.com`. Notification construction includes only appropriate contact and
 listing context plus the protected admin URL. A send failure is caught after persistence
 and cannot roll back or invalidate the inquiry.
 
@@ -104,7 +104,8 @@ deployment gate.
 
 Admin routes render one admin header. Dashboard, Properties, Inquiries, Viewings, and Create
 Draft remain under `/admin`; only “View Website” and “View Public Listing” intentionally
-leave it. Public Contact and Book a Viewing remain separate, with Book a Viewing prominent.
+leave it. Public Contact stays separate from the single Request a Tour modal, which is
+prominent and remains connected to the existing viewing-inquiry workflow.
 Property-detail viewing links preselect the existing property-aware viewing request, and
 sold properties do not show a viewing action.
 
