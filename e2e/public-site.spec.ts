@@ -170,6 +170,16 @@ test("property filters stay in the URL, affect results, and expose an empty stat
 test("location discovery and detail use only inventory-backed facets", async ({
   page,
 }) => {
+  await page.route("https://tiles.stadiamaps.com/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   const browserErrors = trackBrowserErrors(page);
   await page.goto("/locations");
 

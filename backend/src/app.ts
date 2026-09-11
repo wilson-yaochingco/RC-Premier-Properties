@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type RequestHandler } from "express";
 import cors from "cors";
 import { API_PREFIX } from "@rc/shared";
 import { env } from "./config/env.js";
@@ -14,7 +14,11 @@ import { createSecurityHeaders } from "./middleware/securityHeaders.js";
  * Builds the configured Express application without starting a listener, so it can be
  * imported directly by future integration tests.
  */
-export function createApp(dependencies: ApiDependencies = {}): Express {
+export interface AppDependencies extends ApiDependencies {
+  applicationRateLimit?: RequestHandler;
+}
+
+export function createApp(dependencies: AppDependencies = {}): Express {
   const app = express();
 
   // Trust forwarded addresses only when the deployment explicitly states its exact
@@ -36,7 +40,11 @@ export function createApp(dependencies: ApiDependencies = {}): Express {
   );
   app.use(express.json({ limit: "1mb" }));
 
-  app.use(API_PREFIX, apiRateLimit, createApiRouter(dependencies));
+  app.use(
+    API_PREFIX,
+    dependencies.applicationRateLimit ?? apiRateLimit,
+    createApiRouter(dependencies),
+  );
 
   // Must stay last, and in this order.
   app.use(notFound);

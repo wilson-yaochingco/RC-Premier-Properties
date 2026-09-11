@@ -185,6 +185,9 @@ Current:
 - [`level-17-final-remediation.md`](audits/level-17-final-remediation.md) — finding-by-finding
   closure evidence, complete repository gate, unchanged live blocker matrix, and final
   repository readiness classification
+- [`figma-frontend-rebuild-part-5.md`](audits/figma-frontend-rebuild-part-5.md) — final
+  visual, functional, responsive, security, regression, and readiness audit for the
+  five-part frontend rebuild
 
 ## Rules
 

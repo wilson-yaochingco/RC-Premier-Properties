@@ -96,9 +96,9 @@ are documented in
 - Staff need maintainable property and inquiry records. Public administration is not
   exposed until authentication and authorization are selected and implemented.
 
-Phone and messaging expectations vary by client, so the inquiry form accepts an optional
-phone number but does not claim support for a messaging provider that has not been
-selected.
+Phone and messaging expectations vary by client, so non-viewing inquiries accept an
+optional phone number while viewing requests require one. The site does not claim support
+for a messaging provider that has not been selected.
 
 ## Information architecture
 

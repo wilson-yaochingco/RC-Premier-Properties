@@ -386,6 +386,7 @@ const passThrough = (_request, _response, next) => next();
 const app = createApp({
   propertyService,
   inquiryService,
+  applicationRateLimit: passThrough,
   inquiryRateLimit: passThrough,
 });
 

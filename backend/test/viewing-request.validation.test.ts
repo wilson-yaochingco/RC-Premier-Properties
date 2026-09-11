@@ -35,6 +35,9 @@ describe("viewing request validation", () => {
   });
 
   it.each([
+    [{ name: "   " }, "name"],
+    [{ name: "M" }, "name"],
+    [{ phone: "not-a-phone" }, "phone"],
     [{ requestedDate: undefined }, "requestedDate"],
     [{ requestedDate: "2026-02-30" }, "requestedDate"],
     [{ requestedDate: "2026-09-06" }, "requestedDate"],
