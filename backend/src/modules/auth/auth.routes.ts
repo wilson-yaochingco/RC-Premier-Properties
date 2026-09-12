@@ -50,7 +50,6 @@ function defaultAuthService(): AuthService | null {
       allowedReturnUrls: auth.allowedReturnUrls,
       allowedOrigins: [env.CORS_ORIGIN],
       requiredAmr: auth.requiredAmr,
-      allowPasskeyOnly: auth.allowPasskeyOnly,
       sessionIdleMs: auth.sessionIdleMinutes * 60_000,
       sessionAbsoluteMs: auth.sessionAbsoluteHours * 60 * 60_000,
       sessionActivityTouchMs: 5 * 60_000,

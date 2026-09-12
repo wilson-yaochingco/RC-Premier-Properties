@@ -3,12 +3,34 @@ import {
   normalizeAuthCallbackUrl,
   normalizeAuthIssuerUrl,
   normalizeAuthReturnUrls,
+  normalizeBusinessNotificationEmail,
   normalizeCorsOrigin,
   normalizeTrustProxyHops,
   validateAuthTransportSecurity,
   validateMongoDbUri,
   validateProductionOrigin,
 } from "../src/config/env.js";
+
+describe("business notification recipient configuration", () => {
+  it("normalizes a single mailbox independently of sender configuration", () => {
+    expect(normalizeBusinessNotificationEmail(" RCPREMIERPH@gmail.com ")).toBe(
+      "rcpremierph@gmail.com",
+    );
+  });
+
+  it.each([
+    "",
+    "invalid",
+    "Renzo & Criezel <rcpremierph@gmail.com>",
+    "rcpremierph@gmail.com,other@example.test",
+    "rcpremierph@gmail.com\r\nBcc: other@example.test",
+    `${"a".repeat(250)}@example.test`,
+  ])("rejects unsafe mailbox configuration %j", (value) => {
+    expect(() => normalizeBusinessNotificationEmail(value)).toThrow(
+      /BUSINESS_NOTIFICATION_EMAIL/,
+    );
+  });
+});
 
 describe("CORS origin configuration", () => {
   it("accepts and normalizes one HTTP(S) origin", () => {

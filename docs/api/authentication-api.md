@@ -51,16 +51,17 @@ deployment still requires the separately tracked shared edge/WAF enforcement con
 
 A valid provider identity must then match an active local record by exact `(issuer,
 subject)`, have the local `admin` role, and contain the configured authentication-method
-evidence. Production requires an `amr` array containing `mfa`, which Auth0 adds only
-after a completed MFA challenge. Development and test may alternatively accept the
-signed namespaced boolean claim emitted by the reviewed Post-Login Action when Auth0
-reports actual passkey use. That alternative is hard-disabled in production. Unknown,
-disabled, unassigned, missing evidence, password-only and other incorrect assurance
-results receive no application session.
+evidence. Every environment requires an `amr` array containing `mfa`, which Auth0 adds
+after a completed MFA challenge. The former development signed-passkey exception is
+retired. Unknown, disabled, unassigned, missing evidence, password-only and passkey-only
+results receive no application session. The approved Beta password + TOTP factor,
+disabled passkeys/WebAuthn, recovery and disabled signup are Auth0 tenant controls; see
+the [manual setup runbook](../development/auth0-setup.md). Email remains contact/display
+data and never grants authorization.
 
-Production startup also rejects `AUTH_REQUIRED_AMR` values other than `mfa` and rejects
-session, concurrency or transaction limits above the reviewed 30-minute, eight-hour,
-three-session and ten-minute baseline.
+Startup rejects `AUTH_REQUIRED_AMR` values other than `mfa` in every environment.
+Production also rejects session, concurrency or transaction limits above the reviewed
+30-minute, eight-hour, three-session and ten-minute baseline.
 
 Success revokes any existing browser session, creates a new local opaque session, sets
 the session cookie and redirects to the stored exact `returnTo` URL. No provider token

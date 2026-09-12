@@ -46,10 +46,9 @@ npm run test:e2e
   provider. Protocol tests separately run `openid-client` against a local issuer with a
   generated signing key and JWKS, so issuer, audience, signature, expiry, state, nonce
   and PKCE failures are exercised without a live Auth0 dependency. They also verify the
-  MFA `acr_values` request, accepted `amr: ["mfa"]`, development-only signed passkey
-  evidence, rejection of client-supplied passkey signals, fail-closed
-  missing/empty/password-only evidence, and production rejection of passkey-only
-  evidence.
+  MFA `acr_values` request, accepted `amr: ["mfa"]`, rejection of retired signed
+  passkey claims and client-supplied passkey signals, and fail-closed
+  missing/empty/password-only/passkey-only evidence in every environment.
 - Level 6 regression tests additionally cover absent/partial production configuration,
   missing/duplicate/expired transactions, email-only non-authorization, immutable
   absolute expiry, store outages, exact CORS behavior, proxy trust, security headers,
@@ -177,7 +176,9 @@ the Auth0 Free development tenant on 2026-09-06. That evidence does not yet veri
 application session cookie, `/admin` return URL, protected MongoDB operations, CSRF
 behavior or logout against the live tenant; those remain explicit manual gates in
 [`auth0-setup.md`](auth0-setup.md). Production still requires validated `amr: mfa` and
-cannot use the development-only signed passkey assurance. Client accounts and broader
+cannot use signed passkey assurance; that development exception is retired everywhere.
+Live password/TOTP enrollment, repeat challenge, no signup/passkey/WebAuthn options and
+recovery require the new manual Beta acceptance. Client accounts and broader
 administration remain later work.
 
 Level 5 location acceptance should use synthetic or verified staff-provided values only:

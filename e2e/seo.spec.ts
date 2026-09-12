@@ -104,7 +104,7 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
     .textContent();
   expect(siteJsonLd).toContain('"@type":"Organization"');
   expect(siteJsonLd).toContain('"@type":"WebSite"');
-  expect(siteJsonLd).toContain("rcpropertiesss@gmail.com");
+  expect(siteJsonLd).toContain("rcpremierph@gmail.com");
   expect(siteJsonLd).toContain("+63 918 429 1873");
   expect(siteJsonLd).toContain(FACEBOOK_URL);
   expect(siteJsonLd).not.toContain("streetAddress");

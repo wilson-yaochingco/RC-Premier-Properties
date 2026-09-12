@@ -30,6 +30,19 @@ function optionalValue(name: string): string | undefined {
   return value && value.trim() !== "" ? value.trim() : undefined;
 }
 
+/** One recipient mailbox; reject display names, lists, and mail-header characters. */
+export function normalizeBusinessNotificationEmail(value: string): string {
+  const email = value.trim().toLowerCase();
+  if (
+    email.length > 254 ||
+    /[\r\n<>,;"\\]/.test(value) ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    throw new Error("BUSINESS_NOTIFICATION_EMAIL must be one valid email address.");
+  }
+  return email;
+}
+
 function environment(name: string, fallback: Environment): Environment {
   const value = optional(name, fallback);
 
@@ -396,7 +409,6 @@ export interface AuthEnvironmentConfig {
   callbackUrl: string;
   allowedReturnUrls: readonly string[];
   requiredAmr: string;
-  allowPasskeyOnly: boolean;
   sessionHashSecret: string;
   sessionIdleMinutes: number;
   sessionAbsoluteHours: number;
@@ -405,9 +417,6 @@ export interface AuthEnvironmentConfig {
 }
 
 function validateProductionAuthPolicy(config: AuthEnvironmentConfig): void {
-  if (config.requiredAmr !== "mfa") {
-    throw new Error('Production AUTH_REQUIRED_AMR must remain "mfa".');
-  }
   if (config.sessionIdleMinutes > 30) {
     throw new Error("Production AUTH_SESSION_IDLE_MINUTES cannot exceed 30.");
   }
@@ -454,8 +463,8 @@ function authEnvironment(
   }
 
   const requiredAmr = optional("AUTH_REQUIRED_AMR", "mfa");
-  if (!/^[a-z0-9_-]{1,32}$/i.test(requiredAmr)) {
-    throw new Error("AUTH_REQUIRED_AMR must be one short authentication-method value.");
+  if (requiredAmr !== "mfa") {
+    throw new Error('AUTH_REQUIRED_AMR must remain "mfa" in every environment.');
   }
 
   const issuerUrl = normalizeAuthIssuerUrl(required("AUTH0_ISSUER_URL"));
@@ -479,7 +488,6 @@ function authEnvironment(
     callbackUrl,
     allowedReturnUrls,
     requiredAmr,
-    allowPasskeyOnly: nodeEnv !== "production",
     sessionHashSecret,
     sessionIdleMinutes: positiveInteger("AUTH_SESSION_IDLE_MINUTES", 30),
     sessionAbsoluteHours: positiveInteger("AUTH_SESSION_ABSOLUTE_HOURS", 8),
@@ -521,6 +529,9 @@ export const env = Object.freeze({
   CORS_ORIGIN: corsOrigin,
   API_PUBLIC_ORIGIN: publicApiOrigin,
   MEDIA_PUBLIC_ORIGIN: mediaPublicOrigin,
+  BUSINESS_NOTIFICATION_EMAIL: normalizeBusinessNotificationEmail(
+    optional("BUSINESS_NOTIFICATION_EMAIL", "rcpremierph@gmail.com"),
+  ),
   AUTH: authEnvironment(nodeEnv, corsOrigin, publicApiOrigin),
 });
 

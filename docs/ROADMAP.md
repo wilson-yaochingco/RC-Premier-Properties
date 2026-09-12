@@ -626,7 +626,7 @@ can update is not a product.
 
 ### Authentication
 
-The architecture delegates credentials, passkey enrollment and recovery to Auth0 Free
+The architecture delegates credentials, authenticator enrollment and recovery to Auth0
 while Express owns opaque, revocable application sessions and local authorization. The
 backend foundation now implements Authorization Code + PKCE, one-time transactions,
 local staff allowlisting, opaque MongoDB sessions, session-bound CSRF, named permissions,
@@ -635,8 +635,12 @@ and a local signed OIDC server, so no live credential is required. On 2026-09-06
 project owner reported the Auth0 Free Regular Web Application, disabled signup, local
 administrator and enrolled-passkey authentication redirect working to the public root.
 That evidence does not yet verify the application session, `/admin` return, protected
-operations or logout. Production remains gated on genuine Auth0 MFA evidence because the
-development-only signed passkey assurance is disabled in production. See
+operations or logout. The approved Beta setup now uses one shared Admin,
+`rcpremierph@gmail.com` (Renzo & Criezel), with password + mandatory TOTP in Auth0.
+Passkeys/WebAuthn/signup must be disabled manually in the tenant; the backend
+requires genuine `amr: mfa` evidence in every environment and has retired the development
+signed-passkey exception. Plan entitlement, live Beta setup and the separate production
+authentication/launch acceptance gates remain open. See
 [`architecture/authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
 and [`architecture/oidc-provider-selection.md`](architecture/oidc-provider-selection.md).
 

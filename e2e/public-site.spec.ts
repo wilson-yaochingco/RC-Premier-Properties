@@ -41,8 +41,8 @@ test("home renders fixture inventory and primary navigation works", async ({
 
   const footer = page.getByRole("contentinfo");
   await expect(
-    footer.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
-  ).toHaveAttribute("href", "mailto:rcpropertiesss@gmail.com");
+    footer.getByRole("link", { name: "rcpremierph@gmail.com" }),
+  ).toHaveAttribute("href", "mailto:rcpremierph@gmail.com");
   await expect(footer.getByRole("link", { name: "Instagram" })).toHaveAttribute(
     "href",
     "https://www.instagram.com/rcpremierproperties?stkn=MXZvanZrdDYydmpyeQ==",
@@ -574,8 +574,8 @@ test("contact form sends its typed payload and displays API success feedback", a
 
   const main = page.locator("main#main-content");
   await expect(
-    main.getByRole("link", { name: "rcpropertiesss@gmail.com" }).first(),
-  ).toHaveAttribute("href", "mailto:rcpropertiesss@gmail.com");
+    main.getByRole("link", { name: "rcpremierph@gmail.com" }).first(),
+  ).toHaveAttribute("href", "mailto:rcpremierph@gmail.com");
   await expect(
     main.getByRole("link", { name: "+63 918 429 1873" }).first(),
   ).toHaveAttribute("href", "tel:+639184291873");

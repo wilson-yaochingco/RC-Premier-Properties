@@ -9,7 +9,7 @@ the roadmap's post-launch Phase 7 and does not authorize any later roadmap funct
 ## Approved public information
 
 - Business name: RC Premier Properties
-- Email: `rcpropertiesss@gmail.com`
+- Email: `rcpremierph@gmail.com`
 - Phone: `+63 918 429 1873` (`tel:+639184291873`)
 - Facebook Page:
   `https://www.facebook.com/people/RC-Premier-Properties/61588365958516/`
@@ -91,7 +91,7 @@ frontend builds refuse to render them as listing media.
 
 MongoDB and Admin → Inquiries remain the source of truth. The sequence is validate, store,
 acknowledge persistence, and attempt a provider-neutral notification to
-`rcpropertiesss@gmail.com`. Notification construction includes only appropriate contact and
+`rcpremierph@gmail.com`. Notification construction includes only appropriate contact and
 listing context plus the protected admin URL. A send failure is caught after persistence
 and cannot roll back or invalidate the inquiry.
 

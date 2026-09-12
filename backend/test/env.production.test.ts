@@ -50,16 +50,30 @@ describe("production authentication environment", () => {
     );
   });
 
-  it("hard-disables development passkey-only assurance", async () => {
+  it("requires MFA without a development passkey-only exception", async () => {
     configureProductionAuth();
 
     const { env } = await import("../src/config/env.js");
     expect(env.AUTH).toMatchObject({
       requiredAmr: "mfa",
-      allowPasskeyOnly: false,
     });
+    expect(env.AUTH).not.toHaveProperty("allowPasskeyOnly");
     expect(env.TRUST_PROXY_HOPS).toBe(1);
   });
+
+  it.each(["development", "test", "production"])(
+    "keeps the MFA boundary in %s",
+    async (mode) => {
+      configureProductionAuth();
+      vi.stubEnv("NODE_ENV", mode);
+      const { env } = await import("../src/config/env.js");
+      expect(env.AUTH?.requiredAmr).toBe("mfa");
+      expect(env.AUTH).not.toHaveProperty("allowPasskeyOnly");
+      vi.resetModules();
+      vi.stubEnv("AUTH_REQUIRED_AMR", "pwd");
+      await expect(import("../src/config/env.js")).rejects.toThrow(/AUTH_REQUIRED_AMR/);
+    },
+  );
 
   it.each([
     ["AUTH_REQUIRED_AMR", "pwd"],

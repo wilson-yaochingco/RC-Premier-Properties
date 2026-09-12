@@ -6,6 +6,28 @@ by this runbook. Deployment requires a separate owner instruction. Use an isolat
 database and invited staff; do not upload customer data or approved production inventory
 until the relevant owners approve it.
 
+## Approved ownership and setup status
+
+**CODE COMPLETE; MANUAL AUTH0 CONFIGURATION REQUIRED; MANUAL VERCEL/PROVIDER
+CONFIGURATION REQUIRED.** Repository builds and isolated tests are not hosted acceptance.
+
+The infrastructure owner is `wilsonyao72@gmail.com`, used to manage Vercel, MongoDB
+Atlas, the Auth0 dashboard/tenant, persistent API hosting, storage/media, transactional
+email, maps and deployment administration. It is not the website's operational login,
+notification recipient or a public runtime identity.
+
+The one shared website Admin/business mailbox is `rcpremierph@gmail.com`, with display
+name **Renzo & Criezel**. Use Auth0 database/password login + mandatory authenticator
+TOTP (Google Authenticator), with recovery retained, public signup off and passkeys/both
+WebAuthn factors off. Exact issuer/subject mapping to local `StaffIdentity` controls
+authorization; the email and Admin caption do not. Audit actions share one staff actor.
+The backend requires validated MFA evidence everywhere and has retired the development
+passkey exception. Follow [the manual Auth0 runbook](auth0-setup.md).
+
+The topology is Vercel Next.js frontend → persistent Express API → isolated Beta Atlas
+database, with Auth0 and external storage/email/maps. Express stays on a persistent
+host; this task does not move it to Vercel Functions or select unapproved providers.
+
 ## Architecture and prerequisites
 
 Use **Next.js on Vercel and Express on a separately hosted, persistent Node runtime**.
@@ -99,7 +121,7 @@ See [Vercel system variables](https://vercel.com/docs/environment-variables/syst
 | `AUTH0_CALLBACK_URL`               | Server config, required hosted                 | As above                                   | API origin + `API_PREFIX` + `/auth/callback`                   | Same contract on final API               |
 | `AUTH_ALLOWED_RETURN_URLS`         | Server config, required hosted                 | As above                                   | Exact approved frontend destinations including `/admin`        | Exact final destinations                 |
 | `AUTH_SESSION_HASH_SECRET`         | Server secret, required hosted                 | Test/development-only value                | Unique cryptographically random secret, at least 32 characters | Separate production secret               |
-| `AUTH_REQUIRED_AMR`                | Server policy, default `mfa`                   | Test/development policy                    | `mfa`                                                          | `mfa`                                    |
+| `AUTH_REQUIRED_AMR`                | Server policy, default `mfa`                   | `mfa`                                      | `mfa`                                                          | `mfa`                                    |
 | `AUTH_SESSION_IDLE_MINUTES`        | Server policy, optional                        | Default 30                                 | At most 30                                                     | At most 30                               |
 | `AUTH_SESSION_ABSOLUTE_HOURS`      | Server policy, optional                        | Default 8                                  | At most 8                                                      | At most 8                                |
 | `AUTH_MAX_CONCURRENT_SESSIONS`     | Server policy, optional                        | Default 3                                  | At most 3                                                      | At most 3                                |
@@ -108,6 +130,7 @@ See [Vercel system variables](https://vercel.com/docs/environment-variables/syst
 | `APP_BUILD_ID`                     | Server config, optional public health identity | Optional                                   | Non-secret commit/deployment ID                                | Non-secret commit/deployment ID          |
 | `SHUTDOWN_GRACE_SECONDS`           | Server config, optional                        | Default 30                                 | Host-compatible value, at most 120                             | Same                                     |
 | `MEDIA_PUBLIC_ORIGIN`              | Server config, optional until media supplied   | Optional                                   | Same exact origin as frontend media                            | Same exact origin as frontend media      |
+| `BUSINESS_NOTIFICATION_EMAIL`      | Server config, recipient only                  | Default `rcpremierph@gmail.com`            | `rcpremierph@gmail.com`                                        | `rcpremierph@gmail.com`                  |
 
 There are no speculative storage/email credential variables. Define server-only validated
 variables with the selected real adapters. No secret may use `NEXT_PUBLIC_`. Real env
@@ -128,7 +151,7 @@ require MFA evidence; provision only explicitly approved local staff using the e
 controlled tool. This application uses server-side Authorization Code + PKCE, not a
 browser bearer-token API, so no new API audience is required. Logout revokes the local
 application session and clears host-only cookies; it does not promise Auth0 SSO logout.
-Production-mode beta rejects the development passkey-only exception.
+Every environment rejects passkey-only assurance; Auth0 must enforce password + TOTP.
 
 Live checks must prove state/nonce/PKCE rejection, MFA, secure `__Host-` HttpOnly/Lax
 cookies with Path `/` and no Domain, login/session expiry/rotation, staff disablement,
@@ -162,12 +185,53 @@ MongoDB inquiry receipt and staff follow-up, never delivered email or a confirme
 Monitor retry-pending/terminal failures; do not run the disabled retry command against
 real records or fabricate provider success.
 
+Set validated API `BUSINESS_NOTIFICATION_EMAIL=rcpremierph@gmail.com` for all existing
+contact, seller, tour/viewing and property inquiries. The default is the same approved
+mailbox, and both initial sends and retries read this setting. It configures a recipient
+only: no approved automated sender/domain or real adapter exists yet. Do not invent a
+sender, spoof Gmail From headers, or use a Gmail account password for SMTP. Any eventual
+sender configuration and provider credentials must be separately validated server-only
+settings after provider/domain acceptance. Public contact comes from the frontend's
+central `public-contact.ts`, also `rcpremierph@gmail.com`; the infrastructure owner's
+address belongs only in operator documentation.
+
 Map owner: supply a licensed/domain-authorized tile template and attribution; restrict
 any browser-visible provider token by domain and scope. Test CSP, quota/error fallback,
 boundary loading, mobile List-first behavior, and the separately approved public points.
 No private coordinates are substituted when public points are missing.
 
 ## Smoke, monitoring, rollback, and owner gates
+
+### Vercel Beta manual checklist (separate deployment authorization required)
+
+1. Sign into Vercel with infrastructure account `wilsonyao72@gmail.com`; import the
+   repository into a dedicated Beta frontend project after deployment is authorized.
+2. Choose Next.js, Root Directory `frontend`, and include files outside that root.
+   Set Install Command `cd .. && npm ci`, Build Command `cd .. && npm run build:deployment`,
+   default Next.js output and Node 22. Confirm the hosted build log uses root workspaces.
+3. Prepare the persistent API host, isolated TLS Atlas database and Auth0 Beta application
+   separately. Verify proxy depth, startup/readiness and private server env values.
+4. Add **Preview** build variables: `NEXT_PUBLIC_DEPLOYMENT_ENV=staging`,
+   `NEXT_PUBLIC_SITE_URL=<BETA_FRONTEND_ORIGIN>`,
+   `NEXT_PUBLIC_API_URL=<BETA_API_ORIGIN>`, approved `NEXT_PUBLIC_MAP_TILE_URL` with
+   `{z}/{x}/{y}`, `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT` and `NEXT_PUBLIC_MAP_ATTRIBUTION_URL`.
+   Add `NEXT_PUBLIC_MEDIA_ORIGIN` only when approved. Use these staging settings for
+   the dedicated Beta project's Production target too. Put no Auth0/API/Atlas secrets
+   in Vercel frontend variables, and never use `http://localhost:5000` for hosted Beta.
+5. Select fixed approved same-site frontend/API origins or the existing single-origin
+   edge topology before protected testing. If the custom Beta frontend URL is not yet
+   available, establish it before the full build/login acceptance. A generated
+   `vercel.app` URL with an unrelated API domain cannot pass the existing cookie model.
+6. Build and deploy Beta manually, with platform/edge access protection. Capture the
+   generated deployment URL and assigned fixed Beta URL. Rebuild if a public env value
+   changes; generated PR URLs are not automatically approved auth origins.
+7. Update Auth0's exact API callback, frontend logout/web-origin URLs, plus API CORS,
+   public origin and exact return destinations, as listed in [the Auth0 runbook](auth0-setup.md).
+8. Complete the owner-run Admin provisioning/enrollment and smoke tests: password → TOTP
+   → Dashboard, unmapped/anonymous denial, sign out, public contact/seller/viewing receipt,
+   Beta noindex, readiness and safe failure states. Record actual email delivery only
+   after the real provider and sender have been accepted. No deployment was performed
+   during this configuration-prep task.
 
 After separately authorized deployment, verify frontend `/`, `/properties`, a supplied
 published property URL, `/locations`, a supplied location URL, `/contact`, `/sell`,

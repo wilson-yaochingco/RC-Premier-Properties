@@ -20,7 +20,7 @@ One connected form supports the public entry points currently exposed by the UI:
 a direct entry point and opens the same Request a Tour dialog used by the header,
 homepage and eligible property detail pages.
 
-Approved public contact details are `rcpropertiesss@gmail.com` and
+Approved public contact details are `rcpremierph@gmail.com` and
 `+63 918 429 1873`. The approved Facebook, Instagram, YouTube and TikTok profiles appear
 in the Contact page and shared footer. The repository contains no approved office address
 or business hours, so neither is displayed.
@@ -203,8 +203,7 @@ timezone.
 
 - No approved privacy policy has been supplied, so the consent UI is not linked to an
   invented legal document. **PRODUCTION PRIVACY/LEGAL REVIEW REQUIRED.**
-- The official public email remains `rcpropertiesss@gmail.com`. It must not be replaced
-  with a domain address until the owner supplies and verifies that replacement.
+- The approved public contact and business mailbox is `rcpremierph@gmail.com`.
 - Production abuse-control review is still required; no CAPTCHA or step-up challenge
   provider has been selected beyond the implemented honeypot and rate limits.
 - Live inquiry reads and updates against the development Auth0 tenant and project
@@ -212,7 +211,10 @@ timezone.
 - A requested time still requires staff confirmation; there is no live calendar or
   availability provider.
 - MongoDB/Admin Inquiries remain authoritative. After persistence, the application builds
-  a provider-neutral notification for `rcpropertiesss@gmail.com`. Delivery failure is caught
+  a provider-neutral notification to validated backend `BUSINESS_NOTIFICATION_EMAIL`,
+  defaulting to `rcpremierph@gmail.com`, for contact, seller, viewing and property
+  inquiries. The recipient is independent of any eventual verified sender; it neither
+  configures an email provider nor authorizes staff. Delivery failure is caught
   and cannot roll back the accepted inquiry. The initial sender persists and owns a
   five-minute lease before sending, which excludes the retry worker until success,
   failure, or lease expiry. A stable non-sensitive identity, 5/30/120/360-minute backoff,

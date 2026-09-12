@@ -309,7 +309,6 @@ class FakeOidcProvider implements OidcProvider {
       issuer: code === "invalid-issuer" ? "https://attacker.invalid/" : ISSUER,
       subject,
       authenticationMethods,
-      passkeyAuthenticated: code === "passkey-only",
       displayName: "Provider display name",
       email:
         code === "email-match-only" ? "admin@example.test" : "provider@example.test",
@@ -317,7 +316,7 @@ class FakeOidcProvider implements OidcProvider {
   }
 }
 
-function makeAuth(options: { allowPasskeyOnly?: boolean } = {}) {
+function makeAuth() {
   const store = new MemoryAuthStore();
   const service = new AuthService(
     store,
@@ -329,7 +328,6 @@ function makeAuth(options: { allowPasskeyOnly?: boolean } = {}) {
       allowedReturnUrls: [RETURN_URL, "http://localhost:3000/admin/security"],
       allowedOrigins: [ORIGIN],
       requiredAmr: "mfa",
-      allowPasskeyOnly: options.allowPasskeyOnly ?? true,
       sessionIdleMs: 30 * 60_000,
       sessionAbsoluteMs: 8 * 60 * 60_000,
       sessionActivityTouchMs: 5 * 60_000,
@@ -1098,23 +1096,45 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(auth.store.sessions.size).toBe(0);
   });
 
-  it("accepts signed passkey evidence only when the non-production policy allows it", async () => {
-    const development = makeAuth({ allowPasskeyOnly: true });
-    const developmentResult = await startAndComplete(
-      buildApp(development),
-      development.cookies,
-      "passkey-only",
-    );
-    expect(developmentResult.callback.status).toBe(303);
+  it("rejects passkey-only assurance without creating a local session", async () => {
+    const result = await startAndComplete(buildApp(auth), auth.cookies, "passkey-only");
+    expect(result.callback.status).toBe(401);
+    expect(auth.store.sessions.size).toBe(0);
+  });
 
-    const production = makeAuth({ allowPasskeyOnly: false });
-    const productionResult = await startAndComplete(
-      buildApp(production),
-      production.cookies,
-      "passkey-only",
+  it("requires the approved issuer/subject even when the business email matches", async () => {
+    const staff = [...auth.store.staff.values()].find(
+      (identity) => identity.subject === "admin",
+    )!;
+    staff.email = "rcpremierph@gmail.com";
+    staff.displayName = "Renzo & Criezel";
+    const provider = new FakeOidcProvider();
+    const complete = provider.completeAuthorization.bind(provider);
+    provider.completeAuthorization = async (input) => ({
+      ...(await complete(input)),
+      email: "rcpremierph@gmail.com",
+    });
+    const service = new AuthService(
+      auth.store,
+      provider,
+      new AuthCrypto(SECRET),
+      auth.service.config,
     );
-    expect(productionResult.callback.status).toBe(401);
-    expect(production.store.sessions.size).toBe(0);
+    const app = buildApp({ ...auth, service });
+    const denied = await startAndComplete(app, auth.cookies, "email-match-only");
+    expect(denied.callback.status).toBe(401);
+    expect(auth.store.sessions.size).toBe(0);
+    const approved = await startAndComplete(app, auth.cookies);
+    expect(approved.callback.status).toBe(303);
+    const session = await request(app)
+      .get(`${API_PREFIX}/auth/session`)
+      .set("Cookie", cookiePair(approved.callback, auth.cookies.sessionName));
+    expect(session.status).toBe(200);
+    expect(session.body.staff).toMatchObject({
+      email: "rcpremierph@gmail.com",
+      displayName: "Renzo & Criezel",
+      role: "admin",
+    });
   });
 
   it("rotates an existing session during a new login", async () => {

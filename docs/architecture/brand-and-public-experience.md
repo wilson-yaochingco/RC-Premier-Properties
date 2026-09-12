@@ -135,7 +135,7 @@ current slide is exposed to assistive technology and keyboard focus, only the ex
 selected player is mounted, changing slides unmounts the player, and player URLs do not
 request autoplay. No YouTube or thumbnail request occurs during the initial page load.
 
-The shared footer now exposes the current public phone, `rcpropertiesss@gmail.com`, and
+The shared footer now exposes the current public phone, `rcpremierph@gmail.com`, and
 the supplied Facebook, Instagram, YouTube, and TikTok profiles. This scoped shell update
 does not represent the later repository-wide contact-copy migration.
 
@@ -178,8 +178,8 @@ appointment promises.
 
 The shared footer uses color and underline/border feedback without positional movement.
 Email and phone remain compact but are separated as distinct, touch-usable rows. The
-official email remains `rcpropertiesss@gmail.com` until a verified replacement is
-supplied. No approved privacy policy exists, so the interface and documentation do not
+approved public email is `rcpremierph@gmail.com`, centralized in `public-contact.ts`.
+No approved privacy policy exists, so the interface and documentation do not
 fabricate one.
 
 One shared header implementation owns hide/show behavior on every public route and resets

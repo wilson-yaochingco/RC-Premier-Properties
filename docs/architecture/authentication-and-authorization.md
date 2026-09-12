@@ -28,7 +28,7 @@ and logout still require the live acceptance procedure in
 
 ## Decision
 
-RC Premier Properties will delegate staff authentication to Auth0 Free as its managed
+RC Premier Properties delegates staff authentication to Auth0 as its managed
 OpenID Connect (OIDC) identity provider. Auth0 owns credentials, authenticator enrollment
 and account recovery. The Express backend owns the application session, staff allowlist,
 role and permission checks, and audit trail. The provider evaluation, Free-plan limits
@@ -111,12 +111,13 @@ passwords or MFA secrets.
    `acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`.
 2. Login and callback return locations use an exact allowlist. A query parameter must
    never become an arbitrary post-login redirect.
-3. Production requires Auth0 MFA for every login through policy **Always** and at least
-   one configured independent MFA factor. The Free development tenant instead uses a
-   database-connection passkey plus a reviewed Post-Login Action that places Auth0's
-   passkey-use result in a signed namespaced ID-token claim. The backend accepts that
-   claim only outside production; production still requires verified `amr: ["mfa"]`.
-   Missing evidence and password-only authentication fail closed.
+3. Every environment requires verified ID-token `amr` containing `mfa`. The approved
+   Beta flow uses Auth0 database/password login plus mandatory authenticator TOTP,
+   policy **Always**, and recovery capability. Passkeys, WebAuthn and public signup must
+   be disabled manually in Auth0. The former development signed-passkey exception is retired.
+   Missing evidence, password-only and passkey-only authentication fail closed. The
+   exact factor is enforced by Auth0 settings and verified manually, not inferred from
+   an email or imitated in the frontend. See the [Admin setup runbook](../development/auth0-setup.md).
 4. The backend validates issuer, audience, signature, expiry, nonce, state and PKCE
    binding before accepting the identity result.
 5. The backend looks up the stable `(issuer, subject)` pair in the local staff allowlist.
@@ -331,9 +332,10 @@ The following gates must be closed before live Auth0 integration is accepted:
 
 - Verify the reported development tenant configuration through the exact `/admin`
   callback, backend session, protected-operation and logout checks in the runbook.
-- Prove the Free-plan production assurance gate in the provider-selection decision. If
-  password-only or skipped passkey enrollment can produce an administrator session,
-  production remains blocked pending an explicitly approved alternative.
+- Prove the approved password/TOTP Beta flow and plan entitlement. The earlier
+  production phishing-resistant-factor requirement remains a separate acceptance gate;
+  this Beta configuration does not establish it. Password-only or skipped MFA must
+  never produce an administrator session.
 - Approve the initial administrator identities through a private channel.
 - Confirm production frontend and API origins and the deployment's same-site cookie
   topology.

@@ -53,6 +53,12 @@ inside the navigation list. The visible session
 caption reads “Signed in as Renzo & Criezel”. That caption is deliberately independent of
 the authenticated `StaffIdentity`, email, subject, permissions and audit actor.
 
+The approved Beta operational identity is one shared `rcpremierph@gmail.com` Admin for
+Renzo & Criezel, manually mapped by exact Auth0 issuer/subject. All actions therefore
+share one `StaffIdentity` audit actor, without individual attribution to Renzo or
+Criezel. The infrastructure owner is not the website Admin. See the
+[Auth0 ownership and setup runbook](../development/auth0-setup.md).
+
 At widths through 1024 CSS pixels, Properties, Inquiries, Audit and Staff retain their
 semantic desktop tables but present each body row as a compact labelled record card.
 Essential identity, state, date and actions therefore remain directly visible without

@@ -1,278 +1,194 @@
-# Auth0 Free Development Setup
+# Auth0 Admin setup and Beta handoff
 
-Status: development tenant, Regular Web Application, disabled public signup, local
-administrator provisioning and a passkey redirect to `http://localhost:3000/` were
-reported working on 2026-09-06. Live application-session bootstrap, protected property
-operations and logout still require the manual acceptance run below.
+Status: **CODE COMPLETE; MANUAL AUTH0 CONFIGURATION REQUIRED.** This runbook does not
+prove live password/TOTP authentication, provision a real user, or authorize deployment.
+The development passkey redirect reported on 2026-09-06 remains historical evidence;
+it is not acceptance of the approved Beta login flow.
 
-The Level 6 automated security review is complete. Production configuration, staff
-disable/recovery and remaining blockers are tracked in
-[`authentication-operations.md`](authentication-operations.md).
+## Ownership and single Admin identity
 
-This runbook configures invited staff authentication only. Do not enable public signup,
-social connections, Auth0 Organizations or Auth0 roles. Local `StaffIdentity` records
-remain the source of application authorization.
+| Responsibility                                                                      | Approved identity       |
+| ----------------------------------------------------------------------------------- | ----------------------- |
+| Infrastructure owner: Auth0 dashboard/tenant, Vercel, Atlas, API host and providers | `wilsonyao72@gmail.com` |
+| Website Admin and business notification mailbox                                     | `rcpremierph@gmail.com` |
+| Website Admin display name                                                          | `Renzo & Criezel`       |
 
-## 1. Create the development tenant
+There is intentionally one shared operational Admin for Renzo & Criezel. Do not create
+separate accounts for them or provision the infrastructure owner as website Admin.
+Application audit events identify this one local `StaffIdentity`; they cannot attribute
+an action to one of the two people individually. The shell caption remains **Signed in
+as Renzo & Criezel** and is presentation, not proof of identity or authorization.
 
-1. Sign up for Auth0 Free. The Free plan is sufficient for development and currently
-   requires no credit card.
-2. Create one tenant with a clearly non-production name such as
-   `rc-premier-properties-dev` and select the nearest appropriate region available to
-   the project owner.
-3. Record the tenant **Domain** from **Settings**. If it is
-   `rc-premier-properties-dev.us.auth0.com`, the issuer value is
-   `https://rc-premier-properties-dev.us.auth0.com/` including the scheme and trailing
-   slash.
-4. Enable MFA for every Auth0 Dashboard administrator account separately from the
-   application-user settings below.
+Auth0 owns passwords, TOTP enrollment and recovery. Express retains the exact local
+`(issuer, subject)` allowlist, roles, permissions, revocable opaque sessions, audit,
+CSRF and origin protections. A matching email, including the business email, does not
+authorize a login. No Auth0 roles, Organizations, social connections, customer accounts
+or custom RC Premier credential forms are needed.
 
-Auth0 Free includes one tenant. Do not mix production staff or production secrets into
-this development tenant. Production environment isolation remains unresolved.
+## 1. Confirm the tenant and MFA entitlement
 
-## 2. Create the application
+Use an isolated Beta/staging Auth0 tenant/application and keep its users/secrets separate
+from production. Sign into the dashboard using the infrastructure owner's account;
+secure dashboard access with its own MFA, separately from website-user MFA.
 
-1. Open **Applications → Applications → Create Application**.
-2. Name it `RC Premier Properties Backend (Development)`.
-3. Choose **Regular Web Application**.
-4. In application settings, enter these exact local values:
+Verify the selected plan supports authenticator OTP/TOTP MFA for the duration of Beta.
+Auth0's [plan matrix](https://auth0.com/pricing), checked on 2026-09-13, lists Pro MFA
+Factors as unavailable on Free. A development passkey or temporary trial does not prove
+durable TOTP entitlement. The owner must approve any required plan change; this task
+does not enable a trial, subscription or alternate authentication method. If TOTP is
+unavailable, live Admin acceptance is blocked; retain fail-closed MFA.
 
-   | Auth0 field           | Value                                        |
-   | --------------------- | -------------------------------------------- |
-   | Application Login URI | Leave empty for local development            |
-   | Allowed Callback URLs | `http://localhost:5000/api/v1/auth/callback` |
-   | Allowed Logout URLs   | `http://localhost:3000/`                     |
-   | Allowed Web Origins   | `http://localhost:3000`                      |
+Record the tenant domain as `https://<beta-auth0-domain>/`, with a trailing slash.
+Do not guess the real domain or final Beta origins.
 
-5. Auth0 requires the Application Login URI to use HTTPS and does not accept localhost
-   there. It is optional because RC Premier starts login through its own backend route.
-6. Do not add wildcards. Add comma-separated production values only after the real
-   production domains are approved.
-7. Under **Advanced Settings → Grant Types**, keep **Authorization Code** enabled. The
-   application does not use Implicit, Password, Client Credentials or Refresh Token
-   grants. PKCE has no separate application secret: the backend generates a new verifier
-   and sends `S256` on every authorization request.
+## 2. Configure the Regular Web Application
 
-The current logout endpoint revokes the RC Premier application session locally. The
-Allowed Logout URL above reserves the safe return address for a future reviewed Auth0
-SSO-logout addition; the backend does not call it yet.
+Under **Applications → Applications**, create/verify the Beta backend as a **Regular
+Web Application**. Use current **Branding → Universal Login**, with Classic/custom
+login disabled. Standard Login and Identifier First can collect email/password; there
+is no longer a passkey-specific profile dependency.
 
-## 3. Configure Universal Login and Free-plan development passkey assurance
+Keep **Authorization Code** enabled under **Advanced Settings → Grant Types**.
+The flow uses server-side Authorization Code + S256 PKCE with scopes
+`openid profile email`. Do not enable Implicit, Password/ROPG, Client Credentials,
+Refresh Token or the MFA API grant for this flow. Password authentication in Universal
+Login does not require the Password grant. No browser Auth0 client secret or new API
+audience is required: the validated ID-token audience is `AUTH0_CLIENT_ID`.
 
-1. Under **Branding → Universal Login**, use the current Universal Login experience and
-   disable any Classic/custom login page.
-2. Use the Identifier First authentication profile required by Auth0 passkeys.
-3. Under **Authentication → Database**, create or select a dedicated connection named
-   `rc-premier-staff-dev`.
-4. Turn on **Disable Sign Ups**. Verify the connection is enabled only for the RC Premier
-   development application.
-5. Do not enable social connections or Organizations.
-6. In the connection's **Authentication Methods**, enable a database-connection passkey
-   and complete the Identifier First prerequisites. The Free development flow requires
-   the approved administrator to use this passkey; password-only login is denied.
-7. Under **Security → Multi-factor Auth**, leave paid MFA factors disabled and leave the
-   policy at **Never** while the tenant remains on Free. Do not enable a paid trial or
-   subscription without owner approval.
-8. Do not enable the application's **MFA** grant type. That grant is for Auth0's MFA API;
-   this application uses the hosted Universal Login Authorization Code flow.
+After the real Beta origins exist, enter exact URLs:
 
-### Add the reviewed passkey-evidence Action
+| Auth0/application field                              | Beta value (replace placeholders)                                                         |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Allowed Callback URLs / backend `AUTH0_CALLBACK_URL` | `<BETA_API_ORIGIN>` + `API_PREFIX` + `/auth/callback` (currently `/api/v1/auth/callback`) |
+| Allowed Logout URLs                                  | `<BETA_FRONTEND_ORIGIN>/`                                                                 |
+| Allowed Web Origins                                  | `<BETA_FRONTEND_ORIGIN>`                                                                  |
+| Frontend origin / backend `CORS_ORIGIN`              | `<BETA_FRONTEND_ORIGIN>`                                                                  |
+| Backend `AUTH_ALLOWED_RETURN_URLS`                   | `<BETA_FRONTEND_ORIGIN>/,<BETA_FRONTEND_ORIGIN>/admin`                                    |
+| Backend `API_PUBLIC_ORIGIN`                          | `<BETA_API_ORIGIN>`                                                                       |
+| Application Login URI                                | Optional; leave empty unless an approved HTTPS start-login URI is configured              |
 
-Auth0 exposes actual passkey use to a Post-Login Action. The Action copies only that
-boolean result into a namespaced ID-token claim; the signed token remains subject to the
-backend's issuer, audience, signature, expiry and nonce validation.
+Each origin is one exact HTTPS scheme/host/port without a path or trailing slash.
+Callbacks run on Express, not a frontend `/callback`. Never allow `*.vercel.app` or
+arbitrary PR origins. Preserve the same-site or single-origin topology in
+[`vercel-beta.md`](vercel-beta.md). RC Premier logout revokes its local session and
+clears cookies; it does not call Auth0 SSO logout. Allowed Logout URLs reserve the safe
+address and do not imply otherwise.
 
-1. Open **Actions → Library → Build Custom**.
-2. Name the Action `Add RC Premier passkey assurance` and select the **Login / Post
-   Login** trigger.
-3. Replace the editor contents with this exact code:
+For a separately configured local development application, the callback is
+`http://localhost:5000/api/v1/auth/callback`, logout is `http://localhost:3000/`,
+and web origin is `http://localhost:3000`. Local acceptance also requires TOTP MFA;
+there is no development passkey assurance exception.
 
-   ```js
-   exports.onExecutePostLogin = async (event, api) => {
-     const usedPasskey =
-       event.connection?.name === "rc-premier-staff-dev" &&
-       event.authentication?.methods?.some((method) => method.name === "passkey") ===
-         true;
+## 3. Configure the dedicated Admin database connection
 
-     api.idToken.setCustomClaim(
-       "https://rc-premier-properties.example/claims/passkey",
-       usedPasskey,
-     );
-   };
-   ```
+Under **Authentication → Database**, create/verify `RC-Premier-Admin` using Auth0's
+user store. The connection name is a dashboard choice, not a runtime email allowlist.
+Enable it only for the intended RC Premier Beta application and disable that
+application's other connections offering social, passwordless or unrelated staff login.
 
-4. Select **Deploy**.
-5. Open **Actions → Triggers** and select the **post-login** (Login) trigger. Add the
-   deployed custom Action to that trigger and select **Apply**. In dashboard versions
-   that still label this page as a flow, the equivalent path is **Actions → Flows →
-   Login**. Do not use **Actions → Forms**; its visual form-flow builder is unrelated.
+1. Enable **Disable Sign Ups**; verify Universal Login has no public signup option and
+   public signup endpoints reject registration.
+2. Use email as the identifier and enable **Password** authentication on login. Do not
+   configure email OTP/passwordless login as a substitute for the password.
+3. Under **Authentication Methods → Passkey → Configure**, turn **Enable passkeys**
+   off and save. Verify progressive/local enrollment does not offer passkeys.
+4. Retain Auth0 password reset/recovery. The owner manually creates/sets a separate
+   Auth0 password. It is **not the Gmail password**. Never request/store the Gmail
+   password or place any website password in source, env, commands or chat.
+5. Remove the former development passkey-evidence Action from this application's Login
+   trigger during manual migration. Do not fabricate `amr: mfa` through a custom
+   claim; the backend no longer consumes passkey assurance.
 
-Do not change the claim name or set it from user metadata. The Action derives it from
-Auth0's authentication event, and the backend accepts it only outside production.
+The application redirects to Universal Login and has no owned passkey/WebAuthn UI.
+Connection and factor controls belong in Auth0, not frontend hiding or CSS.
 
-Every backend authorization request still sends the standard Auth0 MFA step-up value
-`acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor` so the same
-request is ready for the intended production MFA policy. The Free development tenant
-cannot satisfy that value with a paid MFA challenge, so the backend instead validates
-the signed passkey claim described above. The request also sends `prompt=login`, which
-requires a fresh Auth0 authentication prompt before a new local session is created.
+## 4. Require authenticator TOTP MFA and retain recovery
 
-Auth0's current documentation says a hosted flow adds `mfa` to the ID token's validated
-`amr` array only after the user passes an MFA challenge. In production, the backend
-requires exactly that evidence. In development and test only, it alternatively accepts
-the signed boolean claim above when Auth0 reports that a passkey actually authenticated
-the user. Missing evidence and password-only authentication fail closed.
+Under **Security → Multi-factor Auth**:
 
-These are two different WebAuthn uses:
+1. Enable **One-time Password (OTP)** as the independent MFA factor. This is
+   authenticator-app TOTP, compatible with Google Authenticator, not email OTP login.
+2. Disable **WebAuthn with FIDO Biometrics** and **WebAuthn with FIDO Security Keys**.
+   Keep other ordinary factors (email, SMS, push, Duo) disabled for the approved flow.
+3. Retain **Recovery Code** capability and set MFA policy to **Always**, not Never or
+   risk-only Adaptive MFA. A dedicated Beta tenant limits the policy's scope.
+4. Save settings and review Login Actions for MFA skips/bypasses. Do not allow
+   remembered-browser behavior to omit the challenge on new RC Premier logins.
 
-- A **database-connection passkey** can be the primary authentication method. It is not
-  automatically proof that Auth0 ran an MFA challenge.
-- **WebAuthn with FIDO Security Keys** under **Security → Multi-factor Auth** is an Auth0
-  MFA factor used after the primary authentication step.
+RC Premier already sends `prompt=login` and multi-factor `acr_values` on every new
+login. Auth0 documents that the latter overrides remembered-browser skipping. Verify
+the challenge on repeat sign-ins. If tenant customization needs an Action to control
+remembering, use Auth0's documented `allowRememberBrowser: false` approach scoped to
+the intended application/connection, without constructing authentication claims or
+authorizing by email.
 
-The current Auth0 Free pricing matrix does not include Pro MFA factors. The passkey
-exception is deliberately unavailable when `NODE_ENV=production`; it cannot silently
-weaken the production requirement. Production remains blocked until an appropriate paid
-Auth0 plan, another approved provider/control, or an explicit production-security
-decision is selected.
+The backend requires validated ID-token `amr` containing `mfa` in every environment;
+missing/empty evidence, password-only and passkey-only authentication fail closed.
+This proves Auth0 reported MFA. The exact TOTP factor and password requirement remain
+tenant controls and need live acceptance. TOTP is the explicitly approved Beta factor;
+it does not establish the earlier production phishing-resistant-factor acceptance gate
+or complete a roadmap phase.
 
-## 4. Configure local secrets
+## 5. Manually create and map the single Admin
 
-Copy `backend/.env.example` to the ignored `backend/.env`, then fill:
-
-```ini
-AUTH0_ISSUER_URL=https://<your-development-domain>/
-AUTH0_CLIENT_ID=<Application Settings → Client ID>
-AUTH0_CLIENT_SECRET=<Application Settings → Client Secret>
-AUTH0_CALLBACK_URL=http://localhost:5000/api/v1/auth/callback
-AUTH_ALLOWED_RETURN_URLS=http://localhost:3000/,http://localhost:3000/admin
-AUTH_SESSION_HASH_SECRET=<your-own-random-secret>
-AUTH_REQUIRED_AMR=mfa
-```
-
-Development uses loopback HTTP. In production, configuration validation rejects HTTP
-for the frontend origin, callback and return URLs; all three must use exact HTTPS URLs.
-
-`AUTH_SESSION_HASH_SECRET` is separate from the Auth0 client secret. Generate at least
-32 random bytes locally. For example, in PowerShell:
-
-```powershell
-$authBytes = New-Object byte[] 32
-[Security.Cryptography.RandomNumberGenerator]::Fill($authBytes)
-[Convert]::ToBase64String($authBytes)
-```
-
-Paste the result only into the ignored `backend/.env`. Never paste either secret into
-chat, an issue, a screenshot, source code or a committed file. Production secrets must
-eventually live in the deployment secret manager.
-
-## 5. Create and allow the first administrator
-
-1. In Auth0, open **User Management → Users → Create User**.
-2. Create the staff user in `rc-premier-staff-dev`; do not expose a signup link.
-3. Open the user and copy **user_id**, for example `auth0|...`. This exact value is the
-   OIDC subject. It is an identifier, not the password or client secret.
-4. With MongoDB reachable and `backend/.env` configured, run from the repository root:
+1. Under **User Management → Users → Create User**, create only
+   `rcpremierph@gmail.com` in `RC-Premier-Admin`, with name `Renzo & Criezel`.
+   The owner sets the Auth0 password privately or uses Auth0's supported reset flow.
+   Do not supply it to Codex or add separate Renzo, Criezel or Wilson users.
+2. Copy that user's exact **user_id** (`auth0|...`) and Beta issuer. A different
+   connection can produce a different subject even when the email matches.
+3. After separately authorized Beta database setup, run the existing audited local
+   provisioning CLI from the repository root against that isolated environment:
 
    ```bash
-   npm run auth:provision-admin --workspace backend -- --issuer "https://<your-development-domain>/" --subject "auth0|..." --email "approved-staff@example.com" --name "Approved Staff Name"
+   npm run auth:provision-admin --workspace backend -- --issuer "https://<beta-auth0-domain>/" --subject "auth0|<actual-user-id>" --email "rcpremierph@gmail.com" --name "Renzo & Criezel"
    ```
 
-The CLI requires the issuer explicitly and refuses it unless its normalized value
-exactly matches `AUTH0_ISSUER_URL`. It creates or updates the exact local allowlist
-record and writes a security audit event. It never creates an Auth0 user and is not an
-HTTP endpoint.
+   The CLI requires an issuer matching `AUTH0_ISSUER_URL`; it maps only the exact
+   issuer/subject, creates or updates local Admin authorization, revokes existing
+   sessions on updates and writes audit events. It never creates an Auth0 user or
+   handles a password. This command has **not** been run in this task.
 
-## 6. Run and test the admin flow locally
+4. Review existing local staff identities in the protected Staff view. If a former
+   operational identity remains active, disable that exact old issuer/subject using
+   the existing `auth:disable-staff` CLI; retain its audit history. Do not infer
+   subjects from email or automatically alter real records.
 
-Start MongoDB locally (or make sure Atlas allows the current IP), then run these in two
-repository-root terminals:
+See [`authentication-operations.md`](authentication-operations.md) for disablement,
+session revocation and controlled factor recovery. Configure the six required backend
+Auth0/session values in the host's secret/config store using `backend/.env.example`;
+keep `AUTH_REQUIRED_AMR=mfa`. No passwords or MFA seeds belong in env. No secret
+may use `NEXT_PUBLIC_`.
 
-```bash
-npm run dev:backend
-npm run dev:frontend
-```
+## 6. Enroll and accept the login flow
 
-Before starting the backend, confirm the ignored `backend/.env` contains both exact
-return destinations:
+1. Open `/admin`, choose **Staff sign in**, and enter `rcpremierph@gmail.com` plus
+   its Auth0 password in Universal Login.
+2. On first sign-in, Auth0 must require MFA enrollment. Scan its QR code in Google
+   Authenticator and enter the generated TOTP code to confirm enrollment.
+3. Store recovery information privately in the owner's approved secure store. Never
+   put the QR, seed, recovery codes, password or client secret in the repo, screenshots,
+   logs, chat, issues or build artifacts. RC Premier generates none of this material.
+4. Verify the callback returns exactly to `/admin`, creates the hosted Beta host-only
+   HttpOnly/Secure/SameSite=Lax cookie, and `/auth/session` reports the locally mapped
+   Admin. Confirm **Signed in as Renzo & Criezel**.
+5. Sign out and sign in again: require email → password → TOTP → Admin Dashboard.
+   Wrong/skipped TOTP, password-only and passkey-only attempts must create no session.
+   No passkey, biometric/security-key or public signup option should be offered.
+6. Verify an authenticated but unmapped Auth0 user remains unauthorized. Automated
+   fixtures cover matching-email/different-subject rejection. Unknown/disabled/unassigned
+   staff receive generic `401 Authentication failed.`; missing permission is `403`.
+7. Verify protected property/inquiry operations, hostile-origin rejection, missing or
+   invalid CSRF rejection, no-store/noindex, rotation/expiry and local logout through
+   the real edge using synthetic data. Confirm safe audit actor IDs and no credential
+   or customer-message logging. Record observed live evidence only.
 
-```ini
-AUTH_ALLOWED_RETURN_URLS=http://localhost:3000/,http://localhost:3000/admin
-```
+Official references checked for this handoff:
 
-Do not add a wildcard or paste the file contents into chat. Restart the backend after
-changing this value. Then navigate to:
-
-```text
-http://localhost:3000/admin
-```
-
-The shell shows **Staff sign in** while unauthenticated. Follow that action, complete
-Universal Login with the approved staff user, and choose the enrolled passkey.
-Password-only login is intentionally rejected. Auth0 returns through the backend
-callback, which should issue an `HttpOnly` local session cookie and redirect exactly to
-`http://localhost:3000/admin`; that route then opens the private property list. The
-frontend holds the response's CSRF token only in React memory and sends it on create,
-edit and logout requests. Do not copy, print or place that token in storage.
-
-See [`testing.md`](testing.md) for the automated/manual boundary,
-[`../api/authentication-api.md`](../api/authentication-api.md) for session responses and
-[`../api/property-administration-api.md`](../api/property-administration-api.md) for the
-protected property contract.
-
-## 7. Manual development-tenant acceptance
-
-The successful passkey authentication and redirect to the public root are evidence that
-the Auth0 application, callback and development assurance claim can complete. They do
-not by themselves prove that the backend session cookie, `/admin` return URL, protected
-property operations or logout work. Perform these remaining checks:
-
-1. Open DevTools **Network**, visit `http://localhost:3000/admin`, select **Staff sign
-   in**, and complete the enrolled-passkey login. Confirm the callback redirects to the
-   exact `/admin` URL. `GET /api/v1/auth/session` must return `200`, local staff fields,
-   named permissions, a CSRF token and both expiry timestamps. DevTools **Application →
-   Cookies** must show the application cookie as `HttpOnly` and `SameSite=Lax`; the
-   cookie value must not appear in local storage, session storage or response bodies.
-2. Confirm the Post-Login Action is deployed in the Login flow. Test password-only login;
-   its callback must return generic `401 Authentication failed.` and issue no application
-   session. Repeating login with the enrolled passkey must succeed in development.
-3. Try an Auth0 user that has no local `StaffIdentity`, then disable the approved local
-   record. Both must receive the same generic `401` and no session. Re-run the controlled
-   provisioning command to reactivate the approved administrator afterward.
-4. Confirm the private property list loads. Create a synthetic draft, verify its response
-   remains `publicationStatus: "draft"` and `availability: "available"`, and confirm its
-   slug returns `404` from the public `/properties/:slug` route. Edit its title and
-   description; confirm publication status and availability do not change.
-5. With the session still active, issue a synthetic draft-create request from the browser
-   without `X-CSRF-Token` (do not include real listing or personal data). It must return
-   the shared `403` envelope and create nothing. The automated suite separately covers
-   altered and cross-session tokens. A request from a disallowed origin must likewise
-   return `403`.
-6. Select **Sign out** in the admin shell. `POST /api/v1/auth/logout` must return `200`,
-   clear the cookie, and make the next session/private-list request return `401`; the UI
-   must return to the staff sign-in state. A repeated unauthenticated logout is idempotent
-   and remains `200` when sent from the approved origin.
-7. Temporarily set `AUTH_SESSION_IDLE_MINUTES=1`, restart, log in and wait more than one
-   minute without activity. The next session read must return `401`. Absolute expiry
-   similarly returns `401` regardless of activity; its minimum configurable unit is one
-   hour and the automated suite covers the exact boundary.
-8. Inspect `SecurityAuditEvent` records after create and edit. Each successful operation
-   must produce exactly one `property.created` or `property.edited` event. Edit events may
-   list changed field names, but no property descriptions, request bodies, callback
-   codes, provider tokens, cookies, CSRF values, passwords or inquiry messages may be
-   present.
-9. Insufficient-permission behavior is covered repeatably by an injected test boundary
-   without creating a fake production role. A denied protected read or write returns the
-   shared `403` envelope. If this is checked manually, alter only a disposable local test
-   fixture and restore it immediately; do not invent or persist a production role.
-
-The `/admin` shell now includes the implemented property lifecycle, validated device media
-upload, and lightweight inquiry/viewing workflows. Production object storage/CDN and
-broader CRM remain outside this runbook and retain their roadmap gates.
-
-Official configuration references:
-
-- [Enable Multi-Factor Authentication](https://auth0.com/docs/secure/multi-factor-authentication/enable-mfa)
-- [Configure step-up authentication for web apps](https://auth0.com/docs/secure/multi-factor-authentication/step-up-authentication/configure-step-up-authentication-for-web-apps)
-- [Customize MFA and remembered-browser behavior](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa)
-- [Auth0 plan comparison](https://auth0.com/pricing)
+- [Database connections](https://auth0.com/docs/authenticate/database-connections)
+- [Passkey settings](https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy)
+- [Enable MFA](https://auth0.com/docs/secure/multi-factor-authentication/enable-mfa)
+- [Configure authenticator OTP](https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-otp-notifications-for-mfa)
+- [Recovery codes](https://auth0.com/docs/secure/multi-factor-authentication/configure-recovery-codes-for-mfa)
+- [MFA remembering controls](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa)
+- [Web-app step-up and validated MFA evidence](https://auth0.com/docs/secure/multi-factor-authentication/step-up-authentication/configure-step-up-authentication-for-web-apps)

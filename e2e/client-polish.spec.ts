@@ -427,9 +427,9 @@ test("the targeted Home action stays usable while the duplicate property action 
   expect(email).toBeDefined();
   expect(phone).toBeDefined();
   expect(phone!.top - email!.bottom).toBeGreaterThanOrEqual(5);
-  await footerContact.getByRole("link", { name: "rcpropertiesss@gmail.com" }).hover();
+  await footerContact.getByRole("link", { name: "rcpremierph@gmail.com" }).hover();
   await expect(
-    footerContact.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
+    footerContact.getByRole("link", { name: "rcpremierph@gmail.com" }),
   ).toHaveCSS("transform", "none");
 });
 

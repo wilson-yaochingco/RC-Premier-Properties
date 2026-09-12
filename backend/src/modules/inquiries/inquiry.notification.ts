@@ -1,8 +1,6 @@
 import type { CreateInquiryRequest } from "@rc/shared";
 import { env } from "../../config/env.js";
 
-export const INQUIRY_NOTIFICATION_DESTINATION = "rcpropertiesss@gmail.com";
-
 export interface InquiryNotificationMessage {
   to: string;
   subject: string;
@@ -90,7 +88,7 @@ export function buildInquiryNotification(
     `Admin: ${env.CORS_ORIGIN}/admin/inquiries/${inquiryId}`,
   ];
   return {
-    to: INQUIRY_NOTIFICATION_DESTINATION,
+    to: env.BUSINESS_NOTIFICATION_EMAIL,
     subject: `New RC Premier Inquiry — ${reference}`,
     text: lines.join("\n"),
   };

@@ -48,8 +48,8 @@ Current:
 - [`authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
   — implemented Phase 3A backend identity, session and permission architecture; live
   provider and production gates remain open
-- [`oidc-provider-selection.md`](architecture/oidc-provider-selection.md) — Auth0 Free
-  selection, provider comparison, configuration baseline and provisioning gates
+- [`oidc-provider-selection.md`](architecture/oidc-provider-selection.md) — Auth0
+  selection, historical comparison, Beta password/TOTP baseline and provisioning gates
 - [`brand-and-public-experience.md`](architecture/brand-and-public-experience.md) —
   visual system, information architecture and public-experience rules
 - [`geographic-data-and-maps.md`](architecture/geographic-data-and-maps.md) — Leaflet
@@ -148,8 +148,8 @@ Current:
 - [`setup.md`](development/setup.md) — the full VS Code onboarding guide
 - [`git-workflow.md`](development/git-workflow.md) — branching, commits and pull requests
 - [`testing.md`](development/testing.md) — automated and manual verification boundaries
-- [`auth0-setup.md`](development/auth0-setup.md) — development tenant, secrets,
-  administrator bootstrap and live-login acceptance
+- [`auth0-setup.md`](development/auth0-setup.md) — infrastructure ownership, shared Admin,
+  password/TOTP, disabled passkeys/signup, Beta URLs and manual acceptance
 - [`authentication-operations.md`](development/authentication-operations.md) —
   production configuration gate, staff disable/revocation and recovery procedure
 - [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
@@ -157,8 +157,8 @@ Current:
 - [`deployment-and-release.md`](development/deployment-and-release.md) — Level 11 audit,
   environment matrix, build/start behavior, staging acceptance, production checklist,
   rollback, external blockers, and Level 12 handoff
-- [`vercel-beta.md`](development/vercel-beta.md) — Level 22 controlled-beta topology,
-  Vercel monorepo configuration, environment matrix, preview security, and live gates
+- [`vercel-beta.md`](development/vercel-beta.md) — controlled-beta topology, ownership,
+  Vercel/Preview settings, business recipient, manual checklist and live gates
 
 ---
 

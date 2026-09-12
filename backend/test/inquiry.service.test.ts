@@ -216,7 +216,7 @@ describe("public inquiry idempotency", () => {
     expect(create).toHaveBeenCalledBefore(send);
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "rcpropertiesss@gmail.com",
+        to: "rcpremierph@gmail.com",
         subject: "New RC Premier Inquiry — General inquiry",
       }),
       { idempotencyKey: expect.stringMatching(/^[a-f0-9-]{36}$/) },

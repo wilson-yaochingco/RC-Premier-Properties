@@ -1,4 +1,4 @@
-export const OFFICIAL_EMAIL = "rcpropertiesss@gmail.com";
+export const OFFICIAL_EMAIL = "rcpremierph@gmail.com";
 export const OFFICIAL_PHONE = "+63 918 429 1873";
 export const OFFICIAL_PHONE_HREF = "tel:+639184291873";
 

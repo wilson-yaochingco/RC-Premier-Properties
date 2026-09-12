@@ -105,15 +105,15 @@ would need runtime request handling and should be evidence-driven.
 
 ## Provider decisions
 
-| Category            | Status                     | Integration point and exposure                                                                   | Failure behavior / remaining gate                                                                        |
-| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Application hosting | Unselected                 | Two Node runtimes behind one HTTPS edge are recommended                                          | Owner must select host, domain, proxy count, limits, and timeouts                                        |
-| Object storage      | Unselected                 | `PropertyMediaStorage` is the server-side write/delete boundary; no blobs enter MongoDB          | Production upload returns 503 until a real adapter and credentials exist                                 |
-| CDN/media delivery  | Unselected                 | One optional exact `MEDIA_PUBLIC_ORIGIN` / `NEXT_PUBLIC_MEDIA_ORIGIN`; Next Image and CSP use it | Public hostname, caching, CORS, and live delivery remain external                                        |
-| Transactional email | Unselected                 | `InquiryNotifier` runs only after MongoDB persistence                                            | Disabled adapter sends nothing; real receipt remains external; receiver stays `rcpropertiesss@gmail.com` |
-| Map tiles           | Unselected                 | Leaflet consumes a validated public tile template and plain-text/link attribution                | Staging/production build fails without approved configuration; list/text fallback remains usable         |
-| Database            | MongoDB Atlas architecture | Server-only encrypted URI with explicit database; readiness follows Mongoose state               | Production cluster, user, network allowlist, and execution-plan evidence remain external                 |
-| Authentication      | Auth0                      | Backend-only OIDC client, opaque local session, local authorization                              | Production tenant callbacks, secret, MFA factors, and live flow acceptance remain external               |
+| Category            | Status                     | Integration point and exposure                                                                   | Failure behavior / remaining gate                                                                     |
+| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Application hosting | Unselected                 | Two Node runtimes behind one HTTPS edge are recommended                                          | Owner must select host, domain, proxy count, limits, and timeouts                                     |
+| Object storage      | Unselected                 | `PropertyMediaStorage` is the server-side write/delete boundary; no blobs enter MongoDB          | Production upload returns 503 until a real adapter and credentials exist                              |
+| CDN/media delivery  | Unselected                 | One optional exact `MEDIA_PUBLIC_ORIGIN` / `NEXT_PUBLIC_MEDIA_ORIGIN`; Next Image and CSP use it | Public hostname, caching, CORS, and live delivery remain external                                     |
+| Transactional email | Unselected                 | `InquiryNotifier` runs only after MongoDB persistence                                            | Disabled adapter sends nothing; real receipt remains external; receiver stays `rcpremierph@gmail.com` |
+| Map tiles           | Unselected                 | Leaflet consumes a validated public tile template and plain-text/link attribution                | Staging/production build fails without approved configuration; list/text fallback remains usable      |
+| Database            | MongoDB Atlas architecture | Server-only encrypted URI with explicit database; readiness follows Mongoose state               | Production cluster, user, network allowlist, and execution-plan evidence remain external              |
+| Authentication      | Auth0                      | Backend-only OIDC client, opaque local session, local authorization                              | Production tenant callbacks, secret, MFA factors, and live flow acceptance remain external            |
 
 No containers are added. Neither selected hosting characteristics nor the existing simple
 two-runtime application justify Docker or orchestration at this stage.

@@ -31,6 +31,7 @@ import {
 } from "@/features/properties/property-seo";
 import styles from "@/features/properties/property-detail.module.css";
 import { formatBusinessDate } from "@/lib/date-time";
+import { OFFICIAL_EMAIL, OFFICIAL_PHONE } from "@/lib/public-contact";
 import { absoluteSiteUrl, serializeJsonLd } from "@/lib/seo";
 import { ApiClientError } from "@/services/api-client";
 
@@ -150,7 +151,9 @@ export default async function PropertyDetailPage({
           ))}
         </dl>
         <p>{property.description}</p>
-        <p>rcpropertiesss@gmail.com · +63 918 429 1873</p>
+        <p>
+          {OFFICIAL_EMAIL} · {OFFICIAL_PHONE}
+        </p>
         <p>Public listing: {publicUrl}</p>
       </section>
 

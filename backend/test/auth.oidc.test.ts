@@ -5,8 +5,9 @@ import {
   MFA_ACR_VALUE,
   OidcVerificationError,
   OpenIdClientProvider,
-  PASSKEY_AUTHENTICATION_CLAIM,
 } from "../src/modules/auth/auth.oidc.js";
+
+const LEGACY_PASSKEY_CLAIM = "https://rc-premier-properties.example/claims/passkey";
 
 const CLIENT_ID = "oidc-protocol-test-client";
 const CLIENT_SECRET = "oidc-protocol-test-secret";
@@ -44,7 +45,7 @@ function idToken(
     claims.amr =
       code === "empty-amr" ? [] : code === "passkey-only" ? ["phr"] : ["mfa"];
   }
-  claims[PASSKEY_AUTHENTICATION_CLAIM] = code === "passkey-only";
+  claims[LEGACY_PASSKEY_CLAIM] = code === "passkey-only";
   const payload = encode(claims);
   const unsigned = `${header}.${payload}`;
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey).toString(
@@ -167,7 +168,6 @@ describe("openid-client protocol boundary", () => {
       issuer,
       subject: "auth0|protocol-test-admin",
       authenticationMethods: ["mfa"],
-      passkeyAuthenticated: false,
       displayName: "Protocol Test Admin",
       email: "protocol-admin@example.test",
     });
@@ -192,7 +192,7 @@ describe("openid-client protocol boundary", () => {
       });
 
       expect(identity.authenticationMethods).toEqual(amr);
-      expect(identity.passkeyAuthenticated).toBe(code === "passkey-only");
+      expect(identity).not.toHaveProperty("passkeyAuthenticated");
     },
   );
 
@@ -228,7 +228,7 @@ describe("openid-client protocol boundary", () => {
     const callback = new URL(
       `${CALLBACK_URL}?code=valid&state=${encodeURIComponent(EXPECTED_STATE)}`,
     );
-    callback.searchParams.set(PASSKEY_AUTHENTICATION_CLAIM, "true");
+    callback.searchParams.set(LEGACY_PASSKEY_CLAIM, "true");
     callback.searchParams.set("passkeyAuthenticated", "true");
 
     const identity = await provider.completeAuthorization({
@@ -237,6 +237,7 @@ describe("openid-client protocol boundary", () => {
       expectedNonce: EXPECTED_NONCE,
       codeVerifier: CODE_VERIFIER,
     });
-    expect(identity.passkeyAuthenticated).toBe(false);
+    expect(identity.authenticationMethods).toEqual(["mfa"]);
+    expect(identity).not.toHaveProperty("passkeyAuthenticated");
   });
 });

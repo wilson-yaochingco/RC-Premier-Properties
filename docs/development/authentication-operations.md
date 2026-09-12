@@ -4,7 +4,7 @@ Status: **Level 6 engineering controls implemented; development-tenant live acce
 and production environment decisions remain open**
 
 This runbook is for trusted RC Premier operators. It does not create a public staff
-registration path. Auth0 owns credentials, passkeys, MFA and authenticator recovery;
+registration path. Auth0 owns credentials, MFA and authenticator recovery;
 Express owns the local `StaffIdentity` allowlist, roles, permissions, sessions,
 revocation, CSRF, origin enforcement and application audit records.
 
@@ -33,10 +33,9 @@ starting a production process, set and review:
 | `AUTH_TRANSACTION_MINUTES`     | Approved policy, no more than `10`                       |
 
 If authentication is absent or partial in production, startup fails. HTTP frontend,
-callback or return URLs also fail production validation. The development signed-passkey
-exception is derived from `NODE_ENV !== production`; production accepts only the
-configured, verified `amr` value. A database or Auth0 outage returns an availability
-error and never creates or authorizes a session.
+callback or return URLs also fail production validation. Every environment requires
+verified `amr: mfa`; the development signed-passkey exception is retired. A database or
+Auth0 outage returns an availability error and never creates or authorizes a session.
 
 Production validation also rejects an assurance value other than `mfa` or lifetimes and
 concurrency above the reviewed baseline. Tightening a value is allowed; weakening it
@@ -54,7 +53,7 @@ release must not be accepted while either generated URL still points to localhos
 ## Production Auth0 dashboard checklist
 
 - Use a production **Regular Web Application**, not the development application.
-- Use current Universal Login with Classic/custom login disabled and Identifier First.
+- Use current Universal Login with Classic/custom login disabled.
 - Enable only the dedicated invited-staff database connection; keep public signup off.
 - Do not enable public social connections, Organizations or Auth0 Roles for application
   authorization.
@@ -62,9 +61,12 @@ release must not be accepted while either generated URL still points to localhos
   wildcards.
 - Keep Authorization Code enabled; do not enable Implicit, Password, Client Credentials,
   Refresh Token or the MFA API grant for this browser flow.
-- Configure the production MFA policy as **Always** with an approved independent factor,
+- For Beta, use database/password login, policy **Always**, authenticator OTP/TOTP and
+  recovery codes; disable passkeys, both WebAuthn factors and public signup. Configure
+  production MFA with policy **Always** and an independently approved factor,
   and verify that a completed challenge produces signed `amr: ["mfa"]` evidence.
-- Do not rely on the development Post-Login passkey claim for production assurance.
+- Remove the retired development Post-Login passkey-evidence Action during manual
+  migration; do not fabricate MFA claims. Follow [the exact Beta runbook](auth0-setup.md).
 
 The production Auth0 plan/factor, tenant, domains and same-site frontend/API topology
 are not yet approved. Production authentication therefore remains blocked even though
@@ -76,7 +78,7 @@ Approve the exact Auth0 `user_id` through a private channel. From the repository
 with the intended ignored environment file active, run:
 
 ```bash
-npm run auth:provision-admin --workspace backend -- --issuer "https://<tenant>/" --subject "auth0|..." --email "approved-staff@example.com" --name "Approved Staff Name"
+npm run auth:provision-admin --workspace backend -- --issuer "https://<tenant>/" --subject "auth0|..." --email "rcpremierph@gmail.com" --name "Renzo & Criezel"
 ```
 
 `--issuer` is mandatory and must exactly match `AUTH0_ISSUER_URL`. The command creates
@@ -110,13 +112,13 @@ retention is tied to the unapproved audit/data-retention policy.
 2. Verify the staff member through the privately approved operator process. Do not use
    security questions or an email-only application bypass.
 3. Use Auth0's operator recovery/factor-reset controls. RC Premier never handles the
-   password or passkey credential material.
+   password, TOTP seed, QR or recovery credential material.
 4. Review recent safe audit events for suspicious login, revocation and denied-access
    activity.
 5. After the new factor is enrolled and independently confirmed, run the provisioning
    command with the exact approved issuer and current subject to reactivate access. If
    Auth0 issued a new subject, provision that new pair and leave the old pair disabled.
-6. Complete the live passkey/MFA, application-session, protected-action and logout
+6. Complete the live password/TOTP MFA, application-session, protected-action and logout
    checks before closing the recovery incident.
 
 Ownership for recovery approval, staff invitation, deactivation and security-event

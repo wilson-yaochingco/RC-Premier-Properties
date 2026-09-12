@@ -212,7 +212,8 @@ live values.
 Use a Regular Web Application with Authorization Code + PKCE. Configure only the exact
 HTTPS callback, logout destinations/return URLs, and web origin needed for the chosen
 topology. The client secret remains backend-only. Enable a real tenant MFA factor and
-policy that produces `amr: mfa`; do not rely on the development-only passkey claim.
+policy that produces `amr: mfa`; the development passkey exception is retired.
+For the approved Beta use password + mandatory TOTP and the [manual Admin runbook](auth0-setup.md).
 
 On staging, verify login redirect, callback/state/nonce/PKCE, local session creation,
 known active `StaffIdentity` access, unknown and disabled staff rejection, every protected
@@ -258,7 +259,7 @@ forms, videos, maps, logo/media, Auth0, admin property/inquiry/viewing flows, CS
 logout, and the privacy/sales-only boundaries. With real storage, test PNG/JPEG/WebP,
 multiple images, cover, reorder, focal point, removal, public derivative, CDN URL, and
 sample guard. With real email, persist a legitimate staging inquiry and observe actual
-receipt at `rcpropertiesss@gmail.com`; verify safe content and a protected admin link.
+receipt at `rcpremierph@gmail.com`; verify safe content and a protected admin link.
 
 Carry these manual accessibility gates until they are actually performed: real screen
 reader, physical Safari/iOS, Android browser, Firefox and WebKit, physical upload picker,
@@ -288,7 +289,7 @@ field Core Web Vitals/RUM belongs to Level 12 after real traffic.
       originals/derivatives policy, exact public media origin, caching, safe removal,
       CORS, versioning, retention, and lifecycle are approved and tested.
 - [ ] Transactional email provider, verified sender, server-only key, failure logging,
-      and actual receiver delivery to `rcpropertiesss@gmail.com` are accepted.
+      and actual receiver delivery to `rcpremierph@gmail.com` are accepted.
 - [ ] Final licensed map provider, HTTPS tile template, exposure rules, attribution, CSP,
       performance, fallback, and privacy behavior pass.
 - [ ] Canonical, Open Graph, HTTPS images, JSON-LD, robots, sitemap, filter noindex,

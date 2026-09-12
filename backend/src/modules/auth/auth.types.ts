@@ -178,8 +178,6 @@ export interface VerifiedOidcIdentity {
   issuer: string;
   subject: string;
   authenticationMethods: string[];
-  /** True only when the signed ID token carries the reviewed Auth0 Action claim. */
-  passkeyAuthenticated: boolean;
   displayName?: string;
   email?: string;
 }
@@ -200,8 +198,6 @@ export interface AuthServiceConfig {
   allowedReturnUrls: readonly string[];
   allowedOrigins: readonly string[];
   requiredAmr: string;
-  /** Allows signed passkey evidence only in non-production environments. */
-  allowPasskeyOnly: boolean;
   sessionIdleMs: number;
   sessionAbsoluteMs: number;
   sessionActivityTouchMs: number;
