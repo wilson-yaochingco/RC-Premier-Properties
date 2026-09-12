@@ -23,6 +23,26 @@ import {
 import { PropertyMediaCleanupTaskModel } from "../src/modules/properties/property-media-cleanup.model.js";
 
 describe("structured operational logging", () => {
+  it("logs registered route templates instead of caller-controlled path values", async () => {
+    const lines: string[] = [];
+    const app = express();
+    app.use(
+      createRequestLogging(
+        createOperationalLogger("info", (_level, line) => lines.push(line)),
+      ),
+    );
+    const router = express.Router();
+    router.get("/:slug", (_req, res) => res.status(204).end());
+    app.use("/properties", router);
+    await request(app).get("/properties/private-personal-value");
+    await request(app).get("/unknown/private-personal-value");
+    expect(lines.map((line) => JSON.parse(line).route)).toEqual([
+      "/properties/:slug",
+      "unmatched",
+    ]);
+    expect(lines.join("\n")).not.toContain("private-personal-value");
+  });
+
   it("uses a server request ID and logs only allowlisted request metadata", async () => {
     const lines: string[] = [];
     const logger = createOperationalLogger("debug", (_level, line) => lines.push(line));

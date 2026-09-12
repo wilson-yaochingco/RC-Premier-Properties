@@ -1,5 +1,12 @@
 # SEO and Social Discovery
 
+Level 22 makes `staging` (including controlled Vercel beta/Preview) non-indexable across
+the entire frontend: noindex/nofollow/noarchive response headers and page metadata,
+robots disallow-all with no sitemap advertisement, and empty default sitemap results
+without inventory fetches. Production retains the public indexing policy below. These
+are crawler instructions, not access controls; beta access restrictions remain required.
+See [Controlled Vercel beta](../development/vercel-beta.md).
+
 Status: Level 8 engineering implemented; the final production origin, live inventory,
 production property media/CDN, and deployment-only crawler validation remain external
 gates. Last reviewed 2026-09-11.

@@ -6,6 +6,7 @@ const {
   mapTileUrl: MAP_TILE_URL,
   mediaOrigin: MEDIA_ORIGIN,
   publicDeployment,
+  preventIndexing,
 } = readNextConfigEnvironment();
 
 function originOf(value) {
@@ -62,6 +63,9 @@ function remoteMediaPattern() {
 export default function createNextConfig(phase) {
   const optimizedRuntime = phase !== PHASE_DEVELOPMENT_SERVER;
   const securityHeaders = [
+    ...(preventIndexing
+      ? [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]
+      : []),
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

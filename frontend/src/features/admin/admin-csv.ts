@@ -2,7 +2,7 @@ import type { AdminInquirySummary, AdminPropertySummary } from "@rc/shared";
 
 function cell(value: string | number | undefined): string {
   const text = value === undefined ? "" : String(value);
-  const neutralized = /^[\t\r ]*[=+\-@]/.test(text) ? `'${text}` : text;
+  const neutralized = /^\s*[=+\-@]/.test(text) ? `'${text}` : text;
   return `"${neutralized.replaceAll('"', '""')}"`;
 }
 

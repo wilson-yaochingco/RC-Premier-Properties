@@ -37,6 +37,13 @@ cache `/api`, `/admin`, authentication, or other personalized responses.
 
 ## Supported same-site alternative
 
+Level 22 recommends Vercel for Next.js with Express on a separate persistent Node host
+under this same-site alternative (or the recommended single-origin managed edge). The
+API's 12 MB upload policy and process-local limiters require more than a Functions
+deployment entry point. See [Controlled Vercel beta](../development/vercel-beta.md) for
+the exact build/root settings, fixed-preview strategy, and remaining live prerequisites.
+No hosting account, DNS, or provider is configured by this repository change.
+
 A frontend host and API host under the same registrable HTTPS site are compatible, for
 example a `www` host and an `api` host chosen by the owner. This requires:
 

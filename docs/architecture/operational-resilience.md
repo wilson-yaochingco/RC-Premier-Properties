@@ -22,8 +22,10 @@ and remain distinct monitoring signals.
 Every request receives a new server-generated UUID in `X-Request-ID`; caller-supplied
 IDs are ignored. Completed-request and unexpected-error logs use that ID. Runtime logs
 are newline-delimited JSON with timestamp, severity, event, environment, optional build
-ID, and allowlisted event fields. Request logging includes method, path without query,
-status, and duration. It never serializes headers, cookies, query values, bodies, tokens,
+ID, and allowlisted event fields. Request logging includes method, route, status, and
+duration. Level 22 logs registered route templates and uses `unmatched` for
+requests without a registered route, so arbitrary path parameters do not enter logs.
+It never serializes headers, cookies, query values, bodies, tokens,
 customer messages, private addresses, or coordinates. Unexpected exceptions contribute
 only a bounded error name/code, not an arbitrary error message or stack. `LOG_LEVEL`
 supports `debug`, `info`, `warn`, and `error`; production defaults to `info` and test to

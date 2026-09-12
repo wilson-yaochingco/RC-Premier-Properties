@@ -7,6 +7,11 @@ staging or production deployment exists.
 
 See [deployment topology](../architecture/deployment-topology.md) for the trust model.
 
+For the current Level 22 controlled-beta deployment strategy, environment requirements,
+preview indexing protections, and provider acceptance boundaries, use
+[Controlled Vercel beta](vercel-beta.md). This supplements the existing release procedures;
+the point-in-time Level 11 audit below remains historical evidence.
+
 ## Pre-implementation audit and classification
 
 The audit began from clean commit `d6bf6bb` on `feature/performance-optimization`, with

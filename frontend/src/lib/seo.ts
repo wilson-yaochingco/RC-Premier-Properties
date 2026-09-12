@@ -1,6 +1,6 @@
 import type { Metadata, MetadataRoute } from "next";
 import type { PublicPropertySummary } from "@rc/shared";
-import { SITE_URL } from "./env";
+import { DEPLOYMENT_ENV, SITE_URL } from "./env";
 import {
   OFFICIAL_EMAIL,
   OFFICIAL_FACEBOOK_URL,
@@ -47,7 +47,15 @@ export function buildPageMetadata({
     title,
     description,
     ...(canonical ? { alternates: { canonical } } : {}),
-    ...(noIndex ? { robots: { index: false, follow: true, noarchive: true } } : {}),
+    ...(noIndex || DEPLOYMENT_ENV === "staging"
+      ? {
+          robots: {
+            index: false,
+            follow: DEPLOYMENT_ENV !== "staging",
+            noarchive: true,
+          },
+        }
+      : {}),
     openGraph: {
       title: socialTitle,
       description,

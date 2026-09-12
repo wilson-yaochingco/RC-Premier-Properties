@@ -4,6 +4,23 @@ import { API_PREFIX } from "@rc/shared";
 const MAP_API_PATH = `${API_PREFIX}/properties/map`;
 const BOUNDARY_PATH = "/geo/pampanga-admin3.geojson";
 
+test("tile-provider failure preserves area selection and property browsing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("https://tiles.stadiamaps.com/**", (route) => route.abort("failed"));
+  await page.goto("/properties");
+  await page.getByRole("button", { name: "Map" }).click();
+  await expect(page.getByText(/Base-map tiles are unavailable/)).toBeVisible();
+  await expect(page.getByLabel("Browse an area")).toBeVisible();
+  await page.getByLabel("Browse an area").selectOption("City of San Fernando");
+  await expect(page).toHaveURL(/location=City\+of\+San\+Fernando/);
+  await page.getByRole("button", { name: "List" }).click();
+  await expect(
+    page.getByRole("link", { name: /San Fernando Townhouse/ }).first(),
+  ).toBeVisible();
+});
+
 function mapRequests(page: Page): string[] {
   const requests: string[] = [];
   page.on("request", (request) => {

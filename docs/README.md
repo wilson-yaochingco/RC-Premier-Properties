@@ -157,6 +157,8 @@ Current:
 - [`deployment-and-release.md`](development/deployment-and-release.md) — Level 11 audit,
   environment matrix, build/start behavior, staging acceptance, production checklist,
   rollback, external blockers, and Level 12 handoff
+- [`vercel-beta.md`](development/vercel-beta.md) — Level 22 controlled-beta topology,
+  Vercel monorepo configuration, environment matrix, preview security, and live gates
 
 ---
 
@@ -188,6 +190,8 @@ Current:
 - [`figma-frontend-rebuild-part-5.md`](audits/figma-frontend-rebuild-part-5.md) — final
   visual, functional, responsive, security, regression, and readiness audit for the
   five-part frontend rebuild
+- [`level-22-predeployment-hardening.md`](audits/level-22-predeployment-hardening.md) —
+  application inventory, findings, verification, and X01–X16 reassessment
 
 ## Rules
 

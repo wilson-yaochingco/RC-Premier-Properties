@@ -1,7 +1,7 @@
 import type { PublicPropertySummary } from "@rc/shared";
 import type { MetadataRoute } from "next";
 import { getProperties, getPropertyFacets } from "./property.service";
-import { SITE_URL } from "../../lib/env";
+import { DEPLOYMENT_ENV, SITE_URL } from "../../lib/env";
 import { buildPublicSitemap } from "../../lib/seo";
 
 export const SITEMAP_API_PAGE_SIZE = 48;
@@ -15,7 +15,7 @@ export interface PropertySitemapDependencies {
 }
 
 const propertySitemapDependencies: PropertySitemapDependencies = {
-  siteUrl: SITE_URL,
+  siteUrl: DEPLOYMENT_ENV === "staging" ? undefined : SITE_URL,
   getProperties,
   getPropertyFacets,
 };

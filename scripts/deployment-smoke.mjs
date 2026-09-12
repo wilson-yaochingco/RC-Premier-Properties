@@ -1,4 +1,4 @@
-const API_PREFIX = "/api/v1";
+import { API_PREFIX } from "@rc/shared";
 
 function requiredOrigin(name) {
   const value = process.env[name]?.trim();

@@ -4,6 +4,7 @@ import {
   type OperationalLogger,
 } from "../lib/operational-logger.js";
 import { getRequestId } from "./requestContext.js";
+import { requestRoute } from "../lib/request-route.js";
 
 /** Logs only allowlisted request metadata. Headers, query values and bodies are excluded. */
 export function createRequestLogging(
@@ -16,7 +17,7 @@ export function createRequestLogging(
       const fields = {
         requestId: getRequestId(res),
         method: req.method,
-        route: req.path,
+        route: requestRoute(req),
         statusCode: res.statusCode,
         durationMs: Number(durationMs.toFixed(2)),
       };

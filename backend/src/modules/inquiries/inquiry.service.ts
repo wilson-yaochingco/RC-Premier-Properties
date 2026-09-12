@@ -54,7 +54,14 @@ export class MongooseViewingPropertyRepository implements ViewingPropertyReposit
   constructor(private readonly model: Model<PropertyEntity> = PropertyModel) {}
 
   async isKnownPropertyId(propertyId: string): Promise<boolean> {
-    return Boolean(await this.model.exists({ propertyId }));
+    return Boolean(
+      await this.model.exists({
+        propertyId,
+        publicationStatus: "published",
+        purpose: "sale",
+        propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+      }),
+    );
   }
 
   async isRequestablePropertyId(propertyId: string): Promise<boolean> {

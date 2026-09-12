@@ -82,6 +82,12 @@ The backend revalidates every value independently of browser constraints, trims 
 normalizes email and Property ID casing, rejects unknown fields and returns the common
 field-issue envelope for invalid input. Privacy consent must be the boolean `true`.
 
+Optional property references on every public inquiry must resolve to published,
+supported residential sale inventory. Draft, unpublished, archived, and legacy unsupported
+records are indistinguishable from unknown references and cannot be linked through public
+intake. Viewing requests additionally exclude sold listings; ordinary property inquiries
+can still refer to publicly visible sold listings.
+
 An off-screen `website` honeypot is left empty by legitimate clients. An otherwise-valid
 request with a filled honeypot receives the normal acknowledgment but is not persisted,
 preventing bots from learning the trap; invalid fields are still rejected first. Inquiry

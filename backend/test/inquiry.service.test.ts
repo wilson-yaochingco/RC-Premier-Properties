@@ -165,6 +165,34 @@ describe("initial notification lease ownership", () => {
 });
 
 describe("public inquiry idempotency", () => {
+  it.each(["draft", "unpublished", "archived"])(
+    "rejects public inquiry links to a %s property without persisting or notifying",
+    async (publicationStatus) => {
+      const exists = vi.fn(async (filter: Record<string, unknown>) =>
+        filter.publicationStatus === undefined ||
+        filter.publicationStatus === publicationStatus
+          ? { _id: "private-property" }
+          : null,
+      );
+      const properties = new MongooseViewingPropertyRepository({
+        exists,
+      } as unknown as Model<PropertyEntity>);
+      const create = vi.fn();
+      const send = vi.fn();
+      const service = new MongooseInquiryService(
+        { create } as unknown as Model<InquiryEntity>,
+        properties,
+        { configured: true, send },
+        notificationState(),
+      );
+      await expect(
+        service.create({ ...REQUEST, propertyId: "RCPP-PRIVATE-001" }),
+      ).rejects.toMatchObject({ status: 400, message: "Invalid property reference." });
+      expect(create).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
+
   it("attempts the official notification only after persistence and does not lose an inquiry when delivery fails", async () => {
     const createdAt = new Date("2026-09-07T08:00:00.000Z");
     const create = vi.fn().mockResolvedValue({
@@ -353,6 +381,11 @@ describe("public inquiry idempotency", () => {
       availability: { $ne: "sold" },
     });
     await expect(repository.isKnownPropertyId("RCPP-ADMIN-001")).resolves.toBe(true);
-    expect(exists).toHaveBeenLastCalledWith({ propertyId: "RCPP-ADMIN-001" });
+    expect(exists).toHaveBeenLastCalledWith({
+      propertyId: "RCPP-ADMIN-001",
+      publicationStatus: "published",
+      purpose: "sale",
+      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
+    });
   });
 });

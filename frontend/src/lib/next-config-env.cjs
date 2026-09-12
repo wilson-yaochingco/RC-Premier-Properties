@@ -1,12 +1,26 @@
 /**
- * Read the small public subset needed while Next.js loads `next.config.ts`.
+ * Read the small public subset needed while Next.js loads `next.config.mjs`.
  *
- * This stays as CommonJS because Next recompiles its TypeScript config to CommonJS and
- * reloads it when a custom production server starts. Importing application TypeScript
- * from that compiled file is not supported by that runtime path.
+ * This stays JavaScript so configuration also works before application TypeScript is
+ * compiled, including standard Vercel builds and the custom production server.
  */
 module.exports = function readNextConfigEnvironment() {
   const deploymentEnvironment = process.env.NEXT_PUBLIC_DEPLOYMENT_ENV?.trim();
+  const vercelEnvironment = process.env.VERCEL_ENV?.trim();
+  const hostedVercel =
+    process.env.VERCEL === "1" && vercelEnvironment !== "development";
+  if (
+    (deploymentEnvironment &&
+      !["development", "test", "staging", "production"].includes(
+        deploymentEnvironment,
+      )) ||
+    (hostedVercel && !["staging", "production"].includes(deploymentEnvironment)) ||
+    (vercelEnvironment === "preview" && deploymentEnvironment !== "staging")
+  ) {
+    throw new Error(
+      "NEXT_PUBLIC_DEPLOYMENT_ENV must be staging for Vercel Preview and explicitly staging or production for hosted Vercel builds.",
+    );
+  }
   const publicDeployment =
     deploymentEnvironment === "staging" || deploymentEnvironment === "production";
 
@@ -65,5 +79,11 @@ module.exports = function readNextConfigEnvironment() {
     ? configuredOrigin("NEXT_PUBLIC_MEDIA_ORIGIN", process.env.NEXT_PUBLIC_MEDIA_ORIGIN)
     : undefined;
 
-  return { apiBaseUrl, mapTileUrl, mediaOrigin, publicDeployment };
+  return {
+    apiBaseUrl,
+    mapTileUrl,
+    mediaOrigin,
+    publicDeployment,
+    preventIndexing: deploymentEnvironment === "staging",
+  };
 };

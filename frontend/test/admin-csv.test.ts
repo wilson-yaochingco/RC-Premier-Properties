@@ -40,6 +40,16 @@ const INQUIRY: AdminInquirySummary & { message: string; phone: string } = {
   updatedAt: "2026-09-10T00:00:00.000Z",
 };
 
+describe("CSV formula prefixes", () => {
+  it.each(["\n", "\r\n", "\t\n ", "\u00a0"])(
+    "neutralizes formulas after whitespace %j",
+    (prefix) => {
+      const title = `${prefix}=SUM(1+1)`;
+      expect(propertyPageCsv([{ ...PROPERTY, title }])).toContain(`"'${title}"`);
+    },
+  );
+});
+
 describe("bounded admin CSV exports", () => {
   it("adds a UTF-8 marker, quotes cells, and neutralizes spreadsheet formulas", () => {
     const csv = propertyPageCsv([PROPERTY]);

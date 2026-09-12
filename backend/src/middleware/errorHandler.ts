@@ -3,6 +3,7 @@ import type { ApiErrorResponse, ValidationIssue } from "@rc/shared";
 import { env } from "../config/env.js";
 import { errorIdentity, operationalLogger } from "../lib/operational-logger.js";
 import { getRequestId } from "./requestContext.js";
+import { requestRoute } from "../lib/request-route.js";
 
 /** An error carrying an intended HTTP status code. */
 export class HttpError extends Error {
@@ -49,7 +50,7 @@ export function errorHandler(
     operationalLogger.error("http_request_failed", {
       requestId: getRequestId(res),
       method: req.method,
-      route: req.path,
+      route: requestRoute(req),
       statusCode: status,
       errorCode: bodyError
         ? "request_body_error"
