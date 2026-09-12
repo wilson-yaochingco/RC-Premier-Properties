@@ -263,7 +263,7 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
             aria-label="Private inquiries table"
             tabIndex={0}
           >
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.responsiveTable}`}>
               <caption className={styles.srOnly}>Private staff inquiry queue</caption>
               <thead>
                 <tr>
@@ -283,17 +283,17 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
               <tbody>
                 {state.response.items.map((inquiry) => (
                   <tr key={inquiry.id}>
-                    <td>
+                    <td data-label="Contact">
                       <strong>{inquiry.name}</strong>
                       <span>{inquiry.email}</span>
                     </td>
-                    <td>{label(inquiry.inquiryType)}</td>
-                    <td>
+                    <td data-label="Type">{label(inquiry.inquiryType)}</td>
+                    <td data-label="Property">
                       {inquiry.propertyId
                         ? `Premier Property #${inquiry.propertyId}`
                         : "Not property-specific"}
                     </td>
-                    <td>
+                    <td data-label="Viewing status">
                       {inquiry.viewingRequest ? (
                         <span className={styles.statusBadge}>
                           {label(inquiry.viewingRequest.status)}
@@ -302,7 +302,7 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
                         "Not applicable"
                       )}
                     </td>
-                    <td>
+                    <td data-label="Inquiry status">
                       <span
                         className={`${styles.statusBadge} ${
                           inquiry.status === "spam"
@@ -315,23 +315,23 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
                         {label(inquiry.status)}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Notification">
                       <span className={styles.statusBadge}>
                         {label(inquiry.notification.status)}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Requested schedule">
                       {inquiry.viewingRequest
                         ? `${inquiry.viewingRequest.requestedDate} at ${inquiry.viewingRequest.requestedTime} (Philippine time)`
                         : "Not a viewing request"}
                     </td>
-                    <td>
+                    <td data-label="Received">
                       {new Intl.DateTimeFormat("en-PH", {
                         dateStyle: "medium",
                         timeStyle: "short",
                       }).format(new Date(inquiry.createdAt))}
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <Link href={`/admin/inquiries/${inquiry.id}`}>View details</Link>
                     </td>
                   </tr>

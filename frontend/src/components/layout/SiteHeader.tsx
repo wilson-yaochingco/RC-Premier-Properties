@@ -44,7 +44,13 @@ export function SiteHeader() {
   );
 
   useEffect(() => {
-    showHeader();
+    const frame = window.requestAnimationFrame(() => {
+      hiddenRef.current = false;
+      pointerActiveRef.current = false;
+      showHeader();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [pathname, showHeader]);
 
   useEffect(() => {
@@ -115,7 +121,7 @@ export function SiteHeader() {
       window.removeEventListener("pointerup", endPointerInteraction);
       window.removeEventListener("pointercancel", endPointerInteraction);
     };
-  }, [showHeader]);
+  }, [pathname, showHeader]);
 
   function isCurrentPage(href: string) {
     if (href.includes("#")) return false;

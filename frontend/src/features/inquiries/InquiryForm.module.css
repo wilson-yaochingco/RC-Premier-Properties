@@ -1,14 +1,21 @@
 .form {
+  min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
 }
 
 .grid {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
 .field {
+  min-width: 0;
   display: grid;
   gap: 0.5rem;
 }
@@ -57,6 +64,13 @@
   resize: vertical;
 }
 
+.field input,
+.field select,
+.field textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .field input:focus-visible,
 .field select:focus-visible,
 .field textarea:focus-visible {
@@ -101,8 +115,12 @@
   font-weight: 700;
   justify-content: center;
   letter-spacing: 0.12em;
+  max-width: 100%;
   min-height: 3.25rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.85rem 1.35rem;
+  white-space: normal;
   text-transform: uppercase;
   transition:
     background 180ms ease,
@@ -165,6 +183,12 @@
   width: 1px;
 }
 
+.honeypot input {
+  width: 1px;
+  min-width: 0;
+  height: 1px;
+}
+
 @media (min-width: 42rem) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -177,6 +201,12 @@
   .submit {
     justify-self: start;
     min-width: 12rem;
+  }
+}
+
+@media (max-width: 37.5rem) {
+  .submit {
+    padding-inline: min(1rem, 16px);
   }
 }
 

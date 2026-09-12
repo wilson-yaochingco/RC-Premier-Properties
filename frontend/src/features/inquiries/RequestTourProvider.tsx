@@ -16,13 +16,32 @@ export interface TourPropertyContext {
   propertyId?: string;
   title?: string;
   media?: PublicPropertyMedia;
+  availability?: "available" | "reserved" | "sold";
 }
 
 interface RequestTourContextValue {
   openTour: (property?: TourPropertyContext, trigger?: HTMLElement | null) => void;
+  registerPageProperty: (property?: TourPropertyContext) => void;
+  pageProperty?: TourPropertyContext;
 }
 
 const RequestTourContext = createContext<RequestTourContextValue | null>(null);
+
+function propertyContextFromPage(): TourPropertyContext | undefined {
+  const element = document.querySelector<HTMLElement>("[data-tour-property-context]");
+  if (!element) return undefined;
+
+  const { propertyId, title, availability } = element.dataset;
+  return {
+    ...(propertyId ? { propertyId } : {}),
+    ...(title ? { title } : {}),
+    ...(availability === "available" ||
+    availability === "reserved" ||
+    availability === "sold"
+      ? { availability }
+      : {}),
+  };
+}
 
 export function useRequestTour() {
   const context = useContext(RequestTourContext);
@@ -34,17 +53,24 @@ export function useRequestTour() {
 
 export function RequestTourProvider({ children }: { children: ReactNode }) {
   const [property, setProperty] = useState<TourPropertyContext>();
+  const [pageProperty, setPageProperty] = useState<TourPropertyContext>();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
 
   const openTour = useCallback(
     (nextProperty?: TourPropertyContext, trigger?: HTMLElement | null) => {
+      const resolvedProperty = nextProperty ?? propertyContextFromPage();
+      if (resolvedProperty?.availability === "sold") return;
       triggerRef.current = trigger ?? null;
-      setProperty(nextProperty);
+      setProperty(resolvedProperty);
       setIsOpen(true);
     },
     [],
   );
+
+  const registerPageProperty = useCallback((nextProperty?: TourPropertyContext) => {
+    setPageProperty(nextProperty);
+  }, []);
 
   const handleDismiss = useCallback(() => {
     setIsOpen(false);
@@ -55,12 +81,33 @@ export function RequestTourProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <RequestTourContext.Provider value={{ openTour }}>
+    <RequestTourContext.Provider
+      value={{ openTour, pageProperty, registerPageProperty }}
+    >
       {children}
       {isOpen ? (
         <RequestTourModal property={property} onDismiss={handleDismiss} />
       ) : null}
     </RequestTourContext.Provider>
+  );
+}
+
+export function PropertyTourContext({ property }: { property: TourPropertyContext }) {
+  const { registerPageProperty } = useRequestTour();
+
+  useEffect(() => {
+    registerPageProperty(property);
+    return () => registerPageProperty(undefined);
+  }, [property, registerPageProperty]);
+
+  return (
+    <span
+      hidden
+      data-tour-property-context
+      data-property-id={property.propertyId}
+      data-title={property.title}
+      data-availability={property.availability}
+    />
   );
 }
 
@@ -77,13 +124,17 @@ export function RequestTourButton({
   variant?: RequestTourButtonVariant;
   className?: string;
 }) {
-  const { openTour } = useRequestTour();
+  const { openTour, pageProperty } = useRequestTour();
+  const resolvedProperty = property ?? pageProperty;
+  const unavailable = resolvedProperty?.availability === "sold";
 
   return (
     <button
       type="button"
       className={`button button--${variant} ${className}`.trim()}
       onClick={(event) => openTour(property, event.currentTarget)}
+      disabled={unavailable}
+      title={unavailable ? "Tours are unavailable for sold properties." : undefined}
     >
       <span>{children}</span>
       <svg aria-hidden="true" className="button__icon" viewBox="0 0 20 20" fill="none">

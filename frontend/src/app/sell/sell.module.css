@@ -1,58 +1,49 @@
 .page {
-  background: #fff;
+  background: var(--brand-white);
   color: var(--brand-primary);
 }
 
-.hero,
-.control {
+.hero {
+  min-height: min(44rem, calc(100svh - var(--header-height)));
+  min-height: min(44rem, calc(100dvh - var(--header-height)));
   position: relative;
+  display: grid;
   isolation: isolate;
   overflow: hidden;
-  color: #fff;
-}
-
-.hero {
-  min-height: clamp(31rem, 48vw, 43rem);
-}
-
-.hero > img,
-.control > img {
-  z-index: -2;
-  object-fit: cover;
+  color: var(--brand-white);
 }
 
 .hero > img {
-  object-position: 50% 53%;
-}
-
-.heroShade,
-.controlShade {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
+  z-index: -2;
+  object-fit: cover;
+  object-position: center 42%;
 }
 
 .heroShade {
-  background: linear-gradient(90deg, rgb(58 66 79 / 70%), rgb(58 66 79 / 12%) 68%);
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(26 31 39 / 78%), rgb(26 31 39 / 12%) 72%);
 }
 
 .heroInner {
-  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
-  min-height: inherit;
   display: flex;
-  align-items: center;
+  align-items: end;
+  padding-block: clamp(3rem, 8vw, 7rem);
 }
 
 .heroInner > div {
-  max-width: 38rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 48rem;
 }
 
 .eyebrow,
 .eyebrowLight {
   color: var(--brand-secondary-text);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -60,20 +51,20 @@
   color: var(--brand-secondary-light);
 }
 
-.hero h1,
-.control h2 {
-  margin-top: 0.7rem;
+.hero h1 {
+  max-width: 10ch;
+  margin-top: 1rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3rem, 5.7vw, 6rem);
+  font-size: clamp(3.2rem, 7vw, 7rem);
   font-weight: 400;
-  letter-spacing: -0.05em;
-  line-height: 0.95;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
 }
 
 .heroInner > div > p:not(.eyebrowLight) {
-  max-width: 31rem;
-  margin-top: 1rem;
-  color: rgb(255 255 255 / 82%);
+  max-width: 34rem;
+  margin-top: 1.25rem;
+  color: rgb(255 255 255 / 84%);
 }
 
 .hero :global(.button) {
@@ -81,23 +72,15 @@
 }
 
 .conversation,
-.advantage,
-.choices,
-.benefits,
-.presentation,
-.terms {
-  padding-block: clamp(5rem, 8vw, 8rem);
-}
-
-.conversation {
-  background: var(--surface-soft);
+.process,
+.privacy {
+  padding-block: clamp(4.5rem, 8vw, 8rem);
 }
 
 .conversationInner {
-  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
   display: grid;
-  grid-template-columns: minmax(18rem, 0.75fr) minmax(0, 1.25fr);
-  gap: clamp(3rem, 7vw, 7rem);
+  grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(2.5rem, 7vw, 8rem);
   align-items: start;
 }
 
@@ -108,333 +91,133 @@
 
 .conversationCopy h2,
 .centerHeading h2,
-.presentation h2,
-.terms h2 {
-  margin-top: 0.65rem;
+.privacy h2 {
+  margin-top: 0.85rem;
   font-family: var(--font-editorial);
-  font-size: clamp(2.25rem, 4vw, 4.15rem);
+  font-size: clamp(2.45rem, 4.6vw, 5rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
 }
 
-.conversationCopy > p:not(.eyebrow, .disclaimer),
-.presentationInner > div > p:not(.eyebrow) {
-  margin-top: 1.25rem;
+.conversationCopy > p:not(.eyebrow),
+.centerHeading > p:not(.eyebrow),
+.privacyInner > div > p:not(.eyebrow) {
+  margin-top: 1.35rem;
   color: var(--text-muted);
   line-height: 1.75;
 }
 
-.disclaimer {
-  margin-top: 1.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  line-height: 1.6;
+.conversationCopy .disclaimer {
+  padding: 1rem;
+  border-left: 3px solid var(--brand-secondary);
+  background: var(--surface-soft);
+  color: var(--brand-primary);
 }
 
 .formPanel {
   min-width: 0;
-  padding: clamp(1.5rem, 4vw, 3.5rem);
-  background: #fff;
-  box-shadow: var(--shadow-card);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.process {
+  border-block: 1px solid var(--line);
+  background: #f8f7f4;
 }
 
 .narrow {
-  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
+  width: min(calc(100% - (2 * var(--container-gutter))), 78rem);
 }
 
 .centerHeading {
-  max-width: 52rem;
+  max-width: 48rem;
   margin-inline: auto;
   text-align: center;
 }
 
-.centerHeading > p:last-child:not(.eyebrow, .eyebrowLight) {
-  margin-top: 0.75rem;
-  color: var(--text-muted);
-}
-
-.advantage {
-  padding-bottom: 0;
-}
-
-.choiceGrid {
+.stepGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: clamp(3rem, 5vw, 5rem);
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
 
-.choiceGrid li {
-  min-height: 18rem;
+.stepGrid li {
+  min-width: 0;
+  min-height: 20rem;
   padding: clamp(1.5rem, 3vw, 2.5rem);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  background: var(--brand-white);
 }
 
-.choiceGrid li > span,
-.benefitCopy > span {
+.stepGrid li > span {
   color: var(--brand-secondary-text);
   font-family: var(--font-editorial);
-  font-size: 2.2rem;
+  font-size: 2.3rem;
 }
 
-.choiceGrid h3 {
-  margin-top: 4rem;
+.stepGrid h3 {
+  margin-top: 3.5rem;
   font-family: var(--font-editorial);
-  font-size: 1.7rem;
+  font-size: 1.65rem;
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.08;
 }
 
-.choiceGrid p {
-  margin-top: 0.8rem;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  line-height: 1.65;
-}
-
-.control {
-  min-height: clamp(31rem, 45vw, 41rem);
-}
-
-.control > img {
-  object-position: 50% 45%;
-}
-
-.controlShade {
-  background: linear-gradient(90deg, rgb(58 66 79 / 82%), rgb(58 66 79 / 28%));
-}
-
-.controlInner {
-  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
-  min-height: inherit;
-  display: flex;
-  align-items: center;
-}
-
-.controlInner > div {
-  max-width: 40rem;
-}
-
-.control h2 {
-  font-size: clamp(2.75rem, 5vw, 5.25rem);
-}
-
-.controlInner > div > p:not(.eyebrowLight) {
-  max-width: 33rem;
-  margin-top: 1.25rem;
-  color: rgb(255 255 255 / 76%);
-}
-
-.control a {
-  min-height: 2.75rem;
-  display: inline-flex;
-  align-items: center;
-  margin-top: 1.5rem;
-  border-bottom: 1px solid currentColor;
-  font-size: 0.8rem;
-  font-weight: 650;
-}
-
-.benefits {
-  background: var(--surface-soft);
-}
-
-.benefitsInner {
-  width: min(calc(100% - (2 * var(--container-gutter))), 68rem);
-}
-
-.benefitList {
-  display: grid;
-  gap: 1rem;
-  margin-top: clamp(3rem, 6vw, 6rem);
-}
-
-.benefitList li {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(19rem, 0.95fr);
-  align-items: stretch;
-  background: #fff;
-  box-shadow: 0 0.35rem 1.2rem rgb(35 42 52 / 8%);
-}
-
-.benefitList li:nth-child(even) figure {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.benefitCopy {
-  padding: clamp(2rem, 5vw, 4.5rem);
-}
-
-.benefitCopy .eyebrow {
-  margin-top: 2rem;
-}
-
-.benefitCopy h3 {
-  margin-top: 0.55rem;
-  font-family: var(--font-editorial);
-  font-size: clamp(2rem, 3.5vw, 3.4rem);
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1;
-}
-
-.benefitCopy > p:last-child {
+.stepGrid p {
   margin-top: 1rem;
   color: var(--text-muted);
-  font-size: 0.84rem;
   line-height: 1.7;
 }
 
-.benefitList figure {
-  position: relative;
-  min-height: 25rem;
-  margin: 0;
-  overflow: hidden;
-}
-
-.benefitList figure img {
-  object-fit: cover;
-}
-
-.results {
-  padding-block: clamp(5rem, 8vw, 8rem);
+.privacy {
   background: var(--brand-primary);
-  color: #fff;
+  color: var(--brand-white);
 }
 
-.results .centerHeading h2 {
-  color: #fff;
-}
-
-.results dl {
+.privacyInner {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: clamp(3rem, 5vw, 5rem);
-  border-top: 1px solid rgb(255 255 255 / 24%);
-  border-left: 1px solid rgb(255 255 255 / 24%);
+  grid-template-columns: minmax(0, 1.05fr) minmax(20rem, 0.95fr);
+  align-items: stretch;
 }
 
-.results dl > div {
-  min-height: 10rem;
-  padding: 1.75rem;
-  border-right: 1px solid rgb(255 255 255 / 24%);
-  border-bottom: 1px solid rgb(255 255 255 / 24%);
-}
-
-.results dt {
-  color: var(--brand-secondary-light);
-  font-family: var(--font-editorial);
-  font-size: 1.7rem;
-}
-
-.results dd {
-  margin: 2rem 0 0;
-  color: rgb(255 255 255 / 72%);
-  font-size: 0.82rem;
-}
-
-.presentationInner {
-  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
-  display: grid;
-  grid-template-columns: minmax(17rem, 0.75fr) minmax(0, 1.25fr);
-  gap: clamp(3rem, 7vw, 7rem);
-  align-items: center;
-}
-
-.presentation :global(.button) {
-  margin-top: 1.5rem;
-}
-
-.presentation figure {
+.privacy figure {
+  min-height: clamp(28rem, 48vw, 42rem);
   position: relative;
-  min-height: clamp(27rem, 44vw, 37rem);
   margin: 0;
   overflow: hidden;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
 }
 
-.presentation figure img {
+.privacy figure img {
   object-fit: cover;
-  object-position: 50% 58%;
 }
 
-.presentation figcaption {
-  position: absolute;
-  right: 0.7rem;
-  bottom: 0.7rem;
-  padding: 0.4rem 0.55rem;
-  background: rgb(58 66 79 / 88%);
-  color: #fff;
-  font-size: 0.62rem;
-}
-
-.terms {
-  background: #f2eee6;
-}
-
-.termsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: stretch;
-  margin-top: clamp(3rem, 5vw, 5rem);
-  background: #fff;
-}
-
-.termsGrid article {
+.privacyInner > div {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(2rem, 5vw, 4rem);
+  padding: clamp(2rem, 5vw, 5rem);
+  border: 1px solid rgb(255 255 255 / 20%);
 }
 
-.termsGrid h3 {
-  font-family: var(--font-editorial);
-  font-size: clamp(1.85rem, 3vw, 3rem);
-  font-weight: 400;
-  line-height: 1.05;
+.privacyInner > div > p:not(.eyebrow) {
+  color: rgb(255 255 255 / 72%);
 }
 
-.termsGrid article p {
-  margin-top: 1rem;
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  line-height: 1.7;
-}
-
-.termsGrid figure {
-  position: relative;
-  min-height: 26rem;
-  margin: 0;
-  overflow: hidden;
-}
-
-.termsGrid figure img {
-  object-fit: cover;
-}
-
-.finalAction {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
+.privacy :global(.button) {
+  align-self: flex-start;
   margin-top: 2rem;
+  border-color: var(--brand-secondary-light);
+  color: var(--brand-white);
 }
 
-.finalAction p {
-  font-family: var(--font-editorial);
-  font-size: 1.8rem;
-}
-
-@media (max-width: 60rem) {
+@media (max-width: 56rem) {
   .conversationInner,
-  .presentationInner {
+  .privacyInner {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -442,53 +225,48 @@
     position: static;
   }
 
-  .presentation figure {
-    min-height: 30rem;
-  }
-}
-
-@media (max-width: 48rem) {
-  .choiceGrid,
-  .results dl {
+  .stepGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .choiceGrid li {
-    min-height: 14rem;
+  .stepGrid li {
+    min-height: 0;
   }
 
-  .choiceGrid h3 {
-    margin-top: 2rem;
+  .stepGrid h3 {
+    margin-top: 1.75rem;
   }
 
-  .benefitList li,
-  .termsGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .benefitList li:nth-child(even) figure {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
-  .benefitList figure,
-  .termsGrid figure,
-  .presentation figure {
-    min-height: 23rem;
+  .privacy figure {
+    min-height: clamp(22rem, 68vw, 34rem);
   }
 }
 
 @media (max-width: 37.5rem) {
-  .hero {
-    min-height: 39rem;
+  .page :is(h1, h2, h3, p, a, span, button, label) {
+    overflow-wrap: anywhere;
   }
 
-  .hero > img {
-    object-position: 62% 53%;
+  .heroInner,
+  .heroInner > div,
+  .conversationInner,
+  .conversationCopy,
+  .formPanel,
+  .narrow,
+  .centerHeading,
+  .stepGrid,
+  .stepGrid li,
+  .privacyInner,
+  .privacyInner > div {
+    min-width: 0;
+  }
+
+  .hero {
+    min-height: 36rem;
   }
 
   .heroShade {
-    background: linear-gradient(0deg, rgb(58 66 79 / 78%), rgb(58 66 79 / 12%));
+    background: linear-gradient(0deg, rgb(26 31 39 / 88%), rgb(26 31 39 / 10%) 78%);
   }
 
   .heroInner {
@@ -496,31 +274,28 @@
     padding-bottom: 3rem;
   }
 
+  .hero h1 {
+    font-size: clamp(3rem, 16vw, 4.25rem);
+  }
+
   .hero :global(.button),
-  .finalAction :global(.button) {
+  .privacy :global(.button) {
     width: 100%;
+    white-space: normal;
   }
 
   .formPanel {
-    padding: 1.25rem;
+    padding: min(1rem, 16px);
   }
 
-  .control {
-    min-height: 36rem;
+  .stepGrid li,
+  .privacyInner > div {
+    padding-inline: min(1.25rem, 20px);
   }
+}
 
-  .control > img {
-    object-position: 61% 50%;
-  }
-
-  .benefitList figure,
-  .termsGrid figure,
-  .presentation figure {
-    min-height: 20rem;
-  }
-
-  .finalAction {
-    align-items: stretch;
-    flex-direction: column;
+@media (prefers-reduced-motion: reduce) {
+  .conversationCopy {
+    position: static;
   }
 }

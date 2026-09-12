@@ -40,10 +40,26 @@ translucent fill without a costly blur, while the desktop sidebar keeps its inde
 compact mode above the tablet breakpoint.
 
 The shell does not replace identity or authorization. “Renzo & Criezel” and “RC Premier
-Properties Staff” are presentational labels; the current local staff display name remains
-separate. Search, Audit, and Staff links still follow existing permissions, Sign Out uses
+Properties Staff” are presentational labels; the actual local staff identity remains
+backend-owned. Search, Audit, and Staff links still follow existing permissions, Sign Out uses
 the established CSRF-protected session endpoint, and View Website opens the public root
 in a new tab.
+
+The desktop shell fills `100dvh` without assigning horizontal overflow to the sidebar.
+Only the navigation list owns vertical fallback scrolling, with `min-height: 0`, a stable
+scrollbar gutter and safe bottom padding; the brand, collapse control and current-session
+display remain outside that scroll region. View Website and Sign Out remain reachable
+inside the navigation list. The visible session
+caption reads “Signed in as Renzo & Criezel”. That caption is deliberately independent of
+the authenticated `StaffIdentity`, email, subject, permissions and audit actor.
+
+At widths through 1024 CSS pixels, Properties, Inquiries, Audit and Staff retain their
+semantic desktop tables but present each body row as a compact labelled record card.
+Essential identity, state, date and actions therefore remain directly visible without
+unexplained horizontal table scrolling. Admin content owns its page scroll and includes
+safe-area-aware closing space so the last meaningful control remains reachable on
+Dashboard, Properties, Create Draft, Inquiries, Viewings, Calendar, Search, Audit, Staff
+and edit/preview routes.
 
 ## Dashboard and viewing calendar
 
@@ -60,7 +76,8 @@ record in chunks of at most 200. It
 contains inquiry and Premier Property identifiers, status, requested date, and requested
 time—never names, email addresses, phone numbers, or message text. A keyboard-focusable
 table and equivalent schedule list are both present. Wide screens show concise events in
-the full calendar. Tablet uses a compact calendar, while mobile keeps a seven-column date
+the full calendar. Tablet uses a compact calendar without the desktop minimum table width,
+so all seven weekday columns remain visible. Mobile keeps a seven-column date
 grid with textual viewing counts and renders the selected date's appointment links in an
 agenda below instead of squeezing cards into cells. This visualizes requests that staff
 may confirm through the established inquiry workflow; it does not expose slots or confirm

@@ -136,7 +136,7 @@
 
 .regionPicker span {
   color: #37404c;
-  font-size: 0.61rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -170,7 +170,7 @@
 .mapCanvas :global(.leaflet-control-attribution) {
   background: rgb(255 255 255 / 90%);
   color: #37404c;
-  font-size: 0.62rem;
+  font-size: 0.69rem;
   max-width: calc(100% - 1rem);
 }
 
@@ -289,7 +289,7 @@
   border-radius: 50% 50% 50% 0;
   background: var(--color-gold, #b4893d);
   box-shadow: 0 0.45rem 1.2rem rgb(24 30 38 / 28%);
-  color: #fff;
+  color: var(--brand-ink-on-gold, #202630);
   line-height: 1;
   text-align: center;
   transform: rotate(-45deg);
@@ -300,7 +300,7 @@
 }
 
 .mapCanvas :global(.rc-map-locality strong) {
-  color: #fff;
+  color: var(--brand-ink-on-gold, #202630);
   font-size: 1.05rem;
   transform: rotate(45deg);
 }
@@ -309,6 +309,10 @@
   .mapCanvas :global(.rc-map-locality-shell:hover .rc-map-locality) {
     background: var(--color-ink, #3a424f);
     transform: rotate(-45deg) scale(1.06);
+  }
+
+  .mapCanvas :global(.rc-map-locality-shell:hover .rc-map-locality strong) {
+    color: #fff;
   }
 
   .mapCanvas :global(.rc-map-popup a:hover) {

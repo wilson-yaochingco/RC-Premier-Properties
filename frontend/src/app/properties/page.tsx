@@ -180,7 +180,7 @@ export default async function PropertiesPage({
           {!response && !errorMessage ? (
             <EmptyState
               title="The catalog is being prepared."
-              description="Published properties will appear here when inventory is connected."
+              description="Published properties will appear here when they are available."
             />
           ) : null}
         </Container>

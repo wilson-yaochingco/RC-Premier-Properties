@@ -400,7 +400,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <Image src={logo} alt="" sizes="48px" />
             </span>
             <div className={styles.sidebarIdentityCopy}>
-              <strong>Renzo &amp; Criezel</strong>
               <span>RC Premier Properties Staff</span>
             </div>
           </div>
@@ -422,9 +421,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <span aria-hidden="true">{collapsed ? "›" : "‹"}</span>
           </button>
           {renderNavigation()}
-          <p className={styles.signedInAs} title={context.session.staff.displayName}>
+          <p className={styles.signedInAs} title="Renzo & Criezel">
             <span>Signed in as</span>
-            <strong>{context.session.staff.displayName}</strong>
+            <strong>Renzo &amp; Criezel</strong>
           </p>
         </aside>
 
@@ -433,7 +432,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Image src={logo} alt="" sizes="42px" />
           </span>
           <div>
-            <strong>Renzo &amp; Criezel</strong>
             <span>RC Premier Properties Staff</span>
           </div>
           <button
@@ -490,7 +488,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
             >
               <div className={styles.drawerHeader}>
                 <div>
-                  <strong>Renzo &amp; Criezel</strong>
                   <span>RC Premier Properties Staff</span>
                 </div>
                 <button type="button" onClick={() => closeDrawer(true)}>
@@ -499,7 +496,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </div>
               {renderNavigation(true)}
               <p className={styles.drawerSession}>
-                Signed in as <strong>{context.session.staff.displayName}</strong>
+                Signed in as <strong>Renzo &amp; Criezel</strong>
               </p>
             </div>
           </div>

@@ -163,9 +163,37 @@ The About hero loads the approved Contentful video only on `/about`, begins at a
 seconds, stays muted/looping/inline, and retains the authorized About photograph as its
 poster. Reduced-motion CSS hides the moving layer so the poster remains. The adjacent
 regional photograph is replaced with a non-interactive SVG projection of the same local
-22-feature boundary artifact used by the property map. The Sell page uses three existing
-authorized RC Premier photographs in a dependency-free stack with named controls,
-left/right keyboard support, swipe gestures, no autoplay and reduced-motion styling.
+22-feature boundary artifact used by the property map. The Sell page reuses approved RC
+Premier photography in its hero and closing privacy composition without a separate
+carousel or repeated promotional section.
+
+## Level 21 targeted polish
+
+The Sell experience is four purposeful sections: hero, seller form, concise process and
+image-led privacy close. The seller form automatically submits `selling`, omits visible
+inquiry-type and Property ID controls, and retains contact, property-area/details and
+consent inputs. Public copy describes customer actions and staff follow-up without
+exposing implementation terminology or making response, valuation, publication or
+appointment promises.
+
+The shared footer uses color and underline/border feedback without positional movement.
+Email and phone remain compact but are separated as distinct, touch-usable rows. The
+official email remains `rcpropertiesss@gmail.com` until a verified replacement is
+supplied. No approved privacy policy exists, so the interface and documentation do not
+fabricate one.
+
+One shared header implementation owns hide/show behavior on every public route and resets
+its complete frame to visible on navigation. Related public and admin button pairs share
+height, alignment and width where the composition is intentionally symmetrical. Important
+functional metadata, labels, facts and controls previously below the practical reading
+floor now use approximately 11–12 CSS-pixel type; decorative eyebrows retain their role.
+
+Narrow Home, About and Sell layouts bound horizontal gutters and control padding while
+allowing text and buttons to wrap at 320 and 390 pixels with 200% text. Font sizes are not
+reduced to manufacture a pass. The desktop Properties filter and map/results tracks use
+zero-minimum sizing so the catalog also reflows under 200% text. Aggregate locality pins
+retain their gold geometry with dark brand ink for the count, switching to white only for
+the existing hover feedback.
 
 ## Final public geometry and hero behavior
 

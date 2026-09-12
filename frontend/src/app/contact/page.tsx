@@ -59,9 +59,9 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
             <p className={styles.eyebrow}>Tell us what brings you here</p>
             <h2 id="conversation-heading">Start a Conversation.</h2>
             <p>
-              Send a general question or include a Premier Property number. Accepted
-              inquiries are saved for staff follow-up; notification delivery is handled
-              separately and is never presented as guaranteed email delivery.
+              Send a general question or include a Premier Property number. The team
+              will review your inquiry and can follow up using the contact details you
+              provide.
             </p>
             <div className={styles.directLinks}>
               <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>

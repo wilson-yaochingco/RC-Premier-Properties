@@ -118,18 +118,23 @@ not dependent on color fill alone.
 
 ## Responsive and component behavior
 
-Automated public overflow checks use widths 320, 360, 375, 390, 412, 414, 430, 480, 640,
-768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 CSS pixels. They cover home, catalog,
-property detail and contact. Admin coverage includes 320, 360, 390, 768, 1280 and 1920.
+Automated public overflow checks include widths 320, 360, 375, 390, 412, 414, 430, 480,
+640, 768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 CSS pixels. The final application
+matrix explicitly covers 320, 390, 768, 1024, 1280, 1440 and 1920 across public and
+protected routes.
 The matrix checks absence of horizontal page overflow, visible primary headings and usable
 media/forms; it supplements rather than replaces visual review on physical devices. The
 targeted admin-drawer regression matrix also covers 320, 390, 768 and 1024 CSS pixels
 while a separate 1280-pixel assertion preserves the collapsed desktop state.
 
 Mobile navigation, gallery overlays and the sticky inquiry action respect safe areas.
-Admin tables use named focusable horizontal-scroll regions. Filters and forms wrap rather
-than compress into desktop grids. Typography remains fluid, long identifiers and URLs
-wrap, and representative public pages are checked at 200% root text sizing.
+At 1024 CSS pixels and below, the Properties, Inquiries, Audit and Staff table bodies
+reflow into labelled record rows while retaining table semantics; desktop remains tabular.
+The sidebar navigation is the only desktop-sidebar vertical scroll owner, and admin page
+bottom padding keeps final controls clear of safe areas and mobile navigation. Filters and
+forms wrap rather than compress into desktop grids. Typography remains fluid, long
+identifiers and URLs wrap, and Home, About and Sell are checked at both 320 and 390 pixels
+with 200% root text sizing and no document or internal content overflow.
 
 ## Maps, videos and recovery
 
@@ -176,6 +181,12 @@ the viewport-derived Home/About heroes, mobile Home crop, Locations illustration
 compact footer, tour dialog, public overflow, and protected-admin layout. At 200% text,
 the tour dialog is permitted to scroll so every required field and action remains
 reachable.
+
+Level 21 additionally keeps the whole shared public header in one hide/show frame across
+route changes, removes positional footer-link hover motion, uses dark ink on gold locality
+marker counts, keeps paired controls equal where the composition calls for a pair, and
+preserves approximately 44-pixel important touch targets. These automated and local visual
+checks improve the engineering baseline but do not constitute formal WCAG certification.
 
 ## Browser and manual acceptance boundary
 

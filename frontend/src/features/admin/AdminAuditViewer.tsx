@@ -189,7 +189,7 @@ export function AdminAuditViewer() {
             aria-label="Audit events table"
             tabIndex={0}
           >
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.responsiveTable}`}>
               <caption className={styles.srOnly}>Value-minimized audit events</caption>
               <thead>
                 <tr>
@@ -204,19 +204,21 @@ export function AdminAuditViewer() {
               <tbody>
                 {state.response.items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="Time">
                       <time dateTime={item.occurredAt}>
                         {formatBusinessDateTime(item.occurredAt)}
                       </time>
                     </td>
-                    <td>{label(item.action)}</td>
-                    <td>{label(item.outcome)}</td>
-                    <td>
+                    <td data-label="Action">{label(item.action)}</td>
+                    <td data-label="Outcome">{label(item.outcome)}</td>
+                    <td data-label="Entity">
                       {label(item.entityType)}
                       {item.entityId ? <span>{item.entityId}</span> : null}
                     </td>
-                    <td>{item.actorStaffIdentityId ?? "System"}</td>
-                    <td>{item.requestId}</td>
+                    <td data-label="Staff ID">
+                      {item.actorStaffIdentityId ?? "System"}
+                    </td>
+                    <td data-label="Request ID">{item.requestId}</td>
                   </tr>
                 ))}
               </tbody>

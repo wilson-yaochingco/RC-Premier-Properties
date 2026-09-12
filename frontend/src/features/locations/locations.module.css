@@ -82,6 +82,29 @@
   object-fit: cover;
 }
 
+.detailMedia figcaption {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.7rem 0.85rem;
+  background: rgb(38 44 53 / 90%);
+  color: rgb(255 255 255 / 84%);
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+.detailMedia figcaption a {
+  color: var(--brand-white);
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
 .introMedia {
   background: #fff;
 }
@@ -275,7 +298,7 @@
 
 .facts dt {
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

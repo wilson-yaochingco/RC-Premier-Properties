@@ -26,6 +26,19 @@ const VIEWPORT_WIDTHS = [
   1920,
 ] as const;
 
+async function expectFixtureInventory(page: Page, path: string) {
+  if (path === "/") {
+    await expect(
+      page.locator(".home-featured-grid [data-property-card]").first(),
+    ).toBeVisible();
+    await expect(page.locator(".home-location-grid li").first()).toBeVisible();
+  } else if (path === "/properties") {
+    await expect(page.locator("[data-property-card]").first()).toBeVisible();
+  } else if (path.startsWith("/properties/")) {
+    await expect(page.locator("#property-title")).toBeVisible();
+  }
+}
+
 async function expectSemanticShell(page: Page) {
   await expect(page.locator('main#main-content:not([aria-busy="true"])')).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
@@ -142,6 +155,8 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "200%";
     });
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expectFixtureInventory(page, route.path);
     const layout = await inspectHorizontalOverflow(page);
     expect(
       layout.documentWidth,
@@ -149,7 +164,24 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
     ).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(await inspectSiblingOverlaps(page, ".site-header__inner")).toEqual([]);
     expect(await inspectSiblingOverlaps(page, ".site-footer__main")).toEqual([]);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const path of ["/", "/about", "/sell"]) {
+      await page.goto(path);
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "200%";
+      });
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expectFixtureInventory(page, path);
+      const layout = await inspectHorizontalOverflow(page);
+      expect(
+        layout.documentWidth,
+        `${path} overflow at ${width}px and 200% text: ${JSON.stringify(layout.offenders)}`,
+      ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+      expect(layout.offenders).toEqual([]);
+    }
   }
 });
 
@@ -404,6 +436,7 @@ for (const width of VIEWPORT_WIDTHS) {
         page.locator('main#main-content:not([aria-busy="true"])'),
       ).toBeVisible();
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expectFixtureInventory(page, route.path);
       const layout = await inspectHorizontalOverflow(page);
       expect(
         layout.documentWidth,

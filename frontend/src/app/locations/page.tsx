@@ -69,10 +69,7 @@ export default async function LocationsPage() {
         <Container className={styles.guideContainer}>
           <div className={styles.sectionHeading}>
             <h2 id="location-grid-title">Browse current property locations.</h2>
-            <p>
-              Every area and count comes from connected, published residential-sale
-              inventory.
-            </p>
+            <p>Every area and count reflects current published homes for sale.</p>
           </div>
 
           {locations.length > 0 ? (
@@ -99,7 +96,7 @@ export default async function LocationsPage() {
               }
               description={
                 facets
-                  ? "This guide is populated only when connected, published inventory supports a location."
+                  ? "This guide appears when current published homes are available in an area."
                   : "The property service could not be reached. No sample locations or counts have been substituted."
               }
               actionLabel="Browse properties"

@@ -88,6 +88,37 @@ test("public header hides deliberately and remains available during interaction"
       await header.evaluate((element) => getComputedStyle(element).transitionDuration),
     ),
   ).toBeLessThanOrEqual(0.001);
+
+  for (const path of [
+    "/properties",
+    "/properties/clark-garden-residence",
+    "/locations",
+    "/locations/angeles-city",
+    "/about",
+    "/contact",
+    "/sell",
+    "/book-viewing",
+    "/not-a-public-route",
+  ]) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(path);
+    const routeDialog = page.getByRole("dialog", { name: "Request a Tour" });
+    if (await routeDialog.count()) await page.keyboard.press("Escape");
+    await page
+      .locator("main#main-content")
+      .last()
+      .evaluate((main) => {
+        main.style.minHeight = "140rem";
+      });
+    await expect(header).toHaveAttribute("data-hidden", "false");
+    await page.evaluate(() => window.scrollTo(0, 900));
+    await expect(header).toHaveAttribute("data-hidden", "true");
+    await expect
+      .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
+      .toBeLessThanOrEqual(0);
+    await page.evaluate(() => window.scrollBy(0, -100));
+    await expect(header).toHaveAttribute("data-hidden", "false");
+  }
 });
 
 test("home hero uses the viewport on desktop and a wider mobile photo composition", async ({
@@ -362,6 +393,8 @@ test("the targeted Home action stays usable while the duplicate property action 
   await expect(page).toHaveURL(/\/about$/);
 
   await page.goto("/properties/clark-garden-residence");
+  await expect(page.getByText("Keep exploring Pampanga properties.")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Similar properties" })).toBeVisible();
   const browse = page.getByRole("link", { name: "Browse all properties" }).last();
   await browse.scrollIntoViewIfNeeded();
   await expect(browse).toHaveAttribute("href", "/properties");
@@ -382,24 +415,97 @@ test("the targeted Home action stays usable while the duplicate property action 
   }));
   expect(footerPresentation.background).toBe("rgb(58, 66, 79)");
   expect(footerPresentation.height).toBeLessThan(560);
+
+  const footerContact = footer.locator("[class*='site-footer__contact']");
+  const [email, phone] = await footerContact.locator("a").evaluateAll((links) =>
+    links.map((link) => ({
+      top: link.getBoundingClientRect().top,
+      bottom: link.getBoundingClientRect().bottom,
+      transform: getComputedStyle(link).transform,
+    })),
+  );
+  expect(email).toBeDefined();
+  expect(phone).toBeDefined();
+  expect(phone!.top - email!.bottom).toBeGreaterThanOrEqual(5);
+  await footerContact.getByRole("link", { name: "rcpropertiesss@gmail.com" }).hover();
+  await expect(
+    footerContact.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
+  ).toHaveCSS("transform", "none");
 });
 
-test("seller photography behaves as a three-card keyboard and swipe stack", async ({
+test("property gallery keeps secondary imagery compact at tablet widths", async ({
+  page,
+}) => {
+  for (const width of [640, 768, 1023]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/properties/clark-garden-residence");
+    const geometry = await page.evaluate(() => {
+      const main = document.querySelector<HTMLElement>("[class*='galleryMain']")!;
+      const side = document.querySelector<HTMLElement>("[class*='gallerySide']")!;
+      const title = document.querySelector<HTMLElement>("#property-title")!;
+      return {
+        mainHeight: main.getBoundingClientRect().height,
+        sideHeight: side.getBoundingClientRect().height,
+        titleTop: title.getBoundingClientRect().top + window.scrollY,
+      };
+    });
+    expect(geometry.mainHeight).toBeLessThan(width * 0.62);
+    expect(geometry.sideHeight).toBeLessThan(190);
+    expect(geometry.titleTop).toBeLessThan(width * 1.2);
+  }
+});
+
+test("paired mobile property actions share intentional geometry", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/properties/clark-garden-residence");
+  await expect(page.locator("#property-title")).toBeVisible();
+  const actions = page.locator("[class*='mobileActions'] .button");
+  await expect(actions).toHaveCount(2);
+  const boxes = await actions.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const rect = button.getBoundingClientRect();
+      return { width: rect.width, height: rect.height, top: rect.top };
+    }),
+  );
+  expect(boxes[0]!.width).toBeCloseTo(boxes[1]!.width, 0);
+  expect(boxes[0]!.height).toBeCloseTo(boxes[1]!.height, 0);
+  expect(boxes[0]!.top).toBeCloseTo(boxes[1]!.top, 0);
+  expect(boxes[0]!.height).toBeGreaterThanOrEqual(44);
+});
+
+test("seller page uses four purposeful sections and a simplified typed form", async ({
   page,
 }) => {
   await page.goto("/sell");
-  const stack = page.getByRole("group", { name: "Seller experience photography" });
+  await expect(page.locator("main#main-content > section")).toHaveCount(4);
+  await expect(page.getByLabel("Inquiry type")).toHaveCount(0);
+  await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
+  await expect(page.getByLabel(/Property location or area/)).toBeVisible();
+  await expect(page.getByLabel(/Property details and message/)).toBeVisible();
+  await expect(
+    page.getByText(/not a valuation, listing agreement/i).first(),
+  ).toBeVisible();
 
-  await expect(stack.getByText("One connected inquiry workflow")).toBeVisible();
-  await page.getByRole("button", { name: "Next seller photo" }).click();
-  await expect(stack.getByText("Property context before assumptions")).toBeVisible();
-
-  await stack.press("ArrowRight");
-  await expect(stack.getByText("Direct follow-up with the team")).toBeVisible();
-
-  await stack.dispatchEvent("pointerdown", { clientX: 200, pointerId: 1 });
-  await stack.dispatchEvent("pointerup", { clientX: 100, pointerId: 1 });
-  await expect(stack.getByText("One connected inquiry workflow")).toBeVisible();
+  await page.getByLabel("Name").fill("Playwright Seller");
+  await page.getByLabel("Email").fill("seller@example.test");
+  await page.getByLabel(/Property location or area/).fill("Angeles City");
+  await page
+    .getByLabel(/Property details and message/)
+    .fill("A synthetic seller inquiry used only for browser testing.");
+  await page.getByRole("checkbox").check();
+  const response = page.waitForResponse(
+    (candidate) =>
+      candidate.url().endsWith("/api/v1/inquiries") &&
+      candidate.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Start the conversation" }).click();
+  const request = (await response).request().postDataJSON();
+  expect(request).toMatchObject({
+    inquiryType: "selling",
+    source: "sell-page",
+    subject: "Angeles City",
+  });
+  expect(request).not.toHaveProperty("propertyId");
 });
 
 test("location discovery uses the supplied drawing and documented local photography", async ({
@@ -435,7 +541,7 @@ test("location discovery uses the supplied drawing and documented local photogra
 
   await page.goto("/locations/angeles-city");
   await expect(
-    page.getByRole("heading", { name: "A view of the local setting." }),
+    page.getByRole("heading", { name: "Find a property in Angeles City." }),
   ).toBeVisible();
   await expect(
     page.getByAltText(

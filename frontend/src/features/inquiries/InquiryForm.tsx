@@ -17,6 +17,7 @@ interface InquiryFormProps {
   source: InquirySource;
   propertyId?: string;
   submitLabel?: string;
+  simplifiedSeller?: boolean;
 }
 
 interface SubmissionState {
@@ -77,6 +78,7 @@ export function InquiryForm({
   source,
   propertyId,
   submitLabel = "Send inquiry",
+  simplifiedSeller = false,
 }: InquiryFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -125,7 +127,9 @@ export function InquiryForm({
     const payload: CreateInquiryRequest = {
       name: textValue(formData, "name"),
       email: textValue(formData, "email"),
-      inquiryType: textValue(formData, "inquiryType") as InquiryType,
+      inquiryType: simplifiedSeller
+        ? "selling"
+        : (textValue(formData, "inquiryType") as InquiryType),
       source,
       privacyConsent: true,
       website: textValue(formData, "website"),
@@ -235,8 +239,12 @@ export function InquiryForm({
           <FieldError field="phone" issue={issueFor("phone")} />
         </div>
 
-        {isViewingRequest ? (
-          <input type="hidden" name="inquiryType" value="viewing" />
+        {isViewingRequest || simplifiedSeller ? (
+          <input
+            type="hidden"
+            name="inquiryType"
+            value={simplifiedSeller ? "selling" : "viewing"}
+          />
         ) : (
           <div className={styles.field}>
             <label htmlFor="inquiry-type">Inquiry type</label>
@@ -258,25 +266,27 @@ export function InquiryForm({
           </div>
         )}
 
-        <div className={styles.field}>
-          <label htmlFor="inquiry-property-id">
-            Property ID{" "}
-            {!isViewingRequest ? (
-              <span className={styles.optional}>(optional)</span>
-            ) : null}
-          </label>
-          <input
-            id="inquiry-property-id"
-            name="propertyId"
-            defaultValue={propertyId}
-            maxLength={40}
-            autoComplete="off"
-            required={isViewingRequest}
-            aria-invalid={invalidFields.has("propertyId")}
-            aria-describedby={describedBy("propertyId")}
-          />
-          <FieldError field="propertyId" issue={issueFor("propertyId")} />
-        </div>
+        {!simplifiedSeller ? (
+          <div className={styles.field}>
+            <label htmlFor="inquiry-property-id">
+              Property ID{" "}
+              {!isViewingRequest ? (
+                <span className={styles.optional}>(optional)</span>
+              ) : null}
+            </label>
+            <input
+              id="inquiry-property-id"
+              name="propertyId"
+              defaultValue={propertyId}
+              maxLength={40}
+              autoComplete="off"
+              required={isViewingRequest}
+              aria-invalid={invalidFields.has("propertyId")}
+              aria-describedby={describedBy("propertyId")}
+            />
+            <FieldError field="propertyId" issue={issueFor("propertyId")} />
+          </div>
+        ) : null}
 
         {isViewingRequest ? (
           <>
@@ -312,7 +322,8 @@ export function InquiryForm({
 
         <div className={styles.field}>
           <label htmlFor="inquiry-subject">
-            Subject <span className={styles.optional}>(optional)</span>
+            {simplifiedSeller ? "Property location or area" : "Subject"}{" "}
+            <span className={styles.optional}>(optional)</span>
           </label>
           <input
             id="inquiry-subject"
@@ -326,7 +337,7 @@ export function InquiryForm({
 
         <div className={`${styles.field} ${styles.wide}`}>
           <label htmlFor="inquiry-message">
-            Message{" "}
+            {simplifiedSeller ? "Property details and message" : "Message"}{" "}
             {isViewingRequest ? (
               <span className={styles.optional}>(optional)</span>
             ) : null}

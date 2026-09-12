@@ -351,7 +351,7 @@ export function AdminPropertyList() {
             aria-label="Private properties table"
             tabIndex={0}
           >
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.responsiveTable}`}>
               <caption className={styles.srOnly}>
                 Private properties and lifecycle actions
               </caption>
@@ -372,16 +372,18 @@ export function AdminPropertyList() {
               <tbody>
                 {state.response.items.map((property) => (
                   <tr key={property.id}>
-                    <td>
+                    <td data-label="Property">
                       <strong>{property.title}</strong>
                       <span>Premier Property #{property.propertyId}</span>
                     </td>
-                    <td>
+                    <td data-label="Location">
                       {property.location.city}, {property.location.province}
                     </td>
-                    <td>{label(property.publicationStatus)}</td>
-                    <td>{label(property.availability)}</td>
-                    <td>
+                    <td data-label="Publication">
+                      {label(property.publicationStatus)}
+                    </td>
+                    <td data-label="Availability">{label(property.availability)}</td>
+                    <td data-label="Featured">
                       <div className={styles.featuredCell}>
                         {property.featured ? (
                           <span className={styles.featuredBadge}>Featured</span>
@@ -449,17 +451,17 @@ export function AdminPropertyList() {
                         <small>Higher priority appears first.</small>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Readiness">
                       {property.publicationReadiness.ready
                         ? "Complete"
                         : `Missing: ${property.publicationReadiness.missing.join(", ")}`}
                     </td>
-                    <td>
+                    <td data-label="Updated">
                       {new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(
                         new Date(property.updatedAt),
                       )}
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <div className={styles.rowActions}>
                         <Link href={`/admin/properties/${property.id}/preview`}>
                           Preview

@@ -26,7 +26,7 @@
   align-items: center;
   gap: 0.55rem;
   color: var(--text-muted);
-  font-size: 0.66rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -128,7 +128,7 @@
   border: 0;
   background: rgb(32 38 48 / 90%);
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -253,7 +253,7 @@
 
 .meta {
   color: var(--brand-secondary-text);
-  font-size: 0.66rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -264,7 +264,7 @@
   padding: 0.35rem 0.55rem;
   background: var(--brand-primary);
   color: #fff;
-  font-size: 0.6rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -293,7 +293,7 @@
 .priceLabel {
   margin-bottom: 0.55rem;
   color: var(--text-muted);
-  font-size: 0.64rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -335,7 +335,7 @@
 
 .quickFacts dt {
   color: var(--text-muted);
-  font-size: 0.58rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -360,7 +360,7 @@
   border: 1px solid var(--line);
   background: #fff;
   color: var(--brand-primary);
-  font-size: 0.63rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -404,7 +404,7 @@
 .asideLabel {
   margin-bottom: 1.1rem;
   color: var(--brand-secondary-text);
-  font-size: 0.64rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -446,7 +446,7 @@
 
 .specGrid dt {
   color: var(--text-muted);
-  font-size: 0.61rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -626,6 +626,20 @@
   }
 }
 
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .galleryMain > :global(.property-media) {
+    aspect-ratio: 16 / 8.5;
+  }
+
+  .gallerySide {
+    grid-auto-columns: clamp(8rem, 20vw, 11rem);
+  }
+
+  .galleryChoice > :global(.property-media) {
+    aspect-ratio: 4 / 3;
+  }
+}
+
 @media (max-width: 47.99rem) {
   .page {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom));
@@ -642,10 +656,6 @@
 
   .quickFacts div {
     min-width: 0;
-  }
-
-  .gallerySide {
-    grid-auto-columns: minmax(0, 74%);
   }
 
   .specGrid,
@@ -682,6 +692,10 @@
     gap: 0.5rem;
   }
 
+  .mobileActions > :only-child {
+    grid-column: 1 / -1;
+  }
+
   .lightbox {
     padding: 4.5rem 1rem;
   }
@@ -692,6 +706,12 @@
 
   .lightboxNext {
     right: 0.5rem;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .gallerySide {
+    grid-auto-columns: minmax(0, 74%);
   }
 }
 

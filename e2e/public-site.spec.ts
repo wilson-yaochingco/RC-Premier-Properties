@@ -635,7 +635,9 @@ test("Part 3 editorial pages keep factual RC Premier content and current channel
   await expect(
     page.getByRole("heading", { level: 1, name: "Your property. Your next move." }),
   ).toBeVisible();
-  await expect(page.getByText(/not a valuation, listing agreement/)).toBeVisible();
+  await expect(
+    page.getByText(/not a valuation, listing agreement/).first(),
+  ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Seller inquiry", exact: true }),
   ).toBeVisible();
@@ -730,6 +732,8 @@ test("Request a Tour submits one structured unconfirmed viewing request", async 
   const requestedDate = await selectedDate.inputValue();
   await expect(dialog.getByLabel("Preferred time")).toHaveValue("11:30");
   await dialog.getByRole("button", { name: "Next" }).click();
+  await expect(dialog.getByLabel(/^Subject/)).toHaveCount(0);
+  await expect(dialog.getByLabel(/Notes for the team/)).toBeVisible();
   await dialog.getByLabel("Full name").fill("Playwright Viewer");
   await dialog.getByLabel("Phone number").fill("+63 917 555 0110");
   await dialog.getByLabel("Email").fill("viewer@example.test");
@@ -775,6 +779,27 @@ test("the global Request a Tour entry requires a property before continuing", as
   expect(await propertyId.evaluate((input) => input.validity.valueMissing)).toBe(true);
   await dialog.getByRole("button", { name: "Close Request a Tour" }).click();
   await expect(trigger).toBeFocused();
+});
+
+test("the property-detail header Request a Tour inherits the current listing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/properties/clark-garden-residence");
+  const headerTrigger = page
+    .getByRole("banner")
+    .getByRole("button", { name: "Request a Tour" });
+  await headerTrigger.click();
+
+  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
+  await expect(dialog.getByText("Clark Garden Residence")).toBeVisible();
+  await expect(dialog.getByText("Premier Property #RCPP-E2E-001")).toBeVisible();
+  await expect(dialog.getByLabel("Property ID")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await expect(dialog.getByLabel(/^Subject/)).toHaveCount(0);
+  await expect(dialog.getByLabel(/Notes for the team/)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(headerTrigger).toBeFocused();
 });
 
 test("mobile navigation closes on Escape and restores trigger focus", async ({

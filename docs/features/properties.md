@@ -149,6 +149,10 @@ The Part 2 detail composition moves the authorized gallery ahead of the title/pr
 summary, presents up to four supporting images beside the primary image on desktop, and
 keeps the existing touch, keyboard, fullscreen, count, caption, and focus behavior. Purely
 decorative section numbering was removed; Premier Property identifiers remain unchanged.
+Between 640 and 1023 CSS pixels, the primary image uses a shorter controlled ratio and
+supporting images become a compact thumbnail rail so the title, price and key facts arrive
+earlier. The Related Properties section remains, while the redundant standalone Pampanga
+exploration CTA immediately before it has been removed.
 
 Print and related-property data use public DTOs only. They cannot expose private address,
 internal coordinates, notes, customer data, or hidden records. A related-data failure is
@@ -159,8 +163,11 @@ the legacy clipboard fallback restores focus to the control that invoked it. A Q
 remains deliberately absent because
 the printed URL is an accessible fallback and optional QR weight was not justified.
 
-The viewing action creates no appointment by itself. It carries the Property ID into the
-viewing-request form for staff follow-up.
+The viewing action creates no appointment by itself. Property detail registers its
+published listing context with the shared header and mobile action, so Request a Tour
+shows the known property rather than asking the visitor to re-enter its ID. Sold state is
+blocked in the UI and revalidated by the backend. The form has no Subject field, retains
+optional notes, and remains a request for staff confirmation rather than an appointment.
 
 ## Media behavior
 

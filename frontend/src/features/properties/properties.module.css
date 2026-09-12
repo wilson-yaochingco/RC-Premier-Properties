@@ -62,8 +62,8 @@
 .searchToolbar {
   display: grid;
   grid-template-columns:
-    minmax(10rem, 0.9fr) minmax(12rem, 1.05fr) minmax(20rem, 1.35fr)
-    auto auto;
+    minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 1.35fr)
+    minmax(0, 0.7fr) minmax(0, 0.7fr);
   gap: 0.75rem;
   align-items: end;
   padding: 1rem;
@@ -78,7 +78,7 @@
 .searchLocationLock > span {
   margin-bottom: 0.35rem;
   color: var(--text-muted);
-  font-size: 0.62rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -160,10 +160,13 @@
 }
 
 .filterPanel {
+  min-width: 0;
   position: relative;
 }
 
 .filterPanel summary {
+  width: 100%;
+  max-width: 100%;
   min-height: 3.05rem;
   display: inline-flex;
   align-items: center;
@@ -177,7 +180,8 @@
   letter-spacing: 0.06em;
   list-style: none;
   text-transform: uppercase;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .filterPanel summary::-webkit-details-marker {
@@ -213,7 +217,8 @@
 }
 
 .searchSubmit {
-  min-width: 7rem;
+  width: 100%;
+  min-width: 0;
   min-height: 3.05rem;
 }
 
@@ -258,7 +263,7 @@
 }
 
 .activeFilters > span {
-  font-size: 0.63rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -398,7 +403,7 @@
   display: block;
   margin-bottom: 0.18rem;
   color: var(--brand-secondary-light);
-  font-size: 0.61rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -425,7 +430,7 @@
   border: 0;
   background: transparent;
   color: #fff;
-  font-size: 0.66rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-decoration: underline;
@@ -467,13 +472,14 @@
   padding: 0.4rem 0.55rem;
   background: var(--brand-primary-deep);
   color: #fff;
-  font-size: 0.61rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .cardBody {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -486,10 +492,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  font-size: 0.6rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.cardMeta > *,
+.cardFooter > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cardFooter {
+  flex-wrap: wrap;
 }
 
 .cardMeta {
@@ -544,7 +560,7 @@
 
 .cardSpecs dt {
   color: var(--text-muted);
-  font-size: 0.58rem;
+  font-size: 0.69rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -667,7 +683,7 @@
 
 @media (min-width: 80rem) {
   .resultsLayout {
-    grid-template-columns: minmax(30rem, 1.12fr) minmax(32rem, 0.88fr);
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
     gap: 0;
     align-items: stretch;
     border: 1px solid var(--line);

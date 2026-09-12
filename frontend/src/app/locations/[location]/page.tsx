@@ -7,7 +7,6 @@ import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared"
 import locationImage from "@/assets/site/location.png";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { LocationEditorial } from "@/features/locations/LocationEditorial";
 import { LocationInventoryMap } from "@/features/locations/LocationInventoryMap";
 import { getLocationEditorialContent } from "@/features/locations/location-content";
 import {
@@ -138,6 +137,7 @@ export default async function LocationDetailPage({
 
   const locationName = shortPublicLocation(locationFacet.location);
   const editorial = getLocationEditorialContent(locationFacet.location);
+  const heroScenery = editorial?.scenery;
   const canonicalPath = publicLocationPath(locationFacet.location);
   const values = propertyFormValues(rawSearchParams);
   const requestParams: RawSearchParams = {
@@ -198,19 +198,41 @@ export default async function LocationDetailPage({
           <div className={styles.detailHeroGrid}>
             <figure className={styles.detailMedia}>
               <Image
-                src={locationImage}
-                alt="Contemporary multi-storey residence under a blue sky"
+                src={heroScenery?.imagePath ?? locationImage}
+                alt={
+                  heroScenery?.alt ??
+                  "Contemporary multi-storey residence under a blue sky"
+                }
                 fill
                 preload
                 sizes="(max-width: 1023px) 100vw, 70vw"
               />
+              {heroScenery ? (
+                <figcaption>
+                  <span>{heroScenery.caption}</span>
+                  <span>
+                    Photo: {heroScenery.creator} ·{" "}
+                    <a href={heroScenery.sourceUrl} target="_blank" rel="noreferrer">
+                      Wikimedia Commons
+                    </a>{" "}
+                    ·{" "}
+                    {heroScenery.licenseUrl ? (
+                      <a href={heroScenery.licenseUrl} target="_blank" rel="noreferrer">
+                        {heroScenery.license}
+                      </a>
+                    ) : (
+                      heroScenery.license
+                    )}
+                  </span>
+                </figcaption>
+              ) : null}
             </figure>
             <div className={styles.detailTitle}>
               <p>Pampanga location guide</p>
               <h1 id="location-title">{locationName}</h1>
               <p>
-                Explore current residential properties for sale represented by published
-                RC Premier Properties inventory.
+                Browse current residential properties for sale in {locationName} and
+                choose the next step that suits you.
               </p>
             </div>
           </div>
@@ -238,19 +260,14 @@ export default async function LocationDetailPage({
         <Container className={`${styles.guideContainer} ${styles.detailIntroGrid}`}>
           <p>Location overview</p>
           <div>
-            <h2 id="location-overview-title">A factual view of current inventory.</h2>
+            <h2 id="location-overview-title">Find a property in {locationName}.</h2>
             <p>
-              This guide is intentionally based on published property records. Listing
-              details, approved public map points, and availability remain the source of
-              truth; no popularity ranking or neighborhood claims are added.
+              The listings below reflect current published properties. Map locations use
+              only the level of detail approved for each home.
             </p>
           </div>
         </Container>
       </section>
-
-      {editorial ? (
-        <LocationEditorial content={editorial} inventoryCount={locationFacet.count} />
-      ) : null}
 
       <section className={styles.inventory} aria-labelledby="location-inventory-title">
         <Container className={styles.guideContainer}>

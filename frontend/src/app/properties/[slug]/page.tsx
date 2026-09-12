@@ -6,7 +6,10 @@ import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
-import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
+import {
+  PropertyTourContext,
+  RequestTourButton,
+} from "@/features/inquiries/RequestTourProvider";
 import { PropertyActions } from "@/features/properties/PropertyActions";
 import { PropertyCard } from "@/features/properties/PropertyCard";
 import { PropertyGallery } from "@/features/properties/PropertyGallery";
@@ -116,6 +119,14 @@ export default async function PropertyDetailPage({
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
+      <PropertyTourContext
+        property={{
+          propertyId: property.propertyId,
+          title: property.title,
+          availability: property.availability,
+          ...(property.coverMedia ? { media: property.coverMedia } : {}),
+        }}
+      />
       {structuredData ? (
         <script
           type="application/ld+json"
@@ -342,15 +353,6 @@ export default async function PropertyDetailPage({
           />
         ) : null}
       </div>
-
-      <section className={styles.browseCta}>
-        <Container className={styles.browseCtaInner}>
-          <h2>Keep exploring Pampanga properties.</h2>
-          <Button href="/properties" variant="secondary">
-            Browse all properties
-          </Button>
-        </Container>
-      </section>
 
       <Suspense fallback={null}>
         <RelatedProperties slug={slug} />

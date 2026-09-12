@@ -98,6 +98,13 @@ npm run test:e2e
   regression budgets, not a substitute for production field monitoring.
 - Manual visual acceptance includes mobile, tablet and desktop viewports and records any
   external blocker rather than silently skipping it.
+- Level 21 focused browser coverage verifies shared-header direction/focus/menu/route
+  behavior, footer hover geometry and contact spacing, the four-section Sell page and
+  fixed seller payload, property-context tour behavior, the compact 640–1023 gallery,
+  symmetric action pairs, marker contrast, responsive admin record rows, complete sidebar
+  access, safe admin page bottoms, and 320/390 200% text reflow.
+  Inventory-dependent layout assertions wait for final fixture cards, rows or calendar
+  regions rather than relying on disappearing loading placeholders or arbitrary sleeps.
 
 ## Test data
 
@@ -116,8 +123,9 @@ property search fields, URL-backed results and empty states, property detail/inq
 links, a successful inquiry payload, lazy map/filter/card interaction, mobile-menu
 keyboard behavior, semantic page shells and horizontal overflow at 320, 360, 375, 390,
 412, 414, 430, 480, 640, 768, 820, 1024, 1280, 1366, 1440, 1600 and 1920 pixels.
-Admin property coverage uses 320, 360, 390, 768, 1280 and 1920 pixels. Captures and
-failure traces stay under the configured ignored Playwright output directory.
+Admin property coverage uses 320, 360, 390, 768, 1024, 1280, 1440 and 1920 pixels across
+the applicable matrices. Captures and failure traces stay under the configured ignored
+Playwright output directory.
 
 Level 9 browser checks also cover landmark and heading structure, duplicate IDs, form
 labels, named controls, skip navigation, real keyboard focus order, modal trapping and

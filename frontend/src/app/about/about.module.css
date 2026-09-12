@@ -318,6 +318,23 @@
 }
 
 @media (max-width: 42rem) {
+  .page :is(h1, h2, h3, p, a, span, figcaption) {
+    overflow-wrap: anywhere;
+  }
+
+  .heroContent,
+  .narrow,
+  .regionInner,
+  .regionHeading,
+  .narrowWide,
+  .centerHeading,
+  .principleGrid,
+  .principleGrid li,
+  .editorialInner,
+  .editorialInner > div {
+    min-width: 0;
+  }
+
   .hero {
     min-height: clamp(32rem, calc(100svh - var(--header-height)), 42rem);
     min-height: clamp(32rem, calc(100dvh - var(--header-height)), 42rem);
@@ -335,6 +352,12 @@
     border-left: 0;
   }
 
+  .purposeGrid article,
+  .principleGrid li,
+  .editorialInner > div {
+    padding-inline: min(1.5rem, 24px);
+  }
+
   .statementImage,
   .editorialInner figure {
     min-height: 22rem;
@@ -342,10 +365,6 @@
 
   .principleGrid li {
     min-height: 15rem;
-  }
-
-  .editorialInner > div:nth-of-type(2) {
-    grid-row: 4;
   }
 }
 

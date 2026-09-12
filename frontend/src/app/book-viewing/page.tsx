@@ -21,11 +21,11 @@ export default async function BookViewingPage({
 
   return (
     <main id="main-content" tabIndex={-1} className="route-state">
-      <p className="eyebrow">Legacy viewing link</p>
+      <p className="eyebrow">Plan your visit</p>
       <h1>Request a Tour</h1>
       <p>
-        The Request a Tour dialog opens from this compatible route. A submitted time is
-        a request and still requires staff confirmation.
+        Choose a preferred date and time. Your request remains unconfirmed until the
+        team follows up with you.
       </p>
       <LegacyViewingLauncher propertyId={propertyId} />
       <Button href="/properties" variant="outline" className="route-state__button">

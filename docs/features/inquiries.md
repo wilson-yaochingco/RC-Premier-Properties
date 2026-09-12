@@ -13,12 +13,12 @@ One connected form supports the public entry points currently exposed by the UI:
 | `/contact`                        | general, or property when a Property ID is present | `contact-page` |
 | property-detail “Send an inquiry” | links to `/contact` with its Property ID           | `contact-page` |
 | Request a Tour dialog             | viewing with property context when available       | `viewing-page` |
-| `/book-viewing`                   | opens the compatible Request a Tour dialog         | `viewing-page` |
+| `/book-viewing`                   | opens the shared Request a Tour dialog             | `viewing-page` |
 | `/sell`                           | selling                                            | `sell-page`    |
 
 `/contact` accepts `propertyId` in the URL and prefills the form. `/book-viewing` remains
-as a stable legacy entry point and opens the same Request a Tour dialog used by the
-header, homepage and eligible property detail pages.
+a direct entry point and opens the same Request a Tour dialog used by the header,
+homepage and eligible property detail pages.
 
 Approved public contact details are `rcpropertiesss@gmail.com` and
 `+63 918 429 1873`. The approved Facebook, Instagram, YouTube and TikTok profiles appear
@@ -28,10 +28,14 @@ or business hours, so neither is displayed.
 ## Form behavior
 
 The general form collects name, email, optional phone, inquiry type, optional Property ID,
-optional subject, message and explicit privacy consent. The viewing form locks the type,
-requires full name, phone, email, a Property ID and structured requested date and time,
-and makes the additional subject and message optional. The two-step dialog selects the
-schedule before collecting contact details. It has persistent labels, native input
+optional subject, message and explicit privacy consent. The Sell page instead fixes the
+type to `selling`, removes the visible type and Property ID controls, and asks for the
+seller's property area and relevant details. The viewing dialog fixes the type to
+`viewing`, requires full name, phone, email, property context and structured requested
+date and time, and keeps optional notes without a Subject field. A known property is
+displayed rather than requested again; the generic tour entry asks for a Property ID.
+The two-step dialog selects the schedule before collecting contact details. It has
+persistent labels, native input
 constraints, pending state, an accessible live success/error message and field issues
 returned by the API. A successful response shows the opaque inquiry reference and repeats
 that staff confirmation is still required.
@@ -105,6 +109,13 @@ The dialog keeps bounded vertical overflow as an accessibility fallback. Very sh
 viewports, 200% text, browser zoom, and on-screen keyboards may scroll inside the native
 dialog so no required field or action is clipped merely to preserve the normal-height
 composition.
+
+On a property detail route, the shared header and mobile-navigation action resolve the
+current server-rendered property context before opening the dialog. The title, Premier
+Property number and available cover media are carried into the presentation, and a sold
+listing cannot open the request. Other public routes retain the generic flow. This is
+display/context behavior only and does not weaken backend publication or availability
+validation.
 
 ## Persistence and privacy boundary
 
@@ -184,6 +195,10 @@ timezone.
 
 ## Notification boundary and current blockers
 
+- No approved privacy policy has been supplied, so the consent UI is not linked to an
+  invented legal document. **PRODUCTION PRIVACY/LEGAL REVIEW REQUIRED.**
+- The official public email remains `rcpropertiesss@gmail.com`. It must not be replaced
+  with a domain address until the owner supplies and verifies that replacement.
 - Production abuse-control review is still required; no CAPTCHA or step-up challenge
   provider has been selected beyond the implemented honeypot and rate limits.
 - Live inquiry reads and updates against the development Auth0 tenant and project

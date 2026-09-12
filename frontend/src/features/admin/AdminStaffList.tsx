@@ -135,7 +135,7 @@ export function AdminStaffList() {
             aria-label="Staff identities table"
             tabIndex={0}
           >
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.responsiveTable}`}>
               <thead>
                 <tr>
                   <th>Name</th>
@@ -149,14 +149,16 @@ export function AdminStaffList() {
               <tbody>
                 {state.response.items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="Staff identity">
                       <strong>{item.displayName}</strong>
                       <span>{item.id}</span>
                     </td>
-                    <td>{item.email}</td>
-                    <td>{item.role ? label(item.role) : "Unassigned"}</td>
-                    <td>{label(item.status)}</td>
-                    <td>
+                    <td data-label="Email">{item.email}</td>
+                    <td data-label="Role">
+                      {item.role ? label(item.role) : "Unassigned"}
+                    </td>
+                    <td data-label="Status">{label(item.status)}</td>
+                    <td data-label="Last login">
                       {item.lastLoginAt ? (
                         <time dateTime={item.lastLoginAt}>
                           {formatBusinessDateTime(item.lastLoginAt)}
@@ -165,7 +167,9 @@ export function AdminStaffList() {
                         "Never"
                       )}
                     </td>
-                    <td>{item.authorizationVersion}</td>
+                    <td data-label="Authorization version">
+                      {item.authorizationVersion}
+                    </td>
                   </tr>
                 ))}
               </tbody>

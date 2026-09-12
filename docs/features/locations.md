@@ -25,11 +25,14 @@ documented reusable photograph with a brand-color hover/focus overlay; required 
 counts are always visible. The homepage uses the same content lookup for up to six real
 facet locations.
 
-Every supported detail route adds one reusable editorial scenery block below its lead
-composition. A typed slug-to-content structure owns factual title/caption, local path,
-alternative text, creator, source and license. It deliberately avoids popularity,
-neighborhood, travel, history and market claims that are not supported by project data.
-The inventory number shown beside the scene remains the current facet count. Asset
+Every supported detail route uses its reusable locality scenery as the lead hero image,
+with visible creator/source/license attribution. A typed slug-to-content structure owns
+the factual title/caption, local path, alternative text, creator, source and license. The
+short introduction leads with the place, current published inventory and available next
+steps. It deliberately avoids popularity, neighborhood, travel, history and market claims
+that are not supported by project data, and keeps only one concise public-location/privacy
+disclosure. The inventory facts beside the hero remain derived from the current facet
+count. Asset
 provenance is recorded in
 [`location-editorial-assets.md`](location-editorial-assets.md).
 

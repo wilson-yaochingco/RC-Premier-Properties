@@ -69,6 +69,7 @@ test("the heavy map stays lazy and mobile List/Map discovery shares URL filters"
     .getByRole("button", { name: "Angeles City, 9 properties" })
     .locator(".rc-map-locality");
   await expect(localityPin).toHaveCSS("background-color", "rgb(180, 137, 61)");
+  await expect(localityPin.locator("strong")).toHaveCSS("color", "rgb(32, 38, 48)");
   await expect(localityPin).toHaveCSS("border-bottom-left-radius", "0px");
   expect(await localityPin.evaluate((pin) => getComputedStyle(pin).transform)).not.toBe(
     "none",

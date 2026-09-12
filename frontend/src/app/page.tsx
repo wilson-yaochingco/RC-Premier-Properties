@@ -115,7 +115,7 @@ async function ExploreLocations() {
     return (
       <EmptyState
         title="Location inventory is temporarily unavailable."
-        description="This section will populate only from connected, published properties."
+        description="Published properties will appear here when they are available."
         actionLabel="Browse Properties"
         actionHref="/properties"
       />
@@ -125,7 +125,7 @@ async function ExploreLocations() {
   return (
     <EmptyState
       title="Published locations will appear here."
-      description="Location links and counts are shown only when connected, published inventory supports them."
+      description="Location links and counts appear for areas with current published properties."
       actionLabel="Browse All Properties"
       actionHref="/properties"
     />
@@ -170,7 +170,7 @@ export default function HomePage() {
             className="home-heading"
             eyebrow="Featured properties"
             title={<span id="featured-heading">Explore homes on the market.</span>}
-            intro="A selection from connected, published RC Premier Properties inventory."
+            intro="A selection of current published RC Premier Properties listings."
           />
           <Suspense
             fallback={
@@ -223,7 +223,7 @@ export default function HomePage() {
             <h2 id="why-heading">A clearer way to explore your next home.</h2>
             <p>
               Review available properties, compare the details that matter, and send
-              questions or a viewing request through one connected experience.
+              questions or request a viewing directly from the property you choose.
             </p>
             <Button href="/about" variant="outline">
               Learn about us
@@ -264,7 +264,7 @@ export default function HomePage() {
             className="home-heading"
             eyebrow="Featured property videos"
             title={<span id="videos-heading">Tour a little closer.</span>}
-            intro="Choose a short tour when you are ready. YouTube loads only for the video you select."
+            intro="Choose a short property tour when you are ready to watch."
           />
           <FeaturedVideos />
         </Container>

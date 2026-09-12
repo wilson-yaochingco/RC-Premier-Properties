@@ -274,6 +274,32 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   ).toHaveAttribute("target", "_blank");
   await expect(page.getByText("Renzo & Criezel").first()).toBeVisible();
   await expect(page.getByText("RC Premier Properties Staff").first()).toBeVisible();
+  const desktopSidebar = page.getByRole("complementary", { name: "Staff workspace" });
+  await expect(
+    desktopSidebar.locator("[class*='sidebarIdentity']").getByText("Renzo & Criezel"),
+  ).toHaveCount(0);
+  await expect(desktopSidebar.getByText("Signed in as")).toBeVisible();
+  await expect(desktopSidebar.getByText("Renzo & Criezel")).toBeVisible();
+  const sidebarNavigation = desktopSidebar.getByRole("navigation", {
+    name: "Administration navigation",
+  });
+  const sidebarOverflow = await sidebarNavigation.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    overflowX: getComputedStyle(element).overflowX,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(sidebarOverflow.overflowX).toBe("hidden");
+  expect(sidebarOverflow.scrollWidth).toBeLessThanOrEqual(sidebarOverflow.clientWidth);
+  await sidebarNavigation.evaluate((element) =>
+    element.scrollTo(0, element.scrollHeight),
+  );
+  await expect(
+    desktopSidebar.getByRole("link", { name: "Create Draft", exact: true }),
+  ).toBeVisible();
+  await expect(
+    desktopSidebar.getByRole("link", { name: "View Website" }),
+  ).toBeVisible();
+  await expect(desktopSidebar.getByRole("button", { name: "Sign Out" })).toBeVisible();
   await expect(
     adminNavigation.getByRole("link", { name: "Properties", exact: true }),
   ).toHaveAttribute("aria-current", "page");

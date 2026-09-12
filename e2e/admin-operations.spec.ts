@@ -255,6 +255,33 @@ async function expectNoDocumentOverflow(page: Page) {
   ).toBeLessThanOrEqual(layout.width + 1);
 }
 
+async function expectFinalAdminData(page: Page, path: string) {
+  await expect(page.locator("main#main-content [aria-busy='true']")).toHaveCount(0);
+  if (path === "/admin") {
+    await expect(
+      page.getByRole("heading", { name: "Upcoming viewings" }),
+    ).toBeVisible();
+  }
+  if (
+    [
+      "/admin/properties",
+      "/admin/inquiries",
+      "/admin/viewings",
+      "/admin/audit",
+      "/admin/staff",
+    ].includes(path)
+  ) {
+    await expect(
+      page.locator("table[class*='responsiveTable'] tbody tr").first(),
+    ).toBeVisible();
+  }
+  if (path === "/admin/viewings") {
+    await expect(
+      page.getByRole("region", { name: "September 2026 viewing calendar" }),
+    ).toBeVisible();
+  }
+}
+
 test("dashboard and calendar remain useful and reflow at 320px", async ({ page }) => {
   await mockOperations(page);
   await page.setViewportSize({ width: 320, height: 844 });
@@ -304,7 +331,7 @@ test("dashboard and calendar remain useful and reflow at 320px", async ({ page }
 
 test("admin routes remain contained across the final responsive matrix", async ({
   page,
-}) => {
+}, testInfo) => {
   await mockOperations(page);
   const routes = [
     ["/admin", "Dashboard"],
@@ -324,6 +351,7 @@ test("admin routes remain contained across the final responsive matrix", async (
       await expect(
         page.getByRole("heading", { level: 1, name: heading }),
       ).toBeVisible();
+      await expectFinalAdminData(page, path);
       const layout = await page.evaluate(() => ({
         documentWidth: document.documentElement.scrollWidth,
         viewportWidth: document.documentElement.clientWidth,
@@ -332,6 +360,67 @@ test("admin routes remain contained across the final responsive matrix", async (
         layout.documentWidth,
         `${path} overflow at ${width}px`,
       ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+
+      if (
+        width <= 1024 &&
+        [
+          "/admin/properties",
+          "/admin/inquiries",
+          "/admin/viewings",
+          "/admin/audit",
+          "/admin/staff",
+        ].includes(path)
+      ) {
+        const table = page.locator("table[class*='responsiveTable']");
+        await expect(table).toHaveCSS("display", "block");
+        await expect(table.locator("tbody tr").first()).toBeVisible();
+        await expect(table.locator("td[data-label]").first()).toBeVisible();
+      }
+
+      if (width <= 1024) {
+        if (path === "/admin/viewings") {
+          const calendar = page.getByRole("region", {
+            name: "September 2026 viewing calendar",
+          });
+          await expect(calendar).toBeVisible();
+          const geometry = await calendar.evaluate((element) => ({
+            width: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+            right: element.getBoundingClientRect().right,
+            lastColumnRight: element
+              .querySelector("thead th:last-child")!
+              .getBoundingClientRect().right,
+          }));
+          expect(
+            geometry.scrollWidth,
+            `calendar overflow at ${width}px`,
+          ).toBeLessThanOrEqual(geometry.width + 1);
+          expect(
+            geometry.lastColumnRight,
+            `Saturday clipped at ${width}px`,
+          ).toBeLessThanOrEqual(geometry.right + 1);
+          await calendar.screenshot({
+            path: testInfo.outputPath(`viewing-calendar-${width}px.png`),
+          });
+        }
+
+        await page.evaluate(() => {
+          document.documentElement.style.scrollBehavior = "auto";
+          window.scrollTo(0, document.documentElement.scrollHeight);
+        });
+        await expect
+          .poll(
+            () =>
+              page
+                .locator("main#main-content > :last-child")
+                .evaluate(
+                  (element) =>
+                    element.getBoundingClientRect().bottom - window.innerHeight,
+                ),
+            { message: `${path} final content clipped at ${width}px` },
+          )
+          .toBeLessThanOrEqual(1);
+      }
     }
   }
 
@@ -342,6 +431,7 @@ test("admin routes remain contained across the final responsive matrix", async (
       document.documentElement.style.fontSize = "200%";
     });
     await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+    await expectFinalAdminData(page, path);
     const layout = await page.evaluate(() => ({
       documentWidth: document.documentElement.scrollWidth,
       viewportWidth: document.documentElement.clientWidth,

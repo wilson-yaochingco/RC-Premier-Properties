@@ -23,7 +23,6 @@ const FIELD_LABELS: Record<string, string> = {
   email: "Email",
   phone: "Phone number",
   propertyId: "Property ID",
-  subject: "Subject",
   message: "Notes",
   requestedDate: "Requested date",
   requestedTime: "Requested time",
@@ -189,7 +188,6 @@ export function RequestTourModal({
       return;
     }
 
-    const subject = textValue(formData, "subject");
     const message = textValue(formData, "message");
     const payload: CreateInquiryRequest = {
       name,
@@ -198,7 +196,6 @@ export function RequestTourModal({
       inquiryType: "viewing",
       source: "viewing-page",
       propertyId,
-      ...(subject ? { subject } : {}),
       ...(message ? { message } : {}),
       requestedDate: selectedDate,
       requestedTime: selectedTime,
@@ -458,20 +455,6 @@ export function RequestTourModal({
                   aria-describedby={describedBy("email")}
                 />
                 <FieldError issue={issueFor("email")} id="tour-email-error" />
-              </label>
-
-              <label className={styles.field} htmlFor="tour-subject">
-                <span>
-                  Subject <small>(optional)</small>
-                </span>
-                <input
-                  id="tour-subject"
-                  name="subject"
-                  maxLength={150}
-                  aria-invalid={invalidFields.has("subject")}
-                  aria-describedby={describedBy("subject")}
-                />
-                <FieldError issue={issueFor("subject")} id="tour-subject-error" />
               </label>
 
               <label

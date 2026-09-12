@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRequestTour } from "@/features/inquiries/RequestTourProvider";
 
 interface NavigationItem {
   href: string;
@@ -19,6 +20,7 @@ export function MobileNavigation({
   currentPath,
   onOpenChange,
 }: MobileNavigationProps) {
+  const { openTour, pageProperty } = useRequestTour();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -124,10 +126,24 @@ export function MobileNavigation({
 
         <div className="mobile-navigation__footer">
           <p>Homes and residential properties for sale across Pampanga.</p>
-          <Link href="/book-viewing" onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
+          <button
+            type="button"
+            onClick={(event) => {
+              const trigger = event.currentTarget;
+              closeMenu();
+              window.requestAnimationFrame(() => openTour(undefined, trigger));
+            }}
+            tabIndex={isOpen ? 0 : -1}
+            disabled={pageProperty?.availability === "sold"}
+            title={
+              pageProperty?.availability === "sold"
+                ? "Tours are unavailable for sold properties."
+                : undefined
+            }
+          >
             Request a Tour
             <span aria-hidden="true">→</span>
-          </Link>
+          </button>
         </div>
       </div>
     </div>

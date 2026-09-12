@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import aboutImage from "@/assets/site/about.png";
-import contactImage from "@/assets/site/contact.png";
 import propertiesImage from "@/assets/site/properties.png";
 import whyImage from "@/assets/site/why-rc-premier.png";
 import { Button } from "@/components/ui/Button";
@@ -29,9 +28,9 @@ const principles = [
   },
   {
     number: "02",
-    title: "Connected conversations",
+    title: "Direct conversations",
     description:
-      "Questions, seller inquiries, and viewing requests use a direct workflow built for thoughtful staff follow-up.",
+      "Ask a question, start a seller inquiry, or request a tour. The team can follow up using the details you provide.",
   },
   {
     number: "03",
@@ -170,32 +169,13 @@ export default function AboutPage() {
             <p className={styles.eyebrow}>A useful public experience</p>
             <h2>Homes presented with context.</h2>
             <p>
-              Each connected listing brings together pricing, specifications, imagery,
-              location disclosure, and a clear route to ask a question.
+              Each published listing brings together pricing, specifications, imagery,
+              location context, and a clear way to ask a question.
             </p>
             <Button href="/properties" variant="outline">
               View properties
             </Button>
           </div>
-          <div>
-            <p className={styles.eyebrow}>Direct next steps</p>
-            <h2>Conversations stay connected.</h2>
-            <p>
-              A property inquiry, seller conversation, or tour request reaches the same
-              managed inquiry workflow without creating an account.
-            </p>
-            <Button href="/contact" variant="outline">
-              Start a conversation
-            </Button>
-          </div>
-          <figure>
-            <Image
-              src={contactImage}
-              alt="Dining area with warm wood finishes and sculptural lighting"
-              fill
-              sizes="(max-width: 800px) 92vw, 43vw"
-            />
-          </figure>
         </Container>
       </section>
 

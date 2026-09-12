@@ -14,7 +14,7 @@ export default function LocationNotFound() {
       <EmptyState
         eyebrow="Location unavailable"
         title="This published location could not be found."
-        description="Location guides exist only for areas represented by connected, published residential-sale inventory."
+        description="Location guides appear for areas with current published homes for sale."
         headingLevel="h1"
       />
       <Button href="/locations" variant="primary">
