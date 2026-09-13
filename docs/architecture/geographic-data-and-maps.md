@@ -52,8 +52,10 @@ property results remain usable.
 
 ## Base tiles and attribution
 
-The local/test evaluation default is Stadia Maps' Alidade Smooth raster style. The map
-visibly attributes Stadia Maps, OpenMapTiles and OpenStreetMap as required by that style.
+The local/test evaluation default is OpenStreetMap's standard raster tiles, which require
+no API credentials. The map visibly attributes OpenStreetMap contributors and links to
+their copyright page. Native tiles stop at zoom 19; Leaflet scales them at the existing
+maximum zoom of 20.
 The public template URL is configured through `NEXT_PUBLIC_MAP_TILE_URL`; it contains no
 secret client credential. This default is not the selected production provider. Level 11
 also pairs the URL with `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT` and
@@ -61,10 +63,11 @@ also pairs the URL with `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT` and
 it. Staging and production fail their build unless all three approved HTTPS provider
 values are supplied; the evaluation defaults are development/test only.
 
-Local evaluation is not production authorization. Commercial production use requires an
-appropriate Stadia Maps plan and registration of the deployed frontend domain. That
-account/domain setup is one option to evaluate in Phase 2B, not a committed vendor
-decision. A replacement tile service must be reviewed for terms, Philippine coverage,
+The evaluation service follows the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/),
+including browser referrers, normal caching, visible attribution and no bulk downloads.
+Stadia Maps was replaced because requests without an accepted referrer or configured
+domain authentication return 401. Local evaluation is not production authorization.
+A replacement tile service must be reviewed for terms, Philippine coverage,
 availability and privacy, and its required attribution must be changed with the provider.
 Changing only the URL to an unrelated provider would leave incorrect attribution and is
 not an approved configuration.

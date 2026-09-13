@@ -121,7 +121,7 @@ test("public header hides deliberately and remains available during interaction"
   }
 });
 
-test("home hero uses the viewport on desktop and a wider mobile photo composition", async ({
+test("home hero uses the viewport on desktop and keeps the mobile search over its image", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -158,7 +158,7 @@ test("home hero uses the viewport on desktop and a wider mobile photo compositio
       searchCenter: searchRect.left + searchRect.width / 2,
     };
   });
-  expect(mobileGeometry.backdropRatio).toBeLessThan(0.7);
+  expect(mobileGeometry.backdropRatio).toBeCloseTo(1, 2);
   expect(mobileGeometry.searchCenter).toBeCloseTo(mobileGeometry.heroCenter, 0);
   await expect(page.getByLabel("Location, Property ID, or keyword")).toBeVisible();
 });

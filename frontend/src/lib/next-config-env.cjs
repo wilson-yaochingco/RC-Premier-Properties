@@ -60,9 +60,7 @@ module.exports = function readNextConfigEnvironment() {
   );
   const mapTileUrl =
     process.env.NEXT_PUBLIC_MAP_TILE_URL?.trim() ||
-    (publicDeployment
-      ? undefined
-      : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png");
+    (publicDeployment ? undefined : "https://tile.openstreetmap.org/{z}/{x}/{y}.png");
   if (
     !mapTileUrl ||
     !["{z}", "{x}", "{y}"].every((token) => mapTileUrl.includes(token))

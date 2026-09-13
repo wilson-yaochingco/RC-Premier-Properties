@@ -2878,7 +2878,6 @@ video {
 .site-footer__contact > a + a {
   margin-top: 0.35rem;
   padding-top: 0.35rem;
-  border-top: 1px solid rgb(255 255 255 / 14%);
 }
 
 .site-footer__navigation a,
@@ -3080,11 +3079,6 @@ video {
   .home-hero {
     min-height: clamp(34rem, calc(100svh - var(--header-height)), 39rem);
     min-height: clamp(34rem, calc(100dvh - var(--header-height)), 39rem);
-  }
-
-  .home-hero__backdrop {
-    bottom: auto;
-    height: 58%;
   }
 
   .home-hero__image {
