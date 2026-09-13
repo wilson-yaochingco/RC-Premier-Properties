@@ -8,7 +8,9 @@ test("tile-provider failure preserves area selection and property browsing", asy
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("https://tiles.stadiamaps.com/**", (route) => route.abort("failed"));
+  await page.route("https://tile.openstreetmap.org/**", (route) =>
+    route.abort("failed"),
+  );
   await page.goto("/properties");
   await page.getByRole("button", { name: "Map" }).click();
   await expect(page.getByText(/Base-map tiles are unavailable/)).toBeVisible();

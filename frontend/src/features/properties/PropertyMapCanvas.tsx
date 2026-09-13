@@ -289,6 +289,8 @@ export function PropertyMapCanvas({
     const tiles = L.tileLayer(MAP_TILE_URL, {
       attribution: TILE_ATTRIBUTION,
       maxZoom: 20,
+      maxNativeZoom:
+        new URL(MAP_TILE_URL).hostname === "tile.openstreetmap.org" ? 19 : 20,
     });
     tiles.on("tileerror", () => {
       tileFailures += 1;

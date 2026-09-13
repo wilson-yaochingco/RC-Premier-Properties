@@ -10,7 +10,7 @@ test("optimized frontend sends the reviewed provider-aware CSP", async ({ page }
 
   expect(policy).toContain("default-src 'self'");
   expect(policy).toContain("connect-src 'self' http://127.0.0.1:5051");
-  expect(policy).toContain("https://tiles.stadiamaps.com");
+  expect(policy).toContain("https://tile.openstreetmap.org");
   expect(policy).toContain("frame-src https://www.youtube-nocookie.com");
   expect(policy).toContain("frame-ancestors 'none'");
   expect(policy).not.toContain("unsafe-eval");

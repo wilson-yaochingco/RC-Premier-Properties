@@ -20,10 +20,9 @@ export type FrontendDeploymentEnvironment =
 
 const DEVELOPMENT_API_URL = "http://localhost:5000";
 const DEVELOPMENT_SITE_URL = "http://localhost:3000";
-const EVALUATION_MAP_TILE_URL =
-  "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png";
-const EVALUATION_MAP_ATTRIBUTION_TEXT = "Stadia Maps, OpenMapTiles and OpenStreetMap";
-const EVALUATION_MAP_ATTRIBUTION_URL = "https://stadiamaps.com/attribution/";
+const EVALUATION_MAP_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const EVALUATION_MAP_ATTRIBUTION_TEXT = "OpenStreetMap contributors";
+const EVALUATION_MAP_ATTRIBUTION_URL = "https://www.openstreetmap.org/copyright";
 
 function isPublicDeployment(environment: FrontendDeploymentEnvironment): boolean {
   return environment === "staging" || environment === "production";
