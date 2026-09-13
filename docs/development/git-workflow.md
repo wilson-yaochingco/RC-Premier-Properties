@@ -239,7 +239,8 @@ On GitHub, open a PR from your branch into `main`. A good PR includes:
 - **Known limitations** or follow-up work
 
 CI runs `format:check`, `lint`, `typecheck`, unit/API tests and `build` on every PR. Run
-those locally first — a green local run means a green PR:
+those locally first — passing locally is a strong pre-check, but CI remains the
+authoritative result:
 
 ```bash
 npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
