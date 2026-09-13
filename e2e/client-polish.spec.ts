@@ -292,6 +292,9 @@ test("About video requests playback once and the hero fills the desktop composit
       },
     });
   });
+  // Keep real metadata from completing the one-time seek before the controlled
+  // loadedmetadata fixture below.
+  await page.route("https://videos.ctfassets.net/**", (route) => route.abort());
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/about");
 
@@ -304,6 +307,7 @@ test("About video requests playback once and the hero fills the desktop composit
     )
     .toBe(1);
   const video = page.locator("video");
+  await expect(video).toHaveJSProperty("currentTime", 0);
   await video.evaluate((element) => {
     Object.defineProperties(element, {
       currentTime: { configurable: true, value: 0, writable: true },
