@@ -1,6 +1,6 @@
 # OIDC Provider Selection
 
-Status: **accepted and integrated; development passkey redirect reported, live session acceptance pending**
+Status: **Auth0 integration accepted; approved Beta password/TOTP configuration prepared; live acceptance pending**
 
 Decision date: 2026-09-05
 
@@ -17,7 +17,7 @@ development testing may use trial capabilities, but production authentication re
 blocked until the owner explicitly approves an Auth0 plan or another provider/control
 that can enforce the required administrator MFA strength.
 
-Auth0 authenticates staff and manages credentials, passkey enrollment and recovery.
+Auth0 authenticates staff and manages credentials, TOTP enrollment and recovery.
 Express continues to own the opaque application session, local staff allowlist,
 permissions and application audit trail as defined in
 [`authentication-and-authorization.md`](authentication-and-authorization.md). Auth0
@@ -28,6 +28,13 @@ Use Auth0 Universal Login with a Regular Web Application and Authorization Code 
 The backend integrates through the standards-based `openid-client` library rather than
 Auth0's encrypted-cookie session quickstart. This preserves the accepted MongoDB-backed,
 immediately revocable session design and limits provider coupling to OIDC configuration.
+
+The approved 2026-09-13 Beta setup supersedes the development passkey exception with
+database/password login + mandatory TOTP, recovery retained, passkeys/WebAuthn off and
+public signup disabled. The single Admin is `rcpremierph@gmail.com` (Renzo & Criezel).
+The original provider comparison below remains historical evaluation context. The
+earlier production phishing-resistant-factor gate remains open; TOTP Beta acceptance
+does not establish that gate. See [the manual runbook](../development/auth0-setup.md).
 
 ## Evaluation context
 
@@ -138,13 +145,10 @@ Provisioning must use these controls:
 - Use Universal Login. Do not embed credential collection in the RC Premier frontend.
 - Use a dedicated database connection with **Disable Sign Ups** enabled. Do not enable
   social connections or Organizations without a later decision.
-- Keep public sign-up disabled on the dedicated database connection. A passkey may be
-  enabled there as the primary authentication method, but it must not be described as or
-  substituted for an Auth0 MFA factor.
-- On the Free development tenant, require a database-connection passkey and deploy the
-  reviewed Post-Login Action that reports actual passkey use through a signed namespaced
-  ID-token claim. The backend accepts that evidence only outside production. Production
-  still requires an approved MFA factor and policy **Always**.
+- For the approved Beta connection `RC-Premier-Admin`, enable database/password login,
+  disable public signup, passkeys and both WebAuthn factors, and require OTP/TOTP MFA
+  with policy **Always** and recovery capability. Retire the former development
+  passkey-evidence Action; every environment now requires validated `amr: mfa`.
 - Register exact callback and logout URLs. Do not use wildcard production URLs.
 - Request only `openid profile email`. Do not request provider API access or offline
   access unless a later implementation requirement proves it necessary.
@@ -159,30 +163,21 @@ Auth0 tenant configuration is security-sensitive infrastructure. Before producti
 must be reproducible or captured in a reviewed configuration runbook, including passkey
 policy, connections, callback URLs, log retention and tenant administrators.
 
-## Free-plan security boundary
+## MFA entitlement and acceptance boundary
 
-Auth0 Free provides primary passkeys, but its current pricing matrix excludes Pro MFA
-factors. A primary passkey and WebAuthn configured as a second-factor challenge are
-different Auth0 features. For development, the application uses a reviewed Post-Login
-Action to copy Auth0's actual passkey-use result into a signed ID-token claim; that claim
-is accepted only when the backend is not running in production. Production continues to
-require the verified hosted-flow `amr` array containing `mfa`.
+The approved Beta flow is password + authenticator TOTP through Universal Login.
+Every configured environment requires validated ID-token `amr` containing `mfa`;
+there is no Free/development signed-passkey exception. Password-only, skipped MFA,
+and passkey-only evidence cannot produce a local application session. Recovery must
+remain inside Auth0 and must not create an application email-only bypass.
 
-Before production, a tenant acceptance test must prove all of the following:
-
-- every approved administrator is forced to enroll an acceptable phishing-resistant
-  authenticator before receiving an application session;
-- each login provides validated protocol evidence that the required authentication
-  method was used; and
-- password-only login, skipped passkey enrollment and recovery cannot yield an
-  administrator application session.
-
-Current Auth0 pricing shows Pro MFA factors as unavailable on Free, so the production
-gate is presently unresolved. The backend denies the session whenever the tenant does
-not perform MFA or does not provide the validated evidence. Production remains blocked
-until the owner explicitly approves a suitable paid Auth0 plan, another identity
-provider or a revised security requirement. Operational instructions such as “always use
-your passkey” are not an enforcement control.
+Before live Beta acceptance, verify the selected tenant/plan supports OTP/TOTP MFA for
+the required period, then prove enrollment and password/TOTP challenges on subsequent
+logins. The [Auth0 plan matrix](https://auth0.com/pricing), checked on 2026-09-13, lists
+Pro MFA Factors as unavailable on Free. No paid plan or trial is enabled by this task;
+any required plan change needs owner approval. Do not fall back to passkeys or optional
+MFA if that entitlement is absent. Production identity isolation, retention, recovery
+and the earlier phishing-resistant-factor requirement remain separate launch gates.
 
 ## Application integration
 
@@ -222,14 +217,14 @@ Every authorization request includes
 `acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`, while the
 tenant-wide policy **Always** remains the intended production enforcement control.
 Auth0 documents that a hosted flow adds `mfa` to the ID-token `amr` only after a
-successful MFA challenge. Development may instead satisfy assurance with the signed
-passkey claim; production requires `AUTH_REQUIRED_AMR=mfa`. This does not establish that
-Free supplies durable production MFA, so the production assurance gate remains open.
+successful MFA challenge. Every environment requires `AUTH_REQUIRED_AMR=mfa`;
+password and TOTP selection remain Auth0 tenant controls. Durable plan entitlement and
+live Beta/production acceptance remain open.
 
 ## Cost and operational controls
 
-- Keep the tenant on Auth0 Free. No paid upgrade, add-on or subscription may be enabled
-  without explicit owner approval.
+- Do not enable a paid upgrade, trial, add-on or subscription without explicit owner
+  approval. Verify the approved plan supports mandatory TOTP before live Beta login.
 - Confirm the USD 0 price, authentication controls, tenant limits, rate limits and log
   retention immediately before production.
 - A credit card is not required for Free sign-up. If a custom domain is requested, warn
@@ -260,7 +255,7 @@ Re-evaluate the provider if:
 
 - RC Premier confirms an existing governed Microsoft Entra workforce tenant;
 - hosting standardizes on AWS and the team accepts Cognito's operational model;
-- Auth0 changes required passkey, environment or log capabilities;
+- Auth0 changes required MFA, environment or log capabilities;
 - the Free plan no longer meets the project's cost constraint;
 - Philippine availability, support or data-handling review rejects Auth0;
 - Phase 4 client accounts introduce materially different identity requirements.

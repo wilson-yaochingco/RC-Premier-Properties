@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AuthSessionModel } from "../src/modules/auth/auth-session.model.js";
-import { validateProvisionAdminInput } from "../src/modules/auth/admin-provisioning.js";
+import {
+  validateProvisionAdminInput,
+  validateStaffIdentitySelector,
+} from "../src/modules/auth/admin-provisioning.js";
 import {
   createAuthCookieSettings,
   readCookie,
@@ -163,5 +166,25 @@ describe("administrator bootstrap validation", () => {
         email: "admin@example.test",
       }),
     ).toThrow(/issuer/);
+  });
+
+  it("requires an explicit stable issuer and subject for staff lifecycle actions", () => {
+    expect(
+      validateStaffIdentitySelector({
+        issuer: "https://tenant.us.auth0.com",
+        subject: " auth0|approved-admin ",
+        now: new Date("2026-09-05T00:00:00.000Z"),
+      }),
+    ).toEqual({
+      issuer: "https://tenant.us.auth0.com/",
+      subject: "auth0|approved-admin",
+      now: new Date("2026-09-05T00:00:00.000Z"),
+    });
+    expect(() =>
+      validateStaffIdentitySelector({
+        issuer: "https://tenant.us.auth0.com/",
+        subject: "",
+      }),
+    ).toThrow(/subject/);
   });
 });

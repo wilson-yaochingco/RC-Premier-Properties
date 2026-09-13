@@ -15,6 +15,7 @@ if (!npmCli) {
 const build = spawn(process.execPath, [npmCli, "run", "build"], {
   env: {
     ...process.env,
+    NEXT_PUBLIC_DEPLOYMENT_ENV: "test",
     NEXT_PUBLIC_API_URL: FIXTURE_API_URL,
     NEXT_PUBLIC_SITE_URL: FRONTEND_URL,
   },

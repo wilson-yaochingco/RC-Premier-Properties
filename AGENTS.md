@@ -6,17 +6,19 @@ Instructions for AI coding agents and new contributors. Read this before writing
 
 ## Scope: preserve the public MVP boundary
 
-The repository contains a public MVP vertical slice: editorial public pages, published
-property search and detail routes, connected inquiry forms, and Mongoose property and
-inquiry models. Real MongoDB persistence, production inventory, the approved logo, real
-media, and public business contact details have not yet been supplied or verified. Read
+The repository contains the public MVP plus its protected staff slice: editorial pages,
+published-property discovery, connected inquiries, Auth0-backed local staff sessions,
+property/inquiry administration, device-image validation with development storage, and
+provider-neutral notification retries. Production inventory and listing media, live
+production providers, and their acceptance evidence have not been supplied. Read
 [`docs/ROADMAP.md`](docs/ROADMAP.md) and the feature documents before changing this
 boundary.
 
 Do not implement deferred functionality unless explicitly asked for that specific
-feature: authentication, user or agent accounts, agent profiles, confirmed appointments,
-favorites, an admin dashboard, image uploads, payments, notifications, production seed
-data, or AI features. A viewing submission currently creates an inquiry request only.
+feature: user or agent accounts, agent profiles, calendar-backed confirmed appointments,
+favorites, analytics dashboards, payments, production seed data, or AI features. A
+viewing submission still creates an inquiry request only; confirmation is a staff workflow,
+not calendar availability.
 
 Do not create database schemas for features that do not exist. Do not fabricate
 functionality to demonstrate architecture.

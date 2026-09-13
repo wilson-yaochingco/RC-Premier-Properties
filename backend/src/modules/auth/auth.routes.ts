@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from "express";
 import { env } from "../../config/env.js";
 import { HttpError } from "../../middleware/errorHandler.js";
 import { createLoginRateLimit } from "../../middleware/loginRateLimit.js";
+import { createCallbackFailureRateLimit } from "../../middleware/callbackFailureRateLimit.js";
 import { AuthCrypto } from "./auth.crypto.js";
 import { createAuthController } from "./auth.controller.js";
 import { createAuthCookieSettings, type AuthCookieSettings } from "./auth.cookies.js";
@@ -20,12 +21,14 @@ export interface AuthRouteDependencies {
   service?: AuthService;
   cookies?: AuthCookieSettings;
   loginRateLimit?: RequestHandler;
+  callbackFailureRateLimit?: RequestHandler;
 }
 
 export interface ResolvedAuthRouteDependencies {
   service: AuthService | null;
   cookies?: AuthCookieSettings;
   loginRateLimit: RequestHandler;
+  callbackFailureRateLimit: RequestHandler;
 }
 
 function defaultAuthService(): AuthService | null {
@@ -47,7 +50,6 @@ function defaultAuthService(): AuthService | null {
       allowedReturnUrls: auth.allowedReturnUrls,
       allowedOrigins: [env.CORS_ORIGIN],
       requiredAmr: auth.requiredAmr,
-      allowPasskeyOnly: auth.allowPasskeyOnly,
       sessionIdleMs: auth.sessionIdleMinutes * 60_000,
       sessionAbsoluteMs: auth.sessionAbsoluteHours * 60 * 60_000,
       sessionActivityTouchMs: 5 * 60_000,
@@ -62,7 +64,9 @@ export function resolveAuthRouteDependencies(
 ): ResolvedAuthRouteDependencies {
   const service = dependencies.service ?? defaultAuthService();
   const loginRateLimit = dependencies.loginRateLimit ?? createLoginRateLimit();
-  if (!service) return { service: null, loginRateLimit };
+  const callbackFailureRateLimit =
+    dependencies.callbackFailureRateLimit ?? createCallbackFailureRateLimit();
+  if (!service) return { service: null, loginRateLimit, callbackFailureRateLimit };
   const cookies =
     dependencies.cookies ??
     createAuthCookieSettings(
@@ -70,7 +74,7 @@ export function resolveAuthRouteDependencies(
       service.config.sessionAbsoluteMs,
       service.config.transactionLifetimeMs,
     );
-  return { service, cookies, loginRateLimit };
+  return { service, cookies, loginRateLimit, callbackFailureRateLimit };
 }
 
 export function createAuthRoutes(
@@ -93,7 +97,7 @@ export function createAuthRoutes(
   const controller = createAuthController(service, cookies);
 
   router.get("/login", resolved.loginRateLimit, controller.start);
-  router.get("/callback", controller.callback);
+  router.get("/callback", resolved.callbackFailureRateLimit, controller.callback);
   router.get("/session", requireAuthentication(service, cookies), controller.current);
   router.post(
     "/logout",

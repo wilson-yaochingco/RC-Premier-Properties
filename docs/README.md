@@ -23,10 +23,11 @@ now_.
 | Directory                        | Put this here                                                       |
 | -------------------------------- | ------------------------------------------------------------------- |
 | [`architecture/`](architecture/) | Long-lived architecture and the decisions behind it                 |
-| [`features/`](features/)         | One spec per feature: purpose, rules, behaviour, responsibilities   |
+| [`features/`](features/)         | One spec per feature: purpose, rules, behavior, responsibilities    |
 | [`api/`](api/)                   | Endpoint conventions, request/response formats, versioning          |
 | [`database/`](database/)         | Data models, relationships, indexes, schema and migration decisions |
 | [`development/`](development/)   | Setup, environment variables, workflow, deployment                  |
+| [`audits/`](audits/)             | Forensic readiness reports, findings, gates and remediation plans   |
 
 ---
 
@@ -47,31 +48,56 @@ Current:
 - [`authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
   — implemented Phase 3A backend identity, session and permission architecture; live
   provider and production gates remain open
-- [`oidc-provider-selection.md`](architecture/oidc-provider-selection.md) — Auth0 Free
-  selection, provider comparison, configuration baseline and provisioning gates
+- [`oidc-provider-selection.md`](architecture/oidc-provider-selection.md) — Auth0
+  selection, historical comparison, Beta password/TOTP baseline and provisioning gates
 - [`brand-and-public-experience.md`](architecture/brand-and-public-experience.md) —
   visual system, information architecture and public-experience rules
 - [`geographic-data-and-maps.md`](architecture/geographic-data-and-maps.md) — Leaflet
   loading, tile/boundary attribution, map filtering and listing-location privacy
+- [`property-media.md`](architecture/property-media.md) — ordered image metadata,
+  development-sample policy, rendering boundary and production-storage blocker
+- [`deployment-topology.md`](architecture/deployment-topology.md) — Level 11 public edge,
+  same-site session, proxy, provider, CSP, and deployment trust boundaries
+
+- [`operational-resilience.md`](architecture/operational-resilience.md) — Level 12 health,
+  structured logging, notification retry, media cleanup-debt, integrity, and scheduler
+  boundaries
 
 ### `features/`
 
 One document per feature, written when that feature is being designed or implemented —
-not before. A feature spec should cover purpose, requirements, user-facing behaviour,
+not before. A feature spec should cover purpose, requirements, user-facing behavior,
 business rules, important edge cases, and the split of responsibility between frontend
 and backend.
 
 Current:
 
-- [`properties.md`](features/properties.md) — published catalogue, filters and property
-  detail behaviour
+- [`properties.md`](features/properties.md) — published catalog, filters and property
+  detail behavior
+- [`locations.md`](features/locations.md) — bounded inventory-backed location index and
+  detail behavior
 - [`property-administration.md`](features/property-administration.md) — protected admin
-  shell, private property reads and draft content workflow
-- [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behaviour
+  shell, property lifecycle, draft content and image-reference workflow
+- [`admin-operations.md`](features/admin-operations.md) — Level 15 dashboard, viewing
+  calendar, search, audit/staff visibility, and bounded export decisions
+- [`inquiries.md`](features/inquiries.md) — contact, seller and viewing-request behavior
+- [`production-content-and-media.md`](features/production-content-and-media.md) — approved
+  Level 7 business content, supplied design media, device uploads and provider gates
+- [`seo-and-social-discovery.md`](features/seo-and-social-discovery.md) — metadata,
+  canonicals, location indexing, social previews, structured data, robots and sitemap
+  policy
+- [`accessibility-responsive-browser-qa.md`](features/accessibility-responsive-browser-qa.md)
+  — practical accessibility target, interaction rules, responsive matrix, browser
+  coverage and manual acceptance boundaries
 
-The backend authentication foundation is documented as an architectural boundary. The
-first property-administration slice now has a feature specification; confirmed
-appointments and broader staff administration remain unimplemented.
+- [`performance-and-delivery.md`](features/performance-and-delivery.md) - Level 10
+  baseline, Core Web Vitals readiness, image/gallery/video/map delivery, API and query
+  efficiency, caching policy, budgets, and field-validation boundaries
+
+The protected staff boundary now includes the full sales-property lifecycle, device
+media validation/development storage, and lightweight inquiry/viewing administration.
+Structured viewing requests remain deliberately separate from live calendar availability;
+broader CRM and future staff/client roles remain unimplemented.
 
 ### `api/`
 
@@ -85,10 +111,14 @@ Current:
 
 - [`conventions.md`](api/conventions.md) — cross-endpoint rules
 - [`public-api.md`](api/public-api.md) — implemented public endpoints and parameters
+- [`inquiry-administration-api.md`](api/inquiry-administration-api.md) — protected staff
+  queue, workflow, spam and archive operations
 - [`authentication-api.md`](api/authentication-api.md) — staff login, current-session and
   logout contract
 - [`property-administration-api.md`](api/property-administration-api.md) — protected
   private reads and draft create/edit contracts
+- [`admin-operations-api.md`](api/admin-operations-api.md) — protected read-only
+  dashboard, calendar, audit, and staff contracts
 
 ### `database/`
 
@@ -118,20 +148,58 @@ Current:
 - [`setup.md`](development/setup.md) — the full VS Code onboarding guide
 - [`git-workflow.md`](development/git-workflow.md) — branching, commits and pull requests
 - [`testing.md`](development/testing.md) — automated and manual verification boundaries
-- [`auth0-setup.md`](development/auth0-setup.md) — development tenant, secrets,
-  administrator bootstrap and live-login acceptance
+- [`auth0-setup.md`](development/auth0-setup.md) — infrastructure ownership, shared Admin,
+  password/TOTP, disabled passkeys/signup, Beta URLs and manual acceptance
+- [`authentication-operations.md`](development/authentication-operations.md) —
+  production configuration gate, staff disable/revocation and recovery procedure
 - [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
   agent-placeholder replacement guide plus map/contact launch dependencies
+- [`deployment-and-release.md`](development/deployment-and-release.md) — Level 11 audit,
+  environment matrix, build/start behavior, staging acceptance, production checklist,
+  rollback, external blockers, and Level 12 handoff
+- [`vercel-beta.md`](development/vercel-beta.md) — controlled-beta topology, ownership,
+  Vercel/Preview settings, business recipient, manual checklist and live gates
 
 ---
 
+- [`operations.md`](development/operations.md) — Level 12 ownership, monitoring, alerts,
+  incident/provider runbooks, retention, commands, and live blockers
+- [`disaster-recovery.md`](development/disaster-recovery.md) — database/media backup,
+  isolated restore, validation, provider recovery, and rehearsal procedure
+
+### `audits/`
+
+Point-in-time, evidence-backed audits. These reports record observed repository state,
+quality-gate results, confirmed defects, external acceptance gates, and recommended
+remediation without silently changing the audited application.
+
+Current:
+
+- [`level-13-production-readiness.md`](audits/level-13-production-readiness.md) — complete
+  forensic production-readiness audit and historical Level 14 input
+- [`level-14-remediation.md`](audits/level-14-remediation.md) — finding-by-finding
+  remediation evidence, full quality gate, residual live blockers, and recalculated score
+- [`level-15-product-operations-enhancements.md`](audits/level-15-product-operations-enhancements.md)
+  — scoped product/operations implementation, deferrals, regression evidence, and gate
+- [`level-16-final-production-readiness.md`](audits/level-16-final-production-readiness.md)
+  — final post-enhancement forensic findings, Level 14 revalidation, live blocker matrix,
+  readiness score, classification, and conditional Level 17 plan
+- [`level-17-final-remediation.md`](audits/level-17-final-remediation.md) — finding-by-finding
+  closure evidence, complete repository gate, unchanged live blocker matrix, and final
+  repository readiness classification
+- [`figma-frontend-rebuild-part-5.md`](audits/figma-frontend-rebuild-part-5.md) — final
+  visual, functional, responsive, security, regression, and readiness audit for the
+  five-part frontend rebuild
+- [`level-22-predeployment-hardening.md`](audits/level-22-predeployment-hardening.md) —
+  application inventory, findings, verification, and X01–X16 reassessment
+
 ## Rules
 
-1. **Check `/docs` before changing behaviour.** Existing architectural decisions are
+1. **Check `/docs` before changing behavior.** Existing architectural decisions are
    binding until deliberately revisited.
-2. **Update documentation when behaviour or architecture materially changes** — in the
+2. **Update documentation when behavior or architecture materially changes** — in the
    same change, not later.
-3. **Document decisions, contracts and behaviour** — not things the code already makes
+3. **Document decisions, contracts and behavior** — not things the code already makes
    obvious. If a paragraph only restates a function, delete it.
 4. **Do not create a document to fill a directory.** An empty directory with a clear
    purpose is better than a page of speculation.

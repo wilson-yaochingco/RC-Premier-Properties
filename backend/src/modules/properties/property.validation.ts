@@ -1,20 +1,32 @@
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
+  ADMIN_LISTING_PURPOSES,
+  FEATURED_PROPERTY_ORDER_MAX,
+  FEATURED_PROPERTY_ORDER_MIN,
   LISTING_PURPOSES,
+  MAX_PROPERTY_IMAGES,
+  PROPERTY_AVAILABILITY,
+  PROPERTY_MEDIA_SOURCES,
   PROPERTY_PUBLICATION_STATUSES,
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
   PROPERTY_SORT_OPTIONS,
-  PROPERTY_TYPES,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   type AdminPropertyContentInput,
+  type AdminPropertyMediaInput,
+  type AdminPropertyAvailabilityRequest,
+  type AdminPropertyFeaturedRequest,
   type AdminPropertyListRequest,
+  type AdminPropertyTransitionRequest,
   type CreateDraftPropertyRequest,
   type PropertySearchFilters,
   type PropertySearchRequest,
   type UpdateDraftPropertyRequest,
+  type UpdatePropertyMediaRequest,
   type ValidationIssue,
 } from "@rc/shared";
 import { Types } from "mongoose";
+import { env } from "../../config/env.js";
 import { HttpError } from "../../middleware/errorHandler.js";
 
 const ALLOWED_QUERY_FIELDS = new Set([
@@ -24,6 +36,7 @@ const ALLOWED_QUERY_FIELDS = new Set([
   "location",
   "propertyType",
   "purpose",
+  "availability",
   "minPrice",
   "maxPrice",
   "bedrooms",
@@ -46,6 +59,11 @@ const MAX_ROOM_COUNT = 100;
 const MAX_AREA_SQM = 100_000_000;
 const MAX_ADMIN_LIST_LIMIT = 50;
 const MAX_LIST_ITEMS = 50;
+const MEDIA_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{7,79}$/;
+const LOCAL_PROPERTY_IMAGE_PATTERN =
+  /^\/media\/properties\/[a-zA-Z0-9][a-zA-Z0-9/_-]*\.(?:avif|jpe?g|png|webp)$/i;
+const UNSPLASH_IMAGE_PATH_PATTERN = /^\/photo-[a-zA-Z0-9-]+$/;
+const UNSPLASH_SOURCE_PATH_PATTERN = /^\/photos\/[a-zA-Z0-9_-]+(?:\/)?$/;
 
 type RawQuery = Record<string, unknown>;
 
@@ -151,8 +169,14 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
   const propertyId = boundedString(query, "propertyId", 40, issues);
   const area = enumValue(query, "area", PUBLIC_PROPERTY_AREAS, issues);
   const location = boundedString(query, "location", 120, issues);
-  const propertyType = enumValue(query, "propertyType", PROPERTY_TYPES, issues);
+  const propertyType = enumValue(
+    query,
+    "propertyType",
+    RESIDENTIAL_SALE_PROPERTY_TYPES,
+    issues,
+  );
   const purpose = enumValue(query, "purpose", LISTING_PURPOSES, issues);
+  const availability = enumValue(query, "availability", PROPERTY_AVAILABILITY, issues);
   const minPrice = nonNegativeNumber(query, "minPrice", issues, {
     maximum: MAX_PRICE,
   });
@@ -212,6 +236,7 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
     ...(location ? { location } : {}),
     ...(propertyType ? { propertyType } : {}),
     ...(purpose ? { purpose } : {}),
+    ...(availability ? { availability } : {}),
     ...(minPrice !== undefined ? { minPrice } : {}),
     ...(maxPrice !== undefined ? { maxPrice } : {}),
     ...(bedrooms !== undefined ? { bedrooms } : {}),
@@ -402,6 +427,99 @@ function parsePrice(
     : undefined;
 }
 
+function coordinateNumber(
+  value: unknown,
+  field: string,
+  minimum: number,
+  maximum: number,
+  issues: ValidationIssue[],
+): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < minimum ||
+    value > maximum
+  ) {
+    issues.push({
+      field,
+      message: `Must be a finite number from ${minimum} to ${maximum}.`,
+    });
+    return undefined;
+  }
+  return value;
+}
+
+function parseCoordinateObject(
+  value: unknown,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["location"]["coordinates"] | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "location.coordinates", message: "Must be an object." });
+    return undefined;
+  }
+  unknownFields(value, ["latitude", "longitude"], "location.coordinates", issues);
+  const latitude = coordinateNumber(
+    value.latitude,
+    "location.coordinates.latitude",
+    -90,
+    90,
+    issues,
+  );
+  const longitude = coordinateNumber(
+    value.longitude,
+    "location.coordinates.longitude",
+    -180,
+    180,
+    issues,
+  );
+  return latitude !== undefined && longitude !== undefined
+    ? { latitude, longitude }
+    : undefined;
+}
+
+function parsePublicPoint(
+  value: unknown,
+  issues: ValidationIssue[],
+): AdminPropertyContentInput["location"]["publicPoint"] | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    issues.push({ field: "location.publicPoint", message: "Must be an object." });
+    return undefined;
+  }
+  unknownFields(value, ["type", "coordinates"], "location.publicPoint", issues);
+  if (value.type !== "Point") {
+    issues.push({
+      field: "location.publicPoint.type",
+      message: 'Must be "Point".',
+    });
+  }
+  if (!Array.isArray(value.coordinates) || value.coordinates.length !== 2) {
+    issues.push({
+      field: "location.publicPoint.coordinates",
+      message: "Must contain exactly [longitude, latitude].",
+    });
+    return undefined;
+  }
+  const longitude = coordinateNumber(
+    value.coordinates[0],
+    "location.publicPoint.coordinates.0",
+    -180,
+    180,
+    issues,
+  );
+  const latitude = coordinateNumber(
+    value.coordinates[1],
+    "location.publicPoint.coordinates.1",
+    -90,
+    90,
+    issues,
+  );
+  return value.type === "Point" && longitude !== undefined && latitude !== undefined
+    ? { type: "Point", coordinates: [longitude, latitude] }
+    : undefined;
+}
+
 function parseLocation(
   value: unknown,
   required: boolean,
@@ -414,7 +532,16 @@ function parseLocation(
   }
   unknownFields(
     value,
-    ["province", "city", "barangay", "development", "publicPrecision"],
+    [
+      "province",
+      "city",
+      "barangay",
+      "development",
+      "publicPrecision",
+      "privateAddress",
+      "coordinates",
+      "publicPoint",
+    ],
     "location",
     issues,
   );
@@ -427,12 +554,20 @@ function parseLocation(
     140,
     issues,
   );
+  const privateAddress = optionalText(
+    value.privateAddress,
+    "location.privateAddress",
+    240,
+    issues,
+  );
   const publicPrecision = bodyEnum(
     value.publicPrecision,
     "location.publicPrecision",
     PUBLIC_LOCATION_PRECISIONS,
     issues,
   );
+  const coordinates = parseCoordinateObject(value.coordinates, issues);
+  const publicPoint = parsePublicPoint(value.publicPoint, issues);
   if (!province || !city || !publicPrecision) return undefined;
   return {
     province,
@@ -440,6 +575,9 @@ function parseLocation(
     ...(barangay ? { barangay } : {}),
     ...(development ? { development } : {}),
     publicPrecision,
+    ...(privateAddress ? { privateAddress } : {}),
+    ...(coordinates ? { coordinates } : {}),
+    ...(publicPoint ? { publicPoint } : {}),
   };
 }
 
@@ -507,13 +645,23 @@ function parseAdminPropertyContent(
       { field: "body", message: "Must be a JSON object." },
     ]);
   }
-  unknownFields(rawBody, ADMIN_PROPERTY_CONTENT_FIELDS, "", issues);
-  if (mode === "update" && Object.keys(rawBody).length === 0) {
+  unknownFields(
+    rawBody,
+    mode === "update"
+      ? [...ADMIN_PROPERTY_CONTENT_FIELDS, "expectedVersion"]
+      : ADMIN_PROPERTY_CONTENT_FIELDS,
+    "",
+    issues,
+  );
+  if (
+    mode === "update" &&
+    !ADMIN_PROPERTY_CONTENT_FIELDS.some((field) => rawBody[field] !== undefined)
+  ) {
     issues.push({ field: "body", message: "Provide at least one field to update." });
   }
 
   const required = mode === "create";
-  const result: UpdateDraftPropertyRequest = {};
+  const result: Partial<AdminPropertyContentInput> = {};
 
   const propertyId =
     rawBody.propertyId !== undefined || required
@@ -557,14 +705,14 @@ function parseAdminPropertyContent(
   }
 
   if (rawBody.purpose !== undefined || required) {
-    const value = bodyEnum(rawBody.purpose, "purpose", LISTING_PURPOSES, issues);
+    const value = bodyEnum(rawBody.purpose, "purpose", ADMIN_LISTING_PURPOSES, issues);
     if (value) result.purpose = value;
   }
   if (rawBody.propertyType !== undefined || required) {
     const value = bodyEnum(
       rawBody.propertyType,
       "propertyType",
-      PROPERTY_TYPES,
+      RESIDENTIAL_SALE_PROPERTY_TYPES,
       issues,
     );
     if (value) result.propertyType = value;
@@ -603,13 +751,139 @@ export function parseCreateDraftPropertyBody(
 export function parseUpdateDraftPropertyBody(
   rawBody: unknown,
 ): UpdateDraftPropertyRequest {
-  return parseAdminPropertyContent(rawBody, "update");
+  const content = parseAdminPropertyContent(
+    rawBody,
+    "update",
+  ) as Partial<AdminPropertyContentInput>;
+  const body = rawBody as Record<string, unknown>;
+  const issues: ValidationIssue[] = [];
+  const expectedVersion = boundedBodyNumber(
+    body.expectedVersion,
+    "expectedVersion",
+    Number.MAX_SAFE_INTEGER,
+    issues,
+    true,
+  );
+  if (expectedVersion === undefined) {
+    if (issues.length === 0) {
+      issues.push({ field: "expectedVersion", message: "Is required." });
+    }
+    throw new HttpError(400, "Invalid property request.", issues);
+  }
+  return { ...content, expectedVersion };
+}
+
+function parseVersionedBody(
+  rawBody: unknown,
+  allowedFields: readonly string[],
+): { body: Record<string, unknown>; expectedVersion: number } {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(rawBody)) {
+    throw new HttpError(400, "Invalid property lifecycle request.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  unknownFields(rawBody, allowedFields, "", issues);
+  const expectedVersion = boundedBodyNumber(
+    rawBody.expectedVersion,
+    "expectedVersion",
+    Number.MAX_SAFE_INTEGER,
+    issues,
+    true,
+  );
+  if (expectedVersion === undefined && issues.length === 0) {
+    issues.push({ field: "expectedVersion", message: "Is required." });
+  }
+  if (issues.length > 0 || expectedVersion === undefined) {
+    throw new HttpError(400, "Invalid property lifecycle request.", issues);
+  }
+  return { body: rawBody, expectedVersion };
+}
+
+export function parseAdminPropertyTransitionBody(
+  rawBody: unknown,
+): AdminPropertyTransitionRequest {
+  const { expectedVersion } = parseVersionedBody(rawBody, ["expectedVersion"]);
+  return { expectedVersion };
+}
+
+export function parseAdminPropertyAvailabilityBody(
+  rawBody: unknown,
+): AdminPropertyAvailabilityRequest {
+  const { body, expectedVersion } = parseVersionedBody(rawBody, [
+    "expectedVersion",
+    "availability",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const availability = bodyEnum(
+    body.availability,
+    "availability",
+    PROPERTY_AVAILABILITY,
+    issues,
+  );
+  if (!availability || issues.length > 0) {
+    throw new HttpError(400, "Invalid property lifecycle request.", issues);
+  }
+  return { expectedVersion, availability };
+}
+
+export function parseAdminPropertyFeaturedBody(
+  rawBody: unknown,
+): AdminPropertyFeaturedRequest {
+  const { body, expectedVersion } = parseVersionedBody(rawBody, [
+    "expectedVersion",
+    "featured",
+    "featuredOrder",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const featured = requiredBoolean(body.featured, "featured", issues);
+  let featuredOrder: number | null | undefined;
+  if (body.featuredOrder === null) {
+    featuredOrder = null;
+  } else if (body.featuredOrder !== undefined) {
+    featuredOrder = boundedBodyNumber(
+      body.featuredOrder,
+      "featuredOrder",
+      FEATURED_PROPERTY_ORDER_MAX,
+      issues,
+      true,
+    );
+    if (featuredOrder !== undefined && featuredOrder < FEATURED_PROPERTY_ORDER_MIN) {
+      issues.push({
+        field: "featuredOrder",
+        message: `Must be a whole number from ${FEATURED_PROPERTY_ORDER_MIN} to ${FEATURED_PROPERTY_ORDER_MAX}.`,
+      });
+    }
+  }
+  if (featured === false && typeof featuredOrder === "number") {
+    issues.push({
+      field: "featuredOrder",
+      message: "Remove display priority when removing Featured status.",
+    });
+  }
+  if (featured === undefined || issues.length > 0) {
+    throw new HttpError(400, "Invalid Featured Property request.", issues);
+  }
+  return {
+    expectedVersion,
+    featured,
+    ...(featuredOrder !== undefined ? { featuredOrder } : {}),
+  };
 }
 
 export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListRequest {
   const issues: ValidationIssue[] = [];
   for (const field of Object.keys(query)) {
-    if (!["publicationStatus", "page", "limit"].includes(field)) {
+    if (
+      ![
+        "query",
+        "publicationStatus",
+        "availability",
+        "featured",
+        "page",
+        "limit",
+      ].includes(field)
+    ) {
       issues.push({ field, message: "Unknown query parameter." });
     }
   }
@@ -619,6 +893,9 @@ export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListR
     PROPERTY_PUBLICATION_STATUSES,
     issues,
   );
+  const availability = enumValue(query, "availability", PROPERTY_AVAILABILITY, issues);
+  const featured = booleanValue(query, "featured", issues);
+  const searchQuery = boundedString(query, "query", 120, issues);
   const page =
     nonNegativeNumber(query, "page", issues, {
       integer: true,
@@ -634,7 +911,14 @@ export function parseAdminPropertyListQuery(query: RawQuery): AdminPropertyListR
   if (issues.length > 0) {
     throw new HttpError(400, "Invalid private property parameters.", issues);
   }
-  return { ...(publicationStatus ? { publicationStatus } : {}), page, limit };
+  return {
+    ...(searchQuery ? { query: searchQuery } : {}),
+    ...(publicationStatus ? { publicationStatus } : {}),
+    ...(availability ? { availability } : {}),
+    ...(featured !== undefined ? { featured } : {}),
+    page,
+    limit,
+  };
 }
 
 export function parseAdminPropertyId(rawId: unknown): string {
@@ -648,4 +932,267 @@ export function parseAdminPropertyId(rawId: unknown): string {
     ]);
   }
   return rawId;
+}
+
+function mediaUrl(
+  value: unknown,
+  source: AdminPropertyMediaInput["source"] | undefined,
+  field: string,
+  issues: ValidationIssue[],
+): string | undefined {
+  const normalized = requiredText(value, field, 2_048, issues);
+  if (!normalized || !source) return undefined;
+
+  if (source === "production") {
+    if (
+      LOCAL_PROPERTY_IMAGE_PATTERN.test(normalized) &&
+      !normalized.includes("..") &&
+      !normalized.includes("\\")
+    ) {
+      return normalized;
+    }
+
+    try {
+      const url = new URL(normalized);
+      if (
+        !env.MEDIA_PUBLIC_ORIGIN ||
+        url.protocol !== "https:" ||
+        url.origin !== env.MEDIA_PUBLIC_ORIGIN ||
+        url.username ||
+        url.password ||
+        url.hash
+      ) {
+        throw new Error("unapproved media origin");
+      }
+      return url.toString();
+    } catch {
+      issues.push({
+        field,
+        message:
+          "Production media must use managed local storage or the configured public media origin.",
+      });
+      return undefined;
+    }
+  }
+
+  try {
+    const url = new URL(normalized);
+    const allowedQuery = new Set(["auto", "fit", "fm", "ixid", "ixlib", "q", "w"]);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "images.unsplash.com" ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      !UNSPLASH_IMAGE_PATH_PATTERN.test(url.pathname) ||
+      [...url.searchParams.keys()].some((key) => !allowedQuery.has(key))
+    ) {
+      throw new Error("unsupported sample URL");
+    }
+    return url.toString();
+  } catch {
+    issues.push({
+      field,
+      message:
+        "Development samples must use an approved images.unsplash.com photo URL.",
+    });
+    return undefined;
+  }
+}
+
+function sampleSourceUrl(
+  value: unknown,
+  source: AdminPropertyMediaInput["source"] | undefined,
+  field: string,
+  issues: ValidationIssue[],
+): string | undefined {
+  if (source !== "development-sample") {
+    if (value !== undefined && value !== "") {
+      issues.push({ field, message: "Only development samples use a source URL." });
+    }
+    return undefined;
+  }
+  const normalized = requiredText(value, field, 2_048, issues);
+  if (!normalized) return undefined;
+  try {
+    const url = new URL(normalized);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "unsplash.com" ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !UNSPLASH_SOURCE_PATH_PATTERN.test(url.pathname)
+    ) {
+      throw new Error("unsupported source URL");
+    }
+    return url.toString();
+  } catch {
+    issues.push({
+      field,
+      message:
+        "Development sample provenance must link to its unsplash.com photo page.",
+    });
+    return undefined;
+  }
+}
+
+/** Validates one atomic ordered-gallery replacement. No binary upload is accepted here. */
+export function parseUpdatePropertyMediaBody(
+  rawBody: unknown,
+): UpdatePropertyMediaRequest {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(rawBody)) {
+    throw new HttpError(400, "Invalid property media request.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  unknownFields(rawBody, ["expectedVersion", "media", "coverMediaId"], "", issues);
+  const expectedVersion = boundedBodyNumber(
+    rawBody.expectedVersion,
+    "expectedVersion",
+    Number.MAX_SAFE_INTEGER,
+    issues,
+    true,
+  );
+
+  const parsedMedia: AdminPropertyMediaInput[] = [];
+  if (!Array.isArray(rawBody.media) || rawBody.media.length > MAX_PROPERTY_IMAGES) {
+    issues.push({
+      field: "media",
+      message: `Must be a list with at most ${MAX_PROPERTY_IMAGES} images.`,
+    });
+  } else {
+    for (const [index, rawMedia] of rawBody.media.entries()) {
+      const prefix = `media.${index}`;
+      if (!isRecord(rawMedia)) {
+        issues.push({ field: prefix, message: "Must be an image metadata object." });
+        continue;
+      }
+      unknownFields(
+        rawMedia,
+        [
+          "id",
+          "kind",
+          "url",
+          "alt",
+          "caption",
+          "source",
+          "sourceUrl",
+          "attribution",
+          "focalPoint",
+        ],
+        prefix,
+        issues,
+      );
+      const id = requiredText(rawMedia.id, `${prefix}.id`, 80, issues);
+      if (id && !MEDIA_ID_PATTERN.test(id)) {
+        issues.push({
+          field: `${prefix}.id`,
+          message:
+            "Must be a stable identifier using letters, numbers, hyphens, or underscores.",
+        });
+      }
+      const kind = bodyEnum(
+        rawMedia.kind,
+        `${prefix}.kind`,
+        ["image"] as const,
+        issues,
+      );
+      const source = bodyEnum(
+        rawMedia.source,
+        `${prefix}.source`,
+        PROPERTY_MEDIA_SOURCES,
+        issues,
+      );
+      const url = mediaUrl(rawMedia.url, source, `${prefix}.url`, issues);
+      const alt = requiredText(rawMedia.alt, `${prefix}.alt`, 240, issues);
+      const caption = optionalText(rawMedia.caption, `${prefix}.caption`, 500, issues);
+      const sourceUrl = sampleSourceUrl(
+        rawMedia.sourceUrl,
+        source,
+        `${prefix}.sourceUrl`,
+        issues,
+      );
+      const attribution =
+        source === "development-sample"
+          ? requiredText(rawMedia.attribution, `${prefix}.attribution`, 160, issues)
+          : optionalText(rawMedia.attribution, `${prefix}.attribution`, 160, issues);
+      let focalPoint: { x: number; y: number } | undefined;
+      if (rawMedia.focalPoint !== undefined) {
+        if (!isRecord(rawMedia.focalPoint)) {
+          issues.push({
+            field: `${prefix}.focalPoint`,
+            message: "Must contain x and y percentages.",
+          });
+        } else {
+          unknownFields(
+            rawMedia.focalPoint,
+            ["x", "y"],
+            `${prefix}.focalPoint`,
+            issues,
+          );
+          const x = boundedBodyNumber(
+            rawMedia.focalPoint.x,
+            `${prefix}.focalPoint.x`,
+            100,
+            issues,
+            true,
+          );
+          const y = boundedBodyNumber(
+            rawMedia.focalPoint.y,
+            `${prefix}.focalPoint.y`,
+            100,
+            issues,
+            true,
+          );
+          if (x !== undefined && y !== undefined) focalPoint = { x, y };
+        }
+      }
+
+      if (id && kind && source && url && alt) {
+        parsedMedia.push({
+          id,
+          kind,
+          url,
+          alt,
+          ...(caption ? { caption } : {}),
+          source,
+          ...(sourceUrl ? { sourceUrl } : {}),
+          ...(attribution ? { attribution } : {}),
+          ...(focalPoint ? { focalPoint } : {}),
+        });
+      }
+    }
+  }
+
+  const ids = parsedMedia.map((item) => item.id);
+  if (new Set(ids).size !== ids.length) {
+    issues.push({ field: "media", message: "Every image identifier must be unique." });
+  }
+  const coverMediaId = optionalText(rawBody.coverMediaId, "coverMediaId", 80, issues);
+  if (parsedMedia.length > 0 && (!coverMediaId || !ids.includes(coverMediaId))) {
+    issues.push({
+      field: "coverMediaId",
+      message: "Choose one of the listed images as the cover image.",
+    });
+  }
+  if (parsedMedia.length === 0 && coverMediaId) {
+    issues.push({
+      field: "coverMediaId",
+      message: "Must be omitted when the media list is empty.",
+    });
+  }
+
+  if (issues.length > 0 || expectedVersion === undefined) {
+    throw new HttpError(400, "Invalid property media request.", issues);
+  }
+  return {
+    expectedVersion,
+    media: parsedMedia,
+    ...(coverMediaId ? { coverMediaId } : {}),
+  };
 }

@@ -84,13 +84,13 @@ git checkout -b <branch-name>
 
 ### Branch naming
 
-| Prefix      | Use for                                |
-| ----------- | -------------------------------------- |
-| `feature/`  | New functionality                      |
-| `fix/`      | Bug fixes                              |
-| `docs/`     | Documentation changes                  |
-| `refactor/` | Restructuring without behaviour change |
-| `chore/`    | Dependencies, config, tooling          |
+| Prefix      | Use for                               |
+| ----------- | ------------------------------------- |
+| `feature/`  | New functionality                     |
+| `fix/`      | Bug fixes                             |
+| `docs/`     | Documentation changes                 |
+| `refactor/` | Restructuring without behavior change |
+| `chore/`    | Dependencies, config, tooling         |
 
 Examples:
 
@@ -158,15 +158,15 @@ git commit -m "feat: add property listing filters"
 
 ### Commit message prefixes
 
-| Prefix      | For                                    |
-| ----------- | -------------------------------------- |
-| `feat:`     | New functionality                      |
-| `fix:`      | Bug fix                                |
-| `docs:`     | Documentation                          |
-| `refactor:` | Restructuring without behaviour change |
-| `chore:`    | Dependencies, config, tooling          |
-| `test:`     | Tests                                  |
-| `style:`    | Formatting only, no logic change       |
+| Prefix      | For                                   |
+| ----------- | ------------------------------------- |
+| `feat:`     | New functionality                     |
+| `fix:`      | Bug fix                               |
+| `docs:`     | Documentation                         |
+| `refactor:` | Restructuring without behavior change |
+| `chore:`    | Dependencies, config, tooling         |
+| `test:`     | Tests                                 |
+| `style:`    | Formatting only, no logic change      |
 
 Examples:
 
@@ -252,7 +252,7 @@ npm run format:check && npm run lint && npm run typecheck && npm test && npm run
 The team reviews the PR, and requested changes are resolved before it merges. Push
 follow-up commits to the same branch — the PR updates automatically.
 
-Do not merge your own PR unless you are authorised to manage the repository.
+Do not merge your own PR unless you are authorized to manage the repository.
 
 ## 12. After the PR is merged
 

@@ -1,0 +1,324 @@
+.page {
+  background: #fff;
+  color: #22262d;
+}
+
+.hero {
+  position: relative;
+  min-height: clamp(32rem, 72svh, 43rem);
+  display: grid;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.hero > img {
+  z-index: -1;
+  object-fit: cover;
+  object-position: 50% 63%;
+}
+
+.heroInner {
+  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.guidanceCard {
+  width: min(100%, 27rem);
+  padding: clamp(2rem, 4vw, 3.5rem);
+  background: #fff;
+  box-shadow: 0 1rem 3rem rgb(17 21 27 / 16%);
+}
+
+.eyebrow {
+  color: var(--brand-secondary-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.guidanceCard h1,
+.conversationIntro h2,
+.direct h2 {
+  margin-top: 0.65rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(2.15rem, 4vw, 4rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.guidanceCard > p:not(.eyebrow) {
+  margin-top: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.guidanceCard > a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2rem;
+  border-bottom: 1px solid currentColor;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.conversation {
+  padding-block: clamp(5rem, 8vw, 8rem);
+  background: var(--surface-soft);
+}
+
+.conversationInner {
+  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(3rem, 7vw, 7rem);
+  align-items: start;
+}
+
+.conversationIntro {
+  position: sticky;
+  top: calc(var(--header-height) + 2rem);
+}
+
+.conversationIntro > p:not(.eyebrow) {
+  margin-top: 1.35rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+
+.directLinks {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 2rem;
+}
+
+.directLinks a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.formPanel {
+  min-width: 0;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.direct {
+  padding-block: clamp(5rem, 8vw, 8rem);
+}
+
+.directInner {
+  width: min(calc(100% - (2 * var(--container-gutter))), 72rem);
+}
+
+.direct h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.directGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: clamp(3rem, 6vw, 5rem);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.directGrid article {
+  min-width: 0;
+  min-height: 16rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.directGrid h3 {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.directGrid article > p {
+  margin-top: 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.directGrid article > a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-top: 1rem;
+  border-bottom: 1px solid currentColor;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.socialLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.15rem;
+}
+
+.socialLinks a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--brand-primary);
+  font-size: 0.72rem;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.socialLinks a > span:first-child {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--brand-secondary-text);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.socialLinks a > span:last-child {
+  border-bottom: 1px solid transparent;
+  transition: border-color 160ms ease;
+}
+
+@media (hover: hover) {
+  .socialLinks a:hover {
+    color: var(--brand-secondary-text);
+    transform: translateY(-2px);
+  }
+
+  .socialLinks a:hover > span:first-child {
+    border-color: var(--brand-secondary);
+    background: var(--brand-secondary);
+    color: var(--brand-primary);
+    transform: scale(1.04);
+  }
+
+  .socialLinks a:hover > span:last-child {
+    border-color: currentColor;
+  }
+}
+
+.socialLinks a:focus-visible {
+  border-radius: 0.25rem;
+  color: var(--brand-secondary-text);
+  outline: 2px solid var(--brand-secondary);
+  outline-offset: 0.3rem;
+}
+
+.socialLinks a:focus-visible > span:first-child {
+  border-color: var(--brand-secondary);
+  background: var(--brand-secondary);
+  color: var(--brand-primary);
+}
+
+.socialLinks a:focus-visible > span:last-child {
+  border-color: currentColor;
+}
+
+.socialLinks svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+  stroke: none;
+}
+
+.socialLinks svg rect,
+.socialLinks svg circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+@media (max-width: 60rem) {
+  .conversationInner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .conversationIntro {
+    position: static;
+  }
+
+  .directGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .directGrid article:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 42rem) {
+  .hero {
+    min-height: 34rem;
+    align-items: end;
+  }
+
+  .hero > img {
+    object-position: 48% 58%;
+  }
+
+  .heroInner {
+    align-items: end;
+    padding-bottom: 1rem;
+  }
+
+  .guidanceCard {
+    width: 100%;
+  }
+
+  .formPanel {
+    padding: 1.25rem;
+  }
+
+  .directGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .directGrid article:last-child {
+    grid-column: auto;
+  }
+
+  .directGrid article {
+    min-height: 13rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .socialLinks a,
+  .socialLinks a > span {
+    transition: none;
+  }
+
+  .socialLinks a:hover,
+  .socialLinks a:hover > span:first-child {
+    transform: none;
+  }
+}

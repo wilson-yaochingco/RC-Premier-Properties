@@ -6,6 +6,7 @@ import type {
   PropertyMapResponse,
   PropertySearchResponse,
   PublicPropertyDetail,
+  RelatedPropertiesResponse,
 } from "@rc/shared";
 import { HttpError } from "../../middleware/errorHandler.js";
 import { getRequestId } from "../../middleware/requestContext.js";
@@ -17,13 +18,18 @@ import {
 import type { AdminPropertyService, PropertyService } from "./property.types.js";
 import {
   parseAdminPropertyId,
+  parseAdminPropertyAvailabilityBody,
+  parseAdminPropertyFeaturedBody,
   parseAdminPropertyListQuery,
+  parseAdminPropertyTransitionBody,
   parseCreateDraftPropertyBody,
   parsePropertyMapQuery,
   parsePropertySearchQuery,
   parsePropertySlug,
   parseUpdateDraftPropertyBody,
+  parseUpdatePropertyMediaBody,
 } from "./property.validation.js";
+import { parseImageUploadQuery } from "./property-media.validation.js";
 
 export function createPropertyController(
   service: PropertyService = mongoosePropertyService,
@@ -52,12 +58,31 @@ export function createPropertyController(
       if (!property) throw new HttpError(404, "Property not found.");
       res.status(200).json(property);
     },
+
+    async related(
+      req: Request<{ slug: string }>,
+      res: Response<RelatedPropertiesResponse>,
+    ): Promise<void> {
+      const slug = parsePropertySlug(req.params.slug);
+      const properties = await service.related(slug);
+      if (!properties) throw new HttpError(404, "Property not found.");
+      res.status(200).json(properties);
+    },
   };
 }
 
 export function createAdminPropertyController(
   service: AdminPropertyService = mongooseAdminPropertyService,
 ) {
+  function mutationContext(res: Response) {
+    const context = authenticatedContext(res.locals);
+    if (!context) throw new HttpError(401, "Authentication required.");
+    return {
+      actorStaffIdentityId: context.staff.id,
+      requestId: getRequestId(res),
+    };
+  }
+
   return {
     async list(_req: Request, res: Response<AdminPropertyListResponse>): Promise<void> {
       res
@@ -77,14 +102,9 @@ export function createAdminPropertyController(
     },
 
     async create(req: Request, res: Response<AdminPropertyDetail>): Promise<void> {
-      const context = authenticatedContext(res.locals);
-      if (!context) throw new HttpError(401, "Authentication required.");
       const property = await service.createDraft(
         parseCreateDraftPropertyBody(req.body),
-        {
-          actorStaffIdentityId: context.staff.id,
-          requestId: getRequestId(res),
-        },
+        mutationContext(res),
       );
       res.status(201).json(property);
     },
@@ -93,15 +113,107 @@ export function createAdminPropertyController(
       req: Request<{ id: string }>,
       res: Response<AdminPropertyDetail>,
     ): Promise<void> {
-      const context = authenticatedContext(res.locals);
-      if (!context) throw new HttpError(401, "Authentication required.");
       const property = await service.updateDraft(
         parseAdminPropertyId(req.params.id),
         parseUpdateDraftPropertyBody(req.body),
-        {
-          actorStaffIdentityId: context.staff.id,
-          requestId: getRequestId(res),
-        },
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async updateMedia(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ): Promise<void> {
+      const property = await service.updateMedia(
+        parseAdminPropertyId(req.params.id),
+        parseUpdatePropertyMediaBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async uploadImage(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ): Promise<void> {
+      if (!service.uploadImage) {
+        throw new HttpError(503, "Property image upload is not configured.");
+      }
+      const property = await service.uploadImage(
+        parseAdminPropertyId(req.params.id),
+        parseImageUploadQuery(req.query as Record<string, unknown>),
+        Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0),
+        req.get("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase(),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(201).json(property);
+    },
+
+    async publish(req: Request<{ id: string }>, res: Response<AdminPropertyDetail>) {
+      const property = await service.publish(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyTransitionBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async unpublish(req: Request<{ id: string }>, res: Response<AdminPropertyDetail>) {
+      const property = await service.unpublish(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyTransitionBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async archive(req: Request<{ id: string }>, res: Response<AdminPropertyDetail>) {
+      const property = await service.archive(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyTransitionBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async restore(req: Request<{ id: string }>, res: Response<AdminPropertyDetail>) {
+      const property = await service.restore(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyTransitionBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async changeAvailability(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ) {
+      const property = await service.changeAvailability(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyAvailabilityBody(req.body),
+        mutationContext(res),
+      );
+      if (!property) throw new HttpError(404, "Property not found.");
+      res.status(200).json(property);
+    },
+
+    async updateFeatured(
+      req: Request<{ id: string }>,
+      res: Response<AdminPropertyDetail>,
+    ) {
+      const property = await service.updateFeatured(
+        parseAdminPropertyId(req.params.id),
+        parseAdminPropertyFeaturedBody(req.body),
+        mutationContext(res),
       );
       if (!property) throw new HttpError(404, "Property not found.");
       res.status(200).json(property);

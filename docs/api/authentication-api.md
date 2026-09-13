@@ -1,7 +1,7 @@
 # Staff Authentication API
 
-Status: backend foundation implemented; development passkey redirect reported, live
-application-session and logout acceptance pending.
+Status: Level 6 automated security hardening complete; development passkey redirect
+reported; live application-session and logout acceptance pending.
 
 All paths are relative to `API_PREFIX` from `@rc/shared`, currently `/api/v1`. The JSON
 contracts and named permissions live in `shared/src/api.ts`. The endpoints use Auth0 only
@@ -18,7 +18,9 @@ to prove identity; application roles and permissions come exclusively from the l
 | `POST` | `/auth/logout`   | Revoke the local session and clear cookies    | `200`   |
 
 Every auth response sets `Cache-Control: no-store` and `X-Robots-Tag: noindex,
-nofollow`. Provider tokens are never returned by these endpoints.
+nofollow`. Helmet's API security policy, content-type, referrer, clickjacking and
+browser-feature headers apply to errors and successes; HSTS is production-only. Provider
+tokens are never returned by these endpoints.
 
 ## `GET /auth/login`
 
@@ -40,16 +42,26 @@ prompt. It is independently limited to ten starts per IP per 15 minutes.
 The callback consumes the transaction atomically before exchanging the code, preventing
 replay. `openid-client` validates state, nonce, PKCE, issuer, audience, signature and
 token expiry. Any failed validation returns the same `401 Authentication failed.`
-envelope and clears the transaction cookie.
+envelope and clears the transaction cookie. The callback is inside the general API limit
+and a separate failed-callback budget of 20 per IP per 15 minutes. Successful callbacks
+are removed from that failure counter, and all rejected callbacks retain the same generic
+envelope. Valid provider exchanges additionally require a transaction created through the
+stricter login-start limit. Application limiters are process-local; a multi-instance
+deployment still requires the separately tracked shared edge/WAF enforcement contract.
 
 A valid provider identity must then match an active local record by exact `(issuer,
 subject)`, have the local `admin` role, and contain the configured authentication-method
-evidence. Production requires an `amr` array containing `mfa`, which Auth0 adds only
-after a completed MFA challenge. Development and test may alternatively accept the
-signed namespaced boolean claim emitted by the reviewed Post-Login Action when Auth0
-reports actual passkey use. That alternative is hard-disabled in production. Unknown,
-disabled, unassigned, missing evidence, password-only and other incorrect assurance
-results receive no application session.
+evidence. Every environment requires an `amr` array containing `mfa`, which Auth0 adds
+after a completed MFA challenge. The former development signed-passkey exception is
+retired. Unknown, disabled, unassigned, missing evidence, password-only and passkey-only
+results receive no application session. The approved Beta password + TOTP factor,
+disabled passkeys/WebAuthn, recovery and disabled signup are Auth0 tenant controls; see
+the [manual setup runbook](../development/auth0-setup.md). Email remains contact/display
+data and never grants authorization.
+
+Startup rejects `AUTH_REQUIRED_AMR` values other than `mfa` in every environment.
+Production also rejects session, concurrency or transaction limits above the reviewed
+30-minute, eight-hour, three-session and ten-minute baseline.
 
 Success revokes any existing browser session, creates a new local opaque session, sets
 the session cookie and redirects to the stored exact `returnTo` URL. No provider token
@@ -64,6 +76,8 @@ cookie value or stored session hash.
 
 Missing, malformed, revoked, idle-expired, absolute-expired, disabled-staff and stale
 authorization-version sessions return the shared `401` error envelope.
+If MongoDB cannot verify the session or staff record, the route returns a generic `503`
+and never falls back to an authenticated identity.
 
 ## `POST /auth/logout`
 
@@ -82,7 +96,8 @@ with the safe database session ID and reason `logout`, followed by the existing
 `auth.logout.succeeded` event. Repeated logout does not report another revocation.
 
 The endpoint performs application logout. It does not yet clear Auth0's own Universal
-Login SSO cookie, so a later login may complete without another credential prompt.
+Login SSO cookie. A later login still sends `prompt=login`; ending the Auth0 SSO session
+would require a separately reviewed allowlisted provider-logout flow.
 
 ## Authorization middleware
 
@@ -96,13 +111,18 @@ and one named permission. The initial local `admin` role receives:
 - `inquiry:read`
 - `inquiry:update`
 - `audit:read`
+- `staff:manage`
 
 Permission checks deny by default. Anonymous access returns `401`; an authenticated
 identity missing a required permission returns `403`; a service may return the common
 protected-resource `404 Resource not found.` response when revealing existence would
-disclose protected information. The implemented private property routes use the first
-two permissions; publication, availability and inquiry administration remain
-unimplemented. See [`property-administration-api.md`](property-administration-api.md).
+disclose protected information. The property routes use all four property permissions,
+and inquiry administration uses `inquiry:read` and `inquiry:update`. Level 15 operations
+use the applicable property/inquiry reads, `audit:read`, and administrator-only
+`staff:manage`; staff provisioning/deactivation remain separate CLI operations. See
+[`property-administration-api.md`](property-administration-api.md),
+[`inquiry-administration-api.md`](inquiry-administration-api.md), and
+[`admin-operations-api.md`](admin-operations-api.md).
 
 ## Error and audit boundary
 
@@ -113,3 +133,7 @@ counts. Successful session rotation, logout, concurrent-limit eviction, staff
 deactivation and detected role/status/authorization-version changes each record
 `auth.session.revoked`. Events contain a database session ID or safe count, never the raw
 session token or stored hash.
+
+Unexpected infrastructure errors are logged only as bounded redacted summaries. Raw
+Error objects, callback query strings, configured database/Auth0/session secrets and
+common token parameters are not written to application logs.

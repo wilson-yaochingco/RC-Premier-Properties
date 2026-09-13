@@ -3,9 +3,34 @@ import {
   normalizeAuthCallbackUrl,
   normalizeAuthIssuerUrl,
   normalizeAuthReturnUrls,
+  normalizeBusinessNotificationEmail,
   normalizeCorsOrigin,
+  normalizeTrustProxyHops,
   validateAuthTransportSecurity,
+  validateMongoDbUri,
+  validateProductionOrigin,
 } from "../src/config/env.js";
+
+describe("business notification recipient configuration", () => {
+  it("normalizes a single mailbox independently of sender configuration", () => {
+    expect(normalizeBusinessNotificationEmail(" RCPREMIERPH@gmail.com ")).toBe(
+      "rcpremierph@gmail.com",
+    );
+  });
+
+  it.each([
+    "",
+    "invalid",
+    "Renzo & Criezel <rcpremierph@gmail.com>",
+    "rcpremierph@gmail.com,other@example.test",
+    "rcpremierph@gmail.com\r\nBcc: other@example.test",
+    `${"a".repeat(250)}@example.test`,
+  ])("rejects unsafe mailbox configuration %j", (value) => {
+    expect(() => normalizeBusinessNotificationEmail(value)).toThrow(
+      /BUSINESS_NOTIFICATION_EMAIL/,
+    );
+  });
+});
 
 describe("CORS origin configuration", () => {
   it("accepts and normalizes one HTTP(S) origin", () => {
@@ -25,6 +50,78 @@ describe("CORS origin configuration", () => {
     ]) {
       expect(() => normalizeCorsOrigin(value)).toThrow(/Invalid CORS_ORIGIN/);
     }
+  });
+});
+
+describe("reverse proxy configuration", () => {
+  it("trusts no forwarded address by default and accepts only a bounded exact hop count", () => {
+    expect(normalizeTrustProxyHops(undefined)).toBe(0);
+    expect(normalizeTrustProxyHops("0")).toBe(0);
+    expect(normalizeTrustProxyHops("2")).toBe(2);
+    for (const value of ["-1", "1.5", "all", "11"]) {
+      expect(() => normalizeTrustProxyHops(value)).toThrow(/TRUST_PROXY_HOPS/);
+    }
+  });
+});
+
+describe("production deployment configuration", () => {
+  it("requires public HTTPS origins without loopback hosts", () => {
+    expect(
+      validateProductionOrigin(
+        "production",
+        "CORS_ORIGIN",
+        "https://properties.example.test",
+      ),
+    ).toBe("https://properties.example.test");
+    expect(() =>
+      validateProductionOrigin(
+        "production",
+        "CORS_ORIGIN",
+        "http://properties.example.test",
+      ),
+    ).toThrow(/CORS_ORIGIN/);
+    expect(() =>
+      validateProductionOrigin("production", "CORS_ORIGIN", "https://127.0.0.1"),
+    ).toThrow(/CORS_ORIGIN/);
+  });
+
+  it("requires an encrypted production MongoDB URI with an explicit database", () => {
+    expect(
+      validateMongoDbUri(
+        "production",
+        "mongodb+srv://application:credential@cluster.example.test/rc_premier",
+      ),
+    ).toContain("cluster.example.test/rc_premier");
+    expect(
+      validateMongoDbUri(
+        "production",
+        "mongodb://application:credential@db.example.test/rc_premier?tls=true",
+      ),
+    ).toContain("tls=true");
+    for (const value of [
+      "mongodb://db.example.test/rc_premier",
+      "mongodb://localhost/rc_premier?tls=true",
+      "mongodb+srv://cluster.example.test/",
+      "mongodb+srv://cluster.example.test/rc_premier?tls=false",
+      "mongodb+srv://cluster.example.test/rc_premier?ssl=false",
+      "mongodb+srv://cluster.example.test/rc_premier?tls=true&ssl=false",
+      "mongodb://db.example.test/rc_premier?tls=true&tls=false",
+      "mongodb://db.example.test/rc_premier?TLS=TRUE&tls=false",
+      "mongodb://db.example.test/rc_premier?tls=1",
+      "mongodb+srv://cluster.example.test/rc_premier?tlsInsecure=true",
+      "mongodb+srv://cluster.example.test/rc_premier?tlsAllowInvalidCertificates=true",
+      "mongodb+srv://cluster.example.test/rc_premier?tlsAllowInvalidHostnames=true",
+      "mongodb+srv://cluster.example.test/rc_premier?sslValidate=false",
+    ]) {
+      expect(() => validateMongoDbUri("production", value)).toThrow(/MONGODB_URI/);
+    }
+  });
+
+  it("keeps local development flexible without weakening production-equivalent staging", () => {
+    const local = "mongodb://127.0.0.1:27017/rc_premier?tls=false";
+    expect(validateMongoDbUri("development", local)).toBe(local);
+    expect(validateMongoDbUri("test", local)).toBe(local);
+    expect(() => validateMongoDbUri("production", local)).toThrow(/MONGODB_URI/);
   });
 });
 
@@ -71,6 +168,7 @@ describe("authentication URL configuration", () => {
         "https://properties.example.test",
         "https://api.example.test/api/v1/auth/callback",
         ["https://properties.example.test/admin"],
+        "https://api.example.test",
       ),
     ).not.toThrow();
     expect(() =>
@@ -87,6 +185,7 @@ describe("authentication URL configuration", () => {
         "http://localhost:3000",
         "http://localhost:5000/api/v1/auth/callback",
         ["http://localhost:3000/admin"],
+        "http://localhost:5000",
       ),
     ).not.toThrow();
   });

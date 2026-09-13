@@ -3,5 +3,7 @@ import { HttpError } from "./errorHandler.js";
 
 /** Catches any request that matched no route and hands it to the error handler. */
 export function notFound(req: Request, _res: Response, next: NextFunction): void {
-  next(new HttpError(404, `Route not found: ${req.method} ${req.originalUrl}`));
+  // Never reflect the query string. OIDC callbacks and other URLs can carry one-time
+  // credentials that do not belong in error responses or downstream logs.
+  next(new HttpError(404, `Route not found: ${req.method} ${req.path}`));
 }

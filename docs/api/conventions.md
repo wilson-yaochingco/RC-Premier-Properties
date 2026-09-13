@@ -95,7 +95,7 @@ caller.
 | 415  | A supported write request is not sent as JSON                     |
 | 404  | No route/resource, or protected existence must remain undisclosed |
 | 429  | Rate limit exceeded                                               |
-| 500  | Unhandled error — logged server-side with the full error object   |
+| 500  | Unhandled error — logged with safe identity and request metadata  |
 
 Authentication errors deliberately avoid disclosing whether an external identity exists
 in the local staff allowlist. Protected-resource handlers may return `404` instead of
@@ -118,6 +118,20 @@ A module's own `*.routes.ts` maps paths to controller functions and nothing else
 business logic, no data access.
 
 ---
+
+## Request correlation and operational logs
+
+The backend ignores caller-provided correlation values and assigns a fresh UUID to every
+request. `X-Request-ID` is returned on the response and included in allowlisted structured
+logs and value-minimized audit events where applicable. Operators may use it to correlate
+a public error with server evidence; it grants no access and contains no customer or
+security information.
+
+Request logs contain method, path without query, status, duration, environment, optional
+build ID, and request ID. They never serialize request/response bodies, query values,
+headers, cookies, tokens, customer details, private addresses, or coordinates. An
+unexpected exception is logged by safe error name/code rather than its arbitrary message
+or full object.
 
 ## CORS
 
@@ -150,8 +164,9 @@ real client IPs rather than the proxy's.
 
 The public API can read published properties and create inquiries. The auth API only
 establishes and revokes staff sessions; it does not create public registration. Private
-property reads and draft content writes are separate named-permission-protected routes.
-Publishing, availability changes and inquiry reads remain unavailable.
+property and inquiry operations are separate named-permission-protected routes.
+Authenticated writes also require an exact allowed origin and session-bound CSRF token.
+Public inquiry reads remain unavailable.
 
 ---
 

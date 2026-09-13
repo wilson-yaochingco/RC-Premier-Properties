@@ -1,20 +1,36 @@
-import type { CreateDraftPropertyRequest } from "@rc/shared";
+import {
+  PROPERTY_AVAILABILITY,
+  PROPERTY_PUBLICATION_STATUSES,
+  type CreateDraftPropertyRequest,
+} from "@rc/shared";
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../src/middleware/errorHandler.js";
 import { PropertyModel } from "../src/modules/properties/property.model.js";
 import {
+  buildAdminPropertyFilter,
   buildPublishedPropertyDetailFilter,
   buildPublishedPropertyFilter,
+  toAdminPropertyDetail,
+  toAdminPropertySummary,
+  toPublicPropertyDetail,
+  toPublicPropertyMapItem,
   toPublicPropertySummary,
 } from "../src/modules/properties/property.service.js";
-import type { PublicPropertyRecord } from "../src/modules/properties/property.types.js";
+import type {
+  AdminPropertyRecord,
+  PublicPropertyRecord,
+} from "../src/modules/properties/property.types.js";
 import {
   parseAdminPropertyId,
+  parseAdminPropertyAvailabilityBody,
+  parseAdminPropertyFeaturedBody,
   parseAdminPropertyListQuery,
+  parseAdminPropertyTransitionBody,
   parseCreateDraftPropertyBody,
   parsePropertyMapQuery,
   parsePropertySearchQuery,
   parseUpdateDraftPropertyBody,
+  parseUpdatePropertyMediaBody,
 } from "../src/modules/properties/property.validation.js";
 
 const DRAFT_REQUEST: CreateDraftPropertyRequest = {
@@ -48,6 +64,7 @@ describe("property search validation", () => {
         location: " Angeles City ",
         propertyType: "house-and-lot",
         purpose: "sale",
+        availability: "reserved",
         minPrice: "1000000",
         maxPrice: "5000000.50",
         bedrooms: "3",
@@ -62,6 +79,7 @@ describe("property search validation", () => {
       location: "Angeles City",
       propertyType: "house-and-lot",
       purpose: "sale",
+      availability: "reserved",
       minPrice: 1_000_000,
       maxPrice: 5_000_000.5,
       bedrooms: 3,
@@ -112,6 +130,40 @@ describe("property search validation", () => {
 });
 
 describe("published property query construction", () => {
+  it("limits explicit Featured Property reads to public non-sold inventory", () => {
+    expect(
+      buildPublishedPropertyFilter({
+        featured: true,
+        sort: "newest",
+        page: 1,
+        limit: 3,
+      }),
+    ).toMatchObject({
+      publicationStatus: "published",
+      purpose: "sale",
+      featured: true,
+      availability: { $ne: "sold" },
+    });
+    expect(
+      buildPublishedPropertyFilter({
+        featured: true,
+        availability: "sold",
+        sort: "newest",
+        page: 1,
+        limit: 3,
+      }),
+    ).toMatchObject({ _id: { $exists: false } });
+    expect(
+      buildPublishedPropertyFilter({
+        featured: true,
+        availability: "reserved",
+        sort: "newest",
+        page: 1,
+        limit: 3,
+      }),
+    ).toMatchObject({ availability: "reserved" });
+  });
+
   it("always pins public list filters to published records and uses fixed operators", () => {
     const filter = buildPublishedPropertyFilter({
       keyword: "pool.*$where",
@@ -119,6 +171,7 @@ describe("published property query construction", () => {
       propertyId: "RC-9",
       propertyType: "house-and-lot",
       purpose: "sale",
+      availability: "available",
       minPrice: 1,
       maxPrice: 10,
       bedrooms: 2,
@@ -136,6 +189,7 @@ describe("published property query construction", () => {
       propertyId: "RC-9",
       propertyType: "house-and-lot",
       purpose: "sale",
+      availability: "available",
       featured: true,
       "price.amount": { $gte: 1, $lte: 10 },
       "specifications.bedrooms": { $gte: 2 },
@@ -148,6 +202,8 @@ describe("published property query construction", () => {
     expect(serialized).toContain("pool\\.\\*\\$where");
     expect(buildPublishedPropertyDetailFilter("stable-slug")).toEqual({
       publicationStatus: "published",
+      purpose: "sale",
+      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
       slug: "stable-slug",
     });
   });
@@ -323,6 +379,67 @@ describe("published property query construction", () => {
       disclosure: "general-area",
     });
   });
+
+  it("keeps private location in authorized detail only and out of every public shape", () => {
+    const privateAddress = "99 Synthetic Test Street";
+    const privateLatitude = 15.101;
+    const record = {
+      _id: "507f1f77bcf86cd799439011",
+      propertyId: "RCPP-LOCATION-BOUNDARY",
+      slug: "location-boundary-test",
+      title: "Location boundary test",
+      purpose: "sale",
+      propertyType: "house-and-lot",
+      availability: "available",
+      publicationStatus: "published",
+      featured: false,
+      price: { amount: 1_000_000, currency: "PHP", negotiable: false },
+      location: {
+        province: "Pampanga",
+        city: "Angeles City",
+        barangay: "Synthetic Barangay",
+        development: "Synthetic Development",
+        publicPrecision: "approximate",
+        publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+        privateAddress,
+        coordinates: { latitude: privateLatitude, longitude: 120.601 },
+      },
+      specifications: {},
+      shortDescription: "Test-only location boundary fixture.",
+      description: "Test-only location boundary fixture detail.",
+      highlights: [],
+      amenities: [],
+      features: [],
+      gallery: [],
+      publishedAt: new Date("2026-08-20T00:00:00.000Z"),
+      createdAt: new Date("2026-08-19T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-21T00:00:00.000Z"),
+      __v: 2,
+    } as unknown as AdminPropertyRecord;
+
+    expect(toAdminPropertySummary(record).location).not.toHaveProperty(
+      "privateAddress",
+    );
+    expect(toAdminPropertySummary(record).location).not.toHaveProperty("coordinates");
+    expect(toAdminPropertyDetail(record).location).toMatchObject({
+      privateAddress,
+      coordinates: { latitude: privateLatitude, longitude: 120.601 },
+      publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+    });
+
+    const publicRecord = record as unknown as PublicPropertyRecord;
+    const publicShapes = [
+      toPublicPropertySummary(publicRecord),
+      toPublicPropertyDetail(publicRecord),
+      toPublicPropertyMapItem(publicRecord),
+    ];
+    for (const shape of publicShapes) {
+      const serialized = JSON.stringify(shape);
+      expect(serialized).not.toContain(privateAddress);
+      expect(serialized).not.toContain(String(privateLatitude));
+      expect(shape?.location.publicPoint?.coordinates).toEqual([120.61, 15.15]);
+    }
+  });
 });
 
 describe("property public map point schema", () => {
@@ -367,9 +484,76 @@ describe("property public map point schema", () => {
       "Public map coordinates must be [longitude, latitude] within valid ranges.",
     );
   });
+
+  it("requires a complete, valid private exact coordinate pair", async () => {
+    const incomplete = new PropertyModel({
+      ...baseProperty,
+      location: {
+        province: "Pampanga",
+        city: "Angeles City",
+        coordinates: { latitude: 15.1 },
+      },
+    });
+    const outOfRange = new PropertyModel({
+      ...baseProperty,
+      location: {
+        province: "Pampanga",
+        city: "Angeles City",
+        coordinates: { latitude: -91, longitude: 120.6 },
+      },
+    });
+
+    await expect(incomplete.validate()).rejects.toThrow(
+      "location.coordinates.longitude",
+    );
+    await expect(outOfRange.validate()).rejects.toThrow(
+      "location.coordinates.latitude",
+    );
+  });
 });
 
 describe("admin property validation", () => {
+  it("defaults existing and new schema records to non-featured", () => {
+    const property = new PropertyModel({
+      ...DRAFT_REQUEST,
+      price: { ...DRAFT_REQUEST.price, currency: "PHP" },
+      featured: undefined,
+    });
+    expect(property.featured).toBe(false);
+    expect(property.featuredOrder).toBeUndefined();
+  });
+
+  it("enforces an integer Featured priority at the persistence boundary", async () => {
+    const property = new PropertyModel({
+      ...DRAFT_REQUEST,
+      price: { ...DRAFT_REQUEST.price, currency: "PHP" },
+      featuredOrder: 1.5,
+    });
+
+    await expect(property.validate()).rejects.toThrow(
+      "featuredOrder must be a whole number",
+    );
+  });
+
+  it("keeps the approved lifecycle sales-only and omits an unused review state", () => {
+    expect(PROPERTY_AVAILABILITY).toEqual(["available", "reserved", "sold"]);
+    expect(PROPERTY_PUBLICATION_STATUSES).toEqual([
+      "draft",
+      "published",
+      "unpublished",
+      "archived",
+    ]);
+    expect(() =>
+      parseAdminPropertyAvailabilityBody({
+        expectedVersion: 0,
+        availability: "rented",
+      }),
+    ).toThrow(HttpError);
+    expect(() => parseAdminPropertyListQuery({ publicationStatus: "pending" })).toThrow(
+      HttpError,
+    );
+  });
+
   it("normalizes an allowlisted draft request without adding lifecycle fields", () => {
     expect(
       parseCreateDraftPropertyBody({
@@ -381,6 +565,76 @@ describe("admin property validation", () => {
     ).toEqual(DRAFT_REQUEST);
   });
 
+  it("accepts verified private coordinates and a separately approved public point", () => {
+    const location = {
+      ...DRAFT_REQUEST.location,
+      privateAddress: "  Private test address  ",
+      coordinates: { latitude: 15.145, longitude: 120.588 },
+      publicPrecision: "approximate" as const,
+      publicPoint: { type: "Point" as const, coordinates: [120.59, 15.15] },
+    };
+
+    expect(parseUpdateDraftPropertyBody({ expectedVersion: 4, location })).toEqual({
+      expectedVersion: 4,
+      location: {
+        ...location,
+        privateAddress: "Private test address",
+      },
+    });
+  });
+
+  it.each([
+    [
+      "private latitude below -90",
+      { coordinates: { latitude: -90.01, longitude: 120 } },
+    ],
+    ["private latitude above 90", { coordinates: { latitude: 90.01, longitude: 120 } }],
+    [
+      "private longitude below -180",
+      { coordinates: { latitude: 15, longitude: -180.01 } },
+    ],
+    [
+      "private longitude above 180",
+      { coordinates: { latitude: 15, longitude: 180.01 } },
+    ],
+    ["private numeric string", { coordinates: { latitude: "15", longitude: 120 } }],
+    ["private NaN", { coordinates: { latitude: Number.NaN, longitude: 120 } }],
+    [
+      "private Infinity",
+      { coordinates: { latitude: 15, longitude: Number.POSITIVE_INFINITY } },
+    ],
+    ["private incomplete pair", { coordinates: { latitude: 15 } }],
+    [
+      "public latitude below -90",
+      { publicPoint: { type: "Point", coordinates: [120, -90.01] } },
+    ],
+    [
+      "public latitude above 90",
+      { publicPoint: { type: "Point", coordinates: [120, 90.01] } },
+    ],
+    [
+      "public longitude below -180",
+      { publicPoint: { type: "Point", coordinates: [-180.01, 15] } },
+    ],
+    [
+      "public longitude above 180",
+      { publicPoint: { type: "Point", coordinates: [180.01, 15] } },
+    ],
+    [
+      "public malformed point type",
+      { publicPoint: { type: "LineString", coordinates: [120, 15] } },
+    ],
+    ["public malformed pair", { publicPoint: { type: "Point", coordinates: [120] } }],
+    ["public incomplete object", { publicPoint: { type: "Point" } }],
+  ])("rejects %s", (_label, invalidLocation) => {
+    expect(() =>
+      parseUpdateDraftPropertyBody({
+        expectedVersion: 4,
+        location: { ...DRAFT_REQUEST.location, ...invalidLocation },
+      }),
+    ).toThrowError(expect.objectContaining({ status: 400 }));
+  });
+
   it.each([
     { ...DRAFT_REQUEST, publicationStatus: "published" },
     { ...DRAFT_REQUEST, availability: "sold" },
@@ -389,9 +643,10 @@ describe("admin property validation", () => {
     { ...DRAFT_REQUEST, price: { ...DRAFT_REQUEST.price, currency: "PHP" } },
     {
       ...DRAFT_REQUEST,
-      location: { ...DRAFT_REQUEST.location, privateAddress: "private" },
+      location: { ...DRAFT_REQUEST.location, internalNotes: "private" },
     },
     { ...DRAFT_REQUEST, propertyType: "castle" },
+    { ...DRAFT_REQUEST, purpose: "rent" },
     { ...DRAFT_REQUEST, price: { amount: -1, negotiable: false } },
     { ...DRAFT_REQUEST, specifications: { bedrooms: 1.5 } },
   ])("rejects invalid or unknown create fields", (body) => {
@@ -403,30 +658,100 @@ describe("admin property validation", () => {
   it("accepts a partial content edit and rejects empty or lifecycle edits", () => {
     expect(
       parseUpdateDraftPropertyBody({
+        expectedVersion: 3,
         title: " Updated title ",
         description: " Updated draft description. ",
       }),
     ).toEqual({
       title: "Updated title",
       description: "Updated draft description.",
+      expectedVersion: 3,
     });
-    expect(() => parseUpdateDraftPropertyBody({})).toThrow(HttpError);
-    expect(() =>
-      parseUpdateDraftPropertyBody({ publicationStatus: "published" }),
-    ).toThrow(HttpError);
-    expect(() => parseUpdateDraftPropertyBody({ availability: "sold" })).toThrow(
+    expect(() => parseUpdateDraftPropertyBody({ expectedVersion: 3 })).toThrow(
       HttpError,
     );
+    expect(() =>
+      parseUpdateDraftPropertyBody({
+        expectedVersion: 3,
+        publicationStatus: "published",
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseUpdateDraftPropertyBody({ expectedVersion: 3, availability: "sold" }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseUpdateDraftPropertyBody({ expectedVersion: 3, purpose: "rent" }),
+    ).toThrow(HttpError);
+    expect(parseAdminPropertyTransitionBody({ expectedVersion: 3 })).toEqual({
+      expectedVersion: 3,
+    });
+    expect(
+      parseAdminPropertyAvailabilityBody({
+        expectedVersion: 3,
+        availability: "reserved",
+      }),
+    ).toEqual({ expectedVersion: 3, availability: "reserved" });
+    expect(
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: true,
+        featuredOrder: 40,
+      }),
+    ).toEqual({ expectedVersion: 3, featured: true, featuredOrder: 40 });
+    expect(
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: false,
+        featuredOrder: null,
+      }),
+    ).toEqual({ expectedVersion: 3, featured: false, featuredOrder: null });
+    expect(() =>
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: true,
+        featuredOrder: 0,
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: true,
+        featuredOrder: 1_000,
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseAdminPropertyFeaturedBody({
+        expectedVersion: 3,
+        featured: false,
+        featuredOrder: 40,
+      }),
+    ).toThrow(HttpError);
+    expect(() =>
+      parseAdminPropertyAvailabilityBody({
+        expectedVersion: -1,
+        availability: "reserved",
+      }),
+    ).toThrow(HttpError);
   });
 
   it("validates private list pagination, status, unknown query fields, and IDs", () => {
     expect(
       parseAdminPropertyListQuery({
         publicationStatus: "draft",
+        availability: "available",
+        featured: "true",
+        query: "RCPP-001",
         page: "2",
         limit: "10",
       }),
-    ).toEqual({ publicationStatus: "draft", page: 2, limit: 10 });
+    ).toEqual({
+      query: "RCPP-001",
+      publicationStatus: "draft",
+      availability: "available",
+      featured: true,
+      page: 2,
+      limit: 10,
+    });
     expect(() => parseAdminPropertyListQuery({ owner: "any" })).toThrow(HttpError);
     expect(() => parseAdminPropertyListQuery({ limit: "51" })).toThrow(HttpError);
     expect(parseAdminPropertyId("507f1f77bcf86cd799439011")).toBe(
@@ -434,4 +759,176 @@ describe("admin property validation", () => {
     );
     expect(() => parseAdminPropertyId("not-an-object-id")).toThrow(HttpError);
   });
+
+  it("builds combined private search and lifecycle filters", () => {
+    const filter = buildAdminPropertyFilter({
+      query: "RCPP-001",
+      publicationStatus: "published",
+      availability: "reserved",
+      featured: true,
+      page: 2,
+      limit: 20,
+    });
+    expect(filter).toMatchObject({
+      publicationStatus: "published",
+      availability: "reserved",
+      featured: true,
+    });
+    expect(filter.$or).toHaveLength(4);
+    expect(String((filter.$or?.[0] as { propertyId: RegExp }).propertyId)).toBe(
+      "/RCPP-001/i",
+    );
+  });
+});
+
+describe("property media validation", () => {
+  it("accepts an ordered local image list and explicit cover", () => {
+    expect(
+      parseUpdatePropertyMediaBody({
+        expectedVersion: 4,
+        media: [
+          {
+            id: "media-exterior-0001",
+            kind: "image",
+            url: "/media/properties/rcpp-01/exterior.webp",
+            alt: "Front exterior of the listed house",
+            caption: "Front elevation",
+            source: "production",
+          },
+          {
+            id: "media-interior-0002",
+            kind: "image",
+            url: "/media/properties/rcpp-01/living-room.jpg",
+            alt: "Living room with large windows",
+            source: "production",
+          },
+        ],
+        coverMediaId: "media-interior-0002",
+      }),
+    ).toEqual({
+      expectedVersion: 4,
+      media: [
+        {
+          id: "media-exterior-0001",
+          kind: "image",
+          url: "/media/properties/rcpp-01/exterior.webp",
+          alt: "Front exterior of the listed house",
+          caption: "Front elevation",
+          source: "production",
+        },
+        {
+          id: "media-interior-0002",
+          kind: "image",
+          url: "/media/properties/rcpp-01/living-room.jpg",
+          alt: "Living room with large windows",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-interior-0002",
+    });
+  });
+
+  it("accepts only attributed Unsplash development samples", () => {
+    expect(
+      parseUpdatePropertyMediaBody({
+        expectedVersion: 0,
+        media: [
+          {
+            id: "media-sample-0001",
+            kind: "image",
+            url: "https://images.unsplash.com/photo-1695593116063-843e813fee6f?auto=format&q=80&w=2000",
+            alt: "White modern house reflected in a pool",
+            source: "development-sample",
+            sourceUrl: "https://unsplash.com/photos/GvOcpTNAHFo",
+            attribution: "Photo by Damien Schneider on Unsplash",
+          },
+        ],
+        coverMediaId: "media-sample-0001",
+      }),
+    ).toMatchObject({
+      media: [{ source: "development-sample", attribution: expect.any(String) }],
+    });
+  });
+
+  it.each([
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-invalid-0001",
+          kind: "video",
+          url: "/media/properties/tour.mp4",
+          alt: "Tour",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-invalid-0001",
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-invalid-0002",
+          kind: "image",
+          url: "https://attacker.invalid/property.svg",
+          alt: "Unsafe remote image",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-invalid-0002",
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-duplicate-0001",
+          kind: "image",
+          url: "/media/properties/one.jpg",
+          alt: "One",
+          source: "production",
+        },
+        {
+          id: "media-duplicate-0001",
+          kind: "image",
+          url: "/media/properties/two.jpg",
+          alt: "Two",
+          source: "production",
+        },
+      ],
+      coverMediaId: "media-duplicate-0001",
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-no-cover-0001",
+          kind: "image",
+          url: "/media/properties/one.jpg",
+          alt: "One",
+          source: "production",
+        },
+      ],
+    },
+    {
+      expectedVersion: 0,
+      media: [
+        {
+          id: "media-invalid-focal-point",
+          kind: "image",
+          url: "/media/properties/focal.webp",
+          alt: "Image with an invalid focal point",
+          source: "production",
+          focalPoint: { x: 101, y: 50 },
+        },
+      ],
+      coverMediaId: "media-invalid-focal-point",
+    },
+  ])(
+    "rejects unsupported, unsafe, duplicate, coverless, or invalid focal-point media",
+    (body) => {
+      expect(() => parseUpdatePropertyMediaBody(body)).toThrowError(
+        expect.objectContaining({ status: 400 }),
+      );
+    },
+  );
 });

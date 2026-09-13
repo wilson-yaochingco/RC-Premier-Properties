@@ -25,6 +25,24 @@ function optional(name: string, fallback: string): string {
   return value && value.trim() !== "" ? value.trim() : fallback;
 }
 
+function optionalValue(name: string): string | undefined {
+  const value = process.env[name];
+  return value && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/** One recipient mailbox; reject display names, lists, and mail-header characters. */
+export function normalizeBusinessNotificationEmail(value: string): string {
+  const email = value.trim().toLowerCase();
+  if (
+    email.length > 254 ||
+    /[\r\n<>,;"\\]/.test(value) ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    throw new Error("BUSINESS_NOTIFICATION_EMAIL must be one valid email address.");
+  }
+  return email;
+}
+
 function environment(name: string, fallback: Environment): Environment {
   const value = optional(name, fallback);
 
@@ -38,6 +56,34 @@ function environment(name: string, fallback: Environment): Environment {
         `Invalid ${name}: "${value}". Expected development, test, or production.`,
       );
   }
+}
+
+export type LogLevel = "debug" | "info" | "warn" | "error";
+
+function logLevel(name: string, fallback: LogLevel): LogLevel {
+  const value = optional(name, fallback);
+  switch (value) {
+    case "debug":
+    case "info":
+    case "warn":
+    case "error":
+      return value;
+    default:
+      throw new Error(
+        `Invalid ${name}: "${value}". Expected debug, info, warn, or error.`,
+      );
+  }
+}
+
+function productionLogLevel(nodeEnv: Environment): LogLevel {
+  const level = logLevel(
+    "LOG_LEVEL",
+    nodeEnv === "test" ? "warn" : nodeEnv === "development" ? "debug" : "info",
+  );
+  if (nodeEnv === "production" && level === "debug") {
+    throw new Error("Production LOG_LEVEL cannot be debug.");
+  }
+  return level;
 }
 
 function port(name: string, fallback: number): number {
@@ -58,6 +104,53 @@ function positiveInteger(name: string, fallback: number): number {
     throw new Error(`Invalid ${name}: "${raw}" must be a positive integer.`);
   }
   return parsed;
+}
+
+function boundedPositiveInteger(
+  name: string,
+  fallback: number,
+  maximum: number,
+): number {
+  const parsed = positiveInteger(name, fallback);
+  if (parsed > maximum) {
+    throw new Error(`${name} cannot exceed ${maximum}.`);
+  }
+  return parsed;
+}
+
+/** Parse the exact number of trusted reverse-proxy hops; zero means trust none. */
+export function normalizeTrustProxyHops(value: string | undefined): number {
+  if (!value || value.trim() === "") return 0;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 10) {
+    throw new Error(
+      `Invalid TRUST_PROXY_HOPS: "${value}" must be an integer from 0 to 10.`,
+    );
+  }
+  return parsed;
+}
+
+function productionTrustProxyHops(
+  nodeEnv: Environment,
+  value: string | undefined,
+): number {
+  if (nodeEnv === "production" && (!value || value.trim() === "")) {
+    throw new Error(
+      "TRUST_PROXY_HOPS must be explicitly set in production; use 0 only for a verified direct connection.",
+    );
+  }
+  return normalizeTrustProxyHops(value);
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "127.0.0.1" ||
+    normalized === "[::1]" ||
+    normalized === "::1"
+  );
 }
 
 /** Validate and normalize the single browser origin allowed by CORS. */
@@ -89,6 +182,114 @@ export function normalizeCorsOrigin(value: string): string {
   }
 
   return parsed.origin;
+}
+
+/** Production browser/API/media origins must be HTTPS and publicly routable. */
+export function validateProductionOrigin(
+  nodeEnv: Environment,
+  name: string,
+  origin: string,
+): string {
+  if (nodeEnv !== "production") return origin;
+  const parsed = new URL(origin);
+  if (parsed.protocol !== "https:" || isLoopbackHostname(parsed.hostname)) {
+    throw new Error(`${name} must be a non-local HTTPS origin in production.`);
+  }
+  return origin;
+}
+
+function configuredPublicOrigin(
+  nodeEnv: Environment,
+  name: string,
+  value: string | undefined,
+  requiredInProduction: boolean,
+): string | undefined {
+  if (!value) {
+    if (nodeEnv === "production" && requiredInProduction) {
+      throw new Error(`Missing required production environment variable: ${name}.`);
+    }
+    return undefined;
+  }
+  let normalized: string;
+  try {
+    normalized = normalizeCorsOrigin(value);
+  } catch {
+    throw new Error(
+      `${name} must be one exact HTTP(S) origin without credentials, a path, query, or fragment.`,
+    );
+  }
+  return validateProductionOrigin(nodeEnv, name, normalized);
+}
+
+const MONGODB_TLS_ENABLE_OPTIONS = new Set(["tls", "ssl"]);
+const MONGODB_TLS_INSECURE_OPTIONS = new Set([
+  "tlsinsecure",
+  "tlsallowinvalidcertificates",
+  "tlsallowinvalidhostnames",
+]);
+
+/** Require encrypted, certificate-valid, non-local MongoDB connectivity in production. */
+export function validateMongoDbUri(nodeEnv: Environment, value: string): string {
+  if (nodeEnv !== "production") return value;
+
+  try {
+    const parsed = new URL(value);
+    const transportOptions = [...parsed.searchParams].reduce<Map<string, string[]>>(
+      (options, [name, setting]) => {
+        const normalizedName = name.toLowerCase();
+        if (
+          MONGODB_TLS_ENABLE_OPTIONS.has(normalizedName) ||
+          MONGODB_TLS_INSECURE_OPTIONS.has(normalizedName) ||
+          normalizedName === "sslvalidate"
+        ) {
+          const current = options.get(normalizedName) ?? [];
+          current.push(setting.toLowerCase());
+          options.set(normalizedName, current);
+        }
+        return options;
+      },
+      new Map(),
+    );
+    const tlsSettings = [...transportOptions.entries()]
+      .filter(([name]) => MONGODB_TLS_ENABLE_OPTIONS.has(name))
+      .flatMap(([, settings]) => settings);
+    const explicitlyWeakensTls = [...transportOptions.entries()].some(
+      ([name, settings]) =>
+        (MONGODB_TLS_ENABLE_OPTIONS.has(name) &&
+          settings.some((setting) => setting !== "true")) ||
+        (MONGODB_TLS_INSECURE_OPTIONS.has(name) &&
+          settings.some((setting) => setting !== "false")) ||
+        (name === "sslvalidate" && settings.some((setting) => setting !== "true")),
+    );
+    const encryptedSrv = parsed.protocol === "mongodb+srv:";
+    const encryptedStandard =
+      parsed.protocol === "mongodb:" && tlsSettings.includes("true");
+    const databaseName = parsed.pathname.replace(/^\//, "");
+    if (
+      explicitlyWeakensTls ||
+      (!encryptedSrv && !encryptedStandard) ||
+      isLoopbackHostname(parsed.hostname) ||
+      !databaseName ||
+      databaseName.includes("/")
+    ) {
+      throw new Error("unsafe");
+    }
+  } catch {
+    throw new Error(
+      "MONGODB_URI must identify an encrypted, non-local MongoDB deployment and an explicit database in production.",
+    );
+  }
+  return value;
+}
+
+function buildId(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value)) {
+    throw new Error(
+      "APP_BUILD_ID must contain only letters, numbers, dots, underscores, or hyphens.",
+    );
+  }
+  return value;
 }
 
 export function normalizeAuthIssuerUrl(value: string): string {
@@ -184,6 +385,7 @@ export function validateAuthTransportSecurity(
   corsOrigin: string,
   callbackUrl: string,
   returnUrls: readonly string[],
+  publicApiOrigin?: string,
 ): void {
   if (nodeEnv !== "production") return;
 
@@ -191,6 +393,11 @@ export function validateAuthTransportSecurity(
   if (urls.some((value) => new URL(value).protocol !== "https:")) {
     throw new Error(
       "Production authentication requires HTTPS CORS, callback, and return URLs.",
+    );
+  }
+  if (publicApiOrigin && new URL(callbackUrl).origin !== publicApiOrigin) {
+    throw new Error(
+      "Production AUTH0_CALLBACK_URL must use the configured API_PUBLIC_ORIGIN.",
     );
   }
 }
@@ -202,7 +409,6 @@ export interface AuthEnvironmentConfig {
   callbackUrl: string;
   allowedReturnUrls: readonly string[];
   requiredAmr: string;
-  allowPasskeyOnly: boolean;
   sessionHashSecret: string;
   sessionIdleMinutes: number;
   sessionAbsoluteHours: number;
@@ -210,9 +416,25 @@ export interface AuthEnvironmentConfig {
   transactionMinutes: number;
 }
 
+function validateProductionAuthPolicy(config: AuthEnvironmentConfig): void {
+  if (config.sessionIdleMinutes > 30) {
+    throw new Error("Production AUTH_SESSION_IDLE_MINUTES cannot exceed 30.");
+  }
+  if (config.sessionAbsoluteHours > 8) {
+    throw new Error("Production AUTH_SESSION_ABSOLUTE_HOURS cannot exceed 8.");
+  }
+  if (config.maxConcurrentSessions > 3) {
+    throw new Error("Production AUTH_MAX_CONCURRENT_SESSIONS cannot exceed 3.");
+  }
+  if (config.transactionMinutes > 10) {
+    throw new Error("Production AUTH_TRANSACTION_MINUTES cannot exceed 10.");
+  }
+}
+
 function authEnvironment(
   nodeEnv: Environment,
   corsOrigin: string,
+  publicApiOrigin: string | undefined,
 ): AuthEnvironmentConfig | null {
   const requiredNames = [
     "AUTH0_ISSUER_URL",
@@ -241,8 +463,8 @@ function authEnvironment(
   }
 
   const requiredAmr = optional("AUTH_REQUIRED_AMR", "mfa");
-  if (!/^[a-z0-9_-]{1,32}$/i.test(requiredAmr)) {
-    throw new Error("AUTH_REQUIRED_AMR must be one short authentication-method value.");
+  if (requiredAmr !== "mfa") {
+    throw new Error('AUTH_REQUIRED_AMR must remain "mfa" in every environment.');
   }
 
   const issuerUrl = normalizeAuthIssuerUrl(required("AUTH0_ISSUER_URL"));
@@ -251,36 +473,66 @@ function authEnvironment(
     required("AUTH_ALLOWED_RETURN_URLS"),
     corsOrigin,
   );
-  validateAuthTransportSecurity(nodeEnv, corsOrigin, callbackUrl, allowedReturnUrls);
+  validateAuthTransportSecurity(
+    nodeEnv,
+    corsOrigin,
+    callbackUrl,
+    allowedReturnUrls,
+    publicApiOrigin,
+  );
 
-  return Object.freeze({
+  const config: AuthEnvironmentConfig = {
     issuerUrl,
     clientId: required("AUTH0_CLIENT_ID"),
     clientSecret: required("AUTH0_CLIENT_SECRET"),
     callbackUrl,
     allowedReturnUrls,
     requiredAmr,
-    allowPasskeyOnly: nodeEnv !== "production",
     sessionHashSecret,
     sessionIdleMinutes: positiveInteger("AUTH_SESSION_IDLE_MINUTES", 30),
     sessionAbsoluteHours: positiveInteger("AUTH_SESSION_ABSOLUTE_HOURS", 8),
     maxConcurrentSessions: positiveInteger("AUTH_MAX_CONCURRENT_SESSIONS", 3),
     transactionMinutes: positiveInteger("AUTH_TRANSACTION_MINUTES", 10),
-  });
+  };
+  if (nodeEnv === "production") validateProductionAuthPolicy(config);
+  return Object.freeze(config);
 }
 
 const nodeEnv = environment("NODE_ENV", "development");
 const corsOrigin = normalizeCorsOrigin(
   optional("CORS_ORIGIN", "http://localhost:3000"),
 );
+validateProductionOrigin(nodeEnv, "CORS_ORIGIN", corsOrigin);
+const publicApiOrigin = configuredPublicOrigin(
+  nodeEnv,
+  "API_PUBLIC_ORIGIN",
+  optionalValue("API_PUBLIC_ORIGIN"),
+  true,
+);
+const mediaPublicOrigin = configuredPublicOrigin(
+  nodeEnv,
+  "MEDIA_PUBLIC_ORIGIN",
+  optionalValue("MEDIA_PUBLIC_ORIGIN"),
+  false,
+);
+const mongodbUri = validateMongoDbUri(nodeEnv, required("MONGODB_URI"));
 
 export const env = Object.freeze({
   NODE_ENV: nodeEnv,
   IS_PRODUCTION: nodeEnv === "production",
   PORT: port("PORT", 5000),
-  MONGODB_URI: required("MONGODB_URI"),
+  TRUST_PROXY_HOPS: productionTrustProxyHops(nodeEnv, process.env.TRUST_PROXY_HOPS),
+  SHUTDOWN_GRACE_SECONDS: boundedPositiveInteger("SHUTDOWN_GRACE_SECONDS", 30, 120),
+  APP_BUILD_ID: buildId(optionalValue("APP_BUILD_ID")),
+  LOG_LEVEL: productionLogLevel(nodeEnv),
+  MONGODB_URI: mongodbUri,
   CORS_ORIGIN: corsOrigin,
-  AUTH: authEnvironment(nodeEnv, corsOrigin),
+  API_PUBLIC_ORIGIN: publicApiOrigin,
+  MEDIA_PUBLIC_ORIGIN: mediaPublicOrigin,
+  BUSINESS_NOTIFICATION_EMAIL: normalizeBusinessNotificationEmail(
+    optional("BUSINESS_NOTIFICATION_EMAIL", "rcpremierph@gmail.com"),
+  ),
+  AUTH: authEnvironment(nodeEnv, corsOrigin, publicApiOrigin),
 });
 
 export type Env = typeof env;

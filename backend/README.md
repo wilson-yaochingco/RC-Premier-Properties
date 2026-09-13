@@ -2,9 +2,9 @@
 
 Node.js + Express 5 + TypeScript (ESM) + Mongoose.
 
-The API exposes the public MVP plus the Phase 3A backend staff authentication foundation.
-It has no property-management or inquiry-management endpoint, no public property writes
-and no public inquiry reads.
+The API exposes the public MVP plus staff authentication, property lifecycle management
+and lightweight inquiry management. It has no public property writes or public inquiry
+reads.
 
 > Architecture and API conventions live in [`/docs`](../docs/README.md), not here.
 > See [architecture overview](../docs/architecture/overview.md) and
@@ -22,22 +22,28 @@ npm run dev:backend          # at the repo root → http://localhost:5000
 
 Verify: `curl http://localhost:5000/api/v1/health`
 
+Deployment traffic readiness is separate at `/api/v1/health/ready`; see the
+[staging/production runbook](../docs/development/deployment-and-release.md).
+
 Full setup instructions: [`docs/development/setup.md`](../docs/development/setup.md).
 Auth0 development-tenant setup and administrator provisioning:
 [`docs/development/auth0-setup.md`](../docs/development/auth0-setup.md).
+Production gates, staff disablement and recovery:
+[`docs/development/authentication-operations.md`](../docs/development/authentication-operations.md).
 
 ## Scripts
 
 Run via `npm run <script> --workspace backend`, or use the root shortcuts.
 
-| Script                 | Purpose                                          |
-| ---------------------- | ------------------------------------------------ |
-| `dev`                  | Watch mode via `tsx`                             |
-| `build`                | Compile TypeScript to `dist/`                    |
-| `start`                | Run the compiled build                           |
-| `lint`                 | ESLint                                           |
-| `typecheck`            | TypeScript, no emit                              |
-| `auth:provision-admin` | Controlled local administrator create/reactivate |
+| Script                 | Purpose                                              |
+| ---------------------- | ---------------------------------------------------- |
+| `dev`                  | Watch mode via `tsx`                                 |
+| `build`                | Compile TypeScript to `dist/`                        |
+| `start`                | Run the compiled build                               |
+| `lint`                 | ESLint                                               |
+| `typecheck`            | TypeScript, no emit                                  |
+| `auth:provision-admin` | Controlled local administrator create/reactivate     |
+| `auth:disable-staff`   | Disable one exact staff identity and revoke sessions |
 
 The root `npm test` command runs backend unit and Supertest integration coverage with
 injected services; it does not claim to verify a real MongoDB instance.
@@ -64,20 +70,25 @@ under `modules/<domain>/`. Create a module when its feature begins — not befor
 
 ## Public endpoints
 
-| Method | Path                        | Behaviour                                       |
+| Method | Path                        | Behavior                                        |
 | ------ | --------------------------- | ----------------------------------------------- |
 | `GET`  | `/api/v1/health`            | Process/environment/database status             |
+| `GET`  | `/api/v1/health/ready`      | Database-backed traffic readiness               |
 | `GET`  | `/api/v1/properties`        | Validated, published-only search and pagination |
 | `GET`  | `/api/v1/properties/facets` | Facets derived from published inventory         |
 | `GET`  | `/api/v1/properties/:slug`  | One published public projection                 |
-| `POST` | `/api/v1/inquiries`         | Validated create-only inquiry acknowledgement   |
+| `POST` | `/api/v1/inquiries`         | Validated create-only inquiry acknowledgment    |
 
 See the [public API reference](../docs/api/public-api.md) for parameters, validation and
 disclosure rules.
 
+Protected administration endpoints are documented in
+[property-administration-api.md](../docs/api/property-administration-api.md) and
+[inquiry-administration-api.md](../docs/api/inquiry-administration-api.md).
+
 ## Staff authentication endpoints
 
-| Method | Path                    | Behaviour                                       |
+| Method | Path                    | Behavior                                        |
 | ------ | ----------------------- | ----------------------------------------------- |
 | `GET`  | `/api/v1/auth/login`    | Starts Auth0 Authorization Code + PKCE login    |
 | `GET`  | `/api/v1/auth/callback` | Validates callback and issues the local session |

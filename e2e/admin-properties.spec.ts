@@ -43,10 +43,13 @@ const DRAFT: AdminPropertyDetail = {
   },
   specifications: { bedrooms: 3, bathrooms: 2 },
   shortDescription: "A private browser-test draft.",
+  publicationReadiness: { ready: true, missing: [] },
+  version: 0,
   description: "This synthetic draft exists only in the browser test boundary.",
   highlights: [],
   amenities: [],
   features: [],
+  gallery: [],
   createdAt: "2026-09-06T08:00:00.000Z",
   updatedAt: "2026-09-06T08:00:00.000Z",
 };
@@ -55,7 +58,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": FRONTEND_ORIGIN,
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Headers": "Content-Type, X-CSRF-Token",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, OPTIONS",
 };
 
 async function json(route: Route, status: number, body: unknown) {
@@ -77,10 +80,26 @@ async function mockSession(page: Page, status = 200) {
 test("the protected admin property flow lists, creates, and edits a draft", async ({
   page,
 }) => {
+  await page.route("**/_next/image?*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   await mockSession(page);
   let property = structuredClone(DRAFT);
   let createRequest: Record<string, unknown> | undefined;
   let editRequest: Record<string, unknown> | undefined;
+  let mediaRequest: Record<string, unknown> | undefined;
+  const featuredRequests: Record<string, unknown>[] = [];
+  let uploadCount = 0;
+  let uploadRequest:
+    | { alt: string | null; contentType: string | undefined; byteLength: number }
+    | undefined;
   const writeCsrfHeaders: string[] = [];
 
   await page.route(`**${API_PREFIX}/admin/properties**`, async (route) => {
@@ -91,7 +110,9 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     }
     const path = new URL(request.url()).pathname;
     writeCsrfHeaders.push(
-      ...(request.method() === "POST" || request.method() === "PATCH"
+      ...(request.method() === "POST" ||
+      request.method() === "PUT" ||
+      request.method() === "PATCH"
         ? [request.headers()["x-csrf-token"] ?? ""]
         : []),
     );
@@ -102,6 +123,8 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
         highlights,
         amenities,
         features,
+        coverMedia,
+        gallery,
         createdAt,
         publishedAt,
         ...summary
@@ -111,6 +134,8 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       void highlights;
       void amenities;
       void features;
+      void coverMedia;
+      void gallery;
       void createdAt;
       void publishedAt;
       await json(route, 200, {
@@ -123,7 +148,32 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       await json(route, 200, property);
       return;
     }
-    if (request.method() === "POST") {
+    if (request.method() === "POST" && path.endsWith("/media/uploads")) {
+      const requestUrl = new URL(request.url());
+      uploadCount += 1;
+      const uploaded: AdminPropertyDetail["gallery"][number] = {
+        id: `media-server-uploaded-${uploadCount}`,
+        kind: "image",
+        url: "/media/properties/server-uploaded.webp",
+        alt: requestUrl.searchParams.get("alt") ?? "",
+        source: "production",
+        focalPoint: { x: 50, y: 50 },
+      };
+      uploadRequest = {
+        alt: requestUrl.searchParams.get("alt"),
+        contentType: request.headers()["content-type"],
+        byteLength: request.postDataBuffer()?.byteLength ?? 0,
+      };
+      property = {
+        ...property,
+        gallery: [...property.gallery, uploaded],
+        coverMedia: property.coverMedia ?? uploaded,
+        version: property.version + 1,
+      };
+      await json(route, 201, property);
+      return;
+    }
+    if (request.method() === "POST" && path.endsWith("/admin/properties")) {
       createRequest = request.postDataJSON() as Record<string, unknown>;
       property = {
         ...property,
@@ -139,17 +189,59 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
       await json(route, 201, property);
       return;
     }
+    if (request.method() === "POST" && path.endsWith("/publish")) {
+      property = {
+        ...property,
+        publicationStatus: "published",
+        publishedAt: "2026-09-06T08:10:00.000Z",
+        version: property.version + 1,
+      };
+      await json(route, 200, property);
+      return;
+    }
+    if (request.method() === "PUT" && path.endsWith("/media")) {
+      mediaRequest = request.postDataJSON() as Record<string, unknown>;
+      const gallery = mediaRequest.media as AdminPropertyDetail["gallery"];
+      const coverMedia = gallery.find((item) => item.id === mediaRequest?.coverMediaId);
+      property = {
+        ...property,
+        gallery,
+        ...(coverMedia ? { coverMedia } : { coverMedia: undefined }),
+        version: property.version + 1,
+        updatedAt: "2026-09-06T08:07:00.000Z",
+      };
+      await json(route, 200, property);
+      return;
+    }
+    if (request.method() === "PATCH" && path.endsWith("/featured")) {
+      const featuredRequest = request.postDataJSON() as Record<string, unknown>;
+      featuredRequests.push(featuredRequest);
+      property = {
+        ...property,
+        featured: Boolean(featuredRequest.featured),
+        featuredOrder:
+          featuredRequest.featured && typeof featuredRequest.featuredOrder === "number"
+            ? featuredRequest.featuredOrder
+            : undefined,
+        version: property.version + 1,
+      };
+      await json(route, 200, property);
+      return;
+    }
     editRequest = request.postDataJSON() as Record<string, unknown>;
     property = {
       ...property,
       ...editRequest,
+      version: property.version + 1,
       updatedAt: "2026-09-06T08:05:00.000Z",
     };
     await json(route, 200, property);
   });
 
   await page.goto("/admin/properties");
-  await expect(page.getByRole("heading", { name: "Draft properties" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Properties", exact: true }),
+  ).toBeVisible();
   await expect(
     page.locator("td strong").filter({ hasText: "E2E private draft" }),
   ).toBeVisible();
@@ -157,12 +249,76 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     "content",
     /noindex.*nofollow/,
   );
+  await expect(page.locator("header")).toHaveCount(1);
+  await expect(page.getByRole("banner")).toHaveCount(1);
+  await expect(page.locator("main#main-content")).toHaveCount(1);
+  const adminNavigation = page.getByRole("navigation", {
+    name: "Administration navigation",
+  });
+  for (const [name, href] of [
+    ["Dashboard", "/admin"],
+    ["Properties", "/admin/properties"],
+    ["Inquiries", "/admin/inquiries"],
+    ["Viewings", "/admin/viewings"],
+    ["Create Draft", "/admin/properties/new"],
+  ]) {
+    await expect(
+      adminNavigation.getByRole("link", { name, exact: true }),
+    ).toHaveAttribute("href", href);
+  }
+  await expect(
+    adminNavigation.getByRole("link", { name: "View Website" }),
+  ).toHaveAttribute("href", "/");
+  await expect(
+    adminNavigation.getByRole("link", { name: "View Website" }),
+  ).toHaveAttribute("target", "_blank");
+  await expect(page.getByText("Renzo & Criezel").first()).toBeVisible();
+  await expect(page.getByText("RC Premier Properties Staff").first()).toBeVisible();
+  const desktopSidebar = page.getByRole("complementary", { name: "Staff workspace" });
+  await expect(
+    desktopSidebar.locator("[class*='sidebarIdentity']").getByText("Renzo & Criezel"),
+  ).toHaveCount(0);
+  await expect(desktopSidebar.getByText("Signed in as")).toBeVisible();
+  await expect(desktopSidebar.getByText("Renzo & Criezel")).toBeVisible();
+  const sidebarNavigation = desktopSidebar.getByRole("navigation", {
+    name: "Administration navigation",
+  });
+  const sidebarOverflow = await sidebarNavigation.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    overflowX: getComputedStyle(element).overflowX,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(sidebarOverflow.overflowX).toBe("hidden");
+  expect(sidebarOverflow.scrollWidth).toBeLessThanOrEqual(sidebarOverflow.clientWidth);
+  await sidebarNavigation.evaluate((element) =>
+    element.scrollTo(0, element.scrollHeight),
+  );
+  await expect(
+    desktopSidebar.getByRole("link", { name: "Create Draft", exact: true }),
+  ).toBeVisible();
+  await expect(
+    desktopSidebar.getByRole("link", { name: "View Website" }),
+  ).toBeVisible();
+  await expect(desktopSidebar.getByRole("button", { name: "Sign Out" })).toBeVisible();
+  await expect(
+    adminNavigation.getByRole("link", { name: "Properties", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 
-  await page.getByRole("link", { name: "Create draft", exact: true }).last().click();
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main-content")).toBeFocused();
+
+  await page.getByRole("link", { name: "Create Draft", exact: true }).last().click();
   await page.getByLabel("Property ID").fill("RCPP-E2E-NEW");
   await page.getByLabel("URL slug").fill("e2e-new-draft");
   await page.getByLabel("Title").fill("E2E new draft");
   await page.getByLabel("Price (PHP)").fill("8250000");
+  await expect(page.getByLabel("City / municipality")).toHaveJSProperty(
+    "tagName",
+    "SELECT",
+  );
   await page
     .getByLabel("Short description")
     .fill("A newly created browser-test draft.");
@@ -175,13 +331,252 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
   expect(createRequest).not.toHaveProperty("availability");
 
   await page.getByRole("link", { name: "Edit the new draft" }).click();
-  await expect(page.getByRole("heading", { name: "Edit draft content" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Editing PREMIER PROPERTY #RCPP-E2E-NEW" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Property ID")).toHaveAttribute("readonly", "");
   await page.getByLabel("Title").fill("E2E edited draft");
-  await page.getByRole("button", { name: "Save draft content" }).click();
-  await expect(page.getByText("Draft changes saved.")).toBeVisible();
-  expect(editRequest).toEqual({ title: "E2E edited draft" });
-  expect(writeCsrfHeaders).toEqual([CSRF_TOKEN, CSRF_TOKEN]);
+  await page.getByRole("button", { name: "Save property content" }).click();
+  await expect(page.getByText("Property changes saved.")).toBeVisible();
+  expect(editRequest).toEqual({ title: "E2E edited draft", expectedVersion: 0 });
+  await page.getByLabel("Public precision").selectOption("approximate");
+  await page.getByLabel("Private address (optional)").fill("99 Synthetic Test Street");
+  await page.getByLabel("Private exact latitude (optional)").fill("15.101");
+  await page.getByLabel("Private exact longitude (optional)").fill("120.601");
+  await page.getByLabel("Approved public latitude (optional)").fill("15.15");
+  await page.getByLabel("Approved public longitude (optional)").fill("120.61");
+  await page.getByRole("button", { name: "Save property content" }).click();
+  await expect(page.getByText("Property changes saved.")).toBeVisible();
+  expect(editRequest).toEqual({
+    expectedVersion: 1,
+    location: {
+      province: "Pampanga",
+      city: "Angeles City",
+      publicPrecision: "approximate",
+      privateAddress: "99 Synthetic Test Street",
+      coordinates: { latitude: 15.101, longitude: 120.601 },
+      publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+    },
+  });
+  await expect(page.getByText("Add licensed development sample")).toHaveCount(0);
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.focus();
+  await expect(fileInput.locator("..")).not.toHaveCSS("outline-style", "none");
+  await fileInput.setInputFiles({
+    name: "portrait-home.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await page.getByLabel("Alternative text").fill("Uploaded portrait test home");
+  await expect(
+    page.getByRole("progressbar", { name: "Upload progress for portrait-home.png" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Upload Photos" }).click();
+  await expect(page.getByText("Uploaded", { exact: true })).toBeVisible();
+  expect(uploadRequest).toMatchObject({
+    alt: "Uploaded portrait test home",
+    contentType: "image/png",
+  });
+  expect(uploadRequest?.byteLength).toBeGreaterThan(0);
+
+  await fileInput.setInputFiles({
+    name: "second-home.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  const secondUpload = page
+    .getByRole("listitem")
+    .filter({ hasText: "second-home.png" });
+  await secondUpload.getByLabel("Alternative text").fill("Second uploaded test home");
+  await page.getByRole("button", { name: "Upload Photos" }).click();
+  await expect(secondUpload.getByText("Uploaded", { exact: true })).toBeVisible();
+
+  await expect(
+    page.getByRole("button", { name: "Add production image reference" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Image storage reference").first()).toHaveAttribute(
+    "readonly",
+    "",
+  );
+  await page.getByLabel("Caption (optional)").last().fill("Uploaded listing exterior");
+  await page.getByRole("radio", { name: "Cover image" }).nth(1).check();
+  await page.getByRole("button", { name: "Move image 2 earlier" }).click();
+  await expect(page.getByRole("button", { name: "Move image 1 later" })).toBeFocused();
+  await expect(page.getByText("Image moved to position 1.")).toBeAttached();
+  await page.getByRole("button", { name: "Save property media" }).click();
+  await expect(page.getByText("Property media saved.")).toBeVisible();
+  expect(mediaRequest?.coverMediaId).toEqual(
+    (mediaRequest?.media as Array<{ id: string }>)[0]?.id,
+  );
+  for (const width of [320, 360, 390, 768, 1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        document: document.documentElement.scrollWidth,
+        body: document.body.scrollWidth,
+      })),
+    ).toMatchObject({ viewport: width, document: width, body: width });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  expect(
+    await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth,
+      body: document.body.scrollWidth,
+    })),
+  ).toMatchObject({ viewport: 390, document: 390, body: 390 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "100%";
+  });
+  await page.getByRole("link", { name: "Preview property" }).last().click();
+  await expect(page.getByText("Private property preview")).toBeVisible();
+  await expect(page.getByText("Development sample — not this listing")).toHaveCount(0);
+  await page.getByRole("link", { name: "Back to properties" }).click();
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByText(/was published/i)).toBeVisible();
+  await page
+    .getByLabel("Featured priority for Premier Property #RCPP-E2E-NEW")
+    .fill("75");
+  await page.getByRole("button", { name: "Feature", exact: true }).click();
+  await expect(page.getByText("is now Featured.")).toBeVisible();
+  await expect(
+    page.locator("[class*='featuredBadge']").filter({ hasText: "Featured" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Remove Featured" }).click();
+  await expect(page.getByText("was removed from Featured Properties.")).toBeVisible();
+  expect(featuredRequests).toEqual([
+    { expectedVersion: 6, featured: true, featuredOrder: 75 },
+    { expectedVersion: 7, featured: false, featuredOrder: null },
+  ]);
+  expect(writeCsrfHeaders).toEqual([
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+    CSRF_TOKEN,
+  ]);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
+  expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
+});
+
+test("the admin shell collapses on desktop and traps focus in the mobile drawer", async ({
+  page,
+}, testInfo) => {
+  await mockSession(page);
+  await page.route(`**${API_PREFIX}/admin/properties**`, (route) =>
+    json(route, 200, {
+      items: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    }),
+  );
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/admin/properties");
+  const collapse = page.getByRole("button", {
+    name: "Collapse administration sidebar",
+  });
+  await expect(collapse).toBeVisible();
+  await collapse.click();
+  await expect(
+    page.getByRole("button", { name: "Expand administration sidebar" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("rc-admin-sidebar-collapsed")),
+  ).toBe("true");
+
+  const labels = [
+    "Dashboard",
+    "Properties",
+    "Inquiries",
+    "Viewings",
+    "Search",
+    "Audit",
+    "Staff",
+    "Create Draft",
+    "View Website",
+    "Sign Out",
+  ];
+  for (const width of [320, 390, 768, 1024]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    const trigger = page.getByRole("button", { name: "Open administration menu" });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+    const drawer = page.getByRole("dialog", { name: "Administration menu" });
+    await expect(drawer).toBeVisible();
+    const dashboard = drawer.getByRole("link", {
+      name: "Dashboard",
+      exact: true,
+    });
+    await expect(dashboard).toBeFocused();
+    for (const label of labels) {
+      await expect(drawer.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(drawer.locator("nav svg")).toHaveCount(10);
+    await expect(
+      drawer.getByRole("link", { name: "Properties", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(drawer.getByRole("link", { name: "View Website" })).toHaveAttribute(
+      "target",
+      "_blank",
+    );
+    await page.screenshot({
+      path: testInfo.outputPath(`admin-drawer-${width}px.png`),
+      animations: "disabled",
+    });
+    expect(
+      await page
+        .locator('button[class*="drawerBackdrop"]')
+        .evaluate((element) => getComputedStyle(element).backdropFilter),
+    ).toBe("none");
+
+    await page.keyboard.press("Shift+Tab");
+    const close = drawer.getByRole("button", { name: "Close" });
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(drawer.getByRole("button", { name: "Sign Out" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dashboard).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(
+    page.getByRole("button", { name: "Expand administration sidebar" }),
+  ).toBeVisible();
+});
+
+test("admin HTML is private, non-indexable, and protected by browser headers", async ({
+  request,
+}) => {
+  const response = await request.get("/admin");
+  const headers = response.headers();
+
+  expect(response.ok()).toBe(true);
+  expect(headers["cache-control"]).toContain("no-store");
+  expect(headers["x-robots-tag"]).toContain("noindex");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  expect(headers["strict-transport-security"]).toContain("max-age=31536000");
 });
 
 test("the admin shell exposes sign-in, forbidden, and expired-session states", async ({

@@ -1,390 +1,272 @@
-import { PROPERTY_TYPE_LABELS, PROPERTY_TYPES, type PropertyType } from "@rc/shared";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
+import logo from "@/assets/brand/rc-premier-logo.png";
+import heroExterior from "@/assets/site/home-hero-level18.jpg";
+import locationImage from "@/assets/site/location.png";
+import propertiesImage from "@/assets/site/properties.png";
+import whyImage from "@/assets/site/why-rc-premier.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { FeaturedVideos } from "@/features/home/FeaturedVideos";
+import { HeroPropertySearch } from "@/features/home/HeroPropertySearch";
+import { getLocationEditorialContent } from "@/features/locations/location-content";
+import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { PropertyCard } from "@/features/properties/PropertyCard";
-import { getFeaturedProperties } from "@/features/properties/property.service";
+import {
+  getFeaturedProperties,
+  getPropertyFacets,
+} from "@/features/properties/property.service";
 import propertyStyles from "@/features/properties/properties.module.css";
+import { buildSiteStructuredData, serializeJsonLd } from "@/lib/seo";
+import { publicLocationPath } from "@/lib/public-location";
 
 export const dynamic = "force-dynamic";
 
-const propertyCategories: ReadonlyArray<{
-  type: PropertyType;
-  title: string;
-  description: string;
-}> = [
-  {
-    type: "house-and-lot",
-    title: "House & lot",
-    description: "Residential options with room to settle and grow.",
-  },
-  {
-    type: "condominium",
-    title: "Condominiums",
-    description: "Connected living with location and convenience in focus.",
-  },
-  {
-    type: "lot",
-    title: "Lots & land",
-    description: "A starting point for plans that need their own footprint.",
-  },
-  {
-    type: "commercial",
-    title: "Commercial",
-    description: "Spaces to consider for business and investment goals.",
-  },
-];
-
-const approach = [
-  {
-    number: "01",
-    title: "Begin with priorities",
-    description:
-      "Define the location, property type, budget, and practical details that shape the search.",
-  },
-  {
-    number: "02",
-    title: "Compare with context",
-    description:
-      "Review relevant listing information in a clear format designed for considered decisions.",
-  },
-  {
-    number: "03",
-    title: "Choose the next step",
-    description:
-      "Ask a question, discuss a property, or arrange a viewing when you are ready.",
-  },
-] as const;
-
 async function FeaturedProperties() {
-  let featuredProperties;
-
+  let result;
   try {
-    featuredProperties = await getFeaturedProperties();
+    result = await getFeaturedProperties();
   } catch {
-    featuredProperties = undefined;
+    result = undefined;
   }
 
-  return featuredProperties && featuredProperties.items.length > 0 ? (
-    <div className={propertyStyles.grid}>
-      {featuredProperties.items.map((property) => (
-        <PropertyCard key={property.id} property={property} />
-      ))}
-    </div>
-  ) : (
+  if (result?.items.length) {
+    return (
+      <div className={`${propertyStyles.grid} home-featured-grid`}>
+        {result.items.map((property) => (
+          <PropertyCard key={property.id} property={property} />
+        ))}
+      </div>
+    );
+  }
+
+  if (!result) {
+    return (
+      <EmptyState
+        title="Featured inventory is temporarily unavailable."
+        description="The property service could not be reached. No sample listings have been substituted."
+        actionLabel="Browse Properties"
+        actionHref="/properties"
+      />
+    );
+  }
+
+  return (
     <EmptyState
-      title={
-        featuredProperties
-          ? "Featured listings will appear here."
-          : "Featured inventory is temporarily unavailable."
-      }
-      description={
-        featuredProperties
-          ? "There are no published featured properties to show yet. Browse the full catalogue for the latest available inventory."
-          : "The property API could not be reached. This section will populate only from connected, published inventory."
-      }
-      actionLabel="Browse all properties"
+      title="Featured properties will appear here."
+      description="There are no published featured properties to show yet. Browse all published properties for current availability."
+      actionLabel="Browse All Properties"
       actionHref="/properties"
     />
   );
 }
 
-function FeaturedPropertiesFallback() {
+async function ExploreLocations() {
+  let facets;
+  try {
+    facets = await getPropertyFacets();
+  } catch {
+    facets = undefined;
+  }
+
+  const locations = facets?.locationCounts ?? [];
+  if (locations.length > 0) {
+    return (
+      <>
+        <ul className="home-location-grid">
+          {locations.slice(0, 6).map(({ location, count }) => (
+            <li key={location}>
+              <Link href={publicLocationPath(location)}>
+                <Image
+                  src={
+                    getLocationEditorialContent(location)?.scenery.imagePath ??
+                    locationImage
+                  }
+                  alt=""
+                  fill
+                  sizes="(max-width: 600px) 100vw, (max-width: 1088px) 50vw, 33vw"
+                />
+                <span className="home-location-card__shade" aria-hidden="true" />
+                <span className="home-location-card__copy">
+                  <strong>{location}</strong>
+                  <span>
+                    {count} {count === 1 ? "Property" : "Properties"}
+                  </span>
+                </span>
+                <span className="home-location-card__arrow" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Button href="/locations" className="home-locations__action">
+          View all locations
+        </Button>
+      </>
+    );
+  }
+
+  if (!facets) {
+    return (
+      <EmptyState
+        title="Location inventory is temporarily unavailable."
+        description="Published properties will appear here when they are available."
+        actionLabel="Browse Properties"
+        actionHref="/properties"
+      />
+    );
+  }
+
   return (
     <EmptyState
-      title="Loading featured properties."
-      description="The editorial page remains available while current published inventory is checked."
+      title="Published locations will appear here."
+      description="Location links and counts appear for areas with current published properties."
+      actionLabel="Browse All Properties"
+      actionHref="/properties"
     />
   );
 }
 
 export default function HomePage() {
+  const structuredData = buildSiteStructuredData(logo.src);
+
   return (
     <main id="main-content" tabIndex={-1}>
-      <Section className="home-hero" tone="soft" aria-labelledby="home-heading">
-        <Container>
-          <div className="chapter-label">
-            <span aria-hidden="true">001</span>
-            <p>Angeles City · Pampanga</p>
-          </div>
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
+        />
+      ) : null}
 
-          <div className="home-hero__heading">
-            <h1 id="home-heading">
-              A more considered way
-              <span>to find your place.</span>
-            </h1>
-            <div className="home-hero__introduction">
-              <p>
-                Explore property opportunities in Angeles City and across Pampanga
-                through a clear, calm, and thoughtfully designed experience.
-              </p>
-              <Button href="/properties" variant="text">
-                Explore properties
-              </Button>
-            </div>
-          </div>
-
-          <div className="home-hero__media">
-            <MediaPlaceholder label="HOME HERO VIDEO" ratio="hero" tone="violet" />
-            <div className="home-hero__media-note">
-              <span aria-hidden="true">↳</span>
-              <p>Reserved for supplied RC Premier Properties media.</p>
-            </div>
-          </div>
-
-          <form className="property-search-entry" action="/properties" method="get">
-            <div className="property-search-entry__heading">
-              <p className="eyebrow">Find a property</p>
-              <p>Start with what matters to you.</p>
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="home-property-id">Property ID</label>
-              <input
-                id="home-property-id"
-                name="propertyId"
-                type="search"
-                placeholder="Enter an ID"
-                maxLength={40}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="home-location">Location</label>
-              <input
-                id="home-location"
-                name="location"
-                type="search"
-                placeholder="City or area"
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="home-property-type">Property type</label>
-              <select id="home-property-type" name="propertyType" defaultValue="">
-                <option value="">All types</option>
-                {PROPERTY_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {PROPERTY_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field form-field--price">
-              <label htmlFor="home-min-price">Minimum price</label>
-              <input
-                id="home-min-price"
-                name="minPrice"
-                type="number"
-                min="0"
-                inputMode="numeric"
-                placeholder="₱ Min"
-              />
-            </div>
-
-            <div className="form-field form-field--price">
-              <label htmlFor="home-max-price">Maximum price</label>
-              <input
-                id="home-max-price"
-                name="maxPrice"
-                type="number"
-                min="0"
-                inputMode="numeric"
-                placeholder="₱ Max"
-              />
-            </div>
-
-            <Button type="submit" className="property-search-entry__submit">
-              Search properties
-            </Button>
-          </form>
-        </Container>
-      </Section>
-
-      <Section aria-labelledby="featured-heading">
-        <Container>
-          <SectionHeading
-            number="002"
-            eyebrow="Featured properties"
-            title={
-              <span id="featured-heading">
-                A focused edit,
-                <br />
-                when listings are ready.
-              </span>
-            }
-            intro="Published featured properties will be drawn from the live catalogue. This space deliberately does not use sample listings."
+      <section className="home-hero" aria-labelledby="home-heading">
+        <div className="home-hero__backdrop">
+          <Image
+            src={heroExterior}
+            alt="Modern two-storey home at dusk with mature trees and a landscaped frontage"
+            fill
+            preload
+            sizes="100vw"
+            className="home-hero__image"
           />
-          <Suspense fallback={<FeaturedPropertiesFallback />}>
+        </div>
+        <div className="home-hero__shade" aria-hidden="true" />
+        <Container className="home-hero__inner">
+          <div className="home-hero__content">
+            <h1 id="home-heading">Find your place.</h1>
+            <HeroPropertySearch />
+          </div>
+        </Container>
+      </section>
+
+      <Section className="home-featured" aria-labelledby="featured-heading">
+        <Container className="home-container">
+          <SectionHeading
+            className="home-heading"
+            eyebrow="Featured properties"
+            title={<span id="featured-heading">Explore homes on the market.</span>}
+            intro="A selection of current published RC Premier Properties listings."
+          />
+          <Suspense
+            fallback={
+              <EmptyState
+                title="Loading featured properties."
+                description="Current published inventory is being checked."
+              />
+            }
+          >
             <FeaturedProperties />
           </Suspense>
         </Container>
       </Section>
 
-      <Section tone="dark" aria-labelledby="categories-heading">
-        <Container>
-          <SectionHeading
-            number="003"
-            eyebrow="Property types"
-            title={
-              <span id="categories-heading">
-                Different needs.
-                <br />
-                One clear place to begin.
-              </span>
-            }
-            intro="Browse the main property categories and refine your search on the listings page."
-          />
+      <aside className="home-viewing-callout" aria-label="Viewing requests">
+        <Container className="home-container home-viewing-callout__inner">
+          <p>Found a property you want to see?</p>
+          <RequestTourButton variant="secondary" />
+        </Container>
+      </aside>
 
-          <div className="category-grid">
-            {propertyCategories.map((category, index) => (
-              <Link
-                key={category.type}
-                href={`/properties?propertyType=${category.type}`}
-                className="category-card"
-              >
-                <span className="category-card__number" aria-hidden="true">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <h3>{category.title}</h3>
-                  <p>{category.description}</p>
-                </div>
-                <span className="category-card__arrow" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            ))}
+      <Section className="home-service" aria-labelledby="why-heading">
+        <Container className="home-container home-service__layout">
+          <div
+            className="home-service__media"
+            role="group"
+            aria-label="RC Premier property interiors"
+          >
+            <figure>
+              <Image
+                src={propertiesImage}
+                alt="Warm modern living room with a staircase"
+                fill
+                sizes="(max-width: 800px) 50vw, 25rem"
+              />
+              <figcaption>Thoughtful interiors</figcaption>
+            </figure>
+            <figure>
+              <Image
+                src={whyImage}
+                alt="Double-height home entrance with sculptural gold pendant lights"
+                fill
+                sizes="(max-width: 800px) 50vw, 25rem"
+              />
+              <figcaption>Distinctive details</figcaption>
+            </figure>
+          </div>
+          <div className="home-service__content">
+            <p className="eyebrow">Why RC Premier Properties</p>
+            <h2 id="why-heading">A clearer way to explore your next home.</h2>
+            <p>
+              Review available properties, compare the details that matter, and send
+              questions or request a viewing directly from the property you choose.
+            </p>
+            <Button href="/about" variant="outline">
+              Learn about us
+            </Button>
           </div>
         </Container>
       </Section>
 
-      <Section aria-labelledby="location-heading">
-        <Container>
+      <Section
+        id="locations"
+        className="home-locations"
+        tone="soft"
+        aria-labelledby="locations-heading"
+      >
+        <Container className="home-container">
           <SectionHeading
-            number="004"
-            eyebrow="Location focus"
-            title={
-              <span id="location-heading">
-                Rooted in Angeles City,
-                <br />
-                open to wider Pampanga.
-              </span>
-            }
-            intro="Use location search to explore published properties across the project’s primary geographic area."
+            className="home-heading"
+            eyebrow="Explore by location"
+            title={<span id="locations-heading">Find the location for you.</span>}
+            intro="Explore areas represented by current published inventory."
           />
-
-          <div className="location-composition">
-            <MediaPlaceholder
-              label="PAMPANGA LOCATION IMAGE"
-              ratio="landscape"
-              tone="neutral"
-            />
-            <div className="location-composition__aside">
-              <p className="eyebrow">Search areas</p>
-              <ul>
-                <li>
-                  <Link href="/properties?location=Angeles+City">
-                    <span>Angeles City</span>
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/properties?location=Clark">
-                    <span>Clark area</span>
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/properties?location=Pampanga">
-                    <span>Wider Pampanga</span>
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
+          <Suspense
+            fallback={
+              <EmptyState
+                title="Loading locations."
+                description="Published inventory is being checked."
+              />
+            }
+          >
+            <ExploreLocations />
+          </Suspense>
         </Container>
       </Section>
 
-      <Section tone="soft" aria-labelledby="approach-heading">
-        <Container>
+      <Section className="home-videos" aria-labelledby="videos-heading">
+        <Container className="home-container">
           <SectionHeading
-            number="005"
-            eyebrow="A calmer search"
-            title={
-              <span id="approach-heading">
-                Clarity at each
-                <br />
-                step of the journey.
-              </span>
-            }
-            intro="The experience is structured to help you move from broad possibilities to a practical next step."
+            className="home-heading"
+            eyebrow="Featured property videos"
+            title={<span id="videos-heading">Tour a little closer.</span>}
+            intro="Choose a short property tour when you are ready to watch."
           />
-
-          <ol className="approach-list">
-            {approach.map((item) => (
-              <li key={item.number}>
-                <span className="approach-list__number" aria-hidden="true">
-                  {item.number}
-                </span>
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Container>
-      </Section>
-
-      <Section className="next-step-section" aria-labelledby="next-step-heading">
-        <Container>
-          <SectionHeading
-            number="006"
-            eyebrow="Continue the conversation"
-            title={
-              <span id="next-step-heading">
-                Your property plans,
-                <br />
-                your next step.
-              </span>
-            }
-          />
-
-          <div className="next-step-grid">
-            <article className="next-step-card next-step-card--gold">
-              <p className="eyebrow">For property owners</p>
-              <h3>Thinking of selling a property?</h3>
-              <p>Share the essentials and begin a direct property conversation.</p>
-              <Button href="/sell" variant="outline">
-                Sell your property
-              </Button>
-            </article>
-
-            <article className="next-step-card next-step-card--violet">
-              <p className="eyebrow">For buyers and renters</p>
-              <h3>Ready to see a property more closely?</h3>
-              <p>
-                Start a viewing request from a listing or discuss what you are looking
-                for.
-              </p>
-              <div className="next-step-card__actions">
-                <Button href="/book-viewing" variant="secondary">
-                  Book a viewing
-                </Button>
-                <Button href="/contact" variant="text">
-                  Contact us
-                </Button>
-              </div>
-            </article>
-          </div>
+          <FeaturedVideos />
         </Container>
       </Section>
     </main>

@@ -1,6 +1,10 @@
 import { connectDatabase, disconnectDatabase } from "../config/database.js";
 import { env } from "../config/env.js";
-import { provisionAdmin } from "../modules/auth/admin-provisioning.js";
+import { safeErrorMessage } from "../lib/safe-error.js";
+import {
+  normalizeStaffIssuer,
+  provisionAdmin,
+} from "../modules/auth/admin-provisioning.js";
 
 function argument(name: string): string {
   const index = process.argv.indexOf(`--${name}`);
@@ -18,10 +22,15 @@ async function run(): Promise<void> {
     );
   }
 
+  const issuer = argument("issuer");
+  if (normalizeStaffIssuer(issuer) !== env.AUTH.issuerUrl) {
+    throw new Error("The explicit --issuer must exactly match AUTH0_ISSUER_URL.");
+  }
+
   await connectDatabase();
   try {
     const staff = await provisionAdmin({
-      issuer: env.AUTH.issuerUrl,
+      issuer,
       subject: argument("subject"),
       email: argument("email"),
       displayName: argument("name"),
@@ -35,8 +44,11 @@ async function run(): Promise<void> {
 }
 
 void run().catch((error: unknown) => {
-  const message =
-    error instanceof Error ? error.message : "Unknown provisioning error.";
+  const message = safeErrorMessage(error, [
+    env.MONGODB_URI,
+    env.AUTH?.clientSecret,
+    env.AUTH?.sessionHashSecret,
+  ]);
   console.error(`[auth] admin provisioning failed: ${message}`);
   process.exitCode = 1;
 });

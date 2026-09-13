@@ -3,8 +3,9 @@ import {
   type PropertyFacetsResponse,
   type PropertySearchResponse,
   type PublicPropertyDetail,
+  type RelatedPropertiesResponse,
 } from "@rc/shared";
-import { apiRequest } from "@/services/api-client";
+import { apiRequest } from "../../services/api-client";
 import { propertyApiSearchParams, type RawSearchParams } from "./property-query";
 
 const READ_TIMEOUT_MS = 8_000;
@@ -20,8 +21,9 @@ function readOptions(init: RequestInit = {}): RequestInit {
 export function getProperties(
   searchParams: RawSearchParams,
   init?: RequestInit,
+  pageSize = 9,
 ): Promise<PropertySearchResponse> {
-  const query = propertyApiSearchParams(searchParams);
+  const query = propertyApiSearchParams(searchParams, pageSize);
   return apiRequest<PropertySearchResponse>(
     `${API_PREFIX}/properties?${query.toString()}`,
     readOptions(init),
@@ -33,6 +35,7 @@ export function getFeaturedProperties(
 ): Promise<PropertySearchResponse> {
   const query = new URLSearchParams({
     featured: "true",
+    purpose: "sale",
     sort: "newest",
     page: "1",
     limit: "3",
@@ -57,6 +60,16 @@ export function getPropertyBySlug(
 ): Promise<PublicPropertyDetail> {
   return apiRequest<PublicPropertyDetail>(
     `${API_PREFIX}/properties/${encodeURIComponent(slug)}`,
+    readOptions(init),
+  );
+}
+
+export function getRelatedProperties(
+  slug: string,
+  init?: RequestInit,
+): Promise<RelatedPropertiesResponse> {
+  return apiRequest<RelatedPropertiesResponse>(
+    `${API_PREFIX}/properties/${encodeURIComponent(slug)}/related`,
     readOptions(init),
   );
 }

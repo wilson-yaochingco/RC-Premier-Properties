@@ -1,6 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import type { ApiErrorResponse, ValidationIssue } from "@rc/shared";
 import { env } from "../config/env.js";
+import { errorIdentity, operationalLogger } from "../lib/operational-logger.js";
+import { getRequestId } from "./requestContext.js";
+import { requestRoute } from "../lib/request-route.js";
 
 /** An error carrying an intended HTTP status code. */
 export class HttpError extends Error {
@@ -21,7 +24,7 @@ function requestBodyError(error: unknown): { status: number; message: string } |
     return { status: 400, message: "Malformed JSON request body." };
   }
   if (error.type === "entity.too.large") {
-    return { status: 413, message: "Request body exceeds the 1 MB limit." };
+    return { status: 413, message: "Request body exceeds the configured limit." };
   }
   return null;
 }
@@ -32,7 +35,7 @@ function requestBodyError(error: unknown): { status: number; message: string } |
  */
 export function errorHandler(
   error: unknown,
-  _req: Request,
+  req: Request,
   res: Response<ApiErrorResponse>,
   _next: NextFunction,
 ): void {
@@ -44,7 +47,18 @@ export function errorHandler(
       : (bodyError?.message ?? "Internal Server Error");
 
   if (status >= 500) {
-    console.error("[error]", error);
+    operationalLogger.error("http_request_failed", {
+      requestId: getRequestId(res),
+      method: req.method,
+      route: requestRoute(req),
+      statusCode: status,
+      errorCode: bodyError
+        ? "request_body_error"
+        : error instanceof HttpError
+          ? `http_error_${status}`
+          : "unexpected_server_error",
+      ...errorIdentity(error),
+    });
   }
 
   const body: ApiErrorResponse = {

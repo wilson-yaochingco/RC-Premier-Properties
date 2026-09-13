@@ -34,6 +34,9 @@ export class PropertyMapErrorBoundary extends Component<
         <div className={styles.failure} role="status">
           <strong>Map temporarily unavailable.</strong>
           <p>Property search, filters, cards and links are still available.</p>
+          <button type="button" onClick={() => this.setState({ failed: false })}>
+            Retry interactive map
+          </button>
         </div>
       );
     }

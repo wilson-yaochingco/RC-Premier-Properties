@@ -1,52 +1,122 @@
 # Property Administration
 
-Status: Phase 3A protected shell, private reads, draft creation and draft-content editing
-implemented. Publishing, availability transitions and media remain deferred.
+Status: property lifecycle, Part 4 Featured Property curation, Level 15
+publish-readiness/current-page export, provider-neutral image administration, and
+privacy-conscious location administration implemented.
+Production upload remains blocked; inquiry administration is documented separately in
+[`inquiries.md`](inquiries.md).
 
 ## Staff experience
 
-The `/admin` route redirects to `/admin/properties`. The protected shell requests
-`GET /auth/session` from the browser with credentials included. While that check is in
-progress it shows a loading state. A missing or expired session shows a staff sign-in
-link that starts the backend Auth0 route with the exact allowlisted return URL
-`<frontend-origin>/admin`.
+The protected `/admin` shell checks the local staff session, keeps its CSRF token only in
+React memory, and exposes no cached or indexed private response. The desktop workspace
+uses a collapsible, locally persisted navigation sidebar; smaller screens use a modal
+drawer with keyboard focus containment, Escape dismissal, and focus restoration. The
+brand-facing “Renzo & Criezel” label is presentation only: the authenticated
+`StaffIdentity` remains visible separately and continues to own permissions and audit
+actor identity. The public-site action opens a separate tab. The property workspace
+provides:
 
-After authentication, the shell shows the local staff display name, property navigation
-and local-session logout. The CSRF token stays in React memory and is passed only in the
-`X-CSRF-Token` header on backend writes. It is never stored in local or session storage.
+- `/admin/properties` — server-paginated results with search, publication, availability,
+  and Featured filters;
+- `/admin/properties/new` — create an available private draft;
+- `/admin/properties/[id]/edit` — edit draft or unpublished content; and
+- `/admin/properties/[id]/preview` — protected pre-publication preview using the configured public location precision.
 
-Admin pages include:
+Search covers the Premier Property number, slug, title, and city. Results show loading, error, forbidden, empty, success, and pagination states. Lifecycle controls adapt to smaller screens and are hidden when the session lacks the relevant permission; Express remains the authorization boundary.
 
-- `/admin/properties` — private draft list and empty/error/forbidden states;
-- `/admin/properties/new` — create an available private draft; and
-- `/admin/properties/[id]/edit` — load private detail and edit draft content.
+List and detail records expose backend-derived publication readiness. Staff see Complete
+or Incomplete plus the exact current missing requirements, and cannot invoke Publish from
+the list while incomplete. The backend remains authoritative and rejects the same case.
+New/edit controls accept only house-and-lot, townhouse, and lot; historical non-residential
+records are read-only for deliberate reconciliation. The list can export its already
+authorized current page as formula-neutralized CSV without private coordinates or notes.
+It also shows Featured state and optional priority. Staff with `property:write` can feature
+an eligible published available/reserved record, adjust its bounded priority, or remove
+the flag. Higher priorities appear first; ties fall back to publication time and stable
+database identity.
 
-The forms use real labels, field-level API errors, a focusable error summary, keyboard
-controls and disabled fieldsets/submission while saving. Successful creation links to
-the new editor; successful editing keeps the refreshed draft in place. A `401` received
-after bootstrap returns the shell to an explicit expired-session state.
+## Lifecycle
 
-## Lifecycle boundary
+Publication and market availability remain separate:
 
-This slice edits content only. There is no publication-status or availability input.
-The backend assigns new records to `draft` and `available`, and draft updates use a
-server-owned `publicationStatus: draft` predicate. Frontend controls are convenience,
-not authorization; all access, permission and CSRF decisions remain in Express.
+```text
+publication: draft -> published -> unpublished -> archived
+availability: available -> reserved -> sold
+```
 
-The editor intentionally excludes uploads/media, internal notes, owner data, exact
-internal coordinates and private address management. It does not implement publishing,
-unpublishing, archiving, availability changes, inquiry management or staff management.
+- Publish accepts draft or unpublished records.
+- Unpublish accepts only published records and produces `unpublished`.
+- Archive accepts any non-archived record and immediately removes a published listing from public reads.
+- Restore returns a never-published record to draft and a previously public record to unpublished. It never republishes automatically.
+- Availability changes are accepted only while published. Available may become reserved or sold, reserved may return to available or become sold, and sold is terminal.
+- Content is editable only while draft or unpublished.
+- The Premier Property number is fixed after creation. The slug may change before first
+  publication, then remains fixed through unpublish/edit cycles to preserve issued URLs.
+- Image references, ordering, cover selection, alt text, captions and removals are
+  editable only while draft or unpublished. Staff unpublish before changing live media.
+- Location text, private address, verified exact coordinates, public disclosure precision,
+  and an independently approved public map point use the same draft/unpublished edit.
+- Unpublish, archive, and sold transitions retain the stored Featured flag and priority
+  for history, but public Featured reads independently exclude those records. Staff can
+  remove the historical flag from an ineligible record.
 
-## Search indexing and caching
+## Location workflow
 
-The admin layout exports `noindex`, `nofollow` and `noarchive` metadata. `robots.txt`
-already disallows `/admin`, and authenticated API responses use `no-store`. These are
-indexing/cache controls, not substitutes for server authorization.
+The location fieldset explains which data is private and which can appear publicly.
+Normal authoring chooses City / Municipality from the canonical Pampanga area set used
+by public discovery. A legacy value that is not in that set remains selectable under its
+exact stored value, so merely opening and saving a record never silently rewrites it.
+`privateAddress` and the internal latitude/longitude pair are returned only by protected
+detail/edit responses. Admin list summaries omit them. `publicPoint` is a separate
+GeoJSON `[longitude, latitude]` pair; it is never populated or derived from the private
+pair. Staff must intentionally supply a reviewed point and select its public precision.
 
-## External acceptance boundary
+Both coordinate pairs are optional, but either pair must be complete. Server validation
+accepts only finite JSON numbers in valid latitude/longitude ranges. Invalid, malformed,
+partial, string, `NaN`, or infinite values are rejected. A property with no public point
+continues to expose useful precision-filtered text and has no public marker.
 
-Automated browser tests mock only the network boundary and use no Auth0 credential.
-The owner has reported that the configured Auth0 Free passkey flow redirects to the
-frontend. The application session response, authenticated admin data load, CSRF-backed
-write and logout still require the manual browser pass in
-[`../development/auth0-setup.md`](../development/auth0-setup.md).
+Every mutation includes the version from the latest private read. The MongoDB update matches both ID and version, then increments the version atomically. A stale operation returns `409` and instructs staff to refresh.
+
+## Safe deletion policy
+
+There is no property hard-delete endpoint. Staff archive a record after an explicit confirmation. This keeps the action recoverable and preserves property references held by inquiries and security audit events.
+
+## Authorization and auditing
+
+Private reads and preview require `property:read-private`. Create, content edit, media
+management, and Featured curation require `property:write`. Publish, unpublish, archive,
+and restore require
+`property:publish`. Availability transitions require `property:change-availability`.
+Every write also requires the configured origin, session-bound CSRF token, and JSON
+content.
+
+Successful create, edit, Featured state/order change, media update, publish, unpublish,
+reserve, sold, general availability change, archive, and restore actions emit allowlisted
+audit events. Featured changes reuse `property.edited` and record only `featured` and/or
+`featuredOrder`. Events
+contain actor, property database ID, request ID, timestamp, outcome, and content field
+names when relevant; they contain no property values, media URLs, request body, cookies,
+CSRF data, provider tokens, private addresses, or coordinate values. A location edit is
+recorded only as the changed top-level field `location`.
+
+Property persistence and audit insertion remain separate MongoDB writes, matching the documented session-audit limitation. A failed audit insert fails the HTTP request but does not roll back a completed property mutation.
+
+For media compensation and removal, the database is also the ownership authority. Before
+deleting an adapter-owned reference, the service checks every gallery and cover reference;
+a still-referenced object is retained, and an unavailable reference check fails safe into
+private cleanup debt. Client metadata updates cannot introduce a new adapter-owned
+reference outside the validated device-upload path.
+
+## Deferred boundaries
+
+Production object storage/provider deletion, staff mutation, and hard deletion remain
+deferred or blocked. Level 15 adds only read-only staff identity visibility through the
+existing architecture; provisioning/deactivation remain the audited CLI workflows.
+Validated device upload uses the existing media metadata model and an
+isolated development adapter; production fails closed until a provider is approved. See
+[`property-media.md`](../architecture/property-media.md).
+Inquiry administration was added in the next scoped level. The Auth0 development tenant
+still requires the manual end-to-end acceptance steps in
+[auth0-setup.md](../development/auth0-setup.md).

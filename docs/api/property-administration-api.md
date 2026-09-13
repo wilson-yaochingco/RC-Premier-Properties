@@ -1,85 +1,134 @@
 # Property Administration API
 
-Status: Phase 3A private read and draft-content slice implemented.
+Status: Phase 3A property lifecycle API implemented.
 
-All paths are relative to `API_PREFIX` from `@rc/shared`. Request and response shapes
-live only in `shared/src/api.ts`.
+All paths are relative to `API_PREFIX` from `@rc/shared`. Request and response shapes live only in `shared/src/api.ts`.
 
 ## Routes and permissions
 
-| Method  | Path                    | Permission              | Success |
-| ------- | ----------------------- | ----------------------- | ------- |
-| `GET`   | `/admin/properties`     | `property:read-private` | `200`   |
-| `GET`   | `/admin/properties/:id` | `property:read-private` | `200`   |
-| `POST`  | `/admin/properties`     | `property:write`        | `201`   |
-| `PATCH` | `/admin/properties/:id` | `property:write`        | `200`   |
+| Method  | Path                                  | Permission                     | Purpose                               |
+| ------- | ------------------------------------- | ------------------------------ | ------------------------------------- |
+| `GET`   | `/admin/properties`                   | `property:read-private`        | Search and paginate private records   |
+| `GET`   | `/admin/properties/:id`               | `property:read-private`        | Read private detail / preview data    |
+| `POST`  | `/admin/properties`                   | `property:write`               | Create an available draft             |
+| `PATCH` | `/admin/properties/:id`               | `property:write`               | Edit draft or unpublished content     |
+| `PUT`   | `/admin/properties/:id/media`         | `property:write`               | Replace ordered image metadata        |
+| `POST`  | `/admin/properties/:id/media/uploads` | `property:write`               | Validate, store, and attach one image |
+| `PATCH` | `/admin/properties/:id/featured`      | `property:write`               | Curate public Featured placement      |
+| `POST`  | `/admin/properties/:id/publish`       | `property:publish`             | Publish                               |
+| `POST`  | `/admin/properties/:id/unpublish`     | `property:publish`             | Withdraw from public reads            |
+| `POST`  | `/admin/properties/:id/archive`       | `property:publish`             | Archive safely                        |
+| `POST`  | `/admin/properties/:id/restore`       | `property:publish`             | Restore privately                     |
+| `PATCH` | `/admin/properties/:id/availability`  | `property:change-availability` | Change market state                   |
 
-Every route requires a valid local staff session and returns `Cache-Control: no-store`
-plus `X-Robots-Tag: noindex, nofollow`. Anonymous, invalid, expired, revoked and
-disabled-staff sessions return the shared `401` envelope. An authenticated session
-without the named permission returns `403`.
+Every route requires a valid local staff session and returns `Cache-Control: no-store` plus `X-Robots-Tag: noindex, nofollow`. Every write additionally requires the exact configured `Origin` and the session token in `X-CSRF-Token`. Writes use JSON except the raw-byte upload route.
 
-Both writes additionally require an exact configured `Origin`, JSON content, and the
-session-bound token from `GET /auth/session` in `X-CSRF-Token`. Missing, incorrect and
-cross-session tokens return `403` before property persistence.
+## Private list
 
-## Private reads
+`GET /admin/properties` accepts optional `query`, `publicationStatus`, `availability`,
+and boolean `featured` filters plus bounded `page` and `limit` values. Search is
+case-insensitive across Premier Property number, slug, title, and city. The default page
+size is 25 and maximum is 50. Unknown query parameters are rejected.
 
-`GET /admin/properties` accepts optional `publicationStatus` plus bounded `page` and
-`limit` values. The default is page 1 with 25 items; the maximum page size is 50.
-Unknown query parameters are rejected. The private list may return draft, pending,
-published and archived records and is separate from the published-only public query.
+List and detail responses include `version`. Lists exclude media and sensitive location
+details. Protected details include the ordered `gallery`, selected `coverMedia`, optional
+`privateAddress`, optional verified internal `coordinates`, and optional approved
+`publicPoint` for editing/preview. Owner references and internal notes remain excluded.
+Both responses also include `publicationReadiness`: `ready` and an explicit `missing`
+list based only on current publish requirements (property number, slug, title, sale
+purpose, approved residential type, valid PHP price, public province/city and precision,
+short description, and full description). The list UI disables publish while incomplete,
+and the backend independently rejects an incomplete publish attempt.
 
-`GET /admin/properties/:id` uses the MongoDB property identifier. Malformed identifiers
-return `400`; missing records return the protected `404 Property not found.` envelope.
+## Writes and concurrency
 
-Admin responses include listing content, publication status, availability and normal
-timestamps needed by the editor. They deliberately exclude private addresses, internal
-coordinates, owner references, internal notes and media-management fields from this
-slice.
+Create accepts the residential-sales-only `CreateDraftPropertyRequest`, assigns `draft`,
+`available`, and PHP, and rejects rental purpose, condominium/apartment/commercial types,
+lifecycle, and unknown fields. Edit and publish also fail closed for a legacy non-sale or
+non-residential record; the UI presents it read-only for deliberate integrity
+reconciliation rather than silently converting it. Location authoring may include a private address,
+a complete private `{ latitude, longitude }` pair, public precision, and a separate
+GeoJSON `{ type: "Point", coordinates: [longitude, latitude] }` public point. Latitude is
+bounded to -90 through 90 and longitude to -180 through 180. Values must be finite JSON
+numbers; incomplete pairs, numeric strings, malformed objects, and extra nested fields
+return `400`. Unique indexes protect both Premier Property number and slug; a collision
+returns `409`.
 
-## Create draft
+The Premier Property number is immutable after creation. A slug remains editable only
+until the record has first been published; once `publishedAt` exists, it stays immutable
+through unpublish and later private edits so issued public URLs remain stable. The UI
+marks both constraints and the backend enforces them independently.
 
-`POST /admin/properties` accepts `CreateDraftPropertyRequest`. It validates the property
-ID, slug, title, purpose, property type, PHP price, public location text/precision,
-specifications, descriptions and bounded string lists. Unknown top-level and nested
-fields are rejected.
+Every other write requires a non-negative integer `expectedVersion` from the latest
+private response. Content updates include it alongside at least one allowlisted content
+field. Transition bodies contain only `expectedVersion`. Availability bodies contain
+`expectedVersion` and `availability`. Featured bodies contain `expectedVersion`, a
+boolean `featured`, and optional `featuredOrder` (`null` or an integer from 1 through
+999). Removing Featured also removes the order. Unknown fields are rejected.
 
-The server always assigns:
+Only published available or reserved properties may be set or kept as Featured through
+the curation endpoint. A sold, draft, unpublished, or archived record can still be
+unfeatured. Public Featured reads independently require `featured: true`, published sale
+inventory, and a non-sold availability; they sort by descending `featuredOrder`, then
+descending `publishedAt` and `_id` for deterministic ties. The homepage requests page 1
+with a limit of three.
 
-- `publicationStatus: "draft"`;
-- `availability: "available"`; and
-- `price.currency: "PHP"`.
+The mutation matches ID, current state, and version in one MongoDB operation and increments the version. A stale version or intervening state change returns `409`; no newer content is overwritten.
 
-Supplying `publicationStatus`, `availability`, `publishedAt`, private address, internal
-coordinates, internal notes, owner data or another unknown field returns `400`. A client
-cannot publish or change availability through this endpoint. Duplicate property IDs or
-slugs return `409`.
+Invalid transitions also return `409`. Missing records return `404`. Malformed IDs or bodies return `400`.
 
-## Edit draft content
+## Media replacement
 
-`PATCH /admin/properties/:id` accepts a non-empty
-`UpdateDraftPropertyRequest`. Only the allowlisted content fields are copied into the
-update. It can update only a record whose current publication status is `draft`; a
-missing or non-draft record returns the same protected `404`.
+`PUT /admin/properties/:id/media` accepts `UpdatePropertyMediaRequest`. `media` contains
+at most 24 image entries and its array order is display order. Every entry requires a
+unique stable ID, `kind: image`, an approved URL/reference, meaningful bounded alt text,
+and a source classification. A non-empty list requires `coverMediaId` matching one of its
+IDs; an empty list omits the cover. The gallery and denormalized cover are updated in one
+version-matched MongoDB operation.
 
-The endpoint never changes publication status, availability or `publishedAt`. Publishing,
-archiving and availability transitions require future explicit endpoints and are not
-implemented here.
+Production references accept only safe raster paths below `/media/properties/`.
+Development samples remain fixture-only and cannot be saved in production. Unknown hosts,
+SVG/executable paths, future media kinds, duplicate IDs, malformed metadata, stale
+versions and media changes to published/archived records are rejected. This JSON endpoint
+never accepts file bytes. A client cannot claim a new adapter-owned reference through
+this metadata endpoint; server-owned references enter a gallery only through device
+upload.
 
-## Audit and visibility
+## Device image upload
 
-Successful creation records exactly one `property.created` event. Successful editing
-records exactly one `property.edited` event. Events contain the local staff actor,
-property database ID, request ID, timestamp and allowlisted request field names only.
-They contain no descriptions, addresses, property values, request body, cookies,
-session/CSRF values or provider tokens.
+`POST /admin/properties/:id/media/uploads` accepts one raw PNG, JPEG, or WebP body up to
+12 MB. `expectedVersion` and required `alt` plus optional `caption` are query parameters;
+unknown parameters are rejected. Declared MIME must match the bytes, the image must decode
+as one frame, and dimensions are bounded. The server generates the storage ID and ignores
+no client filename because filenames are not accepted at all. A successful storage write
+and version-matched gallery update returns the updated private property with status 201.
+If MongoDB persistence fails, compensation first reconciles the object reference against
+all property gallery and cover records. It deletes only an owned reference that is not
+present anywhere. A failed reference check retains the object and records cleanup debt
+for operator review.
 
-Property persistence and audit insertion are separate MongoDB writes, matching the
-documented session-audit limitation. A failed audit insert fails the HTTP request but
-does not undo a completed property write. Production must approve this limitation with
-monitoring or add a replica-set transaction/outbox design.
+Metadata commit and audit insertion are separate durable boundaries. Compensation never
+relies on the shape of a URL to infer whether metadata committed: a post-commit audit
+failure is surfaced and the database reference check retains the object. The same global
+reference check protects legacy cross-property references during removal. Metadata and
+audit complete before physical deletion; failed or unsafe deletion is recorded as cleanup
+debt and never makes removed media reappear.
 
-Public `GET /properties` and `GET /properties/:slug` still add
-`publicationStatus: "published"` in the service. Creating or editing a draft cannot make
-it visible through either public endpoint.
+Development retains the original privately and serves an optimized WebP derivative.
+Production returns 503 until an object-storage/CDN adapter is selected.
+
+## Visibility and deletion
+
+Public property endpoints always impose `publicationStatus: published` and `purpose: sale`. Draft, unpublished, archived, and rental records cannot be read publicly. No hard-delete route exists; archive/restore is the safe retention policy.
+
+## Audit events
+
+Successful actions emit `property.created`, `property.edited`,
+`property.media-updated`, `property.published`, `property.unpublished`,
+`property.reserved`, `property.sold`, `property.availability-changed`,
+`property.archived`, or `property.restored`. Audit details never contain listing values,
+media URLs, raw data, or authentication secrets.
+Location edits reuse `property.edited` with `changedFields: ["location"]`; audit records
+never include a private address or any coordinate value.
+Featured state and priority mutations reuse `property.edited` with only `featured` and/or
+`featuredOrder` in `changedFields`.

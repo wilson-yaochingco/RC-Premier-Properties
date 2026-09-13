@@ -161,6 +161,7 @@ a `NEXT_PUBLIC_` variable.
 `frontend/.env.local` normally needs no changes:
 
 ```ini
+NEXT_PUBLIC_DEPLOYMENT_ENV=development
 NEXT_PUBLIC_API_URL=http://localhost:5000
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
@@ -183,8 +184,9 @@ Expected output:
 
 ```
 [db] connected to rc_premier
-[server] rc-premier-backend listening on http://localhost:5000 (development)
-[server] health check: http://localhost:5000/api/v1/health
+[server] rc-premier-backend listening on port 5000 (development)
+[server] liveness: /api/v1/health
+[server] readiness: /api/v1/health/ready
 ```
 
 **Terminal 2 — frontend:**
@@ -207,7 +209,7 @@ Expected output:
 
 Open **http://localhost:3000**. You should see the RC Premier Properties public home page.
 Visit `/properties`, `/about`, `/contact`, `/sell` and `/book-viewing` to exercise the
-implemented routes. With no published records, the catalogue and featured section show
+implemented routes. With no published records, the catalog and featured section show
 intentional empty states; the repository contains no seed or sample inventory.
 
 When Auth0 is configured, start a staff login at
@@ -235,9 +237,10 @@ curl http://localhost:5000/api/v1/health
 }
 ```
 
-If `database.status` says `"connected"`, the process has reached MongoDB. This health
-check does not by itself prove property or inquiry persistence. A real create/read
-verification against the project database remains a separate integration gate.
+If `database.status` says `"connected"`, the process has reached MongoDB. For deployment
+traffic routing, `/api/v1/health/ready` returns 200 only in that connected state and 503
+otherwise. Neither check by itself proves property or inquiry persistence; a real
+create/read verification remains a separate integration gate.
 
 ---
 
@@ -245,7 +248,7 @@ verification against the project database remains a separate integration gate.
 
 **A property page says that the API is unavailable, or a form cannot submit.**
 The backend isn't running, MongoDB is unavailable, or the API is on a different port.
-Confirm terminal 1 shows the `listening on http://localhost:5000` line, check the health
+Confirm terminal 1 shows the `listening on port 5000` line, check the health
 response, and confirm `NEXT_PUBLIC_API_URL` in `frontend/.env.local` matches that port.
 Restart the frontend dev server after changing any `.env` file — Next.js reads them at
 startup.
@@ -290,19 +293,20 @@ your commands in Git Bash instead.
 
 Run these from the **repository root** — they fan out across all three workspaces.
 
-| Command                | What it does                                     |
-| ---------------------- | ------------------------------------------------ |
-| `npm run dev:backend`  | Start the API in watch mode                      |
-| `npm run dev:frontend` | Start the web app in watch mode                  |
-| `npm run dev:shared`   | Rebuild the shared contract on save              |
-| `npm run lint`         | ESLint, backend + frontend                       |
-| `npm run typecheck`    | TypeScript across all three workspaces           |
-| `npm test`             | Vitest unit and HTTP integration tests           |
-| `npm run test:watch`   | Vitest in watch mode                             |
-| `npm run test:e2e`     | Playwright desktop/mobile browser acceptance     |
-| `npm run build`        | Build shared, then backend, then frontend        |
-| `npm run format`       | Apply Prettier to the whole repo                 |
-| `npm run format:check` | Verify formatting without writing (what CI runs) |
+| Command                    | What it does                                           |
+| -------------------------- | ------------------------------------------------------ |
+| `npm run dev:backend`      | Start the API in watch mode                            |
+| `npm run dev:frontend`     | Start the web app in watch mode                        |
+| `npm run dev:shared`       | Rebuild the shared contract on save                    |
+| `npm run lint`             | ESLint, backend + frontend                             |
+| `npm run typecheck`        | TypeScript across all three workspaces                 |
+| `npm test`                 | Vitest unit and HTTP integration tests                 |
+| `npm run test:watch`       | Vitest in watch mode                                   |
+| `npm run test:e2e`         | Playwright desktop/mobile browser acceptance           |
+| `npm run smoke:deployment` | Read-only smoke checks against a live HTTPS deployment |
+| `npm run build`            | Build shared, then backend, then frontend              |
+| `npm run format`           | Apply Prettier to the whole repo                       |
+| `npm run format:check`     | Verify formatting without writing (what CI runs)       |
 
 Before pushing, run `npm run format:check`, `npm run lint`, `npm run typecheck`,
 `npm test` and `npm run build`. CI runs that gate on every pull request. Browser tests
@@ -371,9 +375,10 @@ also needs in `shared/src/api.ts`.
 The public API currently provides health, published property list/facet/detail reads and
 inquiry creation. There are no public property writes or inquiry reads. The protected
 staff boundary provides an admin shell plus private property list/detail and draft
-create/edit operations. Publishing, availability transitions, media management, inquiry
-administration and confirmed appointments remain unimplemented; a viewing submission is
-only a request for follow-up.
+create/edit operations, lifecycle transitions and lightweight inquiry management. Media
+metadata management and device uploads with isolated development storage are implemented;
+production object storage is provider-blocked. Calendar-backed confirmed appointments
+remain unimplemented, and a viewing submission is only a request for follow-up.
 
 ---
 

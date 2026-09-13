@@ -25,36 +25,46 @@ Architecture is documented separately in
 The overall status describes the complete product phase. The three workstream columns
 make ownership and dependencies visible without treating skipped UI work as completed.
 
-| Phase | Name                                  | Overall | Backend / data      | Frontend / UI     | Business / external              | In MVP?     |
-| ----- | ------------------------------------- | ------- | ------------------- | ----------------- | -------------------------------- | ----------- |
-| 0     | Project Foundation                    | 🟩      | 🟩 Complete         | 🟩 Complete       | ↪ Branch protection follow-up    | Yes         |
-| 1     | Product Planning, Brand & UX          | 🟦      | 🟩 Complete         | ↪ External owner  | ⛔ Logo and lifecycle approval   | Yes         |
-| 2A    | Core Public Website MVP               | 🟦      | 🟩 Implemented      | ↪ External owner  | ⛔ Supplied production inventory | Yes         |
-| 2B    | Enhanced Property Experience          | ↪       | ↪ Deferred          | ↪ Deferred        | ↪ Requirements deferred          | No          |
-| 3A    | Secure Property Administration        | 🟦      | 🟦 Auth + draft API | 🟦 Admin draft UI | ⛔ Production MFA assurance gate | Partly      |
-| 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Requirements not validated    | No          |
-| 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Requirements not validated    | No          |
-| 5     | Communication & AI                    | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Providers not selected        | No          |
-| 6     | Production Hardening & Launch         | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Infrastructure not selected   | Launch gate |
-| 7     | Post-Launch Growth                    | ⬜      | ⬜ Not started      | ↪ External owner  | ⬜ Prioritize after launch       | No          |
+| Phase | Name                                  | Overall | Backend / data | Frontend / UI    | Business / external               | In MVP?     |
+| ----- | ------------------------------------- | ------- | -------------- | ---------------- | --------------------------------- | ----------- |
+| 0     | Project Foundation                    | 🟩      | 🟩 Complete    | 🟩 Complete      | ↪ Branch protection follow-up     | Yes         |
+| 1     | Product Planning, Brand & UX          | 🟦      | 🟩 Complete    | ↪ External owner | ⛔ Logo and lifecycle approval    | Yes         |
+| 2A    | Core Public Website MVP               | 🟦      | 🟩 Implemented | ↪ External owner | ⛔ Supplied production inventory  | Yes         |
+| 2B    | Enhanced Property Experience          | ↪       | ↪ Deferred     | ↪ Deferred       | ↪ Requirements deferred           | No          |
+| 3A    | Secure Property Administration        | 🟦      | 🟩 Implemented | 🟩 Implemented   | ⛔ Production MFA assurance gate  | Partly      |
+| 3B    | CRM & Advanced Administration         | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated     | No          |
+| 4     | Client Accounts & Seller Verification | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Requirements not validated     | No          |
+| 5     | Communication & AI                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Providers not selected         | No          |
+| 6     | Production Hardening & Launch         | 🟦      | 🟩 Levels 8–17 | 🟩 Levels 8–17   | ⛔ Live infrastructure/acceptance | Launch gate |
+| 7     | Post-Launch Growth                    | ⬜      | ⬜ Not started | ↪ External owner | ⬜ Prioritize after launch        | No          |
 
-**Phase 0 is Complete. Phases 1, 2A and 3A are In Progress.** The Atlas connection and
+**Phase 0 is Complete. Phases 1, 2A, 3A and 6 are In Progress.** The Atlas connection and
 live health response were verified on 2026-09-05. Repository-admin branch protection is
 an accepted follow-up rather than a Phase 0 completion gate; until it is enabled, the
-documented pull-request workflow remains enforced by convention. Phase 1 still needs the
-approved logo asset and business validation of lifecycle vocabulary. Phase 2A is built
+documented pull-request workflow remains enforced by convention. Phase 1 now has the
+approved logo asset and still needs business validation of lifecycle vocabulary. Phase 2A is built
 and tested, including live synthetic inquiry and published-property persistence checks,
 but cannot pass its real-inventory gates without supplied listings. A directory existing
 is not evidence that a capability works.
 
 ### Active implementation ownership
 
-The active engineering focus is backend and feature infrastructure. Broader frontend/UI
-ownership remains external, but Phase 3A now includes the explicitly requested minimal
-admin shell and draft-property forms; that slice is not treated as completion of the
-full interface. Phase 2B is intentionally deferred because it is outside the public MVP.
-Phase 3A has its backend authentication foundation plus the first permission-protected
-private property read and draft create/edit capability.
+The implemented Phase 3A repository slice includes the protected admin shell, complete
+property lifecycle, device media upload boundary, and lightweight inquiry/viewing
+administration. Its phase remains open for live Auth0/MongoDB acceptance and production
+media infrastructure. Phase 6 repository hardening through Level 17 is implemented, but
+the production launch gate remains open for the explicitly tracked live infrastructure,
+security, monitoring, device, and recovery evidence. See the
+[Level 17 remediation report](audits/level-17-final-remediation.md). Phase 2B remains
+deferred.
+
+The approved Level 15 enhancement slice is repository-complete without opening Phase 2B
+or 3B: public residential-sale filtering/detail improvements and read-only admin
+dashboard, viewing-request calendar, search, audit/staff visibility, and bounded export
+sit on the existing MVP models and permissions. It adds no CRM client/agent records,
+analytics, calendar availability, customer accounts, provider configuration, or new
+mutation architecture. See the
+[Level 15 implementation report](audits/level-15-product-operations-enhancements.md).
 
 This ownership split does not weaken dependency rules or a phase's Definition of Done.
 A backend workstream may be complete while the overall product phase remains open. Do
@@ -78,7 +88,7 @@ Before implementing any roadmap item:
 4. Plan the change and agree the scope.
 5. Implement only the requested scope.
 6. Test it.
-7. Update documentation when behaviour or architecture materially changes.
+7. Update documentation when behavior or architecture materially changes.
 
 Conventions for where code belongs are in the root [`AGENTS.md`](../AGENTS.md).
 
@@ -296,7 +306,7 @@ dashboard product.
 
 ### Target audience
 
-Document each group and what it needs: buyers, renters, investors, sellers, existing
+Document each group and what it needs: buyers, investors, sellers, existing
 clients, and internal agents/admin staff. Account for Philippine market expectations,
 including how buyers actually search and which communication channels they expect.
 
@@ -329,8 +339,8 @@ The implementation separates editorial publication from market availability so o
 cannot accidentally grant the other:
 
 ```text
-publicationStatus: draft → pending → published → archived
-availability:      available → reserved → sold / rented
+publicationStatus: draft → published → unpublished → archived
+availability:      available → reserved → sold
 ```
 
 This is the safest technical baseline; the business must validate the vocabulary before
@@ -372,13 +382,13 @@ their implementation phase approaches.
 ### Definition of Done
 
 - [x] Public-MVP colors, typography, spacing, iconography and motion direction documented
-- [ ] Approved RC Premier Properties logo asset supplied and integrated
+- [x] Approved RC Premier Properties logo and favicon assets supplied and integrated
 - [x] Target audiences documented
 - [x] Property taxonomy agreed and justified for the public MVP
 - [x] Property data model planned field by field, including public/private classification
 - [x] Location-privacy rule decided
-- [ ] Lifecycle statuses implemented as separate publication and availability states,
-      pending business validation before administration work
+- [x] Lifecycle statuses implemented as separate publication and availability states;
+      the business confirmed a sales-only `available → reserved → sold` market flow
 - [x] Information architecture and navigation agreed
 - [x] Designs exist as implemented, clickable pages for all seven core routes at mobile,
       tablet and desktop breakpoints
@@ -404,19 +414,21 @@ usable version of RC Premier Properties.
 RC Premier Properties, selling CTA, viewing CTA, trust signals, contact CTA. Final
 sections follow the Phase 1 designs, not this list.
 
-**Listings** — the discovery surface. Filters: keyword, location, sale/rent, property
+**Listings** — the discovery surface. Filters: keyword, location, property
 type, min/max price, bedrooms, bathrooms, lot area, floor area. Sorting: newest, price
 ascending, price descending. Filters belong in the URL so results are shareable and
-back-button behaviour is correct. Plan a scalable result strategy (pagination or
+back-button behavior is correct. Plan a scalable result strategy (pagination or
 equivalent) plus empty, loading and error states, and a mobile filter UX that is not a
 desktop panel squeezed onto a phone.
 
-**Listing cards** — cover image, price, sale/rent, type, location, bedrooms, bathrooms,
+**Listing cards** — cover image, price, for-sale status, type, location, bedrooms, bathrooms,
 area, status. Keep them visually clean; a card that shows everything communicates nothing.
 
 **Property details** — gallery, price, location, specifications, description, highlights,
-amenities, map, assigned agent, inquiry CTA, viewing CTA. Similar properties only as a
-placeholder until real recommendation logic exists in Phase 5E.
+amenities, map, inquiry CTA, and viewing CTA. Deterministic related properties now draw
+only from real published inventory; personalized or model-assisted recommendation logic
+remains deferred to Phase 5E. Assigned agent presentation remains deferred until that
+feature has real data and scope.
 
 The Phase 2A map is a privacy-preserving public discovery baseline, not a production map
 provider decision. It may render only a separately approved public point, approximate
@@ -456,7 +468,7 @@ sorts actually use. Unpublished listings must be unreachable through any public 
 - [x] **NoSQL injection prevention** — allowlisted fields, scalar validation and escaped
       regular expressions; user input is never spread into a query object
 - [x] Rate limiting and honeypot spam prevention on the inquiry form from day one
-- [x] Only published listings exposed publicly; draft, pending and archived never leak
+- [x] Only published listings exposed publicly; draft, unpublished and archived never leak
 - [x] Owner and internal reference data never serialized to public responses
 - [x] Inquiry data treated as personal information from the moment it is collected
 
@@ -505,11 +517,12 @@ market, not an afterthought.
 - [x] Inquiry create/read persistence is verified against Atlas with a temporary synthetic
       record; staff retrieval correctly waits for authenticated administration
 - [x] Unpublished listings verified unreachable publicly
-- [ ] Automated overflow checks pass from 320px through 1920px, but the required manual
-      visual acceptance pass across mobile, tablet and desktop is still open
+- [x] Automated overflow checks cover the documented 320px-through-1920px matrix; the
+      required physical-device visual acceptance pass remains open
 - [x] SEO foundation in place: metadata, sitemap, robots, canonical URLs, structured data
-- [ ] Semantic structure, skip navigation, keyboard menu behaviour, focus restoration and
-      accessible form feedback are tested; a complete accessibility audit is still open
+- [x] Semantic structure, skip navigation, keyboard interaction, dialog focus,
+      accessible form feedback, reduced motion and 200% text sizing have automated
+      coverage; real screen-reader and physical-device acceptance remain open
 - [x] Unit and HTTP integration tests pass; implemented security requirements are covered
 - [x] Feature, API, database, architecture, testing and setup documentation updated
 - [x] E2E API paths derive from `API_PREFIX`, and frontend environment reads stay
@@ -542,6 +555,12 @@ Property → select date/time → contact details → booking request → admin 
 Do not assume instant confirmation. A viewing is a commitment of someone's time; default
 to admin review unless the business explicitly wants auto-confirmation.
 
+The requested Level 3 slice is implemented: the public route submits a structured
+Philippine date/time request against a published, not-sold sale property, and authorized staff
+can review, confirm, request rescheduling, complete or cancel it. It deliberately has no
+live calendar, slots or automatic confirmation. Viewing state is embedded in the related
+inquiry while remaining distinct from inquiry follow-up status.
+
 **Video tours** — where the business supplies them.
 
 **Production maps and nearby landmarks** — evaluate and select the production map
@@ -564,7 +583,7 @@ channels the business actually uses rather than adding all four.
 
 ### Security requirements
 
-- [ ] Booking requests rate-limited and validated; treat as personal data
+- [x] Booking requests rate-limited and validated; treat as personal data
 - [ ] Anonymous favorites never leak one visitor's data to another
 - [ ] Calculators run on inputs the user supplies; no server-side financial decisions
 - [ ] Any production or expanded map integration preserves the Phase 2A public/private
@@ -573,7 +592,7 @@ channels the business actually uses rather than adding all four.
 ### Testing requirements
 
 - [ ] Unit tests for calculator maths, including boundary values
-- [ ] Integration tests for booking creation and favorites persistence
+- [x] Integration tests for booking creation; favorites persistence remains deferred
 - [ ] Migration test if anonymous favorites transfer to accounts
 
 ### Documentation to update
@@ -583,8 +602,8 @@ channels the business actually uses rather than adding all four.
 ### Definition of Done
 
 - [ ] Favorites work, with the anonymous/authenticated strategy documented
-- [ ] Dedicated viewing scheduling requests can be submitted and reviewed; the existing
-      public form remains an inquiry request only
+- [x] Dedicated viewing scheduling requests can be submitted and reviewed without
+      pretending the requested schedule is automatically confirmed
 - [ ] Production map provider selected and configured, with any expanded map capabilities
       respecting location privacy
 - [ ] Mortgage calculator accurate and clearly labelled as an estimate
@@ -607,7 +626,7 @@ can update is not a product.
 
 ### Authentication
 
-The architecture delegates credentials, passkey enrollment and recovery to Auth0 Free
+The architecture delegates credentials, authenticator enrollment and recovery to Auth0
 while Express owns opaque, revocable application sessions and local authorization. The
 backend foundation now implements Authorization Code + PKCE, one-time transactions,
 local staff allowlisting, opaque MongoDB sessions, session-bound CSRF, named permissions,
@@ -616,10 +635,22 @@ and a local signed OIDC server, so no live credential is required. On 2026-09-06
 project owner reported the Auth0 Free Regular Web Application, disabled signup, local
 administrator and enrolled-passkey authentication redirect working to the public root.
 That evidence does not yet verify the application session, `/admin` return, protected
-operations or logout. Production remains gated on genuine Auth0 MFA evidence because the
-development-only signed passkey assurance is disabled in production. See
+operations or logout. The approved Beta setup now uses one shared Admin,
+`rcpremierph@gmail.com` (Renzo & Criezel), with password + mandatory TOTP in Auth0.
+Passkeys/WebAuthn/signup must be disabled manually in the tenant; the backend
+requires genuine `amr: mfa` evidence in every environment and has retired the development
+signed-passkey exception. Plan entitlement, live Beta setup and the separate production
+authentication/launch acceptance gates remain open. See
 [`architecture/authentication-and-authorization.md`](architecture/authentication-and-authorization.md)
 and [`architecture/oidc-provider-selection.md`](architecture/oidc-provider-selection.md).
+
+The 2026-09-08 Level 6 engineering review preserved that architecture and added explicit
+proxy-trust configuration, environment-aware backend/frontend headers, private admin
+caching, redacted infrastructure logging, an operator-only staff disable/revocation
+command and regression coverage for the complete security boundary. The live Auth0 and
+production gates above remain open; automated evidence is not presented as provider or
+deployment evidence. See
+[`development/authentication-operations.md`](development/authentication-operations.md).
 
 ### Authorization
 
@@ -632,31 +663,42 @@ independently verifies permissions, regardless of what the UI allows.
 
 ### Property management
 
-Create, edit, preview, draft, publish, unpublish, archive, mark reserved, mark sold, mark
-rented.
+Create, edit, preview, draft, publish, unpublish, archive, mark reserved and mark sold.
 
 ### Current implemented slice
 
 - [x] Protected `/admin` shell bootstraps the backend session and keeps CSRF only in
       memory
 - [x] Private property list and detail require `property:read-private`
-- [x] Draft create and draft-content edit require `property:write`, exact origin and
+- [x] Draft create and private-content edit require `property:write`, exact origin and
       session-bound CSRF
-- [x] Create forces `draft` plus `available`; edit cannot change publication or
-      availability
-- [x] Property create/edit audits record only safe actor/entity metadata and changed
-      field names
+- [x] Create forces `draft` plus `available`; content edits cannot change publication or
+      availability and require the latest optimistic-concurrency version
+- [x] Protected preview, server-paginated search/filtering, publish/unpublish,
+      archive/restore and availability transitions are implemented
+- [x] Part 4 responsive sidebar/drawer presentation and versioned Featured Property
+      curation/filtering are implemented without changing staff identity or lifecycle
+- [x] Property lifecycle audits record only safe actor/entity metadata and changed field
+      names where applicable
 - [x] Automated HTTP, service and browser-fixture coverage passes without live Auth0
 - [ ] Live `/admin` session bootstrap, protected MongoDB writes, CSRF rejection and
       logout verified manually with the development tenant
-- [ ] Preview, publish/unpublish/archive, availability transitions, media and inquiry
-      administration implemented
+- [x] Provider-neutral image metadata administration, ordering, cover selection,
+      preview, removal, authorization and audit coverage implemented
+- [x] Device upload, byte validation, optimization and isolated development storage implemented
+- [ ] Production object storage/CDN implemented (blocked on provider approval)
+- [x] Lightweight inquiry administration implemented
 
 ### Media management
 
-Drag-and-drop upload, multiple images, reordering, cover selection, compression, modern
-formats, file size limits, **MIME validation**, secure upload handling, and deletion.
-_Storage provider to be evaluated/selected during this phase._
+Multiple-image metadata, device upload, reordering, focal points, cover selection,
+replacement, safe removal, and portrait-safe public gallery rendering are implemented.
+Development uses isolated local source retention and optimized WebP delivery; production
+fails closed until a storage provider, CDN, and lifecycle policy are approved. The normal
+admin UI adds images through validated device upload, does not offer arbitrary production
+reference creation or development samples, and optimized builds refuse to render samples
+as listing media. See
+[`architecture/property-media.md`](architecture/property-media.md).
 
 ### Inquiry management
 
@@ -667,6 +709,12 @@ lifecycle, pending business validation:
 new → contacted → qualified → viewing scheduled → closed / lost
 ```
 
+The implemented lightweight workflow preserves the existing `new`, `in-progress` and
+`closed` terms and adds `viewing-scheduled`, `lost` and quarantined `spam`. Staff can
+search/filter/paginate, read details, add follow-up notes, restore legitimate spam,
+archive/restore records and review status history. Business vocabulary can still be
+refined later without introducing a second status field.
+
 ### Audit trail
 
 Record actor, action, entity, entity ID, timestamp and relevant change metadata for
@@ -675,22 +723,22 @@ changed, not the personal data it contained.
 
 ### Security requirements
 
-- [ ] Every admin endpoint enforces authentication **and** authorization server-side
+- [x] Every implemented admin endpoint enforces authentication **and** authorization server-side
 - [ ] Broken access control tested explicitly: client role cannot reach admin endpoints,
       agent cannot reach another agent's data
-- [ ] Uploads validated by MIME type and size; filenames sanitised; uploads cannot be
+- [x] Uploads validated by MIME type and size; client filenames are not accepted; uploads cannot be
       executed
-- [ ] Login rate limiting and lockout in place
+- [x] Login-start and failed-callback rate limiting in place; provider lockout remains external
 - [x] Sessions expire; logout genuinely invalidates
-- [ ] Audit trail captures sensitive changes without capturing sensitive values
+- [x] Inquiry and property audit events capture sensitive actions without sensitive values
 - [x] Admin routes excluded from public search indexing
 
 ### Testing requirements
 
 - [ ] **Authorization tests are mandatory**, not optional: every role against every
       sensitive endpoint
-- [ ] Integration tests for the full listing lifecycle
-- [ ] Upload tests including malicious file types and oversized files
+- [x] Integration tests for the implemented full listing lifecycle
+- [x] Upload tests including malicious file types and oversized files
 - [x] Authentication abuse tests: brute force, session fixation, expired tokens
 
 ### Documentation to update
@@ -700,15 +748,15 @@ changed, not the personal data it contained.
 
 ### Definition of Done
 
-- [ ] Staff can perform the full listing lifecycle through the UI
+- [x] Staff can perform the implemented full listing lifecycle through the UI
 - [x] Authentication implemented with the chosen approach documented
-- [ ] Role-based authorization enforced server-side on every sensitive action
-- [ ] Authorization tests pass for every role/endpoint combination
-- [ ] Media upload secure, validated and working
-- [ ] Inquiry management usable by staff
-- [ ] Audit trail recording sensitive changes
-- [ ] Tests pass; security requirements verified
-- [ ] Documentation updated
+- [x] Role-based authorization enforced server-side on every implemented sensitive action
+- [x] Current invited-admin authorization matrix passes; future roles remain deferred
+- [x] Media upload secure, validated and working in development; production provider remains blocked
+- [x] Inquiry management usable by staff
+- [x] Audit trail records property and inquiry changes without sensitive values
+- [x] Repository tests pass; live security acceptance remains separately gated
+- [x] Repository documentation updated through the scoped Level 15 enhancements
 
 ### Not in this phase
 
@@ -731,7 +779,9 @@ timeline.
 
 **Agents** — profile, contact information, listing assignments, lead assignments, status.
 
-**Bookings** — manage viewing requests from Phase 2B.
+**Bookings** — the lightweight viewing-request staff lifecycle and a read-only visual
+calendar of those requests are implemented. Calendar availability, external calendar
+integration, agent assignment, and broader CRM capabilities remain deferred.
 
 **Analytics** — candidate metrics: property views, popular listings, inquiry count,
 inquiry source, viewing requests, conversion rate. **Define precisely what each metric
@@ -869,12 +919,13 @@ listings.
 
 ### 5D — AI lead qualification
 
-Budget, location, property type, timeline, purchase/rental intent, payment method. Store
+Budget, location, property type, timeline, purchase intent, payment method. Store
 structured answers against the lead record.
 
 ### 5E — Recommendations
 
-Similar properties drawn from real inventory only.
+Personalized or model-assisted recommendations drawn from real inventory only. The
+non-personalized deterministic related-property baseline already exists in Phase 2A.
 
 ### 5F — AI-assisted follow-up
 
@@ -941,6 +992,26 @@ HTTPS, secure hosting, CDN, WAF, DDoS protection, backups, restore procedures,
 environment isolation, secret storage. _Providers to be evaluated/selected during this
 phase._
 
+The provider-neutral Level 11 deployment architecture, strict environment gates,
+readiness endpoint, release smoke test, production checklist, and rollback procedure are
+documented in
+[`development/deployment-and-release.md`](development/deployment-and-release.md). This
+does not complete Phase 6: the final domain/host, Auth0 MFA, Atlas production controls,
+storage/CDN, email, map provider, staging acceptance, monitoring, and recovery remain
+external or later gates.
+
+### Level 12 operational-resilience status
+
+Level 12 repository engineering adds provider-neutral structured logging, correlation,
+durable bounded inquiry-notification retries, media cleanup-debt tracking, scan-only data
+integrity tooling, monitoring/incident policy, and an isolated disaster-recovery
+procedure. See [`architecture/operational-resilience.md`](architecture/operational-resilience.md),
+[`development/operations.md`](development/operations.md), and
+[`development/disaster-recovery.md`](development/disaster-recovery.md). Live monitoring,
+alert routing, Atlas/object backup configuration, restore execution, staging/provider
+failure checks, and RUM remain open launch gates; repository work is not evidence those
+external controls passed.
+
 ### Testing
 
 Unit tests for important business logic. Integration tests for API and database
@@ -970,6 +1041,12 @@ Core Web Vitals, image optimization, API performance, MongoDB query performance 
 indexes, caching, bundle size, lazy loading, CDN usage. **Identify where caching helps
 before introducing it** — premature caching hides problems rather than solving them.
 
+The Level 10 engineering audit and implemented local optimizations are recorded in
+[`features/performance-and-delivery.md`](features/performance-and-delivery.md). That work
+does not complete this production launch gate: field Core Web Vitals, hosting/proxy
+compression, production storage/CDN behavior, production-shaped MongoDB plans, and
+real-device/network validation still depend on staging and provider decisions.
+
 ### SEO and accessibility audits
 
 Metadata, sitemap, robots, canonical URLs, structured data, social previews, property
@@ -978,11 +1055,19 @@ guidance.
 
 ### Monitoring
 
+The Level 12 signal, severity, privacy, ownership, and provider-neutral routing policy is
+documented and locally tested. Monitoring and alerting are not live because no provider,
+destination, deployment, or production traffic exists.
+
 Application and backend errors, failed login spikes, permission failures, suspicious
-behaviour, availability, performance, and critical admin actions. _Provider to be
+behavior, availability, performance, and critical admin actions. _Provider to be
 evaluated/selected during this phase._
 
 ### Backup recovery
+
+The Level 12 backup policy, isolated restore sequence, validation checklist, media
+reconciliation, session invalidation, and rehearsal cadence are documented. No managed
+backup or restore has been executed, so the production gate remains unchecked.
 
 **Do not merely verify that backups exist. Perform a restore and document the result.**
 An untested backup is a hypothesis.
@@ -1048,7 +1133,7 @@ search engines.
 **Observability.** Production systems need sufficient logging and monitoring to diagnose
 problems without reproducing them locally.
 
-**Documentation.** Significant architectural or behavioural changes update `/docs` in the
+**Documentation.** Significant architectural or behavioral changes update `/docs` in the
 same change.
 
 ---

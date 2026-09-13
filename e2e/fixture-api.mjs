@@ -5,7 +5,7 @@
  * Production middleware, routing, validation and error handling are exercised without
  * connecting to MongoDB or loading synthetic records into a production data path.
  */
-import { PROPERTY_TYPES } from "@rc/shared";
+import { RESIDENTIAL_SALE_PROPERTY_TYPES } from "@rc/shared";
 import { createApp } from "../backend/dist/app.js";
 
 const FIXTURE_HOST = "127.0.0.1";
@@ -48,8 +48,18 @@ const PRIMARY_FIXTURES = [
     amenities: ["Fixture garden"],
     features: ["Two-storey layout", "Covered parking"],
     gallery: [
-      { kind: "image", alt: "Synthetic fixture residence exterior" },
-      { kind: "image", alt: "Synthetic fixture residence living area" },
+      {
+        id: "fixture-media-001",
+        kind: "image",
+        url: "/media/properties/fixture-residence-exterior.webp",
+        alt: "Synthetic fixture residence exterior",
+      },
+      {
+        id: "fixture-media-002",
+        kind: "image",
+        url: "/media/properties/fixture-residence-living-area.webp",
+        alt: "Synthetic fixture residence living area",
+      },
       { kind: "floor-plan", alt: "Synthetic fixture residence floor plan" },
     ],
     publishedAt: "2026-08-20T08:00:00.000Z",
@@ -95,10 +105,10 @@ const PRIMARY_FIXTURES = [
   {
     id: "fixture-property-003",
     propertyId: "RCPP-E2E-003",
-    slug: "san-fernando-commercial-lot",
-    title: "San Fernando Commercial Lot",
+    slug: "san-fernando-townhouse",
+    title: "San Fernando Townhouse",
     purpose: "sale",
-    propertyType: "commercial",
+    propertyType: "townhouse",
     availability: "reserved",
     featured: false,
     price: { amount: 8_750_000, currency: "PHP", negotiable: false },
@@ -113,12 +123,12 @@ const PRIMARY_FIXTURES = [
     },
     specifications: { lotAreaSqm: 500 },
     shortDescription:
-      "A synthetic commercial fixture for price, location, and empty-state tests.",
+      "A synthetic townhouse fixture for price, location, and empty-state tests.",
     description:
-      "This test-only commercial lot is not real inventory and is never persisted.",
+      "This test-only townhouse is not real inventory and is never persisted.",
     highlights: ["Test-only listing"],
     amenities: [],
-    features: ["Five-hundred-square-metre fixture lot"],
+    features: ["Five-hundred-square-meter fixture lot"],
     gallery: [],
     publishedAt: "2026-08-10T08:00:00.000Z",
     updatedAt: "2026-08-12T08:00:00.000Z",
@@ -168,11 +178,20 @@ function includes(value, query) {
 
 function searchFixtureProperties(request) {
   const filtered = TEST_PROPERTIES.filter((property) => {
+    if (
+      property.purpose !== "sale" ||
+      !RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType)
+    ) {
+      return false;
+    }
     if (request.propertyId && property.propertyId !== request.propertyId) return false;
     if (request.propertyType && property.propertyType !== request.propertyType) {
       return false;
     }
     if (request.purpose && property.purpose !== request.purpose) return false;
+    if (request.availability && property.availability !== request.availability) {
+      return false;
+    }
     if (request.featured !== undefined && property.featured !== request.featured) {
       return false;
     }
@@ -254,6 +273,10 @@ function mapFixtureProperties(request) {
     limit: TEST_PROPERTIES.length,
   });
   const mappable = search.items.filter((property) => property.location.publicPoint);
+  const counts = new Map();
+  for (const property of search.items) {
+    counts.set(property.location.city, (counts.get(property.location.city) ?? 0) + 1);
+  }
   const items = mappable.map((property) => ({
     id: property.id,
     propertyId: property.propertyId,
@@ -265,11 +288,23 @@ function mapFixtureProperties(request) {
     price: property.price,
     location: property.location,
     specifications: property.specifications,
-    ...(property.coverMedia ? { coverMedia: property.coverMedia } : {}),
+    ...(property.propertyId === "RCPP-E2E-003"
+      ? {
+          coverMedia: {
+            id: "fixture-map-cover-003",
+            kind: "image",
+            url: "/images/locations/city-of-san-fernando.jpg",
+            alt: "Synthetic San Fernando fixture cover image",
+          },
+        }
+      : property.coverMedia
+        ? { coverMedia: property.coverMedia }
+        : {}),
   }));
 
   return {
     items,
+    locationCounts: [...counts].map(([location, count]) => ({ location, count })),
     matchingTotal: search.pagination.total,
     mappableTotal: mappable.length,
     returned: items.length,
@@ -286,23 +321,63 @@ const propertyService = {
     return mapFixtureProperties(request);
   },
   async findPublishedBySlug(slug) {
-    return TEST_PROPERTIES.find((property) => property.slug === slug) ?? null;
+    if (slug === "streaming-regression-fixture") {
+      return { ...TEST_PROPERTIES[0], id: "streaming-regression-fixture", slug };
+    }
+    return (
+      TEST_PROPERTIES.find(
+        (property) =>
+          property.slug === slug &&
+          property.purpose === "sale" &&
+          RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+      ) ?? null
+    );
+  },
+  async related(slug) {
+    if (slug === "streaming-regression-fixture") {
+      await new Promise((resolve) => setTimeout(resolve, 8_000));
+      return { items: [] };
+    }
+    const current = TEST_PROPERTIES.find(
+      (property) =>
+        property.slug === slug &&
+        property.purpose === "sale" &&
+        RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+    );
+    if (!current) return null;
+    return {
+      items: TEST_PROPERTIES.filter(
+        (property) =>
+          property.id !== current.id &&
+          property.purpose === "sale" &&
+          RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+      ).slice(0, 3),
+    };
   },
   async getFacets() {
+    const saleProperties = TEST_PROPERTIES.filter(
+      (property) =>
+        property.purpose === "sale" &&
+        RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+    );
+    const locationCounts = Object.entries(
+      saleProperties.reduce((counts, property) => {
+        const location = `${property.location.city}, ${property.location.province}`;
+        counts[location] = (counts[location] ?? 0) + 1;
+        return counts;
+      }, {}),
+    )
+      .map(([location, count]) => ({ location, count }))
+      .sort((left, right) => left.location.localeCompare(right.location));
     return {
-      locations: [
-        ...new Set(
-          TEST_PROPERTIES.map(
-            (property) => `${property.location.city}, ${property.location.province}`,
-          ),
-        ),
-      ].sort((left, right) => left.localeCompare(right)),
-      propertyTypes: PROPERTY_TYPES.filter((type) =>
-        TEST_PROPERTIES.some((property) => property.propertyType === type),
+      locations: locationCounts.map(({ location }) => location),
+      locationCounts,
+      propertyTypes: RESIDENTIAL_SALE_PROPERTY_TYPES.filter((type) =>
+        saleProperties.some((property) => property.propertyType === type),
       ),
       priceRange: {
-        min: Math.min(...TEST_PROPERTIES.map((property) => property.price.amount)),
-        max: Math.max(...TEST_PROPERTIES.map((property) => property.price.amount)),
+        min: Math.min(...saleProperties.map((property) => property.price.amount)),
+        max: Math.max(...saleProperties.map((property) => property.price.amount)),
         currency: "PHP",
       },
     };
@@ -310,11 +385,14 @@ const propertyService = {
 };
 
 const inquiryService = {
-  async create() {
+  async create(request) {
     return {
       inquiryId: "E2E-INQUIRY-001",
       status: "received",
-      message: "Your test inquiry has been received for fixture-only follow-up.",
+      message:
+        request.inquiryType === "viewing"
+          ? "Your viewing request was received. Staff must confirm the requested schedule."
+          : "Your test inquiry has been received for fixture-only follow-up.",
       createdAt: "2026-09-01T00:00:00.000Z",
     };
   },
@@ -324,6 +402,7 @@ const passThrough = (_request, _response, next) => next();
 const app = createApp({
   propertyService,
   inquiryService,
+  applicationRateLimit: passThrough,
   inquiryRateLimit: passThrough,
 });
 

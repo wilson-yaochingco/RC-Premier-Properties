@@ -11,7 +11,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  eyebrow = "Catalogue update",
+  eyebrow = "Catalog update",
   title,
   description,
   actionLabel,

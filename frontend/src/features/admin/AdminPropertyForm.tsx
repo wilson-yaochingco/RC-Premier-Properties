@@ -11,11 +11,13 @@ import {
 } from "react";
 import {
   ADMIN_PROPERTY_CONTENT_FIELDS,
-  LISTING_PURPOSES,
+  ADMIN_LISTING_PURPOSES,
   PROPERTY_TYPE_LABELS,
-  PROPERTY_TYPES,
+  PUBLIC_PROPERTY_AREAS,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentInput,
+  type AdminPropertyCoordinates,
   type AdminPropertyDetail,
   type CreateDraftPropertyRequest,
   type PropertyType,
@@ -29,6 +31,7 @@ import {
   updateDraftProperty,
 } from "./admin.service";
 import { useAdminSession } from "./AdminShell";
+import { AdminPropertyMediaManager } from "./AdminPropertyMediaManager";
 import styles from "./admin.module.css";
 
 interface AdminPropertyFormProps {
@@ -71,7 +74,7 @@ const EMPTY_CONTENT: AdminPropertyContentInput = {
   features: [],
 };
 
-const PURPOSE_LABELS = { sale: "For sale", rent: "For rent" } as const;
+const PURPOSE_LABELS = { sale: "For sale" } as const;
 const PRECISION_LABELS = {
   exact: "Exact (approved only)",
   approximate: "Approximate",
@@ -81,6 +84,11 @@ const PRECISION_LABELS = {
 } as const;
 
 function editableContent(property: AdminPropertyDetail): AdminPropertyContentInput {
+  if (property.purpose !== "sale") {
+    throw new Error(
+      "Non-sale records cannot be edited in the sales administration UI.",
+    );
+  }
   return {
     propertyId: property.propertyId,
     slug: property.slug,
@@ -116,6 +124,35 @@ function optionalNumber(data: FormData, name: string): number | undefined {
   return value === "" ? undefined : Number(value);
 }
 
+function coordinatePair(
+  data: FormData,
+  latitudeName: string,
+  longitudeName: string,
+): AdminPropertyCoordinates | undefined {
+  const latitude = textValue(data, latitudeName);
+  const longitude = textValue(data, longitudeName);
+  if (!latitude && !longitude) return undefined;
+  return {
+    latitude: latitude ? Number(latitude) : Number.NaN,
+    longitude: longitude ? Number(longitude) : Number.NaN,
+  };
+}
+
+function requireCoordinatePair(
+  form: HTMLFormElement | null,
+  latitudeName: string,
+  longitudeName: string,
+) {
+  if (!form) return;
+  const latitude = form.elements.namedItem(latitudeName);
+  const longitude = form.elements.namedItem(longitudeName);
+  if (!(latitude instanceof HTMLInputElement)) return;
+  if (!(longitude instanceof HTMLInputElement)) return;
+  const hasEither = Boolean(latitude.value.trim() || longitude.value.trim());
+  latitude.required = hasEither;
+  longitude.required = hasEither;
+}
+
 function lines(data: FormData, name: string): string[] {
   return textValue(data, name)
     .split(/\r?\n/)
@@ -127,6 +164,9 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
   const data = new FormData(form);
   const barangay = textValue(data, "barangay");
   const development = textValue(data, "development");
+  const privateAddress = textValue(data, "privateAddress");
+  const coordinates = coordinatePair(data, "privateLatitude", "privateLongitude");
+  const publicCoordinates = coordinatePair(data, "publicLatitude", "publicLongitude");
   const furnishing = textValue(data, "furnishing");
   const specifications = {
     bedrooms: optionalNumber(data, "bedrooms"),
@@ -146,7 +186,7 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
       data,
       "propertyType",
     ) as CreateDraftPropertyRequest["propertyType"],
-    featured: data.get("featured") === "on",
+    featured: ["on", "true"].includes(String(data.get("featured") ?? "")),
     price: {
       amount: requiredNumber(data, "priceAmount"),
       negotiable: data.get("negotiable") === "on",
@@ -160,6 +200,16 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
         data,
         "publicPrecision",
       ) as CreateDraftPropertyRequest["location"]["publicPrecision"],
+      ...(privateAddress ? { privateAddress } : {}),
+      ...(coordinates ? { coordinates } : {}),
+      ...(publicCoordinates
+        ? {
+            publicPoint: {
+              type: "Point",
+              coordinates: [publicCoordinates.longitude, publicCoordinates.latitude],
+            },
+          }
+        : {}),
     },
     specifications: Object.fromEntries(
       Object.entries(specifications).filter(([, value]) => value !== undefined),
@@ -175,12 +225,12 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
 function changedContent(
   before: AdminPropertyContentInput,
   after: AdminPropertyContentInput,
-): UpdateDraftPropertyRequest {
+): Omit<UpdateDraftPropertyRequest, "expectedVersion"> {
   return Object.fromEntries(
     ADMIN_PROPERTY_CONTENT_FIELDS.filter(
       (field) => JSON.stringify(before[field]) !== JSON.stringify(after[field]),
     ).map((field) => [field, after[field]]),
-  ) as UpdateDraftPropertyRequest;
+  ) as Omit<UpdateDraftPropertyRequest, "expectedVersion">;
 }
 
 function Field({
@@ -243,6 +293,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
   );
   const [submission, setSubmission] = useState<SubmissionState>({ kind: "idle" });
   const [attempt, setAttempt] = useState(0);
+  const [dirty, setDirty] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -279,14 +330,33 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
     if (submission.kind === "error") errorRef.current?.focus();
   }, [submission]);
 
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    const beforeLink = (event: MouseEvent) => {
+      const link =
+        event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (link && !window.confirm("Leave without saving your property changes?")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", beforeLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", beforeLink, true);
+    };
+  }, [dirty]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = contentFromForm(event.currentTarget);
-    const request =
+    const changed =
       mode === "edit" && load.kind === "ready" && load.property
         ? changedContent(editableContent(load.property), content)
         : content;
-    if (mode === "edit" && Object.keys(request).length === 0) {
+    if (mode === "edit" && Object.keys(changed).length === 0) {
       setSubmission({
         kind: "error",
         message: "No content fields have changed.",
@@ -298,22 +368,28 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
     }
 
     setSubmission({ kind: "pending" });
+    const expectedVersion = load.kind === "ready" ? load.property?.version : undefined;
     try {
       const property =
         mode === "create"
           ? await createDraftProperty(
-              request as CreateDraftPropertyRequest,
+              changed as CreateDraftPropertyRequest,
               session.csrfToken,
             )
           : await updateDraftProperty(
               propertyId ?? "",
-              request as UpdateDraftPropertyRequest,
+              {
+                ...(changed as Omit<UpdateDraftPropertyRequest, "expectedVersion">),
+                expectedVersion: expectedVersion ?? -1,
+              },
               session.csrfToken,
             );
       if (mode === "edit") setLoad({ kind: "ready", property });
+      setDirty(false);
       setSubmission({
         kind: "success",
-        message: mode === "create" ? "Draft property created." : "Draft changes saved.",
+        message:
+          mode === "create" ? "Draft property created." : "Property changes saved.",
         property,
       });
     } catch (error) {
@@ -370,6 +446,63 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
     );
   }
 
+  if (
+    mode === "edit" &&
+    load.property &&
+    !["draft", "unpublished"].includes(load.property.publicationStatus)
+  ) {
+    return (
+      <section className={styles.page}>
+        <div className={styles.panel} role="alert">
+          <h1>This property is not editable.</h1>
+          <p>Unpublish or restore it before changing listing content.</p>
+          <Link href={`/admin/properties/${load.property.id}/preview`}>
+            Preview property
+          </Link>
+          <Link href="/admin/properties">Back to properties</Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (mode === "edit" && load.property && load.property.purpose !== "sale") {
+    return (
+      <section className={styles.page}>
+        <div className={styles.panel} role="alert">
+          <h1>This legacy non-sale record is read-only.</h1>
+          <p>
+            The production administration workflow is sales-only. Review this record
+            through the integrity report and reconcile it deliberately outside the
+            public publishing workflow.
+          </p>
+          <Link href="/admin/properties">Back to properties</Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (
+    mode === "edit" &&
+    load.property &&
+    !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
+      load.property.propertyType,
+    )
+  ) {
+    return (
+      <section className={styles.page}>
+        <div className={styles.panel} role="alert">
+          <h1>This legacy non-residential record is read-only.</h1>
+          <p>
+            The production workflow accepts approved residential sale types only.
+            Reconcile this historical record deliberately outside the public publishing
+            workflow.
+          </p>
+          <Link href="/admin/properties">Back to properties</Link>
+        </div>
+      </section>
+    );
+  }
+
   const content = load.property ? editableContent(load.property) : EMPTY_CONTENT;
   const issues = submission.issues ?? [];
 
@@ -379,21 +512,36 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         <div>
           <p className={styles.eyebrow}>Property administration</p>
           <h1 id="property-form-title">
-            {mode === "create" ? "Create a draft property" : "Edit draft content"}
+            {mode === "create"
+              ? "Create a draft property"
+              : `Editing PREMIER PROPERTY #${load.property?.propertyId ?? ""}`}
           </h1>
-          <p>Publication and availability are controlled by separate future actions.</p>
+          <p>
+            Save content here, then preview and manage lifecycle from the property list.
+          </p>
         </div>
-        <Link href="/admin/properties">Back to drafts</Link>
+        <Link href="/admin/properties">Back to properties</Link>
       </div>
 
       {load.property ? (
         <div className={styles.lifecycleNotice}>
           <span>Publication: {load.property.publicationStatus}</span>
           <span>Availability: {load.property.availability}</span>
+          <span>
+            Publish readiness:{" "}
+            {load.property.publicationReadiness.ready ? "Complete" : "Incomplete"}
+          </span>
+          {!load.property.publicationReadiness.ready ? (
+            <span>
+              Missing: {load.property.publicationReadiness.missing.join(", ")}
+            </span>
+          ) : null}
         </div>
       ) : (
         <div className={styles.lifecycleNotice}>
-          New records are always created as private, available drafts.
+          New records are always created as private, available drafts. Complete all
+          required listing, price, public location, and description fields before
+          publishing.
         </div>
       )}
 
@@ -421,6 +569,11 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               Edit the new draft
             </Link>
           ) : null}
+          {submission.property ? (
+            <Link href={`/admin/properties/${submission.property.id}/preview`}>
+              Preview property
+            </Link>
+          ) : null}
         </div>
       ) : null}
 
@@ -428,6 +581,10 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         key={load.property?.updatedAt ?? "new"}
         className={styles.form}
         onSubmit={handleSubmit}
+        onChange={() => {
+          setDirty(true);
+          if (submission.kind === "success") setSubmission({ kind: "idle" });
+        }}
       >
         <fieldset disabled={submission.kind === "pending"}>
           <legend>Listing identity</legend>
@@ -438,6 +595,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 name="propertyId"
                 defaultValue={content.propertyId}
                 maxLength={40}
+                readOnly={mode === "edit"}
                 required
               />
             </Field>
@@ -448,6 +606,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 defaultValue={content.slug}
                 maxLength={160}
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                readOnly={Boolean(load.property?.publishedAt)}
                 required
               />
             </Field>
@@ -462,7 +621,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
             </Field>
             <Field field="purpose" label="Purpose" issues={issues}>
               <select id="purpose" name="purpose" defaultValue={content.purpose}>
-                {LISTING_PURPOSES.map((purpose) => (
+                {ADMIN_LISTING_PURPOSES.map((purpose) => (
                   <option key={purpose} value={purpose}>
                     {PURPOSE_LABELS[purpose]}
                   </option>
@@ -475,7 +634,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 name="propertyType"
                 defaultValue={content.propertyType}
               >
-                {PROPERTY_TYPES.map((type: PropertyType) => (
+                {RESIDENTIAL_SALE_PROPERTY_TYPES.map((type: PropertyType) => (
                   <option key={type} value={type}>
                     {PROPERTY_TYPE_LABELS[type]}
                   </option>
@@ -502,20 +661,22 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               />{" "}
               Price is negotiable
             </label>
-            <label className={styles.checkbox}>
-              <input
-                name="featured"
-                type="checkbox"
-                defaultChecked={content.featured}
-              />{" "}
-              Featured when eventually published
-            </label>
+            <input
+              name="featured"
+              type="hidden"
+              value={content.featured ? "true" : "false"}
+            />
           </div>
         </fieldset>
 
         <fieldset disabled={submission.kind === "pending"}>
           <legend>Location and disclosure</legend>
           <div className={styles.formGrid}>
+            <p className={styles.locationNotice}>
+              Province, city and any permitted area names can appear publicly according
+              to the precision below. Private address and exact internal coordinates are
+              available only to authorized staff.
+            </p>
             <Field field="location.province" label="Province" issues={issues}>
               <input
                 id="location.province"
@@ -526,13 +687,25 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
               />
             </Field>
             <Field field="location.city" label="City / municipality" issues={issues}>
-              <input
+              <select
                 id="location.city"
                 name="city"
                 defaultValue={content.location.city}
-                maxLength={100}
                 required
-              />
+              >
+                {!PUBLIC_PROPERTY_AREAS.includes(
+                  content.location.city as (typeof PUBLIC_PROPERTY_AREAS)[number],
+                ) ? (
+                  <option value={content.location.city}>
+                    Legacy locality: {content.location.city}
+                  </option>
+                ) : null}
+                {PUBLIC_PROPERTY_AREAS.map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field
               field="location.barangay"
@@ -575,6 +748,118 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                   </option>
                 ))}
               </select>
+            </Field>
+            <p className={styles.locationNotice}>
+              Private location: store only verified operational information. These
+              values are never copied into public responses or used to create a map pin.
+            </p>
+            <Field
+              field="location.privateAddress"
+              label="Private address (optional)"
+              issues={issues}
+              wide
+            >
+              <input
+                id="location.privateAddress"
+                name="privateAddress"
+                defaultValue={content.location.privateAddress}
+                maxLength={240}
+                autoComplete="off"
+              />
+            </Field>
+            <Field
+              field="location.coordinates.latitude"
+              label="Private exact latitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.coordinates.latitude"
+                name="privateLatitude"
+                type="number"
+                min="-90"
+                max="90"
+                step="any"
+                defaultValue={content.location.coordinates?.latitude}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "privateLatitude",
+                    "privateLongitude",
+                  )
+                }
+              />
+            </Field>
+            <Field
+              field="location.coordinates.longitude"
+              label="Private exact longitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.coordinates.longitude"
+                name="privateLongitude"
+                type="number"
+                min="-180"
+                max="180"
+                step="any"
+                defaultValue={content.location.coordinates?.longitude}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "privateLatitude",
+                    "privateLongitude",
+                  )
+                }
+              />
+            </Field>
+            <p className={styles.locationWarning}>
+              Public map point: both values below are sent to public property APIs and
+              maps with the selected precision. Enter a deliberately reviewed public
+              point. Do not copy the private exact coordinates unless exact public
+              disclosure has been explicitly approved.
+            </p>
+            <Field
+              field="location.publicPoint.coordinates.1"
+              label="Approved public latitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.publicPoint.coordinates.1"
+                name="publicLatitude"
+                type="number"
+                min="-90"
+                max="90"
+                step="any"
+                defaultValue={content.location.publicPoint?.coordinates[1]}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "publicLatitude",
+                    "publicLongitude",
+                  )
+                }
+              />
+            </Field>
+            <Field
+              field="location.publicPoint.coordinates.0"
+              label="Approved public longitude (optional)"
+              issues={issues}
+            >
+              <input
+                id="location.publicPoint.coordinates.0"
+                name="publicLongitude"
+                type="number"
+                min="-180"
+                max="180"
+                step="any"
+                defaultValue={content.location.publicPoint?.coordinates[0]}
+                onInput={(event) =>
+                  requireCoordinatePair(
+                    event.currentTarget.form,
+                    "publicLatitude",
+                    "publicLongitude",
+                  )
+                }
+              />
             </Field>
           </div>
         </fieldset>
@@ -694,9 +979,20 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
             ? "Saving…"
             : mode === "create"
               ? "Create private draft"
-              : "Save draft content"}
+              : "Save property content"}
         </button>
       </form>
+      {load.property ? (
+        <AdminPropertyMediaManager
+          property={load.property}
+          onSaved={(property) => setLoad({ kind: "ready", property })}
+        />
+      ) : (
+        <div className={styles.panel}>
+          <h2>Property media</h2>
+          <p>Create the private draft first, then add and arrange its images.</p>
+        </div>
+      )}
     </section>
   );
 }

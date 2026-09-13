@@ -14,19 +14,24 @@ dist/
 build/
 
 # Environment — never commit real credentials
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
 # ...but always keep the templates
 !.env.example
+!**/.env.example
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Operational exports, backup/restore artifacts, and recovery scratch data
+backups/
+recovery/
+*.archive
+*.bson
+*.metadata.json
+*.mongodump
 
 # Testing / coverage
 coverage/
@@ -36,6 +41,10 @@ coverage/
 .eslintcache
 *.tsbuildinfo
 next-env.d.ts
+
+# Development-only property uploads and retained sources
+frontend/public/media/properties/
+frontend/.local-media-sources/
 
 # Editors
 # .vscode is committed on purpose -- shared team settings live there.

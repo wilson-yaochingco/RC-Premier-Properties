@@ -1,13 +1,16 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/env";
+import { DEPLOYMENT_ENV, SITE_URL } from "@/lib/env";
 
 export default function robots(): MetadataRoute.Robots {
+  if (DEPLOYMENT_ENV === "staging") {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
   return {
     rules: {
       userAgent: "*",
       allow: "/",
       disallow: ["/admin", "/api"],
     },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    ...(SITE_URL ? { sitemap: `${SITE_URL}/sitemap.xml` } : {}),
   };
 }

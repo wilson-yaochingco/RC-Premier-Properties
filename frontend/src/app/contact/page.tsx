@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
-import { InquiryPage } from "@/features/inquiries/InquiryPage";
+import Image from "next/image";
+import contactImage from "@/assets/site/contact.png";
+import { Container } from "@/components/ui/Container";
+import { SocialMediaIcon } from "@/features/contact/SocialMediaIcon";
+import { InquiryForm } from "@/features/inquiries/InquiryForm";
+import {
+  OFFICIAL_EMAIL,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_HREF,
+  OFFICIAL_SOCIAL_LINKS,
+} from "@/lib/public-contact";
+import { buildPageMetadata } from "@/lib/seo";
+import styles from "./contact.module.css";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "Contact",
   description:
-    "Send a property or general inquiry to RC Premier Properties in Angeles City, Pampanga.",
-  alternates: { canonical: "/contact" },
-};
+    "Send a property or general inquiry to RC Premier Properties in Pampanga.",
+  canonicalPath: "/contact",
+  imagePath: contactImage.src,
+});
 
 export default async function ContactPage({ searchParams }: PageProps<"/contact">) {
   const query = await searchParams;
@@ -14,16 +27,100 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
   const propertyId = Array.isArray(rawPropertyId) ? rawPropertyId[0] : rawPropertyId;
 
   return (
-    <InquiryPage
-      eyebrow="Contact"
-      title="Let’s talk about your next move."
-      description="Tell us what you are looking for, or share the Property ID that brought you here. Submit the form to request a direct follow-up."
-      note="RC Premier Properties is focused on Angeles City and the wider Pampanga market. Approved phone, email and office details have not yet been supplied, so this connected form is the current contact channel."
-      formLabel="Start a conversation"
-      inquiryType={propertyId ? "property" : "general"}
-      source="contact-page"
-      propertyId={propertyId}
-      submitLabel="Send inquiry"
-    />
+    <main id="main-content" tabIndex={-1} className={styles.page}>
+      <section className={styles.hero} aria-labelledby="guidance-heading">
+        <Image
+          src={contactImage}
+          alt="Dining area with warm wood finishes and sculptural lighting"
+          fill
+          priority
+          sizes="100vw"
+        />
+        <Container className={styles.heroInner}>
+          <article className={styles.guidanceCard}>
+            <p className={styles.eyebrow}>Property guidance</p>
+            <h1 id="guidance-heading">Looking for the right next step?</h1>
+            <p>
+              Ask about a published property, share what you are looking for, or begin a
+              private seller conversation. The team will follow up directly.
+            </p>
+            <a href="#start-a-conversation">Start a conversation</a>
+          </article>
+        </Container>
+      </section>
+
+      <section
+        id="start-a-conversation"
+        className={styles.conversation}
+        aria-labelledby="conversation-heading"
+      >
+        <Container className={styles.conversationInner}>
+          <div className={styles.conversationIntro}>
+            <p className={styles.eyebrow}>Tell us what brings you here</p>
+            <h2 id="conversation-heading">Start a Conversation.</h2>
+            <p>
+              Send a general question or include a Premier Property number. The team
+              will review your inquiry and can follow up using the contact details you
+              provide.
+            </p>
+            <div className={styles.directLinks}>
+              <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>
+              <a href={OFFICIAL_PHONE_HREF}>{OFFICIAL_PHONE}</a>
+            </div>
+          </div>
+          <div
+            className={styles.formPanel}
+            role="region"
+            aria-label="Start a conversation form"
+          >
+            <InquiryForm
+              defaultInquiryType={propertyId ? "property" : "general"}
+              source="contact-page"
+              propertyId={propertyId}
+              submitLabel="Send inquiry"
+            />
+          </div>
+        </Container>
+      </section>
+
+      <section className={styles.direct} aria-labelledby="direct-heading">
+        <Container className={styles.directInner}>
+          <h2 id="direct-heading">Need a direct line?</h2>
+          <div className={styles.directGrid}>
+            <article>
+              <h3>General questions</h3>
+              <p>Send a message by email whenever that is more convenient.</p>
+              <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>
+            </article>
+            <article>
+              <h3>Call RC Premier</h3>
+              <p>Speak with the team about a property or an existing inquiry.</p>
+              <a href={OFFICIAL_PHONE_HREF}>{OFFICIAL_PHONE}</a>
+            </article>
+            <article>
+              <h3>Follow along</h3>
+              <p>See current RC Premier Properties updates on our official channels.</p>
+              <ul className={styles.socialLinks}>
+                {OFFICIAL_SOCIAL_LINKS.map((link) => (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${link.label} — RC Premier Properties (opens in a new tab)`}
+                    >
+                      <span aria-hidden="true">
+                        <SocialMediaIcon platform={link.label} />
+                      </span>
+                      <span>{link.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+        </Container>
+      </section>
+    </main>
   );
 }

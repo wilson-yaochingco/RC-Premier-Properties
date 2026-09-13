@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { InquiryPage } from "@/features/inquiries/InquiryPage";
+import viewingImage from "@/assets/site/book-viewing.png";
+import { Button } from "@/components/ui/Button";
+import { LegacyViewingLauncher } from "@/features/inquiries/RequestTourProvider";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Request a Viewing",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Request a Property Tour",
   description:
-    "Request a property viewing with RC Premier Properties in Angeles City and Pampanga.",
-  alternates: { canonical: "/book-viewing" },
-};
+    "Request a property tour with RC Premier Properties in Pampanga. Requested schedules require staff confirmation.",
+  canonicalPath: "/book-viewing",
+  imagePath: viewingImage.src,
+});
 
 export default async function BookViewingPage({
   searchParams,
@@ -16,16 +20,17 @@ export default async function BookViewingPage({
   const propertyId = Array.isArray(rawPropertyId) ? rawPropertyId[0] : rawPropertyId;
 
   return (
-    <InquiryPage
-      eyebrow="Viewing request"
-      title="See the property with context."
-      description="Share the Property ID and your preferred timing in the message. The request will be stored for follow-up by the team."
-      note="This form requests a viewing; it does not confirm a date or guarantee current availability. Scheduling is complete only after direct confirmation."
-      formLabel="Request a viewing"
-      inquiryType="viewing"
-      source="viewing-page"
-      propertyId={propertyId}
-      submitLabel="Request viewing"
-    />
+    <main id="main-content" tabIndex={-1} className="route-state">
+      <p className="eyebrow">Plan your visit</p>
+      <h1>Request a Tour</h1>
+      <p>
+        Choose a preferred date and time. Your request remains unconfirmed until the
+        team follows up with you.
+      </p>
+      <LegacyViewingLauncher propertyId={propertyId} />
+      <Button href="/properties" variant="outline" className="route-state__button">
+        Browse properties
+      </Button>
+    </main>
   );
 }

@@ -1,7 +1,19 @@
 import {
+  ADMIN_INQUIRY_QUEUES,
   INQUIRY_SOURCES,
+  INQUIRY_STATUSES,
   INQUIRY_TYPES,
+  INQUIRY_WORKFLOW_STATUSES,
+  VIEWING_REQUEST_STATUSES,
+  VIEWING_STAFF_TRANSITION_STATUSES,
+  type AddInquiryNoteRequest,
+  type AdminInquiryListRequest,
+  type AdminInquirySearchRequest,
+  type AdminInquiryTransitionRequest,
   type CreateInquiryRequest,
+  type InquiryWorkflowStatus,
+  type UpdateInquiryStatusRequest,
+  type UpdateViewingRequestRequest,
   type ValidationIssue,
 } from "@rc/shared";
 import { HttpError } from "../../middleware/errorHandler.js";
@@ -16,6 +28,8 @@ const ALLOWED_FIELDS = new Set([
   "propertyId",
   "subject",
   "message",
+  "requestedDate",
+  "requestedTime",
   "privacyConsent",
   "website",
 ]);
@@ -73,7 +87,7 @@ function enumField<const T extends readonly string[]>(
   return value;
 }
 
-export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
+export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedInquiry {
   if (!isPlainObject(body)) {
     throw new HttpError(400, "Invalid inquiry.", [
       { field: "body", message: "Must be a JSON object." },
@@ -96,13 +110,18 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
     required: true,
     max: 254,
   });
-  const phone = stringField(body, "phone", issues, { max: 30 });
+  const phone = stringField(body, "phone", issues, {
+    required: body.inquiryType === "viewing",
+    max: 30,
+  });
   const inquiryType = enumField(body, "inquiryType", INQUIRY_TYPES, issues);
   const source = enumField(body, "source", INQUIRY_SOURCES, issues);
   const propertyId = stringField(body, "propertyId", issues, { max: 40 });
   const subject = stringField(body, "subject", issues, { max: 150 });
+  const requestedDate = stringField(body, "requestedDate", issues, { max: 10 });
+  const requestedTime = stringField(body, "requestedTime", issues, { max: 5 });
   const message = stringField(body, "message", issues, {
-    required: true,
+    required: body.inquiryType !== "viewing",
     min: 10,
     max: 3_000,
   });
@@ -127,7 +146,41 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
     });
   }
 
-  if (issues.length > 0 || !name || !email || !inquiryType || !source || !message) {
+  if (inquiryType === "viewing") {
+    if (source !== "viewing-page") {
+      issues.push({
+        field: "source",
+        message: "Viewing requests must come from the viewing page.",
+      });
+    }
+    if (!propertyId) {
+      issues.push({ field: "propertyId", message: "Select a property to view." });
+    }
+    validateViewingSchedule(requestedDate, requestedTime, issues, now, true);
+  } else {
+    if (source === "viewing-page") {
+      issues.push({
+        field: "inquiryType",
+        message: "The viewing page accepts viewing requests only.",
+      });
+    }
+    for (const [field, value] of [
+      ["requestedDate", requestedDate],
+      ["requestedTime", requestedTime],
+    ] as const) {
+      if (value)
+        issues.push({ field, message: "Only viewing requests use this field." });
+    }
+  }
+
+  if (
+    issues.length > 0 ||
+    !name ||
+    !email ||
+    !inquiryType ||
+    !source ||
+    (inquiryType !== "viewing" && !message)
+  ) {
     throw new HttpError(400, "Invalid inquiry.", issues);
   }
 
@@ -139,9 +192,352 @@ export function parseCreateInquiryBody(body: unknown): ParsedInquiry {
     source,
     ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),
     ...(subject ? { subject } : {}),
-    message,
+    ...(message ? { message } : {}),
+    ...(requestedDate ? { requestedDate } : {}),
+    ...(requestedTime ? { requestedTime } : {}),
     privacyConsent: true,
   };
 
   return { data, isHoneypotSubmission: website !== undefined };
+}
+
+export function parseInquiryIdempotencyKey(raw: unknown): string | undefined {
+  if (raw === undefined) return undefined;
+  if (
+    typeof raw !== "string" ||
+    raw.length < 16 ||
+    raw.length > 200 ||
+    !IDEMPOTENCY_KEY_PATTERN.test(raw)
+  ) {
+    throw new HttpError(400, "Invalid inquiry idempotency key.", [
+      {
+        field: "Idempotency-Key",
+        message:
+          "Must be 16 to 200 letters, numbers, periods, underscores, colons, or hyphens.",
+      },
+    ]);
+  }
+  return raw;
+}
+
+const ADMIN_LIST_FIELDS = new Set([
+  "query",
+  "status",
+  "inquiryType",
+  "source",
+  "propertyId",
+  "viewingStatus",
+  "queue",
+  "page",
+  "limit",
+]);
+const OBJECT_ID_PATTERN = /^[0-9a-fA-F]{24}$/;
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]+$/;
+
+function queryText(
+  query: Record<string, unknown>,
+  field: string,
+  issues: ValidationIssue[],
+  maximum: number,
+): string | undefined {
+  const raw = query[field];
+  if (raw === undefined || raw === "") return undefined;
+  if (typeof raw !== "string") {
+    issues.push({ field, message: "Must be a single text value." });
+    return undefined;
+  }
+  const value = raw.trim();
+  if (!value) return undefined;
+  if (value.length > maximum) {
+    issues.push({ field, message: `Must be at most ${maximum} characters.` });
+  }
+  return value;
+}
+
+function queryEnum<const T extends readonly string[]>(
+  query: Record<string, unknown>,
+  field: string,
+  allowed: T,
+  issues: ValidationIssue[],
+): T[number] | undefined {
+  const value = queryText(query, field, issues, 40);
+  if (value === undefined) return undefined;
+  if (!allowed.includes(value)) {
+    issues.push({ field, message: `Must be one of: ${allowed.join(", ")}.` });
+    return undefined;
+  }
+  return value as T[number];
+}
+
+function positiveIntegerQuery(
+  query: Record<string, unknown>,
+  field: string,
+  fallback: number,
+  maximum: number,
+  issues: ValidationIssue[],
+): number {
+  const raw = query[field];
+  if (raw === undefined || raw === "") return fallback;
+  if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
+    issues.push({ field, message: "Must be a positive integer." });
+    return fallback;
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    issues.push({ field, message: `Must be between 1 and ${maximum}.` });
+    return fallback;
+  }
+  return value;
+}
+
+export function parseAdminInquiryListQuery(rawQuery: unknown): AdminInquiryListRequest {
+  if (!isPlainObject(rawQuery)) {
+    throw new HttpError(400, "Invalid inquiry list parameters.", [
+      { field: "query", message: "Must be query parameters." },
+    ]);
+  }
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(rawQuery)) {
+    if (!ADMIN_LIST_FIELDS.has(field)) {
+      issues.push({ field, message: "Unknown query parameter." });
+    }
+  }
+  const query = queryText(rawQuery, "query", issues, 100);
+  const status = queryEnum(rawQuery, "status", INQUIRY_STATUSES, issues);
+  const inquiryType = queryEnum(rawQuery, "inquiryType", INQUIRY_TYPES, issues);
+  const source = queryEnum(rawQuery, "source", INQUIRY_SOURCES, issues);
+  const propertyId = queryText(rawQuery, "propertyId", issues, 40);
+  const viewingStatus = queryEnum(
+    rawQuery,
+    "viewingStatus",
+    VIEWING_REQUEST_STATUSES,
+    issues,
+  );
+  const queue = queryEnum(rawQuery, "queue", ADMIN_INQUIRY_QUEUES, issues) ?? "active";
+  const page = positiveIntegerQuery(rawQuery, "page", 1, 10_000, issues);
+  const limit = positiveIntegerQuery(rawQuery, "limit", 20, 100, issues);
+
+  if (propertyId && !PROPERTY_ID_PATTERN.test(propertyId)) {
+    issues.push({
+      field: "propertyId",
+      message: "May contain only letters, numbers, hyphens, and underscores.",
+    });
+  }
+  if (issues.length > 0) {
+    throw new HttpError(400, "Invalid inquiry list parameters.", issues);
+  }
+  return {
+    ...(query ? { query } : {}),
+    ...(status ? { status } : {}),
+    ...(inquiryType ? { inquiryType } : {}),
+    ...(source ? { source } : {}),
+    ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),
+    ...(viewingStatus ? { viewingStatus } : {}),
+    queue,
+    page,
+    limit,
+  };
+}
+
+export function parseAdminInquirySearchQuery(
+  rawQuery: unknown,
+): AdminInquirySearchRequest {
+  if (!isPlainObject(rawQuery)) {
+    throw new HttpError(400, "Invalid inquiry search parameters.", [
+      { field: "query", message: "Must be query parameters." },
+    ]);
+  }
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(rawQuery)) {
+    if (field !== "query" && field !== "limit") {
+      issues.push({ field, message: "Unknown query parameter." });
+    }
+  }
+  const query = queryText(rawQuery, "query", issues, 100);
+  const limit = positiveIntegerQuery(rawQuery, "limit", 5, 10, issues);
+  if (!query || query.length < 2) {
+    issues.push({ field: "query", message: "Enter at least 2 characters." });
+  }
+  if (issues.length > 0 || !query) {
+    throw new HttpError(400, "Invalid inquiry search parameters.", issues);
+  }
+  return { query, limit };
+}
+
+export function parseAdminInquiryId(rawId: unknown): string {
+  if (typeof rawId !== "string" || !OBJECT_ID_PATTERN.test(rawId)) {
+    throw new HttpError(400, "Invalid inquiry identifier.", [
+      { field: "id", message: "Must be a valid inquiry identifier." },
+    ]);
+  }
+  return rawId.toLowerCase();
+}
+
+function versionedBody(
+  rawBody: unknown,
+  allowedFields: readonly string[],
+): { body: Record<string, unknown>; expectedVersion: number } {
+  if (!isPlainObject(rawBody)) {
+    throw new HttpError(400, "Invalid inquiry update.", [
+      { field: "body", message: "Must be a JSON object." },
+    ]);
+  }
+  const issues: ValidationIssue[] = [];
+  for (const field of Object.keys(rawBody)) {
+    if (!allowedFields.includes(field)) {
+      issues.push({ field, message: "Unknown field." });
+    }
+  }
+  const expectedVersion = rawBody.expectedVersion;
+  if (
+    typeof expectedVersion !== "number" ||
+    !Number.isSafeInteger(expectedVersion) ||
+    expectedVersion < 0
+  ) {
+    issues.push({
+      field: "expectedVersion",
+      message: "Must be a non-negative integer.",
+    });
+  }
+  if (issues.length > 0 || typeof expectedVersion !== "number") {
+    throw new HttpError(400, "Invalid inquiry update.", issues);
+  }
+  return { body: rawBody, expectedVersion };
+}
+
+export function parseUpdateInquiryStatusBody(
+  rawBody: unknown,
+): UpdateInquiryStatusRequest {
+  const { body, expectedVersion } = versionedBody(rawBody, [
+    "status",
+    "expectedVersion",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const status =
+    typeof body.status === "string" &&
+    INQUIRY_WORKFLOW_STATUSES.some((candidate) => candidate === body.status)
+      ? (body.status as InquiryWorkflowStatus)
+      : undefined;
+  if (!status) {
+    issues.push({
+      field: "status",
+      message: `Must be one of: ${INQUIRY_WORKFLOW_STATUSES.join(", ")}.`,
+    });
+  }
+  if (!status) throw new HttpError(400, "Invalid inquiry update.", issues);
+  return { status, expectedVersion };
+}
+
+export function parseAddInquiryNoteBody(rawBody: unknown): AddInquiryNoteRequest {
+  const { body, expectedVersion } = versionedBody(rawBody, ["note", "expectedVersion"]);
+  const issues: ValidationIssue[] = [];
+  const note = typeof body.note === "string" ? body.note.trim() : undefined;
+  if (!note) {
+    issues.push({ field: "note", message: "This field is required." });
+  } else if (note.length > 1_000) {
+    issues.push({ field: "note", message: "Must be at most 1000 characters." });
+  }
+  if (issues.length > 0 || !note) {
+    throw new HttpError(400, "Invalid inquiry update.", issues);
+  }
+  return { note, expectedVersion };
+}
+
+export function parseAdminInquiryTransitionBody(
+  rawBody: unknown,
+): AdminInquiryTransitionRequest {
+  const { expectedVersion } = versionedBody(rawBody, ["expectedVersion"]);
+  return { expectedVersion };
+}
+
+const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+function validateViewingSchedule(
+  requestedDate: string | undefined,
+  requestedTime: string | undefined,
+  issues: ValidationIssue[],
+  now: Date,
+  requireFuture: boolean,
+): void {
+  if (!requestedDate) {
+    issues.push({ field: "requestedDate", message: "Select a requested date." });
+  }
+  if (!requestedTime) {
+    issues.push({ field: "requestedTime", message: "Select a requested time." });
+  }
+  const dateMatch = requestedDate?.match(DATE_PATTERN);
+  if (requestedDate && !dateMatch) {
+    issues.push({
+      field: "requestedDate",
+      message: "Use a valid date in YYYY-MM-DD format.",
+    });
+  }
+  if (dateMatch) {
+    const year = Number(dateMatch[1]);
+    const month = Number(dateMatch[2]);
+    const day = Number(dateMatch[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      issues.push({ field: "requestedDate", message: "Select a real calendar date." });
+    }
+  }
+  if (requestedTime && !TIME_PATTERN.test(requestedTime)) {
+    issues.push({
+      field: "requestedTime",
+      message: "Use a valid 24-hour time in HH:mm format.",
+    });
+  }
+  if (requireFuture && dateMatch && requestedTime && TIME_PATTERN.test(requestedTime)) {
+    const requestedAt = new Date(`${requestedDate}T${requestedTime}:00+08:00`);
+    if (requestedAt.getTime() <= now.getTime()) {
+      issues.push({
+        field: "requestedDate",
+        message: "Choose a future date and time in Philippine time.",
+      });
+    }
+  }
+}
+
+export function parseUpdateViewingRequestBody(
+  rawBody: unknown,
+  now = new Date(),
+): UpdateViewingRequestRequest {
+  const { body, expectedVersion } = versionedBody(rawBody, [
+    "status",
+    "requestedDate",
+    "requestedTime",
+    "expectedVersion",
+  ]);
+  const issues: ValidationIssue[] = [];
+  const status =
+    typeof body.status === "string" &&
+    VIEWING_STAFF_TRANSITION_STATUSES.some((candidate) => candidate === body.status)
+      ? (body.status as UpdateViewingRequestRequest["status"])
+      : undefined;
+  if (!status) {
+    issues.push({
+      field: "status",
+      message: `Must be one of: ${VIEWING_STAFF_TRANSITION_STATUSES.join(", ")}.`,
+    });
+  }
+  const requestedDate =
+    typeof body.requestedDate === "string" ? body.requestedDate.trim() : undefined;
+  const requestedTime =
+    typeof body.requestedTime === "string" ? body.requestedTime.trim() : undefined;
+  validateViewingSchedule(
+    requestedDate,
+    requestedTime,
+    issues,
+    now,
+    status === "confirmed" || status === "reschedule-requested",
+  );
+  if (issues.length > 0 || !status || !requestedDate || !requestedTime) {
+    throw new HttpError(400, "Invalid viewing request update.", issues);
+  }
+  return { status, requestedDate, requestedTime, expectedVersion };
 }

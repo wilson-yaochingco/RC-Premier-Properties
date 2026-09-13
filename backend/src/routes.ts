@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from "express";
-import healthRoutes from "./modules/health/health.routes.js";
+import { createHealthRoutes } from "./modules/health/health.routes.js";
+import type { HealthDependencies } from "./modules/health/health.controller.js";
 import {
   createAdminPropertyRoutes,
   createPropertyRoutes,
@@ -8,13 +9,21 @@ import type {
   AdminPropertyService,
   PropertyService,
 } from "./modules/properties/property.types.js";
-import { createInquiryRoutes } from "./modules/inquiries/inquiry.routes.js";
-import type { InquiryService } from "./modules/inquiries/inquiry.types.js";
+import {
+  createAdminInquiryRoutes,
+  createInquiryRoutes,
+} from "./modules/inquiries/inquiry.routes.js";
+import type {
+  AdminInquiryService,
+  InquiryService,
+} from "./modules/inquiries/inquiry.types.js";
 import {
   createAuthRoutes,
   resolveAuthRouteDependencies,
   type AuthRouteDependencies,
 } from "./modules/auth/auth.routes.js";
+import { createAdminOperationsRoutes } from "./modules/operations/admin-operations.routes.js";
+import type { AdminOperationsService } from "./modules/operations/admin-operations.types.js";
 
 /**
  * Root API router, mounted on `API_PREFIX` in `app.ts`.
@@ -25,11 +34,22 @@ import {
  * then add its router below.
  */
 export interface ApiDependencies {
+  health?: HealthDependencies;
   propertyService?: PropertyService;
   adminPropertyService?: AdminPropertyService;
   adminPropertyReadPermission?: RequestHandler;
   adminPropertyWritePermission?: RequestHandler;
+  adminPropertyPublishPermission?: RequestHandler;
+  adminPropertyAvailabilityPermission?: RequestHandler;
   inquiryService?: InquiryService;
+  adminInquiryService?: AdminInquiryService;
+  adminInquiryReadPermission?: RequestHandler;
+  adminInquiryUpdatePermission?: RequestHandler;
+  adminOperationsService?: AdminOperationsService;
+  adminOperationsPropertyReadPermission?: RequestHandler;
+  adminOperationsInquiryReadPermission?: RequestHandler;
+  adminOperationsAuditReadPermission?: RequestHandler;
+  adminOperationsStaffPermission?: RequestHandler;
   inquiryRateLimit?: RequestHandler;
   auth?: AuthRouteDependencies;
 }
@@ -38,8 +58,29 @@ export function createApiRouter(dependencies: ApiDependencies = {}): Router {
   const router = Router();
   const auth = resolveAuthRouteDependencies(dependencies.auth);
 
-  router.use("/health", healthRoutes);
+  router.use("/health", createHealthRoutes(dependencies.health));
   router.use("/auth", createAuthRoutes(dependencies.auth, auth));
+  router.use(
+    "/admin/operations",
+    createAdminOperationsRoutes({
+      auth,
+      ...(dependencies.adminOperationsService
+        ? { service: dependencies.adminOperationsService }
+        : {}),
+      ...(dependencies.adminOperationsPropertyReadPermission
+        ? { propertyReadPermission: dependencies.adminOperationsPropertyReadPermission }
+        : {}),
+      ...(dependencies.adminOperationsInquiryReadPermission
+        ? { inquiryReadPermission: dependencies.adminOperationsInquiryReadPermission }
+        : {}),
+      ...(dependencies.adminOperationsAuditReadPermission
+        ? { auditReadPermission: dependencies.adminOperationsAuditReadPermission }
+        : {}),
+      ...(dependencies.adminOperationsStaffPermission
+        ? { staffPermission: dependencies.adminOperationsStaffPermission }
+        : {}),
+    }),
+  );
   router.use(
     "/admin/properties",
     createAdminPropertyRoutes({
@@ -53,9 +94,30 @@ export function createApiRouter(dependencies: ApiDependencies = {}): Router {
       ...(dependencies.adminPropertyWritePermission
         ? { writePermission: dependencies.adminPropertyWritePermission }
         : {}),
+      ...(dependencies.adminPropertyPublishPermission
+        ? { publishPermission: dependencies.adminPropertyPublishPermission }
+        : {}),
+      ...(dependencies.adminPropertyAvailabilityPermission
+        ? { availabilityPermission: dependencies.adminPropertyAvailabilityPermission }
+        : {}),
     }),
   );
   router.use("/properties", createPropertyRoutes(dependencies.propertyService));
+  router.use(
+    "/admin/inquiries",
+    createAdminInquiryRoutes({
+      auth,
+      ...(dependencies.adminInquiryService
+        ? { service: dependencies.adminInquiryService }
+        : {}),
+      ...(dependencies.adminInquiryReadPermission
+        ? { readPermission: dependencies.adminInquiryReadPermission }
+        : {}),
+      ...(dependencies.adminInquiryUpdatePermission
+        ? { updatePermission: dependencies.adminInquiryUpdatePermission }
+        : {}),
+    }),
+  );
   router.use(
     "/inquiries",
     createInquiryRoutes({

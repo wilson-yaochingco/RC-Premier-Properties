@@ -138,9 +138,7 @@ export class AuthService {
     const hasRequiredMfa = identity.authenticationMethods.includes(
       this.config.requiredAmr,
     );
-    const hasAllowedDevelopmentPasskey =
-      this.config.allowPasskeyOnly && identity.passkeyAuthenticated;
-    if (!hasRequiredMfa && !hasAllowedDevelopmentPasskey) {
+    if (!hasRequiredMfa) {
       await this.failedLogin("insufficient-assurance", input.requestId, now, staff.id);
       throw new HttpError(401, AUTHENTICATION_FAILED);
     }

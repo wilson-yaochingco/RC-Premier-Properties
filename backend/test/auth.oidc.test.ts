@@ -5,8 +5,9 @@ import {
   MFA_ACR_VALUE,
   OidcVerificationError,
   OpenIdClientProvider,
-  PASSKEY_AUTHENTICATION_CLAIM,
 } from "../src/modules/auth/auth.oidc.js";
+
+const LEGACY_PASSKEY_CLAIM = "https://rc-premier-properties.example/claims/passkey";
 
 const CLIENT_ID = "oidc-protocol-test-client";
 const CLIENT_SECRET = "oidc-protocol-test-secret";
@@ -32,7 +33,7 @@ function idToken(
   const header = encode({ alg: "RS256", kid: "fixture-key", typ: "JWT" });
   const claims: Record<string, unknown> = {
     iss: code === "wrong-issuer" ? "https://attacker.invalid/" : issuer,
-    sub: "auth0|protocol-test-admin",
+    ...(code === "missing-subject" ? {} : { sub: "auth0|protocol-test-admin" }),
     aud: code === "wrong-audience" ? "different-client" : CLIENT_ID,
     iat: now - 5,
     exp: code === "expired" ? now - 300 : now + 300,
@@ -44,7 +45,7 @@ function idToken(
     claims.amr =
       code === "empty-amr" ? [] : code === "passkey-only" ? ["phr"] : ["mfa"];
   }
-  claims[PASSKEY_AUTHENTICATION_CLAIM] = code === "passkey-only";
+  claims[LEGACY_PASSKEY_CLAIM] = code === "passkey-only";
   const payload = encode(claims);
   const unsigned = `${header}.${payload}`;
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey).toString(
@@ -167,7 +168,6 @@ describe("openid-client protocol boundary", () => {
       issuer,
       subject: "auth0|protocol-test-admin",
       authenticationMethods: ["mfa"],
-      passkeyAuthenticated: false,
       displayName: "Protocol Test Admin",
       email: "protocol-admin@example.test",
     });
@@ -192,7 +192,7 @@ describe("openid-client protocol boundary", () => {
       });
 
       expect(identity.authenticationMethods).toEqual(amr);
-      expect(identity.passkeyAuthenticated).toBe(code === "passkey-only");
+      expect(identity).not.toHaveProperty("passkeyAuthenticated");
     },
   );
 
@@ -204,6 +204,13 @@ describe("openid-client protocol boundary", () => {
     ["wrong state", "valid", "wrong-state", EXPECTED_NONCE, CODE_VERIFIER],
     ["wrong nonce", "wrong-nonce", EXPECTED_STATE, EXPECTED_NONCE, CODE_VERIFIER],
     ["wrong PKCE verifier", "valid", EXPECTED_STATE, EXPECTED_NONCE, "wrong-verifier"],
+    [
+      "missing subject",
+      "missing-subject",
+      EXPECTED_STATE,
+      EXPECTED_NONCE,
+      CODE_VERIFIER,
+    ],
   ])("rejects %s", async (_label, code, callbackState, expectedNonce, codeVerifier) => {
     await expect(
       provider.completeAuthorization({
@@ -215,5 +222,22 @@ describe("openid-client protocol boundary", () => {
         codeVerifier,
       }),
     ).rejects.toBeInstanceOf(OidcVerificationError);
+  });
+
+  it("ignores client-supplied passkey signals outside the signed ID token", async () => {
+    const callback = new URL(
+      `${CALLBACK_URL}?code=valid&state=${encodeURIComponent(EXPECTED_STATE)}`,
+    );
+    callback.searchParams.set(LEGACY_PASSKEY_CLAIM, "true");
+    callback.searchParams.set("passkeyAuthenticated", "true");
+
+    const identity = await provider.completeAuthorization({
+      callbackUrl: callback,
+      expectedState: EXPECTED_STATE,
+      expectedNonce: EXPECTED_NONCE,
+      codeVerifier: CODE_VERIFIER,
+    });
+    expect(identity.authenticationMethods).toEqual(["mfa"]);
+    expect(identity).not.toHaveProperty("passkeyAuthenticated");
   });
 });

@@ -5,7 +5,11 @@ import { useCallback, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { PublicPropertySummary } from "@rc/shared";
 import { PropertyMap } from "./PropertyMap";
-import { mapLocationHref, propertyMapApiSearchParams } from "./property-query";
+import {
+  mapLocationHref,
+  propertyMapApiSearchParams,
+  rawSearchParamsFromEntries,
+} from "./property-query";
 import styles from "./properties.module.css";
 
 interface PropertyResultsExperienceProps {
@@ -34,12 +38,12 @@ export function PropertyResultsExperience({
   const [view, setView] = useState<ResultsView>("list");
   const [activePropertyId, setActivePropertyId] = useState<string>();
   const [isNavigating, startNavigation] = useTransition();
-  const currentSearch = Object.fromEntries(searchParams.entries());
+  const currentSearch = rawSearchParamsFromEntries(searchParams);
   const mapQuery = propertyMapApiSearchParams(currentSearch).toString();
 
   const setLocation = useCallback(
     (location: string) => {
-      const nextSearch = Object.fromEntries(searchParams.entries());
+      const nextSearch = rawSearchParamsFromEntries(searchParams);
 
       startNavigation(() => {
         router.push(mapLocationHref(nextSearch, location), { scroll: false });
@@ -166,6 +170,7 @@ export function PropertyResultsExperience({
             mapQuery={mapQuery}
             onPropertyActivate={activateCard}
             onRegionSelect={setLocation}
+            variant="catalog"
           />
         </aside>
       </div>

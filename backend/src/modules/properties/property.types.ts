@@ -1,11 +1,16 @@
 import type {
   AdminPropertyDetail,
+  AdminPropertyAvailabilityRequest,
+  AdminPropertyFeaturedRequest,
   AdminPropertyListRequest,
   AdminPropertyListResponse,
+  AdminPropertyTransitionRequest,
+  AdminPropertyMediaInput,
   CreateDraftPropertyRequest,
   ListingPurpose,
   PropertyAvailability,
   PropertyMediaKind,
+  PropertyMediaSource,
   PropertyPublicationStatus,
   PropertyType,
   PublicLocationPrecision,
@@ -13,14 +18,23 @@ import type {
   PropertyMapResponse,
   PublicPropertyDetail,
   PublicPropertySummary,
+  RelatedPropertiesResponse,
   UpdateDraftPropertyRequest,
+  UpdatePropertyMediaRequest,
+  UploadPropertyImageRequest,
 } from "@rc/shared";
 import type { SecurityAuditEventInput } from "../auth/auth.types.js";
 
 export interface PropertyMediaEntity {
+  id?: string;
   kind: PropertyMediaKind;
   url?: string;
   alt: string;
+  caption?: string;
+  source?: PropertyMediaSource;
+  sourceUrl?: string;
+  attribution?: string;
+  focalPoint?: { x: number; y: number };
 }
 
 export interface PropertyLocationEntity {
@@ -65,6 +79,7 @@ export interface PropertyEntity {
   availability: PropertyAvailability;
   publicationStatus: PropertyPublicationStatus;
   featured: boolean;
+  featuredOrder?: number;
   price: {
     amount: number;
     currency: "PHP";
@@ -84,6 +99,10 @@ export interface PropertyEntity {
   /** Internal-only owner reference; excluded at schema and query level. */
   ownerReference?: string;
   publishedAt?: Date;
+  /** Safe private state to restore after an archive action. */
+  archiveRestoreStatus?: "draft" | "unpublished";
+  /** Missing only on records created before optimistic concurrency was enabled. */
+  __v?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,10 +137,37 @@ export interface PropertyAdminRepository {
     request: AdminPropertyListRequest,
   ): Promise<{ records: AdminPropertyRecord[]; total: number }>;
   findById(id: string): Promise<AdminPropertyRecord | null>;
+  /** True when any property metadata still points at this storage object. */
+  isMediaReferenced(objectReference: string): Promise<boolean>;
   createDraft(input: DraftPropertyPersistenceInput): Promise<AdminPropertyRecord>;
   updateDraft(
     id: string,
+    expectedVersion: number,
     input: Partial<PropertyContentPersistenceInput>,
+  ): Promise<AdminPropertyRecord | null>;
+  updateMedia(
+    id: string,
+    expectedVersion: number,
+    media: AdminPropertyMediaInput[],
+    coverMedia?: AdminPropertyMediaInput,
+  ): Promise<AdminPropertyRecord | null>;
+  updateFeatured(
+    id: string,
+    expectedVersion: number,
+    featured: boolean,
+    featuredOrder?: number,
+  ): Promise<AdminPropertyRecord | null>;
+  transition(
+    id: string,
+    expectedVersion: number,
+    currentPublicationStatus: PropertyPublicationStatus,
+    update: {
+      publicationStatus?: PropertyPublicationStatus;
+      availability?: PropertyAvailability;
+      publishedAt?: Date;
+      archiveRestoreStatus?: "draft" | "unpublished";
+      clearArchiveRestoreStatus?: boolean;
+    },
   ): Promise<AdminPropertyRecord | null>;
 }
 
@@ -147,6 +193,48 @@ export interface AdminPropertyService {
     input: UpdateDraftPropertyRequest,
     context: PropertyMutationContext,
   ): Promise<AdminPropertyDetail | null>;
+  updateMedia(
+    id: string,
+    input: UpdatePropertyMediaRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  uploadImage?(
+    id: string,
+    input: UploadPropertyImageRequest,
+    bytes: Buffer,
+    declaredMimeType: string | undefined,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  publish(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  unpublish(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  archive(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  restore(
+    id: string,
+    input: AdminPropertyTransitionRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  changeAvailability(
+    id: string,
+    input: AdminPropertyAvailabilityRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
+  updateFeatured(
+    id: string,
+    input: AdminPropertyFeaturedRequest,
+    context: PropertyMutationContext,
+  ): Promise<AdminPropertyDetail | null>;
 }
 
 export interface PropertyService {
@@ -157,6 +245,7 @@ export interface PropertyService {
     request: import("@rc/shared").PropertySearchRequest,
   ): Promise<PropertyMapResponse>;
   findPublishedBySlug(slug: string): Promise<PublicPropertyDetail | null>;
+  related(slug: string): Promise<RelatedPropertiesResponse | null>;
   getFacets(): Promise<import("@rc/shared").PropertyFacetsResponse>;
 }
 

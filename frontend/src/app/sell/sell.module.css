@@ -1,0 +1,301 @@
+.page {
+  background: var(--brand-white);
+  color: var(--brand-primary);
+}
+
+.hero {
+  min-height: min(44rem, calc(100svh - var(--header-height)));
+  min-height: min(44rem, calc(100dvh - var(--header-height)));
+  position: relative;
+  display: grid;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--brand-white);
+}
+
+.hero > img {
+  z-index: -2;
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+.heroShade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(26 31 39 / 78%), rgb(26 31 39 / 12%) 72%);
+}
+
+.heroInner {
+  display: flex;
+  align-items: end;
+  padding-block: clamp(3rem, 8vw, 7rem);
+}
+
+.heroInner > div {
+  width: 100%;
+  min-width: 0;
+  max-width: 48rem;
+}
+
+.eyebrow,
+.eyebrowLight {
+  color: var(--brand-secondary-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.eyebrowLight {
+  color: var(--brand-secondary-light);
+}
+
+.hero h1 {
+  max-width: 10ch;
+  margin-top: 1rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(3.2rem, 7vw, 7rem);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+
+.heroInner > div > p:not(.eyebrowLight) {
+  max-width: 34rem;
+  margin-top: 1.25rem;
+  color: rgb(255 255 255 / 84%);
+}
+
+.hero :global(.button) {
+  margin-top: 1.75rem;
+}
+
+.conversation,
+.process,
+.privacy {
+  padding-block: clamp(4.5rem, 8vw, 8rem);
+}
+
+.conversationInner {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(2.5rem, 7vw, 8rem);
+  align-items: start;
+}
+
+.conversationCopy {
+  position: sticky;
+  top: calc(var(--header-height) + 2rem);
+}
+
+.conversationCopy h2,
+.centerHeading h2,
+.privacy h2 {
+  margin-top: 0.85rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(2.45rem, 4.6vw, 5rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.conversationCopy > p:not(.eyebrow),
+.centerHeading > p:not(.eyebrow),
+.privacyInner > div > p:not(.eyebrow) {
+  margin-top: 1.35rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+
+.conversationCopy .disclaimer {
+  padding: 1rem;
+  border-left: 3px solid var(--brand-secondary);
+  background: var(--surface-soft);
+  color: var(--brand-primary);
+}
+
+.formPanel {
+  min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.process {
+  border-block: 1px solid var(--line);
+  background: #f8f7f4;
+}
+
+.narrow {
+  width: min(calc(100% - (2 * var(--container-gutter))), 78rem);
+}
+
+.centerHeading {
+  max-width: 48rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.stepGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.stepGrid li {
+  min-width: 0;
+  min-height: 20rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--brand-white);
+}
+
+.stepGrid li > span {
+  color: var(--brand-secondary-text);
+  font-family: var(--font-editorial);
+  font-size: 2.3rem;
+}
+
+.stepGrid h3 {
+  margin-top: 3.5rem;
+  font-family: var(--font-editorial);
+  font-size: 1.65rem;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.stepGrid p {
+  margin-top: 1rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.privacy {
+  background: var(--brand-primary);
+  color: var(--brand-white);
+}
+
+.privacyInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(20rem, 0.95fr);
+  align-items: stretch;
+}
+
+.privacy figure {
+  min-height: clamp(28rem, 48vw, 42rem);
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+}
+
+.privacy figure img {
+  object-fit: cover;
+}
+
+.privacyInner > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(2rem, 5vw, 5rem);
+  border: 1px solid rgb(255 255 255 / 20%);
+}
+
+.privacyInner > div > p:not(.eyebrow) {
+  color: rgb(255 255 255 / 72%);
+}
+
+.privacy :global(.button) {
+  align-self: flex-start;
+  margin-top: 2rem;
+  border-color: var(--brand-secondary-light);
+  color: var(--brand-white);
+}
+
+@media (max-width: 56rem) {
+  .conversationInner,
+  .privacyInner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .conversationCopy {
+    position: static;
+  }
+
+  .stepGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stepGrid li {
+    min-height: 0;
+  }
+
+  .stepGrid h3 {
+    margin-top: 1.75rem;
+  }
+
+  .privacy figure {
+    min-height: clamp(22rem, 68vw, 34rem);
+  }
+}
+
+@media (max-width: 37.5rem) {
+  .page :is(h1, h2, h3, p, a, span, button, label) {
+    overflow-wrap: anywhere;
+  }
+
+  .heroInner,
+  .heroInner > div,
+  .conversationInner,
+  .conversationCopy,
+  .formPanel,
+  .narrow,
+  .centerHeading,
+  .stepGrid,
+  .stepGrid li,
+  .privacyInner,
+  .privacyInner > div {
+    min-width: 0;
+  }
+
+  .hero {
+    min-height: 36rem;
+  }
+
+  .heroShade {
+    background: linear-gradient(0deg, rgb(26 31 39 / 88%), rgb(26 31 39 / 10%) 78%);
+  }
+
+  .heroInner {
+    align-items: end;
+    padding-bottom: 3rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(3rem, 16vw, 4.25rem);
+  }
+
+  .hero :global(.button),
+  .privacy :global(.button) {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .formPanel {
+    padding: min(1rem, 16px);
+  }
+
+  .stepGrid li,
+  .privacyInner > div {
+    padding-inline: min(1.25rem, 20px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conversationCopy {
+    position: static;
+  }
+}

@@ -8,6 +8,7 @@ const ADMIN_PERMISSIONS: readonly AuthPermission[] = Object.freeze([
   "inquiry:read",
   "inquiry:update",
   "audit:read",
+  "staff:manage",
 ]);
 
 export const ROLE_PERMISSIONS: Readonly<Record<StaffRole, readonly AuthPermission[]>> =

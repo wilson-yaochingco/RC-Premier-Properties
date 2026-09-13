@@ -1,8 +1,9 @@
 import {
-  LISTING_PURPOSES,
   PROPERTY_SORT_OPTIONS,
-  PROPERTY_TYPES,
+  PROPERTY_AVAILABILITY,
+  RESIDENTIAL_SALE_PROPERTY_TYPES,
   type ListingPurpose,
+  type PropertyAvailability,
   type PropertySearchFilters,
   type PropertySort,
   type PropertyType,
@@ -10,11 +11,29 @@ import {
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
+/** Preserve repeated values so server and hydrated-client normalization choose alike. */
+export function rawSearchParamsFromEntries(
+  searchParams: Pick<URLSearchParams, "forEach">,
+): RawSearchParams {
+  const output: RawSearchParams = Object.create(null) as RawSearchParams;
+  searchParams.forEach((value, key) => {
+    const current = output[key];
+    output[key] =
+      current !== undefined
+        ? Array.isArray(current)
+          ? [...current, value]
+          : [current, value]
+        : value;
+  });
+  return output;
+}
+
 export interface PropertyFormValues {
   keyword: string;
   propertyId: string;
   location: string;
   propertyType: "" | PropertyType;
+  availability: "" | PropertyAvailability;
   purpose: "" | ListingPurpose;
   minPrice: string;
   maxPrice: string;
@@ -47,15 +66,19 @@ function oneOf<T extends string>(value: string, options: readonly T[]): value is
 
 export function propertyFormValues(searchParams: RawSearchParams): PropertyFormValues {
   const propertyType = firstValue(searchParams.propertyType);
-  const purpose = firstValue(searchParams.purpose);
   const sort = firstValue(searchParams.sort);
 
   return {
     keyword: firstValue(searchParams.keyword),
     propertyId: firstValue(searchParams.propertyId),
     location: firstValue(searchParams.location),
-    propertyType: oneOf(propertyType, PROPERTY_TYPES) ? propertyType : "",
-    purpose: oneOf(purpose, LISTING_PURPOSES) ? purpose : "",
+    propertyType: oneOf(propertyType, RESIDENTIAL_SALE_PROPERTY_TYPES)
+      ? propertyType
+      : "",
+    availability: oneOf(firstValue(searchParams.availability), PROPERTY_AVAILABILITY)
+      ? (firstValue(searchParams.availability) as PropertyAvailability)
+      : "",
+    purpose: "sale",
     minPrice: firstValue(searchParams.minPrice),
     maxPrice: firstValue(searchParams.maxPrice),
     bedrooms: firstValue(searchParams.bedrooms),
@@ -70,7 +93,11 @@ export function propertyFormValues(searchParams: RawSearchParams): PropertyFormV
 /** Keep only the documented property-search keys before calling the API. */
 export function propertyApiSearchParams(
   searchParams: RawSearchParams,
+  pageSize = 9,
 ): URLSearchParams {
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 48) {
+    throw new Error("Property API page size must be an integer from 1 to 48.");
+  }
   const values = propertyFormValues(searchParams);
   const output = new URLSearchParams();
 
@@ -79,7 +106,8 @@ export function propertyApiSearchParams(
   }
 
   if (values.propertyType) output.set("propertyType", values.propertyType);
-  if (values.purpose) output.set("purpose", values.purpose);
+  if (values.availability) output.set("availability", values.availability);
+  output.set("purpose", "sale");
 
   for (const key of NUMBER_FILTERS) {
     if (values[key]) output.set(key, values[key]);
@@ -87,7 +115,7 @@ export function propertyApiSearchParams(
 
   output.set("sort", values.sort);
   output.set("page", values.page);
-  output.set("limit", "9");
+  output.set("limit", String(pageSize));
 
   return output;
 }
@@ -103,11 +131,32 @@ export function propertyMapApiSearchParams(
   return query;
 }
 
-export function paginationHref(searchParams: RawSearchParams, page: number): string {
+export function paginationHref(
+  searchParams: RawSearchParams,
+  page: number,
+  basePath = "/properties",
+  omitLocation = false,
+): string {
   const query = propertyApiSearchParams(searchParams);
   query.delete("limit");
+  if (omitLocation) query.delete("location");
   query.set("page", String(page));
-  return `/properties?${query.toString()}`;
+  return `${basePath}?${query.toString()}`;
+}
+
+export function removePropertyFilterHref(
+  searchParams: RawSearchParams,
+  key: keyof PropertyFormValues,
+  basePath = "/properties",
+  omitLocation = false,
+): string {
+  const query = propertyApiSearchParams(searchParams);
+  query.delete("limit");
+  query.delete("page");
+  if (omitLocation) query.delete("location");
+  if (key === "sort") query.set("sort", "newest");
+  else query.delete(key);
+  return `${basePath}${query.size ? `?${query.toString()}` : ""}`;
 }
 
 /** Apply a map-area selection to the same canonical URL state used by the form. */
@@ -133,6 +182,7 @@ export function activePropertyFilters(
   }
 
   if (values.propertyType) filters.propertyType = values.propertyType;
+  if (values.availability) filters.availability = values.availability;
   if (values.purpose) filters.purpose = values.purpose;
 
   for (const key of NUMBER_FILTERS) {

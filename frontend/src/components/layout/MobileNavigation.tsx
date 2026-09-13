@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRequestTour } from "@/features/inquiries/RequestTourProvider";
 
 interface NavigationItem {
   href: string;
@@ -10,14 +11,42 @@ interface NavigationItem {
 
 interface MobileNavigationProps {
   items: readonly NavigationItem[];
+  currentPath: string;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export function MobileNavigation({ items }: MobileNavigationProps) {
+export function MobileNavigation({
+  items,
+  currentPath,
+  onOpenChange,
+}: MobileNavigationProps) {
+  const { openTour, pageProperty } = useRequestTour();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    firstLinkRef.current?.focus();
+  }, [isOpen]);
+
+  function updateMenu(isOpenNext: boolean) {
+    setIsOpen(isOpenNext);
+    onOpenChange?.(isOpenNext);
+  }
 
   function closeMenu() {
-    setIsOpen(false);
+    updateMenu(false);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -54,7 +83,7 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
         className="mobile-navigation__trigger"
         aria-expanded={isOpen}
         aria-controls="mobile-navigation-panel"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => updateMenu(!isOpen)}
       >
         <span>{isOpen ? "Close" : "Menu"}</span>
         <span className="menu-icon" aria-hidden="true">
@@ -64,6 +93,7 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
       </button>
 
       <div
+        ref={panelRef}
         id="mobile-navigation-panel"
         className="mobile-navigation__panel"
         data-open={isOpen}
@@ -73,8 +103,20 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
           <ul>
             {items.map((item, index) => (
               <li key={item.href}>
-                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                <Link href={item.href} onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
+                <Link
+                  ref={index === 0 ? firstLinkRef : undefined}
+                  href={item.href}
+                  onClick={closeMenu}
+                  tabIndex={isOpen ? 0 : -1}
+                  aria-current={
+                    !item.href.includes("#") &&
+                    (item.href === "/"
+                      ? currentPath === "/"
+                      : currentPath.startsWith(item.href))
+                      ? "page"
+                      : undefined
+                  }
+                >
                   {item.label}
                 </Link>
               </li>
@@ -83,11 +125,25 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
         </nav>
 
         <div className="mobile-navigation__footer">
-          <p>Property discovery across Angeles City and Pampanga.</p>
-          <Link href="/contact" onClick={closeMenu} tabIndex={isOpen ? 0 : -1}>
-            Start a conversation
+          <p>Homes and residential properties for sale across Pampanga.</p>
+          <button
+            type="button"
+            onClick={(event) => {
+              const trigger = event.currentTarget;
+              closeMenu();
+              window.requestAnimationFrame(() => openTour(undefined, trigger));
+            }}
+            tabIndex={isOpen ? 0 : -1}
+            disabled={pageProperty?.availability === "sold"}
+            title={
+              pageProperty?.availability === "sold"
+                ? "Tours are unavailable for sold properties."
+                : undefined
+            }
+          >
+            Request a Tour
             <span aria-hidden="true">→</span>
-          </Link>
+          </button>
         </div>
       </div>
     </div>

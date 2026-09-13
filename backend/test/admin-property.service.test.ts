@@ -1,10 +1,14 @@
 import type {
+  AdminPropertyMediaInput,
   CreateDraftPropertyRequest,
   UpdateDraftPropertyRequest,
 } from "@rc/shared";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
 import type { SecurityAuditEventInput } from "../src/modules/auth/auth.types.js";
 import { DefaultAdminPropertyService } from "../src/modules/properties/property.service.js";
+import type { MediaCleanupDebtInput } from "../src/modules/properties/property-media-cleanup.model.js";
+import type { PropertyMediaStorage } from "../src/modules/properties/property-media.storage.js";
 import type {
   AdminPropertyRecord,
   DraftPropertyPersistenceInput,
@@ -42,6 +46,7 @@ function recordFrom(
   return {
     _id: PROPERTY_ID,
     ...input,
+    __v: 0,
     gallery: [],
     createdAt: NOW,
     updatedAt: NOW,
@@ -59,39 +64,664 @@ class MemoryAdminPropertyRepository implements PropertyAdminRepository {
     publicationStatus: "draft",
   });
   updateResult: AdminPropertyRecord | null = this.record;
+  total = 1;
+  listRequest?: import("@rc/shared").AdminPropertyListRequest;
+  duplicateOnCreate = false;
+  additionalMediaReferences = new Set<string>();
 
-  async list() {
-    return { records: [this.record], total: 1 };
+  async list(request: import("@rc/shared").AdminPropertyListRequest) {
+    this.listRequest = request;
+    return { records: [this.record], total: this.total };
   }
 
   async findById(id: string) {
     return id === PROPERTY_ID ? this.record : null;
   }
 
+  async isMediaReferenced(objectReference: string) {
+    return (
+      this.additionalMediaReferences.has(objectReference) ||
+      this.record.gallery.some((item) => item.url === objectReference) ||
+      this.record.coverMedia?.url === objectReference
+    );
+  }
+
   async createDraft(input: DraftPropertyPersistenceInput) {
+    if (this.duplicateOnCreate)
+      throw Object.assign(new Error("duplicate"), { code: 11000 });
     this.created = input;
     this.record = recordFrom(input);
     return this.record;
   }
 
-  async updateDraft(_id: string, input: Partial<PropertyContentPersistenceInput>) {
+  async updateDraft(
+    _id: string,
+    _expectedVersion: number,
+    input: Partial<PropertyContentPersistenceInput>,
+  ) {
     this.updated = input;
-    return this.updateResult;
+    if (!this.updateResult) return null;
+    this.record = {
+      ...this.updateResult,
+      ...this.updated,
+      __v: (this.updateResult.__v ?? 0) + 1,
+    };
+    return this.record;
+  }
+
+  async updateMedia(
+    _id: string,
+    expectedVersion: number,
+    media: AdminPropertyMediaInput[],
+    coverMedia?: AdminPropertyMediaInput,
+  ) {
+    if ((this.record.__v ?? 0) !== expectedVersion) return null;
+    this.record = {
+      ...this.record,
+      gallery: structuredClone(media),
+      coverMedia: coverMedia ? structuredClone(coverMedia) : undefined,
+      __v: (this.record.__v ?? 0) + 1,
+      updatedAt: NOW,
+    };
+    return this.record;
+  }
+
+  async updateFeatured(
+    _id: string,
+    expectedVersion: number,
+    featured: boolean,
+    featuredOrder?: number,
+  ) {
+    if ((this.record.__v ?? 0) !== expectedVersion) return null;
+    this.record = {
+      ...this.record,
+      featured,
+      featuredOrder,
+      __v: (this.record.__v ?? 0) + 1,
+      updatedAt: NOW,
+    };
+    return this.record;
+  }
+
+  async transition(
+    _id: string,
+    expectedVersion: number,
+    currentPublicationStatus: AdminPropertyRecord["publicationStatus"],
+    update: {
+      publicationStatus?: AdminPropertyRecord["publicationStatus"];
+      availability?: AdminPropertyRecord["availability"];
+      publishedAt?: Date;
+      archiveRestoreStatus?: "draft" | "unpublished";
+      clearArchiveRestoreStatus?: boolean;
+    },
+  ) {
+    if (
+      (this.record.__v ?? 0) !== expectedVersion ||
+      this.record.publicationStatus !== currentPublicationStatus
+    ) {
+      return null;
+    }
+    const { clearArchiveRestoreStatus, ...changes } = update;
+    this.record = {
+      ...this.record,
+      ...changes,
+      ...(clearArchiveRestoreStatus ? { archiveRestoreStatus: undefined } : {}),
+      __v: (this.record.__v ?? 0) + 1,
+      updatedAt: NOW,
+    };
+    return this.record;
   }
 }
 
-function makeService() {
+function makeService(
+  mediaStorage?: PropertyMediaStorage,
+  failures: { audit?: Error; cleanupDebt?: Error } = {},
+) {
   const repository = new MemoryAdminPropertyRepository();
   const audits: SecurityAuditEventInput[] = [];
-  const service = new DefaultAdminPropertyService(repository, {
-    async recordAudit(event) {
+  const cleanupDebts: MediaCleanupDebtInput[] = [];
+  const audit = {
+    async recordAudit(event: SecurityAuditEventInput) {
+      if (failures.audit) throw failures.audit;
       audits.push(event);
     },
-  });
-  return { audits, repository, service };
+  };
+  const cleanupDebt = {
+    async record(input: MediaCleanupDebtInput) {
+      if (failures.cleanupDebt) throw failures.cleanupDebt;
+      cleanupDebts.push(input);
+    },
+  };
+  const service = new DefaultAdminPropertyService(
+    repository,
+    audit,
+    mediaStorage,
+    cleanupDebt,
+  );
+  return { audits, cleanupDebts, repository, service };
 }
 
 describe("admin property service", () => {
+  it("features and orders an eligible published property with versioned audit metadata", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record = {
+      ...repository.record,
+      publicationStatus: "published",
+      publishedAt: NOW,
+    };
+
+    const result = await service.updateFeatured(
+      PROPERTY_ID,
+      { expectedVersion: 0, featured: true, featuredOrder: 30 },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "feature-request",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(result).toMatchObject({ featured: true, featuredOrder: 30, version: 1 });
+    expect(audits).toEqual([
+      expect.objectContaining({
+        action: "property.edited",
+        changedFields: ["featured", "featuredOrder"],
+      }),
+    ]);
+  });
+
+  it("unfeatures without changing the stable property identity", async () => {
+    const { repository, service } = makeService();
+    repository.record = {
+      ...repository.record,
+      publicationStatus: "archived",
+      featured: true,
+      featuredOrder: 30,
+    };
+
+    const result = await service.updateFeatured(
+      PROPERTY_ID,
+      { expectedVersion: 0, featured: false, featuredOrder: null },
+      { actorStaffIdentityId: "staff-safe-id", requestId: "unfeature-request" },
+    );
+
+    expect(result).toMatchObject({
+      id: PROPERTY_ID,
+      propertyId: CREATE_REQUEST.propertyId,
+      slug: CREATE_REQUEST.slug,
+      featured: false,
+      version: 1,
+    });
+    expect(result).not.toHaveProperty("featuredOrder");
+  });
+
+  it("rejects ineligible and stale Featured Property changes", async () => {
+    const { repository, service } = makeService();
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "feature-rejected",
+    };
+
+    await expect(
+      service.updateFeatured(
+        PROPERTY_ID,
+        { expectedVersion: 0, featured: true },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    repository.record = {
+      ...repository.record,
+      publicationStatus: "published",
+      availability: "sold",
+    };
+    await expect(
+      service.updateFeatured(
+        PROPERTY_ID,
+        { expectedVersion: 0, featured: true },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    repository.record = {
+      ...repository.record,
+      availability: "reserved",
+      __v: 2,
+    };
+    await expect(
+      service.updateFeatured(
+        PROPERTY_ID,
+        { expectedVersion: 1, featured: true },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("stores a validated device upload under a server-controlled name and persists its metadata", async () => {
+    const stored = {
+      id: "media-server-generated",
+      url: "/media/properties/server-generated.webp",
+    };
+    const mediaStorage: PropertyMediaStorage = {
+      store: async () => stored,
+      remove: async () => undefined,
+    };
+    const { service, repository, audits } = makeService(mediaStorage);
+    const bytes = await sharp({
+      create: { width: 640, height: 800, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    const result = await service.uploadImage?.(
+      PROPERTY_ID,
+      { expectedVersion: 0, alt: "Portrait exterior", caption: "Front view" },
+      bytes,
+      "image/png",
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "upload-request",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(result).toMatchObject({
+      version: 1,
+      coverMedia: stored,
+      gallery: [
+        {
+          ...stored,
+          alt: "Portrait exterior",
+          caption: "Front view",
+          focalPoint: { x: 50, y: 50 },
+        },
+      ],
+    });
+    expect(repository.record.gallery[0]?.url).toBe(stored.url);
+    expect(audits).toHaveLength(1);
+    expect(JSON.stringify(audits)).not.toContain(stored.url);
+  });
+
+  it("never deletes a referenced upload when its post-commit audit write fails", async () => {
+    const stored = {
+      id: "media-audit-boundary",
+      url: "/media/properties/audit-boundary.webp",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: vi.fn().mockResolvedValue(stored),
+      remove,
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage, {
+      audit: new Error("audit unavailable"),
+    });
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Audit failure fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-audit-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("audit unavailable");
+
+    expect(repository.record.gallery).toEqual([
+      expect.objectContaining({ id: stored.id, url: stored.url }),
+    ]);
+    expect(remove).not.toHaveBeenCalled();
+    expect(cleanupDebts).toEqual([]);
+  });
+
+  it("compensates storage only when media metadata fails before commit", async () => {
+    const stored = {
+      id: "media-metadata-failure",
+      url: "/media/properties/metadata-failure.webp",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: vi.fn().mockResolvedValue(stored),
+      remove,
+    };
+    const { repository, service } = makeService(mediaStorage);
+    vi.spyOn(repository, "updateMedia").mockRejectedValueOnce(
+      new Error("metadata unavailable"),
+    );
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Metadata failure fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-metadata-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("metadata unavailable");
+
+    expect(repository.record.gallery).toEqual([]);
+    expect(remove).toHaveBeenCalledOnce();
+    expect(remove).toHaveBeenCalledWith(stored.url);
+  });
+
+  it("reconciles a commit-then-throw metadata result without deleting the referenced upload", async () => {
+    const stored = {
+      id: "media-uncertain-commit",
+      url: "/media/properties/uncertain-commit.webp",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: vi.fn().mockResolvedValue(stored),
+      remove,
+    };
+    const { repository, service } = makeService(mediaStorage);
+    const originalUpdate = repository.updateMedia.bind(repository);
+    vi.spyOn(repository, "updateMedia").mockImplementationOnce(
+      async (...parameters: Parameters<typeof repository.updateMedia>) => {
+        await originalUpdate(...parameters);
+        throw new Error("database acknowledgement lost");
+      },
+    );
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Uncertain commit fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-uncertain-commit",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("database acknowledgement lost");
+
+    expect(repository.record.gallery).toEqual([
+      expect.objectContaining({ id: stored.id, url: stored.url }),
+    ]);
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("keeps removed metadata removed and records cleanup debt when owned-object deletion fails", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-old-0001",
+      kind: "image",
+      url: "/media/properties/11111111-1111-4111-8111-111111111111.webp",
+      alt: "Old image",
+      source: "production",
+    };
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove: async () => {
+        throw Object.assign(new Error("provider private diagnostic"), {
+          code: "storage_delete_failed",
+        });
+      },
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage);
+    repository.record.gallery = [oldMedia];
+    repository.record.coverMedia = oldMedia;
+
+    const result = await service.updateMedia(
+      PROPERTY_ID,
+      { expectedVersion: 0, media: [] },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "media-remove-request",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(result?.gallery).toEqual([]);
+    expect(repository.record.gallery).toEqual([]);
+    expect(cleanupDebts).toEqual([
+      expect.objectContaining({
+        propertyId: PROPERTY_ID,
+        objectReference: oldMedia.url,
+        reason: "metadata-removed",
+      }),
+    ]);
+  });
+
+  it("never deletes a managed object still referenced by another property", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-shared-legacy",
+      kind: "image",
+      url: "/media/properties/shared-legacy.webp",
+      alt: "Legacy shared image",
+      source: "production",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove,
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage);
+    repository.record.gallery = [oldMedia];
+    repository.record.coverMedia = oldMedia;
+    repository.additionalMediaReferences.add(oldMedia.url);
+
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 0, media: [] },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-cross-property-reference",
+          occurredAt: NOW,
+        },
+      ),
+    ).resolves.toMatchObject({ gallery: [] });
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(cleanupDebts).toEqual([]);
+  });
+
+  it("rejects claiming a new managed URL through metadata editing", async () => {
+    const mediaStorage: PropertyMediaStorage = {
+      owns: (url) => url.startsWith("/media/properties/"),
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove: async () => undefined,
+    };
+    const { repository, service } = makeService(mediaStorage);
+
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        {
+          expectedVersion: 0,
+          media: [
+            {
+              id: "media-unowned",
+              kind: "image",
+              url: "/media/properties/another-property.webp",
+              alt: "Unowned object",
+              source: "production",
+            },
+          ],
+          coverMediaId: "media-unowned",
+        },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-unowned-reference",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(repository.record.gallery).toEqual([]);
+  });
+
+  it("does not physically delete removed media when audit fails and records cleanup debt", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-old-audit-0001",
+      kind: "image",
+      url: "/media/properties/22222222-2222-4222-8222-222222222222.webp",
+      alt: "Old image",
+      source: "production",
+    };
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove,
+    };
+    const { cleanupDebts, repository, service } = makeService(mediaStorage, {
+      audit: new Error("audit unavailable"),
+    });
+    repository.record.gallery = [oldMedia];
+    repository.record.coverMedia = oldMedia;
+
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 0, media: [] },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-remove-audit-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("audit unavailable");
+
+    expect(repository.record.gallery).toEqual([]);
+    expect(remove).not.toHaveBeenCalled();
+    expect(cleanupDebts).toEqual([
+      expect.objectContaining({
+        objectReference: oldMedia.url,
+        reason: "metadata-removed",
+        errorCode: "audit_write_failed",
+      }),
+    ]);
+  });
+
+  it("keeps removed metadata removed when deletion and debt persistence both fail", async () => {
+    const oldMedia: AdminPropertyMediaInput = {
+      id: "media-double-failure-0001",
+      kind: "image",
+      url: "/media/properties/33333333-3333-4333-8333-333333333333.webp",
+      alt: "Old image",
+      source: "production",
+    };
+    const mediaStorage: PropertyMediaStorage = {
+      owns: () => true,
+      store: async () => ({ id: "unused", url: "/unused.webp" }),
+      remove: async () => {
+        throw new Error("storage unavailable");
+      },
+    };
+    const { repository, service } = makeService(mediaStorage, {
+      cleanupDebt: new Error("cleanup database unavailable"),
+    });
+    repository.record.gallery = [oldMedia];
+
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 0, media: [] },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-double-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).resolves.toMatchObject({ gallery: [] });
+    expect(repository.record.gallery).toEqual([]);
+  });
+
+  it("does not change metadata when storage fails before an upload is persisted", async () => {
+    const mediaStorage: PropertyMediaStorage = {
+      store: async () => {
+        throw Object.assign(new Error("secret provider detail"), {
+          code: "storage_write_failed",
+        });
+      },
+      remove: async () => undefined,
+    };
+    const { repository, service } = makeService(mediaStorage);
+    const bytes = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "Storage failure fixture" },
+        bytes,
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "media-storage-failure",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toThrow("secret provider detail");
+    expect(repository.record.gallery).toEqual([]);
+    expect(repository.record.__v).toBe(0);
+  });
+
+  it("rejects another upload when the existing media maximum is reached", async () => {
+    let storeCalled = false;
+    const mediaStorage: PropertyMediaStorage = {
+      store: async () => {
+        storeCalled = true;
+        return { id: "media-unexpected", url: "/media/properties/unexpected.webp" };
+      },
+      remove: async () => undefined,
+    };
+    const { service, repository } = makeService(mediaStorage);
+    repository.record.gallery = Array.from({ length: 24 }, (_, index) => ({
+      id: `media-existing-${index}`,
+      kind: "image" as const,
+      url: `/media/properties/existing-${index}.webp`,
+      alt: `Existing property image ${index + 1}`,
+      source: "production" as const,
+    }));
+
+    await expect(
+      service.uploadImage?.(
+        PROPERTY_ID,
+        { expectedVersion: 0, alt: "One image too many" },
+        Buffer.alloc(0),
+        "image/png",
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "upload-limit-request",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(storeCalled).toBe(false);
+  });
+
   it("creates only an available draft and emits one value-free audit event", async () => {
     const { audits, repository, service } = makeService();
 
@@ -122,9 +752,85 @@ describe("admin property service", () => {
     expect(serialized).not.toContain(CREATE_REQUEST.highlights[0]);
   });
 
+  it("rejects non-sale creation, editing, and publication at the service boundary", async () => {
+    const { audits, repository, service } = makeService();
+    await expect(
+      service.createDraft(
+        { ...CREATE_REQUEST, purpose: "rent" } as unknown as CreateDraftPropertyRequest,
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-rental-create",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+
+    repository.record.purpose = "rent";
+    await expect(
+      service.updateDraft(
+        PROPERTY_ID,
+        { expectedVersion: 0, title: "Must remain unchanged" },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-rental-edit",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      service.publish(
+        PROPERTY_ID,
+        { expectedVersion: 0 },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-rental-publish",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    expect(repository.created).toBeUndefined();
+    expect(repository.updated).toBeUndefined();
+    expect(repository.record.publicationStatus).toBe("draft");
+    expect(audits).toEqual([]);
+  });
+
+  it("returns pagination metadata and passes all admin filters to the repository", async () => {
+    const { repository, service } = makeService();
+    repository.total = 61;
+    const request = {
+      query: "RCPP-001",
+      publicationStatus: "published" as const,
+      availability: "reserved" as const,
+      page: 2,
+      limit: 20,
+    };
+    const result = await service.listPrivate(request);
+    expect(repository.listRequest).toEqual(request);
+    expect(result.pagination).toEqual({
+      page: 2,
+      limit: 20,
+      total: 61,
+      totalPages: 4,
+    });
+  });
+
+  it("maps duplicate Premier Property numbers or slugs to a conflict", async () => {
+    const { repository, service } = makeService();
+    repository.duplicateOnCreate = true;
+    await expect(
+      service.createDraft(CREATE_REQUEST, {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "request-duplicate",
+        occurredAt: NOW,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
   it("edits only supplied content and audits changed field names exactly once", async () => {
     const { audits, repository, service } = makeService();
     const request: UpdateDraftPropertyRequest = {
+      expectedVersion: 0,
       title: "Sensitive updated title",
       description: "Sensitive updated description",
       price: { amount: 9_000_000, negotiable: false },
@@ -155,6 +861,101 @@ describe("admin property service", () => {
     expect(serialized).not.toContain(request.description);
   });
 
+  it("keeps the property ID immutable and freezes the slug after first publication", async () => {
+    const { repository, service } = makeService();
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "stable-property-identity",
+      occurredAt: NOW,
+    };
+
+    await expect(
+      service.updateDraft(
+        PROPERTY_ID,
+        { expectedVersion: 0, propertyId: "RCPP-RENAMED" },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    await service.publish(PROPERTY_ID, { expectedVersion: 0 }, context);
+    await service.unpublish(PROPERTY_ID, { expectedVersion: 1 }, context);
+    await expect(
+      service.updateDraft(
+        PROPERTY_ID,
+        { expectedVersion: 2, slug: "renamed-after-publication" },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    expect(repository.record.propertyId).toBe(CREATE_REQUEST.propertyId);
+    expect(repository.record.slug).toBe(CREATE_REQUEST.slug);
+  });
+
+  it("updates private/public location state without putting sensitive values in audit metadata", async () => {
+    const { audits, repository, service } = makeService();
+    const location = {
+      province: "Pampanga",
+      city: "Angeles City",
+      barangay: "Synthetic Barangay",
+      publicPrecision: "approximate" as const,
+      privateAddress: "99 Synthetic Test Street",
+      coordinates: { latitude: 15.101, longitude: 120.601 },
+      publicPoint: {
+        type: "Point" as const,
+        coordinates: [120.61, 15.15] as [number, number],
+      },
+    };
+
+    const result = await service.updateDraft(
+      PROPERTY_ID,
+      { expectedVersion: 0, location },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "request-location-edit",
+        occurredAt: NOW,
+      },
+    );
+
+    expect(repository.updated).toEqual({ location });
+    expect(result?.location).toEqual(location);
+    expect(audits).toEqual([
+      expect.objectContaining({
+        action: "property.edited",
+        changedFields: ["location"],
+      }),
+    ]);
+    const serializedAudit = JSON.stringify(audits);
+    expect(serializedAudit).not.toContain(location.privateAddress);
+    expect(serializedAudit).not.toContain(String(location.coordinates.latitude));
+    expect(serializedAudit).not.toContain(String(location.coordinates.longitude));
+  });
+
+  it("rejects a stale location edit before persistence or audit", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record.__v = 2;
+
+    await expect(
+      service.updateDraft(
+        PROPERTY_ID,
+        {
+          expectedVersion: 1,
+          location: {
+            province: "Pampanga",
+            city: "Angeles City",
+            publicPrecision: "city-only",
+          },
+        },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "request-stale-location",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(repository.updated).toBeUndefined();
+    expect(audits).toHaveLength(0);
+  });
+
   it("does not audit an edit when no draft transitions", async () => {
     const { audits, repository, service } = makeService();
     repository.updateResult = null;
@@ -162,14 +963,191 @@ describe("admin property service", () => {
     await expect(
       service.updateDraft(
         PROPERTY_ID,
-        { title: "Unavailable update" },
+        { title: "Unavailable update", expectedVersion: 0 },
         {
           actorStaffIdentityId: "staff-safe-id",
           requestId: "request-missing",
           occurredAt: NOW,
         },
       ),
-    ).resolves.toBeNull();
+    ).rejects.toMatchObject({ status: 409 });
     expect(audits).toHaveLength(0);
+  });
+
+  it("atomically orders images, selects the cover, removes media, and audits no URLs", async () => {
+    const { audits, repository, service } = makeService();
+    const media: AdminPropertyMediaInput[] = [
+      {
+        id: "media-second-0002",
+        kind: "image",
+        url: "/media/properties/second.webp",
+        alt: "Second gallery image",
+        source: "production",
+      },
+      {
+        id: "media-first-0001",
+        kind: "image",
+        url: "/media/properties/first.jpg",
+        alt: "First gallery image",
+        source: "production",
+      },
+    ];
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "request-media",
+      occurredAt: NOW,
+    };
+
+    const saved = await service.updateMedia(
+      PROPERTY_ID,
+      { expectedVersion: 0, media, coverMediaId: "media-first-0001" },
+      context,
+    );
+    expect(saved).toMatchObject({
+      version: 1,
+      coverMedia: { id: "media-first-0001" },
+      gallery: [{ id: "media-second-0002" }, { id: "media-first-0001" }],
+    });
+
+    const removed = await service.updateMedia(
+      PROPERTY_ID,
+      { expectedVersion: 1, media: [] },
+      context,
+    );
+    expect(removed?.gallery).toEqual([]);
+    expect(removed?.coverMedia).toBeUndefined();
+    expect(audits.map((event) => event.action)).toEqual([
+      "property.media-updated",
+      "property.media-updated",
+    ]);
+    expect(JSON.stringify(audits)).not.toContain("/media/properties/");
+
+    await service.publish(PROPERTY_ID, { expectedVersion: 2 }, context);
+    await expect(
+      service.updateMedia(
+        PROPERTY_ID,
+        { expectedVersion: 3, media, coverMediaId: "media-first-0001" },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(repository.record.publicationStatus).toBe("published");
+  });
+
+  it("publishes, unpublishes, archives, and restores only valid states", async () => {
+    const { audits, service } = makeService();
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "request-lifecycle",
+      occurredAt: NOW,
+    };
+
+    const published = await service.publish(
+      PROPERTY_ID,
+      { expectedVersion: 0 },
+      context,
+    );
+    expect(published).toMatchObject({ publicationStatus: "published", version: 1 });
+    await expect(
+      service.publish(PROPERTY_ID, { expectedVersion: 1 }, context),
+    ).rejects.toMatchObject({ status: 409 });
+
+    const unpublished = await service.unpublish(
+      PROPERTY_ID,
+      { expectedVersion: 1 },
+      context,
+    );
+    expect(unpublished).toMatchObject({ publicationStatus: "unpublished", version: 2 });
+    const archived = await service.archive(
+      PROPERTY_ID,
+      { expectedVersion: 2 },
+      context,
+    );
+    expect(archived).toMatchObject({ publicationStatus: "archived", version: 3 });
+    const restored = await service.restore(
+      PROPERTY_ID,
+      { expectedVersion: 3 },
+      context,
+    );
+    expect(restored).toMatchObject({ publicationStatus: "unpublished", version: 4 });
+    expect(audits.map((event) => event.action)).toEqual([
+      "property.published",
+      "property.unpublished",
+      "property.archived",
+      "property.restored",
+    ]);
+  });
+
+  it("rejects an incomplete publication at the service boundary", async () => {
+    const { audits, repository, service } = makeService();
+    repository.record.title = "";
+
+    await expect(
+      service.publish(
+        PROPERTY_ID,
+        { expectedVersion: 0 },
+        {
+          actorStaffIdentityId: "staff-safe-id",
+          requestId: "incomplete-publication",
+          occurredAt: NOW,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(repository.record.publicationStatus).toBe("draft");
+    expect(audits).toEqual([]);
+  });
+
+  it("enforces availability transitions and detects stale versions", async () => {
+    const { audits, repository, service } = makeService();
+    const context = {
+      actorStaffIdentityId: "staff-safe-id",
+      requestId: "request-availability",
+      occurredAt: NOW,
+    };
+    await service.publish(PROPERTY_ID, { expectedVersion: 0 }, context);
+
+    const reserved = await service.changeAvailability(
+      PROPERTY_ID,
+      { expectedVersion: 1, availability: "reserved" },
+      context,
+    );
+    expect(reserved).toMatchObject({ availability: "reserved", version: 2 });
+    await expect(
+      service.changeAvailability(
+        PROPERTY_ID,
+        { expectedVersion: 1, availability: "sold" },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    const sold = await service.changeAvailability(
+      PROPERTY_ID,
+      { expectedVersion: 2, availability: "sold" },
+      context,
+    );
+    expect(sold).toMatchObject({ availability: "sold", version: 3 });
+    await expect(
+      service.changeAvailability(
+        PROPERTY_ID,
+        { expectedVersion: 3, availability: "available" },
+        context,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(audits.map((event) => event.action)).toContain("property.reserved");
+    expect(audits.map((event) => event.action)).toContain("property.sold");
+    expect(repository.record.availability).toBe("sold");
+  });
+
+  it("treats a legacy record without a version key as version zero", async () => {
+    const { repository, service } = makeService();
+    delete repository.record.__v;
+    const result = await service.publish(
+      PROPERTY_ID,
+      { expectedVersion: 0 },
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "request-legacy-version",
+        occurredAt: NOW,
+      },
+    );
+    expect(result).toMatchObject({ publicationStatus: "published", version: 1 });
   });
 });

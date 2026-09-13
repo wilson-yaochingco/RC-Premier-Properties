@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 import type { DatabaseStatus } from "@rc/shared";
 import { env } from "./env.js";
+import { errorIdentity, operationalLogger } from "../lib/operational-logger.js";
+
+export const DATABASE_OPERATION_TIMEOUT_MS = 10_000;
 
 /**
  * MongoDB connection lifecycle. No schemas or models are defined here — this module
@@ -8,15 +11,18 @@ import { env } from "./env.js";
  */
 
 mongoose.connection.on("connected", () => {
-  console.log(`[db] connected to ${mongoose.connection.name}`);
+  operationalLogger.info("dependency_connected", { dependency: "mongodb" });
 });
 
 mongoose.connection.on("error", (error: Error) => {
-  console.error("[db] connection error:", error.message);
+  operationalLogger.error("dependency_connection_error", {
+    dependency: "mongodb",
+    ...errorIdentity(error),
+  });
 });
 
 mongoose.connection.on("disconnected", () => {
-  console.warn("[db] disconnected");
+  operationalLogger.warn("dependency_disconnected", { dependency: "mongodb" });
 });
 
 /**
@@ -27,8 +33,10 @@ mongoose.connection.on("disconnected", () => {
  * and exits in every other environment.
  */
 export async function connectDatabase(): Promise<void> {
+  mongoose.set("maxTimeMS", DATABASE_OPERATION_TIMEOUT_MS);
   await mongoose.connect(env.MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: DATABASE_OPERATION_TIMEOUT_MS,
   });
 }
 

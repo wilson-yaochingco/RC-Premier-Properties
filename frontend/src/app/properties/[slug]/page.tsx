@@ -1,11 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache, Suspense } from "react";
+import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
-import { ApiClientError } from "@/services/api-client";
-import { PropertyMedia } from "@/features/properties/PropertyMedia";
+import {
+  PropertyTourContext,
+  RequestTourButton,
+} from "@/features/inquiries/RequestTourProvider";
+import { PropertyActions } from "@/features/properties/PropertyActions";
+import { PropertyCard } from "@/features/properties/PropertyCard";
+import { PropertyGallery } from "@/features/properties/PropertyGallery";
 import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
 import {
   formatLocation,
@@ -13,9 +20,56 @@ import {
   propertyTypeLabel,
   visibleSpecifications,
 } from "@/features/properties/property-format";
-import { getPropertyBySlug } from "@/features/properties/property.service";
-import { SITE_URL } from "@/lib/env";
+import {
+  getPropertyBySlug,
+  getRelatedProperties,
+} from "@/features/properties/property.service";
+import {
+  buildPropertyMetadata,
+  buildPropertyStructuredData,
+  nonpublicPropertyMetadata,
+} from "@/features/properties/property-seo";
 import styles from "@/features/properties/property-detail.module.css";
+import { formatBusinessDate } from "@/lib/date-time";
+import { OFFICIAL_EMAIL, OFFICIAL_PHONE } from "@/lib/public-contact";
+import { absoluteSiteUrl, serializeJsonLd } from "@/lib/seo";
+import { ApiClientError } from "@/services/api-client";
+
+const getPublishedProperty = cache(getPropertyBySlug);
+const LOCATION_RESULTS_HREF =
+  /^\/locations\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[A-Za-z0-9%+_.~=&-]*)?$/;
+
+function safeResultsHref(value: string | undefined): string {
+  if (!value) return "/properties";
+  if (value === "/properties" || value.startsWith("/properties?")) return value;
+  return LOCATION_RESULTS_HREF.test(value) ? value : "/properties";
+}
+
+async function RelatedProperties({ slug }: { slug: string }) {
+  const related = await getRelatedProperties(slug).catch(() => ({ items: [] }));
+  if (related.items.length === 0) return null;
+
+  return (
+    <section className={styles.relatedSection} aria-labelledby="related-title">
+      <Container>
+        <div className={styles.relatedHeading}>
+          <div>
+            <p className={styles.sectionLabel}>More published inventory</p>
+            <h2 id="related-title">Similar properties</h2>
+          </div>
+          <Button href="/properties" variant="outline">
+            Browse all properties
+          </Button>
+        </div>
+        <div className={styles.relatedGrid}>
+          {related.items.map((item) => (
+            <PropertyCard key={item.id} property={item} />
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -23,35 +77,31 @@ export async function generateMetadata({
   const { slug } = await params;
 
   try {
-    const property = await getPropertyBySlug(slug);
-    const description = property.shortDescription.slice(0, 160);
-    return {
-      title: property.title,
-      description,
-      alternates: { canonical: `/properties/${property.slug}` },
-      openGraph: {
-        title: property.title,
-        description,
-        type: "website",
-        url: `/properties/${property.slug}`,
-      },
-    };
-  } catch {
-    return {
-      title: "Property",
-      description: "View a published RC Premier Properties listing.",
-    };
+    const property = await getPublishedProperty(slug);
+    return buildPropertyMetadata(property, propertiesImage.src);
+  } catch (error) {
+    if (
+      error instanceof ApiClientError &&
+      (error.statusCode === 400 || error.statusCode === 404)
+    ) {
+      notFound();
+    }
+    return nonpublicPropertyMetadata();
   }
 }
 
 export default async function PropertyDetailPage({
   params,
+  searchParams,
 }: PageProps<"/properties/[slug]">) {
   const { slug } = await params;
+  const query = await searchParams;
+  const rawFrom = Array.isArray(query.from) ? query.from[0] : query.from;
+  const resultsHref = safeResultsHref(rawFrom);
   let property;
 
   try {
-    property = await getPropertyBySlug(slug);
+    property = await getPublishedProperty(slug);
   } catch (error) {
     if (
       error instanceof ApiClientError &&
@@ -64,59 +114,84 @@ export default async function PropertyDetailPage({
 
   const location = formatLocation(property.location);
   const specifications = visibleSpecifications(property.specifications);
-  const gallery = property.gallery.slice(0, 3);
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: property.title,
-    description: property.shortDescription,
-    sku: property.propertyId,
-    category: propertyTypeLabel(property.propertyType),
-    url: `${SITE_URL}/properties/${property.slug}`,
-    areaServed: {
-      "@type": "AdministrativeArea",
-      name: location,
-    },
-    offers: {
-      "@type": "Offer",
-      price: property.price.amount,
-      priceCurrency: property.price.currency,
-      availability:
-        property.availability === "available"
-          ? "https://schema.org/InStock"
-          : property.availability === "reserved"
-            ? "https://schema.org/LimitedAvailability"
-            : "https://schema.org/OutOfStock",
-      url: `${SITE_URL}/properties/${property.slug}`,
-    },
-  };
+  const structuredData = buildPropertyStructuredData(property);
+  const publicUrl =
+    absoluteSiteUrl(`/properties/${property.slug}`) ?? `/properties/${property.slug}`;
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c"),
+      <PropertyTourContext
+        property={{
+          propertyId: property.propertyId,
+          title: property.title,
+          availability: property.availability,
+          ...(property.coverMedia ? { media: property.coverMedia } : {}),
         }}
       />
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
+        />
+      ) : null}
 
-      <section className={styles.identity}>
+      <section className={styles.printSummary} aria-label="Printable property summary">
+        <h1>RC Premier Properties</h1>
+        <p>Premier Property #{property.propertyId}</p>
+        <p>{property.title}</p>
+        <p>Price: {formatPrice(property.price.amount, property.price.currency)}</p>
+        <p>{location}</p>
+        <p>{propertyTypeLabel(property.propertyType)}</p>
+        <dl>
+          {specifications.map((item) => (
+            <div key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p>{property.description}</p>
+        <p>
+          {OFFICIAL_EMAIL} · {OFFICIAL_PHONE}
+        </p>
+        <p>Public listing: {publicUrl}</p>
+      </section>
+
+      <section className={styles.identity} aria-labelledby="property-title">
         <Container>
-          <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-            <Link href="/">Home</Link>
-            <span aria-hidden="true">/</span>
-            <Link href="/properties">Properties</Link>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">{property.propertyId}</span>
-          </nav>
+          <div className={styles.detailNavigation}>
+            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+              <Link href="/">Home</Link>
+              <span aria-hidden="true">/</span>
+              <Link href="/properties">Properties</Link>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">Premier Property #{property.propertyId}</span>
+            </nav>
+            <Link href={resultsHref} className={styles.backToResults}>
+              ← Back to Results
+            </Link>
+          </div>
+
+          <PropertyGallery
+            coverMedia={property.coverMedia}
+            gallery={property.gallery}
+            propertyIdentifier={property.id}
+          />
 
           <div className={styles.identityGrid}>
             <div>
-              <p className={styles.meta}>
-                {propertyTypeLabel(property.propertyType)} · For {property.purpose} · ID{" "}
-                {property.propertyId}
-              </p>
-              <h1 className={styles.title}>{property.title}</h1>
+              <div className={styles.metaRow}>
+                <p className={styles.meta}>
+                  {propertyTypeLabel(property.propertyType)} · For {property.purpose} ·
+                  Premier Property #{property.propertyId}
+                </p>
+                <span className={styles.availabilityBadge}>
+                  {property.availability}
+                </span>
+              </div>
+              <h1 id="property-title" className={styles.title}>
+                {property.title}
+              </h1>
               <p className={styles.location}>{location}</p>
             </div>
             <div className={styles.priceBlock}>
@@ -124,74 +199,70 @@ export default async function PropertyDetailPage({
               <p className={styles.price}>
                 {formatPrice(property.price.amount, property.price.currency)}
               </p>
+              {property.price.negotiable ? (
+                <p className={styles.negotiable}>Negotiable</p>
+              ) : null}
             </div>
+          </div>
+
+          <div className={styles.summaryBar}>
+            <dl className={styles.quickFacts}>
+              {specifications.slice(0, 4).map((item) => (
+                <div key={item.label}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+              <div>
+                <dt>Availability</dt>
+                <dd>{property.availability}</dd>
+              </div>
+            </dl>
+            <PropertyActions
+              propertyNumber={`PREMIER PROPERTY #${property.propertyId}`}
+              shareTitle={property.title}
+              shareUrl={publicUrl}
+            />
           </div>
         </Container>
       </section>
-
-      <Container>
-        <section className={styles.gallery} aria-label="Property gallery">
-          <div className={styles.galleryMain}>
-            <PropertyMedia
-              media={gallery[0] ?? property.coverMedia}
-              label="PROPERTY GALLERY IMAGE 01"
-              priority
-              sizes="(max-width: 768px) 100vw, 72vw"
-            />
-          </div>
-          <div className={styles.gallerySide}>
-            <PropertyMedia
-              media={gallery[1]}
-              label="PROPERTY GALLERY IMAGE 02"
-              sizes="28vw"
-            />
-            <PropertyMedia
-              media={gallery[2]}
-              label="PROPERTY GALLERY IMAGE 03"
-              sizes="28vw"
-            />
-          </div>
-        </section>
-      </Container>
 
       <section className={styles.contentSection}>
         <Container className={styles.contentGrid}>
           <div className={styles.mainContent}>
             <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>01 · Overview</p>
+              <p className={styles.sectionLabel}>Overview</p>
               <h2>A closer look</h2>
               <p className={styles.description}>{property.description}</p>
             </section>
 
-            {specifications.length > 0 ? (
-              <section className={styles.sectionBlock}>
-                <p className={styles.sectionLabel}>02 · Specifications</p>
-                <h2>Property at a glance</h2>
-                <dl className={styles.specGrid}>
-                  {specifications.map((item) => (
-                    <div key={item.label}>
-                      <dt>{item.label}</dt>
-                      <dd>{item.value}</dd>
-                    </div>
-                  ))}
-                  <div>
-                    <dt>Availability</dt>
-                    <dd>{property.availability}</dd>
+            <section className={styles.sectionBlock}>
+              <p className={styles.sectionLabel}>Property details</p>
+              <h2>Property at a glance</h2>
+              <dl className={styles.specGrid}>
+                {specifications.map((item) => (
+                  <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>{item.value}</dd>
                   </div>
-                  <div>
-                    <dt>Listing purpose</dt>
-                    <dd>For {property.purpose}</dd>
-                  </div>
-                </dl>
-              </section>
-            ) : null}
+                ))}
+                <div>
+                  <dt>Availability</dt>
+                  <dd>{property.availability}</dd>
+                </div>
+                <div>
+                  <dt>Listing purpose</dt>
+                  <dd>For {property.purpose}</dd>
+                </div>
+              </dl>
+            </section>
 
             {property.highlights.length > 0 ||
             property.amenities.length > 0 ||
             property.features.length > 0 ? (
               <section className={styles.sectionBlock}>
-                <p className={styles.sectionLabel}>03 · Details</p>
-                <h2>Highlights and features</h2>
+                <p className={styles.sectionLabel}>Highlights and features</p>
+                <h2>What the listing includes</h2>
                 <div className={styles.listColumns}>
                   {[...property.highlights, ...property.amenities, ...property.features]
                     .filter((item, index, items) => items.indexOf(item) === index)
@@ -214,7 +285,7 @@ export default async function PropertyDetailPage({
             ) : null}
 
             <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>04 · Location</p>
+              <p className={styles.sectionLabel}>Location</p>
               <h2>{location}</h2>
               <div className={styles.mapBlock}>
                 {property.location.publicPoint ? (
@@ -223,10 +294,9 @@ export default async function PropertyDetailPage({
                   <MediaPlaceholder label="PROPERTY MAP / GENERAL AREA" ratio="map" />
                 )}
                 <p className={styles.privacyNote}>
-                  The map and location text honor this listing&apos;s public precision
-                  setting ({property.location.publicPrecision.replace("-", " ")}). An
-                  exact stored address or internal coordinate is never sent unless it is
-                  separately approved for exact public disclosure.
+                  {property.location.disclosure === "exact"
+                    ? "This listing is configured to show its exact public location."
+                    : "Approximate location shown for privacy. Exact viewing details will be coordinated after your appointment is confirmed."}
                 </p>
               </div>
             </section>
@@ -236,16 +306,20 @@ export default async function PropertyDetailPage({
             <p className={styles.asideLabel}>Property guidance</p>
             <h2>Ask about this property.</h2>
             <p className={styles.asideCopy}>
-              Include the Property ID in your message so the team can respond with the
-              right listing context.
+              Include the Premier Property number so the team can respond with the right
+              listing context.
             </p>
             <div className={styles.asideActions}>
-              <Button
-                href={`/book-viewing?propertyId=${encodeURIComponent(property.propertyId)}`}
-                variant="secondary"
-              >
-                Request a viewing
-              </Button>
+              {property.availability !== "sold" ? (
+                <RequestTourButton
+                  variant="secondary"
+                  property={{
+                    propertyId: property.propertyId,
+                    title: property.title,
+                    ...(property.coverMedia ? { media: property.coverMedia } : {}),
+                  }}
+                />
+              ) : null}
               <Button
                 href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
                 variant="outline"
@@ -253,30 +327,39 @@ export default async function PropertyDetailPage({
                 Send an inquiry
               </Button>
             </div>
-            <div className={styles.agentSlot}>
-              <MediaPlaceholder
-                label="AGENT PHOTO"
-                ratio="square"
-                tone="violet"
-                className={styles.agentMedia}
-              />
-              <div>
-                <strong>Assigned property specialist</strong>
-                <p>A verified public agent profile will appear when supplied.</p>
-              </div>
-            </div>
+            <p className={styles.updatedAt}>
+              Last updated{" "}
+              <time dateTime={property.updatedAt}>
+                {formatBusinessDate(property.updatedAt)}
+              </time>{" "}
+              (Philippine time)
+            </p>
           </aside>
         </Container>
       </section>
 
-      <section className={styles.browseCta}>
-        <Container className={styles.browseCtaInner}>
-          <h2>Keep exploring Pampanga properties.</h2>
-          <Button href="/properties" variant="secondary">
-            Browse all properties
-          </Button>
-        </Container>
-      </section>
+      <div className={styles.mobileActions} aria-label="Property actions">
+        <Button
+          href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
+          variant="outline"
+        >
+          Inquire
+        </Button>
+        {property.availability !== "sold" ? (
+          <RequestTourButton
+            variant="secondary"
+            property={{
+              propertyId: property.propertyId,
+              title: property.title,
+              ...(property.coverMedia ? { media: property.coverMedia } : {}),
+            }}
+          />
+        ) : null}
+      </div>
+
+      <Suspense fallback={null}>
+        <RelatedProperties slug={slug} />
+      </Suspense>
     </main>
   );
 }

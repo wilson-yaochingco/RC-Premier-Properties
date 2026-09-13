@@ -6,6 +6,8 @@ import styles from "./properties.module.css";
 interface PropertyPaginationProps {
   pagination: PaginationMeta;
   searchParams: RawSearchParams;
+  basePath?: string;
+  omitLocation?: boolean;
 }
 
 function visiblePages(current: number, total: number): number[] {
@@ -18,6 +20,8 @@ function visiblePages(current: number, total: number): number[] {
 export function PropertyPagination({
   pagination,
   searchParams,
+  basePath,
+  omitLocation,
 }: PropertyPaginationProps) {
   if (pagination.totalPages <= 1) return null;
 
@@ -26,7 +30,14 @@ export function PropertyPagination({
   return (
     <nav className={styles.pagination} aria-label="Property result pages">
       {pagination.page > 1 ? (
-        <Link href={paginationHref(searchParams, pagination.page - 1)}>
+        <Link
+          href={paginationHref(
+            searchParams,
+            pagination.page - 1,
+            basePath,
+            omitLocation,
+          )}
+        >
           <span aria-hidden="true">←</span> Previous
         </Link>
       ) : (
@@ -46,7 +57,9 @@ export function PropertyPagination({
               {page === pagination.page ? (
                 <span aria-current="page">{page}</span>
               ) : (
-                <Link href={paginationHref(searchParams, page)}>{page}</Link>
+                <Link href={paginationHref(searchParams, page, basePath, omitLocation)}>
+                  {page}
+                </Link>
               )}
             </span>
           );
@@ -54,7 +67,14 @@ export function PropertyPagination({
       </div>
 
       {pagination.page < pagination.totalPages ? (
-        <Link href={paginationHref(searchParams, pagination.page + 1)}>
+        <Link
+          href={paginationHref(
+            searchParams,
+            pagination.page + 1,
+            basePath,
+            omitLocation,
+          )}
+        >
           Next <span aria-hidden="true">→</span>
         </Link>
       ) : (

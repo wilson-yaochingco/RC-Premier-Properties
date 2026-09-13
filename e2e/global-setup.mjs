@@ -52,6 +52,7 @@ export default async function globalSetup() {
   process.env.MONGODB_URI =
     "mongodb://127.0.0.1:27017/rc-premier-properties-playwright-unused";
   process.env.CORS_ORIGIN = FRONTEND_URL;
+  process.env.NEXT_PUBLIC_DEPLOYMENT_ENV = "test";
   process.env.NEXT_PUBLIC_API_URL = FIXTURE_API_URL;
   process.env.NEXT_PUBLIC_SITE_URL = FRONTEND_URL;
 

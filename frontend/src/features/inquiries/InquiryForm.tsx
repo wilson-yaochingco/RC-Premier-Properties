@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   INQUIRY_TYPES,
   type CreateInquiryRequest,
@@ -17,6 +17,7 @@ interface InquiryFormProps {
   source: InquirySource;
   propertyId?: string;
   submitLabel?: string;
+  simplifiedSeller?: boolean;
 }
 
 interface SubmissionState {
@@ -41,7 +42,22 @@ const FIELD_LABELS: Record<string, string> = {
   propertyId: "Property ID",
   subject: "Subject",
   message: "Message",
+  requestedDate: "Requested date",
+  requestedTime: "Requested time",
   privacyConsent: "Privacy consent",
+};
+
+const FIELD_IDS: Record<string, string> = {
+  name: "inquiry-name",
+  email: "inquiry-email",
+  phone: "inquiry-phone",
+  inquiryType: "inquiry-type",
+  propertyId: "inquiry-property-id",
+  subject: "inquiry-subject",
+  message: "inquiry-message",
+  requestedDate: "viewing-requested-date",
+  requestedTime: "viewing-requested-time",
+  privacyConsent: "inquiry-privacy-consent",
 };
 
 function textValue(formData: FormData, key: string): string {
@@ -49,15 +65,43 @@ function textValue(formData: FormData, key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function FieldError({ field, issue }: { field: string; issue?: ValidationIssue }) {
+  return issue ? (
+    <p id={`inquiry-${field}-error`} className={styles.fieldError}>
+      {issue.message}
+    </p>
+  ) : null;
+}
+
 export function InquiryForm({
   defaultInquiryType = "general",
   source,
   propertyId,
   submitLabel = "Send inquiry",
+  simplifiedSeller = false,
 }: InquiryFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
+  const [messageLength, setMessageLength] = useState(0);
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
+  const isViewingRequest =
+    defaultInquiryType === "viewing" && source === "viewing-page";
+
+  useEffect(() => {
+    if (state.kind === "error") errorRef.current?.focus();
+  }, [state.kind, state.issues]);
+
+  function issueFor(field: string): ValidationIssue | undefined {
+    return state.issues?.find((issue) => issue.field === field);
+  }
+
+  function describedBy(field: string, ...supportIds: Array<string | undefined>) {
+    const ids = supportIds.filter(Boolean) as string[];
+    if (issueFor(field)) ids.push(`inquiry-${field}-error`);
+    return ids.length > 0 ? ids.join(" ") : undefined;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,21 +127,38 @@ export function InquiryForm({
     const payload: CreateInquiryRequest = {
       name: textValue(formData, "name"),
       email: textValue(formData, "email"),
-      inquiryType: textValue(formData, "inquiryType") as InquiryType,
+      inquiryType: simplifiedSeller
+        ? "selling"
+        : (textValue(formData, "inquiryType") as InquiryType),
       source,
-      message: textValue(formData, "message"),
       privacyConsent: true,
       website: textValue(formData, "website"),
       ...(phone ? { phone } : {}),
       ...(selectedPropertyId ? { propertyId: selectedPropertyId } : {}),
       ...(subject ? { subject } : {}),
+      ...(textValue(formData, "message")
+        ? { message: textValue(formData, "message") }
+        : {}),
+      ...(isViewingRequest
+        ? {
+            requestedDate: textValue(formData, "requestedDate"),
+            requestedTime: textValue(formData, "requestedTime"),
+          }
+        : {}),
     };
 
     setState({ kind: "pending" });
+    idempotencyKeyRef.current ??= crypto.randomUUID();
 
     try {
-      const response = await createInquiry(payload, controller.signal);
+      const response = await createInquiry(
+        payload,
+        idempotencyKeyRef.current,
+        controller.signal,
+      );
+      idempotencyKeyRef.current = null;
       formRef.current?.reset();
+      setMessageLength(0);
       setState({
         kind: "success",
         message: response.message,
@@ -105,6 +166,9 @@ export function InquiryForm({
       });
     } catch (error) {
       if (error instanceof ApiClientError) {
+        if (error.statusCode >= 400 && error.statusCode < 500) {
+          idempotencyKeyRef.current = null;
+        }
         setState({
           kind: "error",
           message: error.message,
@@ -120,7 +184,12 @@ export function InquiryForm({
   }
 
   return (
-    <form ref={formRef} className={styles.form} onSubmit={handleSubmit}>
+    <form
+      ref={formRef}
+      className={styles.form}
+      onSubmit={handleSubmit}
+      aria-busy={state.kind === "pending"}
+    >
       <div className={styles.grid}>
         <div className={styles.field}>
           <label htmlFor="inquiry-name">Name</label>
@@ -132,8 +201,9 @@ export function InquiryForm({
             maxLength={100}
             required
             aria-invalid={invalidFields.has("name")}
-            aria-describedby={invalidFields.has("name") ? "inquiry-errors" : undefined}
+            aria-describedby={describedBy("name")}
           />
+          <FieldError field="name" issue={issueFor("name")} />
         </div>
 
         <div className={styles.field}>
@@ -147,8 +217,9 @@ export function InquiryForm({
             maxLength={254}
             required
             aria-invalid={invalidFields.has("email")}
-            aria-describedby={invalidFields.has("email") ? "inquiry-errors" : undefined}
+            aria-describedby={describedBy("email")}
           />
+          <FieldError field="email" issue={issueFor("email")} />
         </div>
 
         <div className={styles.field}>
@@ -163,75 +234,128 @@ export function InquiryForm({
             autoComplete="tel"
             maxLength={30}
             aria-invalid={invalidFields.has("phone")}
-            aria-describedby={invalidFields.has("phone") ? "inquiry-errors" : undefined}
+            aria-describedby={describedBy("phone")}
           />
+          <FieldError field="phone" issue={issueFor("phone")} />
         </div>
 
-        <div className={styles.field}>
-          <label htmlFor="inquiry-type">Inquiry type</label>
-          <select
-            id="inquiry-type"
-            name="inquiryType"
-            defaultValue={defaultInquiryType}
-            required
-            aria-invalid={invalidFields.has("inquiryType")}
-            aria-describedby={
-              invalidFields.has("inquiryType") ? "inquiry-errors" : undefined
-            }
-          >
-            {INQUIRY_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {TYPE_LABELS[type]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={styles.field}>
-          <label htmlFor="inquiry-property-id">
-            Property ID <span className={styles.optional}>(optional)</span>
-          </label>
+        {isViewingRequest || simplifiedSeller ? (
           <input
-            id="inquiry-property-id"
-            name="propertyId"
-            defaultValue={propertyId}
-            maxLength={40}
-            autoComplete="off"
-            aria-invalid={invalidFields.has("propertyId")}
-            aria-describedby={
-              invalidFields.has("propertyId") ? "inquiry-errors" : undefined
-            }
+            type="hidden"
+            name="inquiryType"
+            value={simplifiedSeller ? "selling" : "viewing"}
           />
-        </div>
+        ) : (
+          <div className={styles.field}>
+            <label htmlFor="inquiry-type">Inquiry type</label>
+            <select
+              id="inquiry-type"
+              name="inquiryType"
+              defaultValue={defaultInquiryType}
+              required
+              aria-invalid={invalidFields.has("inquiryType")}
+              aria-describedby={describedBy("inquiryType")}
+            >
+              {INQUIRY_TYPES.filter((type) => type !== "viewing").map((type) => (
+                <option key={type} value={type}>
+                  {TYPE_LABELS[type]}
+                </option>
+              ))}
+            </select>
+            <FieldError field="inquiryType" issue={issueFor("inquiryType")} />
+          </div>
+        )}
+
+        {!simplifiedSeller ? (
+          <div className={styles.field}>
+            <label htmlFor="inquiry-property-id">
+              Property ID{" "}
+              {!isViewingRequest ? (
+                <span className={styles.optional}>(optional)</span>
+              ) : null}
+            </label>
+            <input
+              id="inquiry-property-id"
+              name="propertyId"
+              defaultValue={propertyId}
+              maxLength={40}
+              autoComplete="off"
+              required={isViewingRequest}
+              aria-invalid={invalidFields.has("propertyId")}
+              aria-describedby={describedBy("propertyId")}
+            />
+            <FieldError field="propertyId" issue={issueFor("propertyId")} />
+          </div>
+        ) : null}
+
+        {isViewingRequest ? (
+          <>
+            <div className={styles.field}>
+              <label htmlFor="viewing-requested-date">Requested date</label>
+              <input
+                id="viewing-requested-date"
+                name="requestedDate"
+                type="date"
+                required
+                aria-invalid={invalidFields.has("requestedDate")}
+                aria-describedby={describedBy("requestedDate", "viewing-time-note")}
+              />
+              <FieldError field="requestedDate" issue={issueFor("requestedDate")} />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="viewing-requested-time">Requested time</label>
+              <input
+                id="viewing-requested-time"
+                name="requestedTime"
+                type="time"
+                required
+                aria-invalid={invalidFields.has("requestedTime")}
+                aria-describedby={describedBy("requestedTime", "viewing-time-note")}
+              />
+              <p id="viewing-time-note" className={styles.optional}>
+                Philippine time. Staff confirmation is required.
+              </p>
+              <FieldError field="requestedTime" issue={issueFor("requestedTime")} />
+            </div>
+          </>
+        ) : null}
 
         <div className={styles.field}>
           <label htmlFor="inquiry-subject">
-            Subject <span className={styles.optional}>(optional)</span>
+            {simplifiedSeller ? "Property location or area" : "Subject"}{" "}
+            <span className={styles.optional}>(optional)</span>
           </label>
           <input
             id="inquiry-subject"
             name="subject"
             maxLength={150}
             aria-invalid={invalidFields.has("subject")}
-            aria-describedby={
-              invalidFields.has("subject") ? "inquiry-errors" : undefined
-            }
+            aria-describedby={describedBy("subject")}
           />
+          <FieldError field="subject" issue={issueFor("subject")} />
         </div>
 
         <div className={`${styles.field} ${styles.wide}`}>
-          <label htmlFor="inquiry-message">Message</label>
+          <label htmlFor="inquiry-message">
+            {simplifiedSeller ? "Property details and message" : "Message"}{" "}
+            {isViewingRequest ? (
+              <span className={styles.optional}>(optional)</span>
+            ) : null}
+          </label>
           <textarea
             id="inquiry-message"
             name="message"
             minLength={10}
             maxLength={2000}
-            required
+            required={!isViewingRequest}
+            onChange={(event) => setMessageLength(event.target.value.length)}
             aria-invalid={invalidFields.has("message")}
-            aria-describedby={
-              invalidFields.has("message") ? "inquiry-errors" : undefined
-            }
+            aria-describedby={describedBy("message", "inquiry-message-count")}
           />
+          <span id="inquiry-message-count" className={styles.counter}>
+            {messageLength} of 2000 characters
+          </span>
+          <FieldError field="message" issue={issueFor("message")} />
         </div>
       </div>
 
@@ -242,23 +366,26 @@ export function InquiryForm({
 
       <label className={styles.consent}>
         <input
+          id="inquiry-privacy-consent"
           type="checkbox"
           name="privacyConsent"
           required
           aria-invalid={invalidFields.has("privacyConsent")}
-          aria-describedby={
-            invalidFields.has("privacyConsent") ? "inquiry-errors" : undefined
-          }
+          aria-describedby={describedBy("privacyConsent")}
         />
         <span>
           I agree that RC Premier Properties may use these details to respond to this
           inquiry. No account is created by submitting this form.
         </span>
       </label>
+      <FieldError field="privacyConsent" issue={issueFor("privacyConsent")} />
 
       {state.kind === "success" && (
         <div className={styles.message} role="status" aria-live="polite">
-          <strong>Inquiry received.</strong> {state.message}
+          <strong>
+            {isViewingRequest ? "Viewing request received." : "Inquiry received."}
+          </strong>{" "}
+          {state.message}
           {state.inquiryId && (
             <>
               {" "}
@@ -270,17 +397,26 @@ export function InquiryForm({
 
       {state.kind === "error" && (
         <div
+          ref={errorRef}
           id="inquiry-errors"
           className={`${styles.message} ${styles.error}`}
           role="alert"
-          aria-live="assertive"
+          tabIndex={-1}
         >
           <strong>We could not submit the form.</strong> {state.message}
           {state.issues && state.issues.length > 0 && (
             <ul className={styles.issues}>
               {state.issues.map((issue) => (
                 <li key={`${issue.field}-${issue.message}`}>
-                  {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                  {FIELD_IDS[issue.field] ? (
+                    <a href={`#${FIELD_IDS[issue.field]}`}>
+                      {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                    </a>
+                  ) : (
+                    <>
+                      {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

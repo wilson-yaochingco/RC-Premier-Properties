@@ -7,6 +7,32 @@
   position: relative;
 }
 
+.shell[data-map-variant="catalog"] {
+  border: 0;
+  min-height: 100%;
+}
+
+.shell[data-map-variant="catalog"] .mapHeading {
+  min-height: 4.5rem;
+  align-items: center;
+  padding-inline: 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink, #3a424f) 12%, white);
+}
+
+.shell[data-map-variant="catalog"] .mapHeading h3 {
+  font-family: var(--font-sans, Arial, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shell[data-map-variant="catalog"] .mapHeading span,
+.shell[data-map-variant="catalog"] .mapHeading p {
+  display: none;
+}
+
 .mapHeading {
   align-items: start;
   display: flex;
@@ -61,7 +87,9 @@
   max-width: 30rem;
 }
 
-.consentPlaceholder button {
+.consentPlaceholder button,
+.failure button,
+.mapDataFailure button {
   background: var(--color-ink, #3a424f);
   border: 0;
   color: #fff;
@@ -73,6 +101,19 @@
   min-height: 2.75rem;
   padding: 0.8rem 1.1rem;
   text-transform: uppercase;
+}
+
+.mapDataFailure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mapDataFailure button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .canvasFrame {
@@ -95,7 +136,7 @@
 
 .regionPicker span {
   color: #37404c;
-  font-size: 0.61rem;
+  font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -129,7 +170,7 @@
 .mapCanvas :global(.leaflet-control-attribution) {
   background: rgb(255 255 255 / 90%);
   color: #37404c;
-  font-size: 0.62rem;
+  font-size: 0.69rem;
   max-width: calc(100% - 1rem);
 }
 
@@ -158,13 +199,15 @@
 .mapCanvas :global(.leaflet-popup-content-wrapper),
 .mapCanvas :global(.leaflet-popup-tip) {
   background: #fff;
-  border-radius: 0;
   color: var(--color-ink, #3a424f);
 }
 
 .mapCanvas :global(.leaflet-popup-content-wrapper) {
+  border: 1px solid var(--color-gold, #b4893d);
+  border-radius: 0;
   box-shadow: 0 1.5rem 4rem rgb(24 30 38 / 22%);
   padding: 0;
+  overflow: hidden;
 }
 
 .mapCanvas :global(.leaflet-popup-content) {
@@ -176,6 +219,13 @@
   display: grid;
   gap: 0.45rem;
   padding: 1.1rem;
+}
+
+.mapCanvas :global(.rc-map-popup__image) {
+  width: calc(100% + 2.2rem);
+  height: 8.5rem;
+  margin: -1.1rem -1.1rem 0.55rem;
+  object-fit: cover;
 }
 
 .mapCanvas :global(.rc-map-popup > span) {
@@ -204,6 +254,11 @@
   font-weight: 700;
 }
 
+.mapCanvas :global(.rc-map-popup .rc-map-popup__details) {
+  color: color-mix(in srgb, var(--color-ink, #3a424f) 76%, white);
+  font-size: 0.7rem;
+}
+
 .mapCanvas :global(.rc-map-popup a) {
   align-items: center;
   border-top: 1px solid rgb(58 66 79 / 14%);
@@ -218,9 +273,59 @@
 }
 
 .mapCanvas :global(.rc-map-marker-shell),
-.mapCanvas :global(.rc-map-cluster-shell) {
+.mapCanvas :global(.rc-map-cluster-shell),
+.mapCanvas :global(.rc-map-locality-shell) {
   background: transparent;
   border: 0;
+}
+
+.mapCanvas :global(.rc-map-locality) {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0.25rem;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-gold, #b4893d);
+  box-shadow: 0 0.45rem 1.2rem rgb(24 30 38 / 28%);
+  color: var(--brand-ink-on-gold, #202630);
+  line-height: 1;
+  text-align: center;
+  transform: rotate(-45deg);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.mapCanvas :global(.rc-map-locality strong) {
+  color: var(--brand-ink-on-gold, #202630);
+  font-size: 1.05rem;
+  transform: rotate(45deg);
+}
+
+@media (hover: hover) {
+  .mapCanvas :global(.rc-map-locality-shell:hover .rc-map-locality) {
+    background: var(--color-ink, #3a424f);
+    transform: rotate(-45deg) scale(1.06);
+  }
+
+  .mapCanvas :global(.rc-map-locality-shell:hover .rc-map-locality strong) {
+    color: #fff;
+  }
+
+  .mapCanvas :global(.rc-map-popup a:hover) {
+    color: var(--brand-secondary-text, #806024);
+    text-decoration: underline;
+    text-underline-offset: 0.22rem;
+  }
+}
+
+.mapCanvas :global(.rc-map-locality-shell:focus-visible .rc-map-locality) {
+  border-color: var(--color-ink, #3a424f);
+  outline: 3px solid rgb(255 255 255 / 88%);
+  transform: rotate(-45deg) scale(1.06);
 }
 
 .mapCanvas :global(.rc-map-marker) {
@@ -283,6 +388,15 @@
     text-align: left;
   }
 
+  .regionPicker {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+
   .mapCanvas,
   .consentPlaceholder,
   .loading,
@@ -293,7 +407,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mapCanvas :global(.rc-map-marker) {
+  .mapCanvas :global(.rc-map-marker),
+  .mapCanvas :global(.rc-map-locality) {
     transition: none;
   }
 }

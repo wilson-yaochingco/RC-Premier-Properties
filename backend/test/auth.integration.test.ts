@@ -1,6 +1,9 @@
 import express, { type RequestHandler } from "express";
 import type {
+  AdminInquiryDetail,
+  AdminInquiryListRequest,
   AdminPropertyDetail,
+  AdminPropertyFeaturedRequest,
   AdminPropertyListRequest,
   CreateDraftPropertyRequest,
   AuthPermission,
@@ -9,6 +12,7 @@ import type {
   PropertyMapResponse,
   PropertySearchResponse,
   UpdateDraftPropertyRequest,
+  UpdatePropertyMediaRequest,
 } from "@rc/shared";
 import { API_PREFIX, AUTH_PERMISSIONS } from "@rc/shared";
 import request from "supertest";
@@ -17,9 +21,11 @@ import { createApp } from "../src/app.js";
 import { errorHandler, HttpError } from "../src/middleware/errorHandler.js";
 import { requestContext } from "../src/middleware/requestContext.js";
 import { createAuthCookieSettings } from "../src/modules/auth/auth.cookies.js";
+import { createCallbackFailureRateLimit } from "../src/middleware/callbackFailureRateLimit.js";
 import { AuthCrypto } from "../src/modules/auth/auth.crypto.js";
 import { OidcVerificationError } from "../src/modules/auth/auth.oidc.js";
 import { requirePermission } from "../src/modules/auth/auth.middleware.js";
+import { createAuthRoutes } from "../src/modules/auth/auth.routes.js";
 import { AuthService } from "../src/modules/auth/auth.service.js";
 import { assertProtectedResourceVisible } from "../src/modules/auth/auth.service.js";
 import type {
@@ -38,6 +44,10 @@ import type {
   VerifiedOidcIdentity,
 } from "../src/modules/auth/auth.types.js";
 import type {
+  AdminInquiryService,
+  InquiryMutationContext,
+} from "../src/modules/inquiries/inquiry.types.js";
+import type {
   AdminPropertyService,
   PropertyMutationContext,
   PropertyService,
@@ -50,6 +60,7 @@ const RETURN_URL = "http://localhost:3000/admin";
 const ORIGIN = "http://localhost:3000";
 const SECRET = "test-only-auth-session-secret-32-characters";
 const ADMIN_PROPERTY_ID = "507f1f77bcf86cd799439011";
+const ADMIN_INQUIRY_ID = "507f191e810c19729de860ea";
 const passThrough: RequestHandler = (_req, _res, next) => next();
 
 function cloneStaff(staff: StaffIdentityRecord): StaffIdentityRecord {
@@ -279,9 +290,12 @@ class FakeOidcProvider implements OidcProvider {
       throw new OidcVerificationError();
     }
 
-    const subject = ["unknown", "disabled", "unassigned"].includes(code)
-      ? code
-      : "admin";
+    const subject =
+      code === "email-match-only"
+        ? "different-subject"
+        : ["unknown", "disabled", "unassigned"].includes(code)
+          ? code
+          : "admin";
     const authenticationMethods = ["missing-amr", "empty-amr"].includes(code)
       ? []
       : code === "password-only"
@@ -295,14 +309,14 @@ class FakeOidcProvider implements OidcProvider {
       issuer: code === "invalid-issuer" ? "https://attacker.invalid/" : ISSUER,
       subject,
       authenticationMethods,
-      passkeyAuthenticated: code === "passkey-only",
       displayName: "Provider display name",
-      email: "provider@example.test",
+      email:
+        code === "email-match-only" ? "admin@example.test" : "provider@example.test",
     };
   }
 }
 
-function makeAuth(options: { allowPasskeyOnly?: boolean } = {}) {
+function makeAuth() {
   const store = new MemoryAuthStore();
   const service = new AuthService(
     store,
@@ -314,7 +328,6 @@ function makeAuth(options: { allowPasskeyOnly?: boolean } = {}) {
       allowedReturnUrls: [RETURN_URL, "http://localhost:3000/admin/security"],
       allowedOrigins: [ORIGIN],
       requiredAmr: "mfa",
-      allowPasskeyOnly: options.allowPasskeyOnly ?? true,
       sessionIdleMs: 30 * 60_000,
       sessionAbsoluteMs: 8 * 60 * 60_000,
       sessionActivityTouchMs: 5 * 60_000,
@@ -343,6 +356,7 @@ function makePropertyService(): PropertyService {
     async map(search): Promise<PropertyMapResponse> {
       return {
         items: [],
+        locationCounts: [],
         matchingTotal: 0,
         mappableTotal: 0,
         returned: 0,
@@ -381,10 +395,13 @@ const ADMIN_PROPERTY: AdminPropertyDetail = {
   },
   specifications: { bedrooms: 3, bathrooms: 2 },
   shortDescription: "A private test-only draft.",
+  publicationReadiness: { ready: true, missing: [] },
+  version: 0,
   description: "A private draft used only by the authentication integration suite.",
   highlights: [],
   amenities: [],
   features: [],
+  gallery: [],
   createdAt: NOW.toISOString(),
   updatedAt: NOW.toISOString(),
 };
@@ -400,6 +417,17 @@ function makeAdminPropertyService() {
     input: UpdateDraftPropertyRequest;
     context: PropertyMutationContext;
   }> = [];
+  const mediaUpdates: Array<{
+    id: string;
+    input: UpdatePropertyMediaRequest;
+    context: PropertyMutationContext;
+  }> = [];
+  const mediaUploads: Array<{ id: string; byteLength: number }> = [];
+  const featuredUpdates: Array<{
+    id: string;
+    input: AdminPropertyFeaturedRequest;
+    context: PropertyMutationContext;
+  }> = [];
   let property = structuredClone(ADMIN_PROPERTY);
   const service: AdminPropertyService = {
     async listPrivate(listRequest) {
@@ -410,6 +438,8 @@ function makeAdminPropertyService() {
         highlights,
         amenities,
         features,
+        coverMedia,
+        gallery,
         createdAt,
         publishedAt,
         ...summary
@@ -419,6 +449,8 @@ function makeAdminPropertyService() {
       void highlights;
       void amenities;
       void features;
+      void coverMedia;
+      void gallery;
       void createdAt;
       void publishedAt;
       return {
@@ -454,11 +486,240 @@ function makeAdminPropertyService() {
         ...(input.price ? { price: { ...input.price, currency: "PHP" } } : {}),
         availability: property.availability,
         publicationStatus: property.publicationStatus,
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async updateMedia(id, input, context) {
+      mediaUpdates.push({ id, input, context });
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      const coverMedia = input.coverMediaId
+        ? input.media.find((item) => item.id === input.coverMediaId)
+        : undefined;
+      property = {
+        ...property,
+        gallery: structuredClone(input.media),
+        coverMedia: coverMedia ? structuredClone(coverMedia) : undefined,
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async uploadImage(id, _input, bytes) {
+      mediaUploads.push({ id, byteLength: bytes.length });
+      return structuredClone(property);
+    },
+    async publish(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "published",
+        publishedAt: NOW.toISOString(),
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async unpublish(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "unpublished",
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async archive(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "archived",
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async restore(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        publicationStatus: "draft",
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async changeAvailability(id, input) {
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        availability: input.availability,
+        version: property.version + 1,
+      };
+      return structuredClone(property);
+    },
+    async updateFeatured(id, input, context) {
+      featuredUpdates.push({ id, input, context });
+      if (id !== property.id || input.expectedVersion !== property.version) return null;
+      property = {
+        ...property,
+        featured: input.featured,
+        featuredOrder:
+          input.featured && typeof input.featuredOrder === "number"
+            ? input.featuredOrder
+            : undefined,
+        version: property.version + 1,
       };
       return structuredClone(property);
     },
   };
-  return { creates, listRequests, service, updates };
+  return {
+    creates,
+    featuredUpdates,
+    listRequests,
+    mediaUpdates,
+    mediaUploads,
+    service,
+    updates,
+  };
+}
+
+const ADMIN_INQUIRY: AdminInquiryDetail = {
+  id: ADMIN_INQUIRY_ID,
+  name: "Maria Inquiry",
+  email: "maria@example.test",
+  phone: "+63 917 555 0101",
+  inquiryType: "property",
+  source: "property-detail",
+  propertyId: "RCPP-ADMIN-001",
+  subject: "Private inquiry fixture",
+  message: "Private inquiry message used only by the integration suite.",
+  privacyConsentAt: NOW.toISOString(),
+  status: "new",
+  notification: { status: "delivered", attempts: 1, deliveredAt: NOW.toISOString() },
+  statusHistory: [{ toStatus: "new", changedAt: NOW.toISOString() }],
+  internalNotes: [],
+  version: 0,
+  createdAt: NOW.toISOString(),
+  updatedAt: NOW.toISOString(),
+};
+
+function makeAdminInquiryService() {
+  const listRequests: AdminInquiryListRequest[] = [];
+  const mutations: Array<{ action: string; context: InquiryMutationContext }> = [];
+  let inquiry = structuredClone(ADMIN_INQUIRY);
+  let preSpamStatus: Exclude<AdminInquiryDetail["status"], "spam"> = "new";
+  const update = (status: AdminInquiryDetail["status"]) => {
+    const previous = inquiry.status;
+    inquiry = {
+      ...inquiry,
+      status,
+      statusHistory: [
+        ...inquiry.statusHistory,
+        { fromStatus: previous, toStatus: status, changedAt: NOW.toISOString() },
+      ],
+      version: inquiry.version + 1,
+    };
+    return structuredClone(inquiry);
+  };
+  const service: AdminInquiryService = {
+    async list(request) {
+      listRequests.push(request);
+      const {
+        phone,
+        message,
+        privacyConsentAt,
+        internalNotes,
+        statusHistory,
+        ...summary
+      } = inquiry;
+      void phone;
+      void message;
+      void privacyConsentAt;
+      void internalNotes;
+      void statusHistory;
+      return {
+        items: [summary],
+        pagination: {
+          page: request.page,
+          limit: request.limit,
+          total: 1,
+          totalPages: 1,
+        },
+      };
+    },
+    async search() {
+      return {
+        items: [
+          {
+            id: inquiry.id,
+            inquiryType: inquiry.inquiryType,
+            status: inquiry.status,
+            ...(inquiry.propertyId ? { propertyId: inquiry.propertyId } : {}),
+          },
+        ],
+      };
+    },
+    async detail(id) {
+      return id === inquiry.id ? structuredClone(inquiry) : null;
+    },
+    async updateStatus(id, input, context) {
+      mutations.push({ action: "status", context });
+      return id === inquiry.id && input.expectedVersion === inquiry.version
+        ? update(input.status)
+        : null;
+    },
+    async updateViewingRequest(id, input, context) {
+      mutations.push({ action: "viewing", context });
+      return id === inquiry.id && input.expectedVersion === inquiry.version
+        ? structuredClone(inquiry)
+        : null;
+    },
+    async markSpam(id, input, context) {
+      mutations.push({ action: "spam", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      if (inquiry.status !== "spam") preSpamStatus = inquiry.status;
+      return update("spam");
+    },
+    async markNotSpam(id, input, context) {
+      mutations.push({ action: "not-spam", context });
+      return id === inquiry.id && input.expectedVersion === inquiry.version
+        ? update(preSpamStatus)
+        : null;
+    },
+    async addNote(id, input, context) {
+      mutations.push({ action: "note", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      inquiry = {
+        ...inquiry,
+        internalNotes: [
+          ...inquiry.internalNotes,
+          {
+            id: "507f191e810c19729de860eb",
+            note: input.note,
+            createdAt: NOW.toISOString(),
+          },
+        ],
+        version: inquiry.version + 1,
+      };
+      return structuredClone(inquiry);
+    },
+    async archive(id, input, context) {
+      mutations.push({ action: "archive", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      inquiry = {
+        ...inquiry,
+        archivedAt: NOW.toISOString(),
+        version: inquiry.version + 1,
+      };
+      return structuredClone(inquiry);
+    },
+    async restore(id, input, context) {
+      mutations.push({ action: "restore", context });
+      if (id !== inquiry.id || input.expectedVersion !== inquiry.version) return null;
+      const { archivedAt, ...restored } = inquiry;
+      void archivedAt;
+      inquiry = { ...restored, version: inquiry.version + 1 };
+      return structuredClone(inquiry);
+    },
+  };
+  return { listRequests, mutations, service };
 }
 
 function buildApp(
@@ -467,6 +728,11 @@ function buildApp(
     adminProperties?: ReturnType<typeof makeAdminPropertyService>;
     readPermission?: RequestHandler;
     writePermission?: RequestHandler;
+    publishPermission?: RequestHandler;
+    availabilityPermission?: RequestHandler;
+    adminInquiries?: ReturnType<typeof makeAdminInquiryService>;
+    inquiryReadPermission?: RequestHandler;
+    inquiryUpdatePermission?: RequestHandler;
   } = {},
 ) {
   return createApp({
@@ -474,6 +740,7 @@ function buildApp(
       service: auth.service,
       cookies: auth.cookies,
       loginRateLimit: passThrough,
+      callbackFailureRateLimit: passThrough,
     },
     propertyService: makePropertyService(),
     adminPropertyService:
@@ -483,6 +750,20 @@ function buildApp(
       : {}),
     ...(options.writePermission
       ? { adminPropertyWritePermission: options.writePermission }
+      : {}),
+    ...(options.publishPermission
+      ? { adminPropertyPublishPermission: options.publishPermission }
+      : {}),
+    ...(options.availabilityPermission
+      ? { adminPropertyAvailabilityPermission: options.availabilityPermission }
+      : {}),
+    adminInquiryService:
+      options.adminInquiries?.service ?? makeAdminInquiryService().service,
+    ...(options.inquiryReadPermission
+      ? { adminInquiryReadPermission: options.inquiryReadPermission }
+      : {}),
+    ...(options.inquiryUpdatePermission
+      ? { adminInquiryUpdatePermission: options.inquiryUpdatePermission }
       : {}),
     inquiryRateLimit: passThrough,
   });
@@ -525,6 +806,30 @@ describe("Phase 3A authentication HTTP boundary", () => {
 
   beforeEach(() => {
     auth = makeAuth();
+  });
+
+  it("fails safely when authentication is unavailable or no session exists", async () => {
+    const unavailable = express();
+    unavailable.use(
+      `${API_PREFIX}/auth`,
+      createAuthRoutes(
+        {},
+        {
+          service: null,
+          loginRateLimit: passThrough,
+        },
+      ),
+    );
+    unavailable.use(errorHandler);
+
+    const notConfigured = await request(unavailable).get(`${API_PREFIX}/auth/session`);
+    const anonymous = await request(buildApp(auth)).get(`${API_PREFIX}/auth/session`);
+
+    expect(notConfigured.status).toBe(503);
+    expect(notConfigured.body.message).toBe("Authentication is not configured.");
+    expect(notConfigured.headers["cache-control"]).toBe("no-store");
+    expect(anonymous.status).toBe(401);
+    expect(anonymous.body.message).toBe("Authentication required.");
   });
 
   it("starts Authorization Code + S256 PKCE with an opaque transaction cookie", async () => {
@@ -588,12 +893,65 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(limited.headers["cache-control"]).toBe("no-store");
   });
 
+  it("rate limits callback failures separately with one generic response", async () => {
+    const app = createApp({
+      auth: {
+        service: auth.service,
+        cookies: auth.cookies,
+        loginRateLimit: passThrough,
+        callbackFailureRateLimit: createCallbackFailureRateLimit(2),
+      },
+      propertyService: makePropertyService(),
+      inquiryRateLimit: passThrough,
+    });
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const failed = await request(app)
+        .get(`${API_PREFIX}/auth/callback`)
+        .query({ code: "invalid-signature", state: `invalid-${attempt}` });
+      expect(failed.status).toBe(401);
+      expect(failed.body.message).toBe("Authentication failed.");
+    }
+    const limited = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid", state: "still-generic" });
+    expect(limited.status).toBe(429);
+    expect(limited.body).toEqual({
+      status: "error",
+      statusCode: 429,
+      message: "Too many authentication attempts, please try again later.",
+    });
+  });
+
+  it("allows credentialed CORS only for the configured exact origin", async () => {
+    const app = buildApp(auth);
+    const allowed = await request(app)
+      .options(`${API_PREFIX}/admin/properties`)
+      .set("Origin", ORIGIN)
+      .set("Access-Control-Request-Method", "POST")
+      .set("Access-Control-Request-Headers", "content-type,x-csrf-token");
+    const hostile = await request(app)
+      .options(`${API_PREFIX}/admin/properties`)
+      .set("Origin", "https://attacker.invalid")
+      .set("Access-Control-Request-Method", "POST");
+
+    expect(allowed.status).toBe(204);
+    expect(allowed.headers["access-control-allow-origin"]).toBe(ORIGIN);
+    expect(allowed.headers["access-control-allow-credentials"]).toBe("true");
+    expect(allowed.headers["access-control-allow-origin"]).not.toBe("*");
+    expect(hostile.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
   it("rejects return URLs unless they exactly match the configured allowlist", async () => {
     const app = buildApp(auth);
     for (const returnTo of [
       "http://localhost:3000/admin/extra",
       "http://localhost:3000/admin?next=https://attacker.invalid",
       "https://attacker.invalid/admin",
+      "http://localhost:3000.evil.invalid/admin",
+      "//attacker.invalid/admin",
+      "javascript:alert(1)",
+      "%2F%2Fattacker.invalid%2Fadmin",
     ]) {
       const response = await request(app)
         .get(`${API_PREFIX}/auth/login`)
@@ -605,6 +963,41 @@ describe("Phase 3A authentication HTTP boundary", () => {
         message: "Invalid login return URL.",
       });
     }
+  });
+
+  it("rejects missing, duplicate, and expired stateful login transactions", async () => {
+    const app = buildApp(auth);
+
+    const missingStart = await request(app).get(`${API_PREFIX}/auth/login`);
+    const missing = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid" })
+      .set("Cookie", cookiePair(missingStart, auth.cookies.transactionName));
+
+    const duplicateStart = await request(app).get(`${API_PREFIX}/auth/login`);
+    const duplicate = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid", state: [stateFrom(duplicateStart), "attacker-state"] })
+      .set("Cookie", cookiePair(duplicateStart, auth.cookies.transactionName));
+
+    const expiredStart = await request(app).get(`${API_PREFIX}/auth/login`);
+    const transaction = [...auth.store.transactions.values()].find(
+      (candidate) =>
+        candidate.stateHash ===
+        new AuthCrypto(SECRET).hashState(stateFrom(expiredStart)),
+    );
+    if (!transaction) throw new Error("Missing transaction fixture");
+    transaction.expiresAt = new Date(0);
+    const expired = await request(app)
+      .get(`${API_PREFIX}/auth/callback`)
+      .query({ code: "valid", state: stateFrom(expiredStart) })
+      .set("Cookie", cookiePair(expiredStart, auth.cookies.transactionName));
+
+    for (const response of [missing, duplicate, expired]) {
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe("Authentication failed.");
+    }
+    expect(auth.store.sessions.size).toBe(0);
   });
 
   it("creates an opaque hashed session and returns only local staff authorization", async () => {
@@ -695,6 +1088,7 @@ describe("Phase 3A authentication HTTP boundary", () => {
     "empty-amr",
     "password-only",
     "incorrect-assurance",
+    "email-match-only",
   ])("does not issue a session for %s staff", async (code) => {
     const { callback } = await startAndComplete(buildApp(auth), auth.cookies, code);
     expect(callback.status).toBe(401);
@@ -702,23 +1096,45 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(auth.store.sessions.size).toBe(0);
   });
 
-  it("accepts signed passkey evidence only when the non-production policy allows it", async () => {
-    const development = makeAuth({ allowPasskeyOnly: true });
-    const developmentResult = await startAndComplete(
-      buildApp(development),
-      development.cookies,
-      "passkey-only",
-    );
-    expect(developmentResult.callback.status).toBe(303);
+  it("rejects passkey-only assurance without creating a local session", async () => {
+    const result = await startAndComplete(buildApp(auth), auth.cookies, "passkey-only");
+    expect(result.callback.status).toBe(401);
+    expect(auth.store.sessions.size).toBe(0);
+  });
 
-    const production = makeAuth({ allowPasskeyOnly: false });
-    const productionResult = await startAndComplete(
-      buildApp(production),
-      production.cookies,
-      "passkey-only",
+  it("requires the approved issuer/subject even when the business email matches", async () => {
+    const staff = [...auth.store.staff.values()].find(
+      (identity) => identity.subject === "admin",
+    )!;
+    staff.email = "rcpremierph@gmail.com";
+    staff.displayName = "Renzo & Criezel";
+    const provider = new FakeOidcProvider();
+    const complete = provider.completeAuthorization.bind(provider);
+    provider.completeAuthorization = async (input) => ({
+      ...(await complete(input)),
+      email: "rcpremierph@gmail.com",
+    });
+    const service = new AuthService(
+      auth.store,
+      provider,
+      new AuthCrypto(SECRET),
+      auth.service.config,
     );
-    expect(productionResult.callback.status).toBe(401);
-    expect(production.store.sessions.size).toBe(0);
+    const app = buildApp({ ...auth, service });
+    const denied = await startAndComplete(app, auth.cookies, "email-match-only");
+    expect(denied.callback.status).toBe(401);
+    expect(auth.store.sessions.size).toBe(0);
+    const approved = await startAndComplete(app, auth.cookies);
+    expect(approved.callback.status).toBe(303);
+    const session = await request(app)
+      .get(`${API_PREFIX}/auth/session`)
+      .set("Cookie", cookiePair(approved.callback, auth.cookies.sessionName));
+    expect(session.status).toBe(200);
+    expect(session.body.staff).toMatchObject({
+      email: "rcpremierph@gmail.com",
+      displayName: "Renzo & Criezel",
+      role: "admin",
+    });
   });
 
   it("rotates an existing session during a new login", async () => {
@@ -781,6 +1197,57 @@ describe("Phase 3A authentication HTTP boundary", () => {
         .set("Cookie", cookie);
       expect(response.status).toBe(401);
     }
+  });
+
+  it("extends idle activity only up to the immutable absolute lifetime", async () => {
+    const app = buildApp(auth);
+    const login = await startAndComplete(app, auth.cookies);
+    const sessionToken = cookiePair(login.callback, auth.cookies.sessionName).split(
+      "=",
+    )[1];
+    const session = [...auth.store.sessions.values()].at(-1);
+    if (!sessionToken || !session) throw new Error("Missing session fixture");
+
+    for (let minutes = 6; minutes < 8 * 60; minutes += 6) {
+      await auth.service.authenticate(
+        sessionToken,
+        `activity-${minutes}`,
+        new Date(session.createdAt.getTime() + minutes * 60_000),
+      );
+      expect(session.expiresAt.getTime()).toBeLessThanOrEqual(
+        session.absoluteExpiresAt.getTime(),
+      );
+    }
+
+    await expect(
+      auth.service.authenticate(
+        sessionToken,
+        "absolute-boundary",
+        new Date(session.absoluteExpiresAt),
+      ),
+    ).rejects.toMatchObject({ status: 401, message: "Authentication required." });
+  });
+
+  it("fails closed when the session or staff store is unavailable", async () => {
+    const databaseCredential = "database-password-must-not-escape";
+    auth.store.findSessionByHash = async () => {
+      throw new Error(`MongoDB unavailable: mongodb://staff:${databaseCredential}@db`);
+    };
+
+    const response = await request(buildApp(auth))
+      .get(`${API_PREFIX}/auth/session`)
+      .set(
+        "Cookie",
+        `${auth.cookies.sessionName}=${new AuthCrypto(SECRET).randomToken()}`,
+      );
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({
+      status: "error",
+      statusCode: 503,
+      message: "Authentication service is unavailable.",
+    });
+    expect(JSON.stringify(response.body)).not.toContain(databaseCredential);
   });
 
   it("enforces the three-session concurrent limit", async () => {
@@ -1153,6 +1620,22 @@ const ADMIN_CREATE_REQUEST: CreateDraftPropertyRequest = {
   features: [],
 };
 
+const ADMIN_LOCATION_UPDATE = {
+  expectedVersion: 0,
+  location: {
+    province: "Pampanga",
+    city: "Angeles City",
+    barangay: "Synthetic Barangay",
+    publicPrecision: "approximate" as const,
+    privateAddress: "99 Synthetic Test Street",
+    coordinates: { latitude: 15.101, longitude: 120.601 },
+    publicPoint: {
+      type: "Point" as const,
+      coordinates: [120.61, 15.15] as [number, number],
+    },
+  },
+};
+
 async function authenticatedAdmin(
   app: ReturnType<typeof buildApp>,
   auth: ReturnType<typeof makeAuth>,
@@ -1179,9 +1662,37 @@ describe("Phase 3A admin property HTTP boundary", () => {
       request(app)
         .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
         .send({ title: "Anonymous edit" }),
+      request(app)
+        .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+        .send({ expectedVersion: 0, media: [] }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+        .query({ expectedVersion: "0", alt: "Exterior" })
+        .set("Content-Type", "image/png")
+        .send(Buffer.from("image")),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/unpublish`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/archive`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/restore`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
+        .send({ expectedVersion: 0, availability: "reserved" }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+        .send({ expectedVersion: 0, featured: true, featuredOrder: 20 }),
     ]);
 
-    expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401]);
+    expect(responses.map((response) => response.status)).toEqual([
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+    ]);
     for (const response of responses) {
       expect(response.body).toMatchObject({ status: "error", statusCode: 401 });
     }
@@ -1191,7 +1702,12 @@ describe("Phase 3A admin property HTTP boundary", () => {
     const auth = makeAuth();
     const deny: RequestHandler = (_req, _res, next) =>
       next(new HttpError(403, "Permission denied."));
-    const app = buildApp(auth, { readPermission: deny, writePermission: deny });
+    const app = buildApp(auth, {
+      readPermission: deny,
+      writePermission: deny,
+      publishPermission: deny,
+      availabilityPermission: deny,
+    });
     const session = await authenticatedAdmin(app, auth);
     const readResponses = await Promise.all([
       request(app).get(`${API_PREFIX}/admin/properties`).set("Cookie", session.cookie),
@@ -1212,6 +1728,38 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Origin", ORIGIN)
         .set("X-CSRF-Token", session.csrfToken)
         .send({ title: "Denied edit" }),
+      request(app)
+        .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, media: [] }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+        .query({ expectedVersion: "0", alt: "Exterior" })
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .set("Content-Type", "image/png")
+        .send(Buffer.from("image")),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, availability: "reserved" }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+        .set("Cookie", session.cookie)
+        .set("Origin", ORIGIN)
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, featured: true }),
     ]);
 
     for (const response of [...readResponses, ...writeResponses]) {
@@ -1238,7 +1786,27 @@ describe("Phase 3A admin property HTTP boundary", () => {
           .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
           .set("Cookie", first.cookie)
           .set("Origin", ORIGIN)
-          .send({ title: "CSRF test" }),
+          .send(ADMIN_LOCATION_UPDATE),
+      () =>
+        request(app)
+          .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+          .set("Cookie", first.cookie)
+          .set("Origin", ORIGIN)
+          .send({ expectedVersion: 0, media: [] }),
+      () =>
+        request(app)
+          .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+          .query({ expectedVersion: "0", alt: "Exterior" })
+          .set("Cookie", first.cookie)
+          .set("Origin", ORIGIN)
+          .set("Content-Type", "image/png")
+          .send(Buffer.from("image")),
+      () =>
+        request(app)
+          .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+          .set("Cookie", first.cookie)
+          .set("Origin", ORIGIN)
+          .send({ expectedVersion: 0, featured: true, featuredOrder: 20 }),
     ];
 
     for (const write of writes) {
@@ -1252,6 +1820,9 @@ describe("Phase 3A admin property HTTP boundary", () => {
     }
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
+    expect(adminProperties.mediaUpdates).toHaveLength(0);
+    expect(adminProperties.mediaUploads).toHaveLength(0);
+    expect(adminProperties.featuredUpdates).toHaveLength(0);
   });
 
   it("rejects a disallowed origin on every write", async () => {
@@ -1271,12 +1842,37 @@ describe("Phase 3A admin property HTTP boundary", () => {
         .set("Cookie", session.cookie)
         .set("Origin", "https://attacker.invalid")
         .set("X-CSRF-Token", session.csrfToken)
-        .send({ title: "Disallowed-origin edit" }),
+        .send(ADMIN_LOCATION_UPDATE),
+      request(app)
+        .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+        .set("Cookie", session.cookie)
+        .set("Origin", "https://attacker.invalid")
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, media: [] }),
+      request(app)
+        .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+        .query({ expectedVersion: "0", alt: "Exterior" })
+        .set("Cookie", session.cookie)
+        .set("Origin", "https://attacker.invalid")
+        .set("X-CSRF-Token", session.csrfToken)
+        .set("Content-Type", "image/png")
+        .send(Buffer.from("image")),
+      request(app)
+        .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+        .set("Cookie", session.cookie)
+        .set("Origin", "https://attacker.invalid")
+        .set("X-CSRF-Token", session.csrfToken)
+        .send({ expectedVersion: 0, featured: true, featuredOrder: 20 }),
     ]);
 
-    expect(responses.map((response) => response.status)).toEqual([403, 403]);
+    expect(responses.map((response) => response.status)).toEqual([
+      403, 403, 403, 403, 403,
+    ]);
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
+    expect(adminProperties.mediaUpdates).toHaveLength(0);
+    expect(adminProperties.mediaUploads).toHaveLength(0);
+    expect(adminProperties.featuredUpdates).toHaveLength(0);
   });
 
   it("allows administrators to list, read, create, and edit drafts", async () => {
@@ -1303,7 +1899,33 @@ describe("Phase 3A admin property HTTP boundary", () => {
       .set("Cookie", session.cookie)
       .set("Origin", ORIGIN)
       .set("X-CSRF-Token", session.csrfToken)
-      .send({ title: "Edited private draft" });
+      .send({ title: "Edited private draft", expectedVersion: 0 });
+    const media = await request(app)
+      .put(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media`)
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .set("X-CSRF-Token", session.csrfToken)
+      .send({
+        expectedVersion: 1,
+        media: [
+          {
+            id: "media-http-0001",
+            kind: "image",
+            url: "/media/properties/http-test.webp",
+            alt: "HTTP boundary test image",
+            source: "production",
+          },
+        ],
+        coverMediaId: "media-http-0001",
+      });
+    const upload = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/media/uploads`)
+      .query({ expectedVersion: "2", alt: "Portrait exterior" })
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .set("X-CSRF-Token", session.csrfToken)
+      .set("Content-Type", "image/png")
+      .send(Buffer.from("mock-image-bytes"));
 
     expect(list.status).toBe(200);
     expect(list.headers["cache-control"]).toBe("no-store");
@@ -1316,11 +1938,49 @@ describe("Phase 3A admin property HTTP boundary", () => {
     });
     expect(edited.status).toBe(200);
     expect(edited.body.title).toBe("Edited private draft");
+    expect(media.status).toBe(200);
+    expect(media.body).toMatchObject({
+      coverMedia: { id: "media-http-0001" },
+      gallery: [{ id: "media-http-0001" }],
+      version: 2,
+    });
+    expect(upload.status).toBe(201);
+    expect(adminProperties.mediaUploads).toEqual([
+      { id: ADMIN_PROPERTY_ID, byteLength: Buffer.byteLength("mock-image-bytes") },
+    ]);
     expect(adminProperties.creates[0]?.input).not.toHaveProperty("publicationStatus");
     expect(adminProperties.creates[0]?.context.actorStaffIdentityId).toMatch(/^staff-/);
     expect(adminProperties.updates[0]?.input).toEqual({
       title: "Edited private draft",
+      expectedVersion: 0,
     });
+    expect(adminProperties.mediaUpdates[0]?.input.coverMediaId).toBe("media-http-0001");
+  });
+
+  it("returns private location only through the authenticated detail/edit workflow", async () => {
+    const auth = makeAuth();
+    const adminProperties = makeAdminPropertyService();
+    const app = buildApp(auth, { adminProperties });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+
+    const edited = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
+      .set(headers)
+      .send(ADMIN_LOCATION_UPDATE);
+    const detail = await request(app)
+      .get(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}`)
+      .set("Cookie", session.cookie);
+
+    expect(edited.status).toBe(200);
+    expect(edited.headers["cache-control"]).toBe("no-store");
+    expect(edited.body.location).toEqual(ADMIN_LOCATION_UPDATE.location);
+    expect(detail.body.location).toEqual(ADMIN_LOCATION_UPDATE.location);
+    expect(adminProperties.updates[0]?.input).toEqual(ADMIN_LOCATION_UPDATE);
   });
 
   it("rejects unknown, invalid, lifecycle, and non-JSON write bodies", async () => {
@@ -1361,6 +2021,87 @@ describe("Phase 3A admin property HTTP boundary", () => {
     expect(nonJson.status).toBe(415);
     expect(adminProperties.creates).toHaveLength(0);
     expect(adminProperties.updates).toHaveLength(0);
+  });
+
+  it("supports authorized publish, availability, unpublish, archive, and restore actions", async () => {
+    const auth = makeAuth();
+    const adminProperties = makeAdminPropertyService();
+    const app = buildApp(auth, { adminProperties });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+
+    const published = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+      .set(headers)
+      .send({ expectedVersion: 0 });
+    const reserved = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/availability`)
+      .set(headers)
+      .send({ expectedVersion: 1, availability: "reserved" });
+    const unpublished = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/unpublish`)
+      .set(headers)
+      .send({ expectedVersion: 2 });
+    const archived = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/archive`)
+      .set(headers)
+      .send({ expectedVersion: 3 });
+    const restored = await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/restore`)
+      .set(headers)
+      .send({ expectedVersion: 4 });
+
+    expect(published.body).toMatchObject({
+      publicationStatus: "published",
+      version: 1,
+    });
+    expect(reserved.body).toMatchObject({ availability: "reserved", version: 2 });
+    expect(unpublished.body).toMatchObject({
+      publicationStatus: "unpublished",
+      version: 3,
+    });
+    expect(archived.body).toMatchObject({ publicationStatus: "archived", version: 4 });
+    expect(restored.body).toMatchObject({ publicationStatus: "draft", version: 5 });
+  });
+
+  it("allows an authorized staff member to feature, order, and unfeature a published property", async () => {
+    const auth = makeAuth();
+    const adminProperties = makeAdminPropertyService();
+    const app = buildApp(auth, { adminProperties });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+
+    await request(app)
+      .post(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/publish`)
+      .set(headers)
+      .send({ expectedVersion: 0 });
+    const featured = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+      .set(headers)
+      .send({ expectedVersion: 1, featured: true, featuredOrder: 20 });
+    const unfeatured = await request(app)
+      .patch(`${API_PREFIX}/admin/properties/${ADMIN_PROPERTY_ID}/featured`)
+      .set(headers)
+      .send({ expectedVersion: 2, featured: false, featuredOrder: null });
+
+    expect(featured.status).toBe(200);
+    expect(featured.body).toMatchObject({
+      featured: true,
+      featuredOrder: 20,
+      version: 2,
+    });
+    expect(unfeatured.status).toBe(200);
+    expect(unfeatured.body).toMatchObject({ featured: false, version: 3 });
+    expect(unfeatured.body).not.toHaveProperty("featuredOrder");
+    expect(adminProperties.featuredUpdates).toHaveLength(2);
   });
 
   it("keeps a privately readable draft unavailable through public property routes", async () => {
@@ -1404,4 +2145,234 @@ describe("Phase 3A admin property HTTP boundary", () => {
       expect(response.status).toBe(401);
     },
   );
+});
+
+describe("staff inquiry management HTTP boundary", () => {
+  it("rejects anonymous access to every private inquiry operation", async () => {
+    const app = buildApp(makeAuth());
+    const responses = await Promise.all([
+      request(app).get(`${API_PREFIX}/admin/inquiries`),
+      request(app).get(`${API_PREFIX}/admin/inquiries/search?query=private`),
+      request(app).get(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}`),
+      request(app)
+        .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
+        .send({ status: "in-progress", expectedVersion: 0 }),
+      request(app)
+        .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/viewing`)
+        .send({
+          status: "confirmed",
+          requestedDate: "2030-09-20",
+          requestedTime: "10:30",
+          expectedVersion: 0,
+        }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
+        .send({ note: "Private note", expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/not-spam`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/archive`)
+        .send({ expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/restore`)
+        .send({ expectedVersion: 0 }),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual([
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+    ]);
+  });
+
+  it("enforces read and update permissions after authentication", async () => {
+    const auth = makeAuth();
+    const deny: RequestHandler = (_req, _res, next) =>
+      next(new HttpError(403, "Permission denied."));
+    const app = buildApp(auth, {
+      inquiryReadPermission: deny,
+      inquiryUpdatePermission: deny,
+    });
+    const session = await authenticatedAdmin(app, auth);
+    const read = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries`)
+      .set("Cookie", session.cookie);
+    const search = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries/search?query=private`)
+      .set("Cookie", session.cookie);
+    const write = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .set("X-CSRF-Token", session.csrfToken)
+      .send({ expectedVersion: 0 });
+    expect(read.status).toBe(403);
+    expect(search.status).toBe(403);
+    expect(write.status).toBe(403);
+  });
+
+  it("returns authorized list/detail and normalizes bounded search filters", async () => {
+    const auth = makeAuth();
+    const adminInquiries = makeAdminInquiryService();
+    const app = buildApp(auth, { adminInquiries });
+    const session = await authenticatedAdmin(app, auth);
+    const list = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries`)
+      .query({
+        query: " Maria ",
+        status: "new",
+        inquiryType: "property",
+        source: "property-detail",
+        propertyId: "rcpp-admin-001",
+        queue: "all",
+        page: "2",
+        limit: "25",
+      })
+      .set("Cookie", session.cookie);
+    const detail = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}`)
+      .set("Cookie", session.cookie);
+    const search = await request(app)
+      .get(`${API_PREFIX}/admin/inquiries/search?query=private&limit=5`)
+      .set("Cookie", session.cookie);
+
+    expect(list.status).toBe(200);
+    expect(list.headers["cache-control"]).toBe("no-store");
+    expect(list.body.items[0]).not.toHaveProperty("message");
+    expect(detail.status).toBe(200);
+    expect(detail.body).toMatchObject({
+      id: ADMIN_INQUIRY_ID,
+      propertyId: "RCPP-ADMIN-001",
+      status: "new",
+    });
+    expect(search.status).toBe(200);
+    expect(search.headers["cache-control"]).toBe("no-store");
+    expect(search.body).toEqual({
+      items: [
+        {
+          id: ADMIN_INQUIRY_ID,
+          inquiryType: "property",
+          status: "new",
+          propertyId: "RCPP-ADMIN-001",
+        },
+      ],
+    });
+    expect(JSON.stringify(search.body)).not.toContain("Private inquiry fixture");
+    expect(adminInquiries.listRequests).toEqual([
+      {
+        query: "Maria",
+        status: "new",
+        inquiryType: "property",
+        source: "property-detail",
+        propertyId: "RCPP-ADMIN-001",
+        queue: "all",
+        page: 2,
+        limit: 25,
+      },
+    ]);
+  });
+
+  it("updates workflow, spam quarantine, notes, and archive using CSRF-protected actions", async () => {
+    const auth = makeAuth();
+    const adminInquiries = makeAdminInquiryService();
+    const app = buildApp(auth, { adminInquiries });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+    const status = await request(app)
+      .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
+      .set(headers)
+      .send({ status: "in-progress", expectedVersion: 0 });
+    const spam = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+      .set(headers)
+      .send({ expectedVersion: 1 });
+    const notSpam = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/not-spam`)
+      .set(headers)
+      .send({ expectedVersion: 2 });
+    const note = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
+      .set(headers)
+      .send({ note: "Followed up by phone.", expectedVersion: 3 });
+    const archived = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/archive`)
+      .set(headers)
+      .send({ expectedVersion: 4 });
+    const restored = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/restore`)
+      .set(headers)
+      .send({ expectedVersion: 5 });
+
+    expect(status.body).toMatchObject({ status: "in-progress", version: 1 });
+    expect(spam.body).toMatchObject({ status: "spam", version: 2 });
+    expect(notSpam.body).toMatchObject({ status: "in-progress", version: 3 });
+    expect(note.body.internalNotes).toHaveLength(1);
+    expect(archived.body).toHaveProperty("archivedAt");
+    expect(restored.body).not.toHaveProperty("archivedAt");
+    expect(adminInquiries.mutations.map((mutation) => mutation.action)).toEqual([
+      "status",
+      "spam",
+      "not-spam",
+      "note",
+      "archive",
+      "restore",
+    ]);
+    expect(adminInquiries.mutations[0]?.context.actorStaffIdentityId).toMatch(
+      /^staff-/,
+    );
+  });
+
+  it("rejects unsafe pagination, operator input, invalid writes, missing CSRF, and missing records", async () => {
+    const auth = makeAuth();
+    const adminInquiries = makeAdminInquiryService();
+    const app = buildApp(auth, { adminInquiries });
+    const session = await authenticatedAdmin(app, auth);
+    const headers = {
+      Cookie: session.cookie,
+      Origin: ORIGIN,
+      "X-CSRF-Token": session.csrfToken,
+    };
+    const responses = await Promise.all([
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries?limit=101`)
+        .set("Cookie", session.cookie),
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries?query%5B%24ne%5D=x`)
+        .set("Cookie", session.cookie),
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries/not-an-id`)
+        .set("Cookie", session.cookie),
+      request(app)
+        .patch(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/status`)
+        .set(headers)
+        .send({ status: "spam", expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/notes`)
+        .set(headers)
+        .send({ note: "x".repeat(1_001), expectedVersion: 0 }),
+      request(app)
+        .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/archive`)
+        .set(headers)
+        .send({}),
+      request(app)
+        .get(`${API_PREFIX}/admin/inquiries/507f191e810c19729de860ff`)
+        .set("Cookie", session.cookie),
+    ]);
+    const noCsrf = await request(app)
+      .post(`${API_PREFIX}/admin/inquiries/${ADMIN_INQUIRY_ID}/spam`)
+      .set("Cookie", session.cookie)
+      .set("Origin", ORIGIN)
+      .send({ expectedVersion: 0 });
+
+    expect(responses.map((response) => response.status)).toEqual([
+      400, 400, 400, 400, 400, 400, 404,
+    ]);
+    expect(noCsrf.status).toBe(403);
+    expect(adminInquiries.mutations).toHaveLength(0);
+  });
 });

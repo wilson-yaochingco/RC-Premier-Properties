@@ -1,5 +1,7 @@
 import type { ApiErrorResponse } from "@rc/shared";
-import { API_BASE_URL } from "@/lib/env";
+import { API_BASE_URL } from "../lib/env";
+
+export const DEFAULT_API_TIMEOUT_MS = 15_000;
 
 /** Error returned for a non-successful response from the backend API. */
 export class ApiClientError extends Error {
@@ -53,22 +55,28 @@ async function readErrorResponse(response: Response): Promise<ApiErrorResponse> 
 export async function apiRequest<TResponse>(
   path: string,
   init: RequestInit = {},
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<TResponse> {
   const headers = new Headers(init.headers);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
 
   let response: Response;
+  const deadline = AbortSignal.timeout(timeoutMs);
+  const signal = init.signal ? AbortSignal.any([init.signal, deadline]) : deadline;
 
   try {
-    response = await fetch(requestUrl(path), { ...init, headers });
+    response = await fetch(requestUrl(path), { ...init, headers, signal });
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    if (init.signal?.aborted) throw error;
 
     throw new ApiClientError(
       {
         status: "error",
         statusCode: 0,
-        message: "Unable to reach the API.",
+        message:
+          error instanceof DOMException && error.name === "TimeoutError"
+            ? "The API request timed out. Try again."
+            : "Unable to reach the API.",
       },
       { cause: error },
     );

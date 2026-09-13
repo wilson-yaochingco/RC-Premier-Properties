@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import {
+  OFFICIAL_EMAIL,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_HREF,
+  OFFICIAL_SOCIAL_LINKS,
+} from "@/lib/public-contact";
+import { BrandLogo } from "./BrandLogo";
 
 const footerNavigation = [
-  { href: "/properties", label: "Browse properties" },
+  { href: "/properties", label: "Properties" },
+  { href: "/locations", label: "Locations" },
+  { href: "/sell", label: "Sell a Property" },
   { href: "/about", label: "About" },
-  { href: "/sell", label: "Sell a property" },
-  { href: "/book-viewing", label: "Book a viewing" },
+  { href: "/book-viewing", label: "Request a Tour" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
@@ -14,29 +22,21 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="site-footer__invitation">
-        <Container>
-          <p className="eyebrow">Your next move</p>
-          <div className="site-footer__invitation-row">
-            <h2>Let&apos;s make space for what comes next.</h2>
-            <Button href="/contact" variant="secondary">
-              Start a conversation
-            </Button>
+        <Container className="site-footer__invitation-row">
+          <div>
+            <p className="eyebrow">Your next move</p>
+            <h2>Let’s find a home that suits you.</h2>
           </div>
+          <Button href="/properties" variant="secondary">
+            Browse properties
+          </Button>
         </Container>
       </div>
 
       <Container className="site-footer__main">
         <div className="site-footer__brand">
-          <Link
-            href="/"
-            className="brand-name-slot brand-name-slot--footer"
-            aria-label="RC Premier Properties home"
-            data-brand-slot="text"
-          >
-            <span>RC Premier</span>
-            <span>Properties</span>
-          </Link>
-          <p>A considered property experience centered on Angeles City and Pampanga.</p>
+          <BrandLogo footer />
+          <p>Residential property discovery and inquiry support across Pampanga.</p>
         </div>
 
         <nav className="site-footer__navigation" aria-label="Footer navigation">
@@ -50,15 +50,29 @@ export function SiteFooter() {
           </ul>
         </nav>
 
-        <div className="site-footer__location">
-          <p className="eyebrow">Primary area</p>
-          <p>Angeles City</p>
-          <p>Pampanga, Philippines</p>
+        <div className="site-footer__contact">
+          <p className="eyebrow">Get in touch</p>
+          <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>
+          <a href={OFFICIAL_PHONE_HREF}>{OFFICIAL_PHONE}</a>
         </div>
 
+        <nav className="site-footer__social" aria-label="Social media">
+          <p className="eyebrow">Follow</p>
+          <ul>
+            {OFFICIAL_SOCIAL_LINKS.map((item) => (
+              <li key={item.href}>
+                <a href={item.href} target="_blank" rel="noopener noreferrer">
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
         <div className="site-footer__bottom">
-          <p>© {new Date().getFullYear()} RC Premier Properties</p>
-          <p>Real media and business contact details to be supplied.</p>
+          <p>
+            © {new Date().getFullYear()} RC Premier Properties. All rights reserved.
+          </p>
         </div>
       </Container>
     </footer>

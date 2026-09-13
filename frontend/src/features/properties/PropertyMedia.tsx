@@ -1,32 +1,68 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import type { PublicPropertyMedia } from "@rc/shared";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
+import {
+  DEVELOPMENT_SAMPLE_MEDIA_ENABLED,
+  isApprovedProductionMediaUrl,
+} from "@/lib/env";
 
 interface PropertyMediaProps {
   media?: PublicPropertyMedia;
   label?: string;
-  priority?: boolean;
+  preload?: boolean;
   className?: string;
   sizes?: string;
+  fit?: "cover" | "contain";
 }
 
-function isLocalMediaUrl(url: string | undefined): url is string {
-  return Boolean(url?.startsWith("/") && !url.startsWith("//"));
+function isDevelopmentSampleUrl(media: PublicPropertyMedia | undefined): boolean {
+  if (
+    !DEVELOPMENT_SAMPLE_MEDIA_ENABLED ||
+    media?.source !== "development-sample" ||
+    !media.url
+  )
+    return false;
+  try {
+    const url = new URL(media.url);
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "images.unsplash.com" &&
+      /^\/photo-[a-zA-Z0-9-]+$/.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function PropertyMedia({
   media,
   label = "PROPERTY IMAGE",
-  priority = false,
+  preload = false,
   className = "",
-  sizes = "(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw",
+  sizes = "(max-width: 639px) 92vw, (max-width: 1023px) 50vw, 33vw",
+  fit = "cover",
 }: PropertyMediaProps) {
-  if (media?.kind !== "image" || !isLocalMediaUrl(media.url)) {
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const sample = isDevelopmentSampleUrl(media);
+  const mediaUrl = media?.url;
+  if (
+    media?.kind !== "image" ||
+    !mediaUrl ||
+    (!isApprovedProductionMediaUrl(mediaUrl) && !sample)
+  ) {
     return (
       <MediaPlaceholder
         label={label}
+        accessibleLabel={
+          media?.kind === "image" && media.alt
+            ? `Image unavailable: ${media.alt}`
+            : undefined
+        }
         ratio="landscape"
-        tone="violet"
+        tone="neutral"
         className={className}
       />
     );
@@ -34,7 +70,33 @@ export function PropertyMedia({
 
   return (
     <div className={`property-media ${className}`.trim()}>
-      <Image src={media.url} alt={media.alt} fill priority={priority} sizes={sizes} />
+      {failedUrl === mediaUrl ? (
+        <MediaPlaceholder
+          label="PROPERTY IMAGE UNAVAILABLE"
+          accessibleLabel={`Image unavailable: ${media.alt}`}
+          ratio="landscape"
+        />
+      ) : (
+        <Image
+          src={mediaUrl}
+          alt={media.alt}
+          fill
+          preload={preload}
+          sizes={sizes}
+          onError={() => setFailedUrl(mediaUrl)}
+          style={{
+            objectFit: fit,
+            objectPosition: media.focalPoint
+              ? `${media.focalPoint.x}% ${media.focalPoint.y}%`
+              : "50% 50%",
+          }}
+        />
+      )}
+      {sample && failedUrl !== mediaUrl ? (
+        <span className="property-media__sample-label">
+          Development sample — not this listing
+        </span>
+      ) : null}
     </div>
   );
 }

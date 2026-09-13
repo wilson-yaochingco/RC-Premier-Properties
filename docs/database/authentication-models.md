@@ -68,7 +68,10 @@ deactivation and administrator reprovisioning also retain a safe aggregate count
 their higher-level event.
 
 Indexes support newest-first review, actor history and action history. There is no TTL
-index because the application retention period has not been approved. Events cannot
+index because the application retention period has not been approved. Level 12 keeps
+MongoDB as the durable audit source and deliberately does not add an outbox/event bus
+without an independent delivery destination or scale requirement. Audit write failures
+must be alerted from structured operational errors before production. Events cannot
 store callback codes, provider tokens, cookies, CSRF values, passwords, arbitrary text,
 inquiry messages or complete data snapshots.
 
@@ -87,8 +90,14 @@ this limitation with alerting or add a replica-set transaction/outbox before lau
 ## Controlled administrator bootstrap
 
 No public provisioning endpoint exists. After creating the Auth0 user, an authorized
-operator runs the local CLI with the exact Auth0 `user_id` subject. The issuer always
-comes from validated backend configuration. Re-running the command updates/reactivates
-that identity, increments its authorization version, revokes its existing sessions,
-records one revocation event per actual transition and records the aggregate on the
-provisioning event.
+operator runs the local CLI with the exact issuer and Auth0 `user_id` subject. The
+explicit issuer must match validated backend configuration. Re-running the command
+updates/reactivates that identity, increments its authorization version, revokes its
+existing sessions, records one revocation event per actual transition and records the
+aggregate on the provisioning event.
+
+The operator-only disable CLI selects the same exact `(issuer, subject)` pair, changes
+an active identity to `disabled`, increments its authorization version and revokes every
+active local session. It is not an HTTP endpoint. Provider deletion does not remove or
+disable this local record automatically; the old identity remains disabled until the
+retention policy permits deletion.

@@ -1,9 +1,14 @@
 import mongoose, { Schema, type Model } from "mongoose";
+import { randomUUID } from "node:crypto";
 import {
+  FEATURED_PROPERTY_ORDER_MAX,
+  FEATURED_PROPERTY_ORDER_MIN,
   LISTING_PURPOSES,
   PROPERTY_AVAILABILITY,
   PROPERTY_PUBLICATION_STATUSES,
   PROPERTY_TYPES,
+  PROPERTY_MEDIA_KINDS,
+  PROPERTY_MEDIA_SOURCES,
   PUBLIC_LOCATION_PRECISIONS,
   type PublicMapPoint,
 } from "@rc/shared";
@@ -11,13 +16,32 @@ import type { PropertyEntity } from "./property.types.js";
 
 const mediaSchema = new Schema(
   {
+    id: { type: String, required: true, default: randomUUID, maxlength: 80 },
     kind: {
       type: String,
-      enum: ["image", "video", "floor-plan"],
+      enum: PROPERTY_MEDIA_KINDS,
       required: true,
     },
-    url: { type: String, trim: true },
+    url: { type: String, trim: true, required: true, maxlength: 2_048 },
     alt: { type: String, trim: true, required: true, maxlength: 240 },
+    caption: { type: String, trim: true, maxlength: 500 },
+    source: {
+      type: String,
+      enum: PROPERTY_MEDIA_SOURCES,
+      required: true,
+      default: "production",
+    },
+    sourceUrl: { type: String, trim: true, maxlength: 2_048 },
+    attribution: { type: String, trim: true, maxlength: 160 },
+    focalPoint: {
+      type: new Schema(
+        {
+          x: { type: Number, required: true, min: 0, max: 100 },
+          y: { type: Number, required: true, min: 0, max: 100 },
+        },
+        { _id: false },
+      ),
+    },
   },
   { _id: false },
 );
@@ -69,6 +93,14 @@ const publicMapPointSchema = new Schema<PublicMapPoint>(
   { _id: false },
 );
 
+const privateCoordinatesSchema = new Schema(
+  {
+    latitude: { type: Number, required: true, min: -90, max: 90 },
+    longitude: { type: Number, required: true, min: -180, max: 180 },
+  },
+  { _id: false },
+);
+
 const propertySchema = new Schema<PropertyEntity>(
   {
     propertyId: {
@@ -102,7 +134,20 @@ const propertySchema = new Schema<PropertyEntity>(
       required: true,
       default: "draft",
     },
+    archiveRestoreStatus: {
+      type: String,
+      enum: ["draft", "unpublished"],
+    },
     featured: { type: Boolean, required: true, default: false },
+    featuredOrder: {
+      type: Number,
+      min: FEATURED_PROPERTY_ORDER_MIN,
+      max: FEATURED_PROPERTY_ORDER_MAX,
+      validate: {
+        validator: Number.isInteger,
+        message: "featuredOrder must be a whole number.",
+      },
+    },
     price: {
       amount: { type: Number, required: true, min: 0, max: 1_000_000_000_000 },
       currency: { type: String, enum: ["PHP"], required: true, default: "PHP" },
@@ -122,10 +167,7 @@ const propertySchema = new Schema<PropertyEntity>(
       },
       publicPoint: { type: publicMapPointSchema },
       privateAddress: { type: String, trim: true, maxlength: 240, select: false },
-      coordinates: {
-        latitude: { type: Number, min: -90, max: 90, select: false },
-        longitude: { type: Number, min: -180, max: 180, select: false },
-      },
+      coordinates: { type: privateCoordinatesSchema, select: false },
     },
     specifications: { type: specificationsSchema, required: true, default: () => ({}) },
     shortDescription: {
@@ -151,7 +193,7 @@ const propertySchema = new Schema<PropertyEntity>(
   },
   {
     timestamps: true,
-    versionKey: false,
+    versionKey: "__v",
   },
 );
 
@@ -174,7 +216,14 @@ propertySchema.index({
   "specifications.bedrooms": 1,
   "specifications.bathrooms": 1,
 });
-propertySchema.index({ publicationStatus: 1, featured: 1, publishedAt: -1 });
+propertySchema.index({
+  publicationStatus: 1,
+  featured: 1,
+  availability: 1,
+  featuredOrder: -1,
+  publishedAt: -1,
+  _id: -1,
+});
 
 export const PropertyModel: Model<PropertyEntity> =
   (mongoose.models.Property as Model<PropertyEntity> | undefined) ??

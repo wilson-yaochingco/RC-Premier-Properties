@@ -71,6 +71,7 @@ function makePropertyService() {
       void limit;
       return {
         items: [],
+        locationCounts: [{ location: "Angeles City", count: 1 }],
         matchingTotal: 1,
         mappableTotal: 0,
         returned: 0,
@@ -81,6 +82,9 @@ function makePropertyService() {
     async findPublishedBySlug(slug) {
       return slug === DETAIL.slug ? DETAIL : null;
     },
+    async related(slug) {
+      return slug === DETAIL.slug ? { items: [] } : null;
+    },
     async getFacets() {
       return FACETS;
     },
@@ -90,6 +94,7 @@ function makePropertyService() {
 
 function makeInquiryService() {
   const submissions: Array<Omit<CreateInquiryRequest, "website">> = [];
+  const idempotencyKeys: Array<string | undefined> = [];
   const response: CreateInquiryResponse = {
     inquiryId: "507f191e810c19729de860ea",
     status: "received",
@@ -97,12 +102,13 @@ function makeInquiryService() {
     createdAt: "2026-09-01T00:00:00.000Z",
   };
   const service: InquiryService = {
-    async create(inquiry) {
+    async create(inquiry, idempotencyKey) {
       submissions.push(inquiry);
+      idempotencyKeys.push(idempotencyKey);
       return response;
     },
   };
-  return { response, service, submissions };
+  return { idempotencyKeys, response, service, submissions };
 }
 
 describe("Phase 2A public API", () => {
@@ -155,6 +161,9 @@ describe("Phase 2A public API", () => {
   it("returns facets and published detail responses", async () => {
     const facets = await request(app()).get(`${API_PREFIX}/properties/facets`);
     const detail = await request(app()).get(`${API_PREFIX}/properties/${DETAIL.slug}`);
+    const related = await request(app()).get(
+      `${API_PREFIX}/properties/${DETAIL.slug}/related`,
+    );
 
     expect(facets.status).toBe(200);
     expect(facets.body).toEqual(FACETS);
@@ -165,6 +174,8 @@ describe("Phase 2A public API", () => {
       publicPrecision: "city-only",
       disclosure: "general-area",
     });
+    expect(related.status).toBe(200);
+    expect(related.body).toEqual({ items: [] });
   });
 
   it("returns a bounded map response using the same normalized filters", async () => {
@@ -175,12 +186,15 @@ describe("Phase 2A public API", () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       items: [],
+      locationCounts: [{ location: "Angeles City", count: 1 }],
       matchingTotal: 1,
       mappableTotal: 0,
       returned: 0,
       truncated: false,
       appliedFilters: { location: "Angeles City", maxPrice: 9_000_000 },
     });
+    expect(JSON.stringify(response.body)).not.toContain("privateAddress");
+    expect(JSON.stringify(response.body)).not.toContain("coordinates");
     expect(properties.maps).toEqual([
       {
         location: "Angeles City",
@@ -239,18 +253,21 @@ describe("Phase 2A public API", () => {
   });
 
   it("persists a normalized inquiry and exposes no public read route", async () => {
-    const response = await request(app()).post(`${API_PREFIX}/inquiries`).send({
-      name: "  Maria Santos ",
-      email: " MARIA@EXAMPLE.COM ",
-      phone: "+63 917 555 1234",
-      inquiryType: "property",
-      source: "property-detail",
-      propertyId: "rc-100",
-      subject: "Viewing request",
-      message: "I would like to learn more about this property.",
-      privacyConsent: true,
-      website: "",
-    });
+    const response = await request(app())
+      .post(`${API_PREFIX}/inquiries`)
+      .set("Idempotency-Key", "public-form-request-0001")
+      .send({
+        name: "  Maria Santos ",
+        email: " MARIA@EXAMPLE.COM ",
+        phone: "+63 917 555 1234",
+        inquiryType: "property",
+        source: "property-detail",
+        propertyId: "rc-100",
+        subject: "Viewing request",
+        message: "I would like to learn more about this property.",
+        privacyConsent: true,
+        website: "",
+      });
     const readResponse = await request(app()).get(`${API_PREFIX}/inquiries`);
 
     expect(response.status).toBe(201);
@@ -268,6 +285,7 @@ describe("Phase 2A public API", () => {
         privacyConsent: true,
       },
     ]);
+    expect(inquiries.idempotencyKeys).toEqual(["public-form-request-0001"]);
     expect(readResponse.status).toBe(404);
   });
 
@@ -290,6 +308,69 @@ describe("Phase 2A public API", () => {
         expect.objectContaining({ field: "privacyConsent" }),
         expect.objectContaining({ field: "$where" }),
       ]),
+    );
+    expect(inquiries.submissions).toHaveLength(0);
+  });
+
+  it("accepts a structured future viewing request and rejects malformed schedules", async () => {
+    const valid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
+      name: "Maria Santos",
+      email: "maria@example.com",
+      phone: "+63 917 555 0110",
+      inquiryType: "viewing",
+      source: "viewing-page",
+      propertyId: "rc-100",
+      requestedDate: "2030-09-20",
+      requestedTime: "10:30",
+      privacyConsent: true,
+    });
+    expect(valid.status).toBe(201);
+    expect(inquiries.submissions).toContainEqual(
+      expect.objectContaining({
+        inquiryType: "viewing",
+        propertyId: "RC-100",
+        requestedDate: "2030-09-20",
+        requestedTime: "10:30",
+      }),
+    );
+
+    const invalid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
+      name: "Maria Santos",
+      email: "maria@example.com",
+      phone: "+63 917 555 0110",
+      inquiryType: "viewing",
+      source: "viewing-page",
+      propertyId: "RC-100",
+      requestedDate: "2030-02-30",
+      requestedTime: "25:00",
+      privacyConsent: true,
+    });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "requestedDate" }),
+        expect.objectContaining({ field: "requestedTime" }),
+      ]),
+    );
+    expect(inquiries.submissions).toHaveLength(1);
+  });
+
+  it("rejects malformed idempotency keys before persistence", async () => {
+    const response = await request(app())
+      .post(`${API_PREFIX}/inquiries`)
+      .set("Idempotency-Key", "too-short")
+      .send({
+        name: "Maria Santos",
+        email: "maria@example.com",
+        inquiryType: "general",
+        source: "contact-page",
+        message: "Please contact me about your property services.",
+        privacyConsent: true,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.issues).toContainEqual(
+      expect.objectContaining({ field: "Idempotency-Key" }),
     );
     expect(inquiries.submissions).toHaveLength(0);
   });
@@ -336,7 +417,7 @@ describe("Phase 2A public API", () => {
     expect(oversized.body).toMatchObject({
       status: "error",
       statusCode: 413,
-      message: "Request body exceeds the 1 MB limit.",
+      message: "Request body exceeds the configured limit.",
     });
     expect(inquiries.submissions).toHaveLength(0);
   });
