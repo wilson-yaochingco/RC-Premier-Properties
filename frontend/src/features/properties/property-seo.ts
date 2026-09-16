@@ -83,8 +83,8 @@ export function buildPropertiesMetadata(
     ? `Properties for Sale in ${state.location}`
     : "Properties for Sale in Pampanga";
   const description = state.location
-    ? `Browse published residential properties for sale in ${state.location} with RC Premier Properties.`
-    : "Browse published houses and residential properties for sale across Pampanga with RC Premier Properties.";
+    ? `Browse published properties for sale in ${state.location} with RC Premier Properties.`
+    : "Browse published properties for sale across Pampanga with RC Premier Properties.";
 
   return buildPageMetadata({
     title,

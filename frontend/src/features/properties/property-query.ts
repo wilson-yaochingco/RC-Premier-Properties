@@ -1,7 +1,7 @@
 import {
   PROPERTY_SORT_OPTIONS,
   PROPERTY_AVAILABILITY,
-  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  SALE_PROPERTY_TYPES,
   type ListingPurpose,
   type PropertyAvailability,
   type PropertySearchFilters,
@@ -72,9 +72,7 @@ export function propertyFormValues(searchParams: RawSearchParams): PropertyFormV
     keyword: firstValue(searchParams.keyword),
     propertyId: firstValue(searchParams.propertyId),
     location: firstValue(searchParams.location),
-    propertyType: oneOf(propertyType, RESIDENTIAL_SALE_PROPERTY_TYPES)
-      ? propertyType
-      : "",
+    propertyType: oneOf(propertyType, SALE_PROPERTY_TYPES) ? propertyType : "",
     availability: oneOf(firstValue(searchParams.availability), PROPERTY_AVAILABILITY)
       ? (firstValue(searchParams.availability) as PropertyAvailability)
       : "",

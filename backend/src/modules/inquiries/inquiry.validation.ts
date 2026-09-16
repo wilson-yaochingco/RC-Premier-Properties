@@ -111,7 +111,7 @@ export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedI
     max: 254,
   });
   const phone = stringField(body, "phone", issues, {
-    required: body.inquiryType === "viewing",
+    required: true,
     max: 30,
   });
   const inquiryType = enumField(body, "inquiryType", INQUIRY_TYPES, issues);

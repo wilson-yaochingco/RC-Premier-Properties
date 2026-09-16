@@ -1,7 +1,11 @@
-import type { CreateInquiryRequest } from "@rc/shared";
+import { API_PREFIX, type CreateInquiryRequest } from "@rc/shared";
 import type { Model } from "mongoose";
+import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
+import { createApp } from "../src/app.js";
 import { InquiryModel } from "../src/modules/inquiries/inquiry.model.js";
+import { operationalLogger } from "../src/lib/operational-logger.js";
+import { DisabledInquiryNotifier } from "../src/modules/inquiries/inquiry.notification.js";
 import {
   InquiryNotificationRetryService,
   type InquiryNotificationRetryStore,
@@ -165,6 +169,191 @@ describe("initial notification lease ownership", () => {
 });
 
 describe("public inquiry idempotency", () => {
+  it.each(["disabled-provider", "database-failure"] as const)(
+    "returns the correct HTTP acknowledgment for %s",
+    async (outcome) => {
+      const create =
+        outcome === "database-failure"
+          ? vi.fn().mockRejectedValue(new Error("private MongoDB failure"))
+          : vi.fn().mockResolvedValue({
+              _id: "507f191e810c19729de860ea",
+              createdAt: new Date("2026-09-15T00:00:00.000Z"),
+              inquiryType: "general",
+            });
+      const state = notificationState();
+      const service = new MongooseInquiryService(
+        { create } as unknown as Model<InquiryEntity>,
+        propertyReferences(),
+        new DisabledInquiryNotifier(),
+        state,
+      );
+      const response = await request(createApp({ inquiryService: service }))
+        .post(`${API_PREFIX}/inquiries`)
+        .send({ ...REQUEST, phone: "+63 917 555 0110" });
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(response.status).toBe(outcome === "database-failure" ? 500 : 201);
+      if (outcome === "database-failure") {
+        expect(response.body).toEqual({
+          status: "error",
+          statusCode: 500,
+          message: "Internal Server Error",
+        });
+        expect(state.markInitialFailed).not.toHaveBeenCalled();
+      } else {
+        expect(response.body).toMatchObject({
+          status: "received",
+          inquiryId: "507f191e810c19729de860ea",
+        });
+        expect(state.markInitialFailed).toHaveBeenCalled();
+      }
+      expect(JSON.stringify(response.body)).not.toMatch(
+        /private|provider_not_configured/,
+      );
+    },
+  );
+
+  it("acknowledges a saved inquiry with retry state when the real adapter is disabled", async () => {
+    const createdAt = new Date("2026-09-15T00:00:00.000Z");
+    const create = vi.fn().mockResolvedValue({
+      _id: "507f191e810c19729de860ea",
+      createdAt,
+      inquiryType: "general",
+    });
+    const state = notificationState();
+    const service = new MongooseInquiryService(
+      { create } as unknown as Model<InquiryEntity>,
+      propertyReferences(),
+      new DisabledInquiryNotifier(),
+      state,
+    );
+
+    await expect(
+      service.create({ ...REQUEST, phone: "+63 917 555 0110" }),
+    ).resolves.toMatchObject({
+      status: "received",
+      createdAt: createdAt.toISOString(),
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(state.markInitialDelivered).not.toHaveBeenCalled();
+    expect(state.markInitialFailed).toHaveBeenCalledWith(
+      "507f191e810c19729de860ea",
+      expect.any(String),
+      expect.any(String),
+      expect.any(Date),
+      expect.any(Date),
+      "provider_not_configured",
+    );
+    const [, , , attemptedAt, nextAttemptAt] = state.markInitialFailed.mock.calls[0]!;
+    expect(nextAttemptAt.getTime() - attemptedAt.getTime()).toBe(5 * 60_000);
+  });
+
+  it.each(["delivered", "failed"] as const)(
+    "still acknowledges persistence if recording a %s notification fails",
+    async (outcome) => {
+      const create = vi.fn().mockResolvedValue({
+        _id: "507f191e810c19729de860ea",
+        createdAt: new Date("2026-09-15T00:00:00.000Z"),
+        inquiryType: "general",
+      });
+      const send =
+        outcome === "delivered"
+          ? vi.fn().mockResolvedValue(undefined)
+          : vi.fn().mockRejectedValue(new Error("private provider failure"));
+      const state = notificationState();
+      state.markInitialDelivered.mockRejectedValue(
+        new Error("private database failure"),
+      );
+      state.markInitialFailed.mockRejectedValue(new Error("private database failure"));
+      const log = vi.spyOn(operationalLogger, "error").mockImplementation(() => {});
+      try {
+        const service = new MongooseInquiryService(
+          { create } as unknown as Model<InquiryEntity>,
+          propertyReferences(),
+          { configured: true, send },
+          state,
+        );
+        await expect(
+          service.create({ ...REQUEST, phone: "+63 917 555 0110" }),
+        ).resolves.toMatchObject({ status: "received" });
+        expect(create).toHaveBeenCalledBefore(send);
+        expect(log).toHaveBeenCalledWith(
+          "inquiry_notification_state_update_failed",
+          expect.objectContaining({ dependency: "mongodb" }),
+        );
+        expect(JSON.stringify(log.mock.calls)).not.toMatch(
+          /private|example\.test|Maria/,
+        );
+        expect(create.mock.calls[0]![0].notification).toMatchObject({
+          status: "sending",
+          leaseUntil: expect.any(Date),
+        });
+      } finally {
+        log.mockRestore();
+      }
+    },
+  );
+
+  it("propagates an insertion failure without sending or recording notification success", async () => {
+    const failure = Object.assign(new Error("private database connection details"), {
+      name: "MongoNetworkError",
+      code: "ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR",
+    });
+    const create = vi.fn().mockRejectedValue(failure);
+    const send = vi.fn();
+    const state = notificationState();
+    const log = vi.spyOn(operationalLogger, "error").mockImplementation(() => {});
+    try {
+      const service = new MongooseInquiryService(
+        { create } as unknown as Model<InquiryEntity>,
+        propertyReferences(),
+        { configured: true, send },
+        state,
+      );
+      await expect(
+        service.create({ ...REQUEST, phone: "+63 917 555 0110" }),
+      ).rejects.toBe(failure);
+      expect(send).not.toHaveBeenCalled();
+      expect(state.markInitialDelivered).not.toHaveBeenCalled();
+      expect(state.markInitialFailed).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledWith("inquiry_persistence_failed", {
+        dependency: "mongodb",
+        entityType: "inquiry",
+        operation: "create",
+        errorName: "MongoNetworkError",
+        errorCode: "ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR",
+      });
+      expect(JSON.stringify(log.mock.calls)).not.toContain(failure.message);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("records successful configured delivery only after saving the inquiry", async () => {
+    const create = vi.fn().mockResolvedValue({
+      _id: "507f191e810c19729de860ea",
+      createdAt: new Date("2026-09-15T00:00:00.000Z"),
+      inquiryType: "general",
+    });
+    const send = vi.fn().mockResolvedValue(undefined);
+    const state = notificationState();
+    const service = new MongooseInquiryService(
+      { create } as unknown as Model<InquiryEntity>,
+      propertyReferences(),
+      { configured: true, send },
+      state,
+    );
+    await expect(
+      service.create({ ...REQUEST, phone: "+63 917 555 0110" }),
+    ).resolves.toMatchObject({ status: "received" });
+    expect(create).toHaveBeenCalledBefore(send);
+    expect(send).toHaveBeenCalledBefore(state.markInitialDelivered);
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "rcpremierph@gmail.com" }),
+      expect.any(Object),
+    );
+    expect(state.markInitialFailed).not.toHaveBeenCalled();
+  });
+
   it.each(["draft", "unpublished", "archived"])(
     "rejects public inquiry links to a %s property without persisting or notifying",
     async (publicationStatus) => {
@@ -377,7 +566,16 @@ describe("public inquiry idempotency", () => {
       propertyId: "RCPP-ADMIN-001",
       publicationStatus: "published",
       purpose: "sale",
-      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
+      propertyType: {
+        $in: [
+          "house-and-lot",
+          "townhouse",
+          "lot",
+          "industrial",
+          "commercial",
+          "condominium",
+        ],
+      },
       availability: { $ne: "sold" },
     });
     await expect(repository.isKnownPropertyId("RCPP-ADMIN-001")).resolves.toBe(true);
@@ -385,7 +583,16 @@ describe("public inquiry idempotency", () => {
       propertyId: "RCPP-ADMIN-001",
       publicationStatus: "published",
       purpose: "sale",
-      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
+      propertyType: {
+        $in: [
+          "house-and-lot",
+          "townhouse",
+          "lot",
+          "industrial",
+          "commercial",
+          "condominium",
+        ],
+      },
     });
   });
 });

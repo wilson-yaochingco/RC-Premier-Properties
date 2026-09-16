@@ -27,7 +27,7 @@ or business hours, so neither is displayed.
 
 ## Form behavior
 
-The general form collects name, email, optional phone, inquiry type, optional Property ID,
+The general form collects name, email, required phone, inquiry type, optional Property ID,
 optional subject, message and explicit privacy consent. The Sell page instead fixes the
 type to `selling`, removes the visible type and Property ID controls, and asks for the
 seller's property area and relevant details. The viewing dialog fixes the type to
@@ -223,3 +223,20 @@ timezone.
 - A production transactional-mail provider and credentials are not selected. The current
   disabled adapter performs no external delivery, embeds no Gmail password, and makes the
   compiled retry command fail closed before claiming work.
+
+All new contact, seller, property, and viewing submissions require a valid phone number
+in frontend submission handling and server validation. Existing inquiries without a
+phone remain readable and retryable; persisted inquiries still survive delivery failure.
+The business deployment must retain `BUSINESS_NOTIFICATION_EMAIL=rcpremierph@gmail.com`.
+That recipient setting alone cannot enable the disabled transactional-mail adapter.
+
+Contact and seller submission feedback uses a rectangular, accessible status panel.
+Success confirms that the inquiry was received, without claiming email delivery. Errors
+use safe retry or connection guidance while preserving linked field-validation issues.
+Unexpected server messages and server-error issues are not rendered in the panel.
+Insertion failures emit `inquiry_persistence_failed` with only database dependency,
+operation, and sanitized error identity, then propagate through the existing API error
+handler. A failed database write still rejects submission; notification and notification
+state-update failures after a successful write still return the normal HTTP 201
+acknowledgment. An expired initial notification lease remains recoverable by the existing
+retry worker if its state update failed.

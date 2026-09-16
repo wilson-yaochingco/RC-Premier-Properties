@@ -3,7 +3,7 @@ import {
   MAX_PROPERTY_IMAGES,
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
-  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  SALE_PROPERTY_TYPES,
   type AdminPropertyContentField,
   type AdminPropertyDetail,
   type AdminPropertyAvailabilityRequest,
@@ -205,7 +205,7 @@ export function buildPublishedPropertyFilter(
   const filter: QueryFilter<PropertyEntity> = {
     publicationStatus: "published",
     purpose: "sale",
-    propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+    propertyType: { $in: SALE_PROPERTY_TYPES },
   };
 
   if (request.propertyId) filter.propertyId = request.propertyId.toUpperCase();
@@ -289,7 +289,7 @@ export function buildPublishedPropertyDetailFilter(
   return {
     publicationStatus: "published",
     purpose: "sale",
-    propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+    propertyType: { $in: SALE_PROPERTY_TYPES },
     slug,
   };
 }
@@ -441,12 +441,8 @@ export function toAdminPropertySummary(
   if (!record.slug?.trim()) missing.push("URL slug");
   if (!record.title?.trim()) missing.push("title");
   if (record.purpose !== "sale") missing.push("sale purpose");
-  if (
-    !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
-      record.propertyType,
-    )
-  ) {
-    missing.push("approved residential property type");
+  if (!(SALE_PROPERTY_TYPES as readonly string[]).includes(record.propertyType)) {
+    missing.push("approved sale property type");
   }
   if (!Number.isFinite(record.price?.amount) || record.price.amount < 0) {
     missing.push("valid PHP price");
@@ -656,7 +652,7 @@ export class MongoosePropertyService implements PropertyService {
       .find({
         publicationStatus: "published",
         purpose: "sale",
-        propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+        propertyType: { $in: SALE_PROPERTY_TYPES },
         _id: { $ne: current._id },
         $or: [
           { "location.city": current.location.city },
@@ -703,7 +699,7 @@ export class MongoosePropertyService implements PropertyService {
           $match: {
             publicationStatus: "published",
             purpose: "sale",
-            propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+            propertyType: { $in: SALE_PROPERTY_TYPES },
           },
         },
         {
@@ -726,7 +722,7 @@ export class MongoosePropertyService implements PropertyService {
           $match: {
             publicationStatus: "published",
             purpose: "sale",
-            propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+            propertyType: { $in: SALE_PROPERTY_TYPES },
             "location.province": "Pampanga",
             "location.city": { $in: PUBLIC_PROPERTY_AREAS },
           },
@@ -1181,13 +1177,11 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       if (
         current.purpose !== "sale" ||
         (requestedPurpose !== undefined && requestedPurpose !== "sale") ||
-        !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
-          current.propertyType,
-        )
+        !(SALE_PROPERTY_TYPES as readonly string[]).includes(current.propertyType)
       ) {
         throw new HttpError(
           409,
-          "Legacy non-residential or non-sale records require deliberate data reconciliation and cannot be edited here.",
+          "Legacy unsupported property types or non-sale records require deliberate data reconciliation and cannot be edited here.",
         );
       }
       if (!["draft", "unpublished"].includes(current.publicationStatus)) {

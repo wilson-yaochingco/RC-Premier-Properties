@@ -19,7 +19,7 @@ const LOCATION_ROUTES = [
   { path: "/locations/angeles-city", artifact: "location-detail" },
 ] as const;
 
-const PART_TWO_VIEWPORT_WIDTHS = [320, 390, 768, 1024, 1280, 1440, 1920] as const;
+const PART_TWO_VIEWPORT_WIDTHS = [320, 375, 390, 768, 1024, 1280, 1440, 1920] as const;
 
 const VIEWPORT_WIDTHS = [
   320, 360, 375, 390, 412, 414, 430, 480, 640, 768, 820, 1024, 1280, 1366, 1440, 1600,

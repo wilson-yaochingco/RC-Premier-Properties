@@ -45,7 +45,13 @@ export function visibleSpecifications(
       : { label: "Bathrooms", value: String(specifications.bathrooms) },
     specifications.parkingSpaces === undefined
       ? undefined
-      : { label: "Parking", value: String(specifications.parkingSpaces) },
+      : { label: "Parking Space", value: String(specifications.parkingSpaces) },
+    specifications.powderRooms === undefined
+      ? undefined
+      : { label: "Powder Room", value: String(specifications.powderRooms) },
+    specifications.storeys === undefined
+      ? undefined
+      : { label: "Floor/Level", value: String(specifications.storeys) },
     specifications.floorAreaSqm === undefined
       ? undefined
       : {

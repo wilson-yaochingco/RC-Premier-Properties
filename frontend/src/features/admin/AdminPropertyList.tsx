@@ -382,7 +382,12 @@ export function AdminPropertyList() {
                     <td data-label="Publication">
                       {label(property.publicationStatus)}
                     </td>
-                    <td data-label="Availability">{label(property.availability)}</td>
+                    <td
+                      data-label="Availability"
+                      className={styles[`availability_${property.availability}`]}
+                    >
+                      {label(property.availability)}
+                    </td>
                     <td data-label="Featured">
                       <div className={styles.featuredCell}>
                         {property.featured ? (

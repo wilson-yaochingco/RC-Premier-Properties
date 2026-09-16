@@ -50,6 +50,12 @@ assignments are:
 | `about.png`          | About page imagery                   |
 | `footer.png`         | Restrained footer background         |
 
+The current Home hero uses the exact supplied `frontend/src/assets/site/home_hero.jpg`
+through its existing static Next Image import. The About hero video uses the exact
+supplied `frontend/public/media/about_video.mp4`. Neither source file is edited or
+re-encoded. Existing media overlays, gradients, filters, cropping, responsive layout,
+and video playback/reduced-motion behavior are preserved.
+
 All optional assets named in the Level 7 request were supplied. No random web or
 AI-generated substitute is used. Source PNGs remain unchanged; `next/image` supplies
 intrinsic dimensions, responsive `sizes`, lazy loading outside the LCP image, and WebP or

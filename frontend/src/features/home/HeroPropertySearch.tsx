@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 function SearchIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
@@ -12,12 +10,6 @@ function SearchIcon() {
 export function HeroPropertySearch() {
   return (
     <div className="hero-search">
-      <nav className="hero-search__links" aria-label="Property actions">
-        <Link href="/properties">Buy</Link>
-        <Link href="/sell">Sell</Link>
-        <Link href="/book-viewing">Request a viewing</Link>
-      </nav>
-
       <form
         action="/properties"
         method="get"

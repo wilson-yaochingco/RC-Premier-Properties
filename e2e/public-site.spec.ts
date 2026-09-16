@@ -19,7 +19,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { level: 1, name: "Find your place." }),
+    page.getByRole("heading", { level: 1, name: "Discover Your Next Home" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Clark Garden Residence" }),
@@ -615,7 +615,9 @@ test("contact form sends its typed payload and displays API success feedback", a
     subject: "Fixture property question",
     privacyConsent: true,
   });
-  await expect(page.getByRole("status")).toContainText("Inquiry received.");
+  await expect(page.getByRole("status")).toContainText(
+    "Inquiry submitted successfully.",
+  );
   await expect(page.getByRole("status")).toContainText("E2E-INQUIRY-001");
   expect(browserErrors).toEqual([]);
 });
@@ -687,6 +689,12 @@ test("server validation is focused, linked, and preserved beside each inquiry fi
   await page.getByLabel("Email").fill("visitor@example.test");
   await page.getByLabel("Message").fill("A valid-length message for the fixture.");
   await page.getByRole("checkbox").check();
+  const phone = page.getByLabel("Phone", { exact: true });
+  await expect(phone).toHaveAttribute("required", "");
+  await phone.fill("invalid-phone");
+  await page.getByRole("button", { name: "Send inquiry" }).click();
+  await expect(page.locator("#inquiry-errors")).toContainText("valid phone number");
+  await phone.fill("+63 917 555 0110");
   await page.getByRole("button", { name: "Send inquiry" }).click();
 
   const summary = page.locator("#inquiry-errors");

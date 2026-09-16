@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import logo from "@/assets/brand/rc-premier-logo.png";
-import heroExterior from "@/assets/site/home-hero-level18.jpg";
+import heroExterior from "@/assets/site/home_hero.jpg";
 import locationImage from "@/assets/site/location.png";
 import propertiesImage from "@/assets/site/properties.png";
 import whyImage from "@/assets/site/why-rc-premier.png";
@@ -158,7 +158,7 @@ export default function HomePage() {
         <div className="home-hero__shade" aria-hidden="true" />
         <Container className="home-hero__inner">
           <div className="home-hero__content">
-            <h1 id="home-heading">Find your place.</h1>
+            <h1 id="home-heading">Discover Your Next Home</h1>
             <HeroPropertySearch />
           </div>
         </Container>

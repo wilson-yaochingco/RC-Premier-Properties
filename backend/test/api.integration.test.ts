@@ -312,6 +312,34 @@ describe("Phase 2A public API", () => {
     expect(inquiries.submissions).toHaveLength(0);
   });
 
+  it.each(["general", "property", "selling", "viewing"] as const)(
+    "requires a phone number for %s inquiries before persistence",
+    async (inquiryType) => {
+      for (const phone of [undefined, "", "   ", "invalid-phone"]) {
+        const response = await request(app())
+          .post(`${API_PREFIX}/inquiries`)
+          .send({
+            name: "Phone Validation Fixture",
+            email: "phone@example.test",
+            phone,
+            inquiryType,
+            source: inquiryType === "viewing" ? "viewing-page" : "contact-page",
+            propertyId: "RC-100",
+            message: "Please provide more information about this property.",
+            ...(inquiryType === "viewing"
+              ? { requestedDate: "2030-09-20", requestedTime: "10:30" }
+              : {}),
+            privacyConsent: true,
+          });
+        expect(response.status).toBe(400);
+        expect(response.body.issues).toContainEqual(
+          expect.objectContaining({ field: "phone" }),
+        );
+      }
+      expect(inquiries.submissions).toHaveLength(0);
+    },
+  );
+
   it("accepts a structured future viewing request and rejects malformed schedules", async () => {
     const valid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
       name: "Maria Santos",
@@ -362,6 +390,7 @@ describe("Phase 2A public API", () => {
       .send({
         name: "Maria Santos",
         email: "maria@example.com",
+        phone: "+63 917 555 0110",
         inquiryType: "general",
         source: "contact-page",
         message: "Please contact me about your property services.",
@@ -426,6 +455,7 @@ describe("Phase 2A public API", () => {
     const response = await request(app()).post(`${API_PREFIX}/inquiries`).send({
       name: "Automated Sender",
       email: "bot@example.com",
+      phone: "+63 917 555 0110",
       inquiryType: "general",
       source: "contact-page",
       message: "This appears to be a valid-length message.",
@@ -450,6 +480,7 @@ describe("inquiry spam throttling", () => {
     const body = {
       name: "Maria Santos",
       email: "maria@example.com",
+      phone: "+63 917 555 0110",
       inquiryType: "general",
       source: "contact-page",
       message: "Please contact me about your property services.",

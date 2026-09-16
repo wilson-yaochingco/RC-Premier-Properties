@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MAX_PROPERTY_IMAGE_BYTES } from "@rc/shared";
 import {
   inspectPropertyImage,
@@ -11,6 +11,9 @@ import {
   LocalDevelopmentPropertyMediaStorage,
   PropertyMediaStorageError,
 } from "../src/modules/properties/property-media.storage.js";
+import express from "express";
+import request from "supertest";
+import { env } from "../src/config/env.js";
 
 async function image(format: "png" | "jpeg" | "webp") {
   const pipeline = sharp({
@@ -29,6 +32,43 @@ async function image(format: "png" | "jpeg" | "webp") {
 }
 
 describe("property image upload validation", () => {
+  it("reports missing production storage safely and keeps other server failures private", async () => {
+    vi.resetModules();
+    vi.doMock("../src/config/env.js", () => ({ env: { ...env, IS_PRODUCTION: true } }));
+    try {
+      const { HttpError, errorHandler } =
+        await import("../src/middleware/errorHandler.js");
+      const { UnavailablePropertyMediaStorage } =
+        await import("../src/modules/properties/property-media.storage.js");
+      const app = express();
+      app.post("/upload", async () => {
+        await new UnavailablePropertyMediaStorage().store();
+      });
+      app.post("/unexpected", () => {
+        throw new Error("private storage credential");
+      });
+      app.post("/dependency", () => {
+        throw new HttpError(503, "private dependency detail");
+      });
+      app.use(errorHandler);
+      const unavailable = await request(app).post("/upload");
+      expect(unavailable.status).toBe(503);
+      expect(unavailable.body).toEqual({
+        status: "error",
+        statusCode: 503,
+        message: "Production property media storage is not configured.",
+      });
+      for (const path of ["/unexpected", "/dependency"]) {
+        const response = await request(app).post(path);
+        expect(response.body.message).toBe("Internal Server Error");
+        expect(response.body).not.toHaveProperty("stack");
+      }
+    } finally {
+      vi.doUnmock("../src/config/env.js");
+      vi.resetModules();
+    }
+  });
+
   it.each([
     ["png", "image/png"],
     ["jpeg", "image/jpeg"],

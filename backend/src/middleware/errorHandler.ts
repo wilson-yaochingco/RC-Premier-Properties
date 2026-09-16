@@ -11,6 +11,8 @@ export class HttpError extends Error {
     public readonly status: number,
     message: string,
     public readonly issues?: ValidationIssue[],
+    /** Opt in only for reviewed static dependency messages without private details. */
+    public readonly exposeMessage = false,
   ) {
     super(message);
     this.name = "HttpError";
@@ -64,7 +66,12 @@ export function errorHandler(
   const body: ApiErrorResponse = {
     status: "error",
     statusCode: status,
-    message: status >= 500 && env.IS_PRODUCTION ? "Internal Server Error" : message,
+    message:
+      status >= 500 &&
+      env.IS_PRODUCTION &&
+      !(error instanceof HttpError && error.exposeMessage)
+        ? "Internal Server Error"
+        : message,
     ...(error instanceof HttpError &&
     error.issues &&
     !(status >= 500 && env.IS_PRODUCTION)

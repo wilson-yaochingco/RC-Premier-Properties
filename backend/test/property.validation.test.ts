@@ -203,7 +203,16 @@ describe("published property query construction", () => {
     expect(buildPublishedPropertyDetailFilter("stable-slug")).toEqual({
       publicationStatus: "published",
       purpose: "sale",
-      propertyType: { $in: ["house-and-lot", "townhouse", "lot"] },
+      propertyType: {
+        $in: [
+          "house-and-lot",
+          "townhouse",
+          "lot",
+          "industrial",
+          "commercial",
+          "condominium",
+        ],
+      },
       slug: "stable-slug",
     });
   });
@@ -513,6 +522,57 @@ describe("property public map point schema", () => {
 });
 
 describe("admin property validation", () => {
+  it.each(["industrial", "commercial", "condominium"] as const)(
+    "accepts, persists, filters, and serializes %s with known room counts",
+    async (propertyType) => {
+      const request = {
+        ...DRAFT_REQUEST,
+        propertyType,
+        specifications: { bathrooms: 2, powderRooms: 1 },
+      };
+      expect(parseCreateDraftPropertyBody(request)).toMatchObject(request);
+      expect(
+        parseUpdateDraftPropertyBody({
+          expectedVersion: 0,
+          propertyType,
+          specifications: request.specifications,
+        }),
+      ).toMatchObject({ propertyType, specifications: request.specifications });
+      const property = new PropertyModel({
+        ...request,
+        price: { ...request.price, currency: "PHP" },
+        publishedAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await expect(property.validate()).resolves.toBeUndefined();
+      expect(
+        toPublicPropertyDetail(property.toObject() as unknown as PublicPropertyRecord),
+      ).toMatchObject({ propertyType, specifications: request.specifications });
+      expect(
+        buildPublishedPropertyFilter(parsePropertySearchQuery({ propertyType })),
+      ).toMatchObject({ propertyType });
+    },
+  );
+
+  it.each([-1, 1.5, 101, "1"])(
+    "rejects an invalid Powder Room count %s",
+    async (powderRooms) => {
+      expect(() =>
+        parseCreateDraftPropertyBody({
+          ...DRAFT_REQUEST,
+          specifications: { powderRooms },
+        }),
+      ).toThrow(HttpError);
+      if (typeof powderRooms === "number") {
+        const property = new PropertyModel({
+          ...DRAFT_REQUEST,
+          specifications: { powderRooms },
+        });
+        await expect(property.validate()).rejects.toThrow();
+      }
+    },
+  );
+
   it("defaults existing and new schema records to non-featured", () => {
     const property = new PropertyModel({
       ...DRAFT_REQUEST,

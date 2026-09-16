@@ -119,6 +119,7 @@ export const PROPERTY_TYPES = [
   "commercial",
   "office",
   "warehouse",
+  "industrial",
 ] as const;
 
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
@@ -133,6 +134,14 @@ export const RESIDENTIAL_SALE_PROPERTY_TYPES = [
 export type ResidentialSalePropertyType =
   (typeof RESIDENTIAL_SALE_PROPERTY_TYPES)[number];
 
+/** Types supported by sales administration and published-property discovery. */
+export const SALE_PROPERTY_TYPES = [
+  ...RESIDENTIAL_SALE_PROPERTY_TYPES,
+  "industrial",
+  "commercial",
+  "condominium",
+] as const satisfies readonly PropertyType[];
+
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   "house-and-lot": "House & lot",
   condominium: "Condominium",
@@ -141,6 +150,7 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   commercial: "Commercial",
   office: "Office",
   warehouse: "Warehouse",
+  industrial: "Industrial",
 };
 
 export const LISTING_PURPOSES = ["sale", "rent"] as const;
@@ -204,6 +214,7 @@ export interface PublicPropertyLocation {
 export interface PublicPropertySpecifications {
   bedrooms?: number;
   bathrooms?: number;
+  powderRooms?: number;
   parkingSpaces?: number;
   lotAreaSqm?: number;
   floorAreaSqm?: number;

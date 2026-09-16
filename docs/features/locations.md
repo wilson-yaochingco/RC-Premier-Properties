@@ -17,10 +17,9 @@ returns the public not-found surface.
 
 ## Discovery behavior
 
-The index uses the supplied line drawing beside its introduction on tablet and desktop.
-Its desktop panel is sized to carry approximately the same visual height and weight as the
-text panel. Phone layouts omit the drawing and its grid slot entirely, leaving the text
-panel to consume the available width. Every inventory-backed card uses the locality's
+The index introduction uses one full-width text panel at every breakpoint. The removed
+line drawing has no remaining grid slot or fixed-height gap; the existing brand surface,
+typography, and content spacing carry the introduction. Every inventory-backed card uses the locality's
 documented reusable photograph with a brand-color hover/focus overlay; required names and
 counts are always visible. The homepage uses the same content lookup for up to six real
 facet locations.

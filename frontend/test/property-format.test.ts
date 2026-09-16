@@ -32,6 +32,22 @@ describe("property formatting", () => {
       { label: "Lot area", value: "420 sqm" },
     ]);
   });
+
+  it("shows known room, parking, and floor counts including zero", () => {
+    expect(
+      visibleSpecifications({
+        bathrooms: 2,
+        powderRooms: 0,
+        parkingSpaces: 1,
+        storeys: 3,
+      }),
+    ).toEqual([
+      { label: "Bathrooms", value: "2" },
+      { label: "Parking Space", value: "1" },
+      { label: "Powder Room", value: "0" },
+      { label: "Floor/Level", value: "3" },
+    ]);
+  });
 });
 
 describe("property URL state", () => {

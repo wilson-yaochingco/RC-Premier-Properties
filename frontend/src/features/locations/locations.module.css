@@ -32,7 +32,7 @@
 
 .introGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(1rem, 2vw, 2rem);
 }
@@ -43,11 +43,12 @@
   min-width: 0;
 }
 
-.introStatement {
-  min-height: clamp(22rem, 31vw, 28rem);
+.introGrid .introStatement {
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
   padding: clamp(1.75rem, 3vw, 3rem);
   background: var(--brand-primary-deep);
   color: var(--brand-white);
@@ -62,7 +63,7 @@
 }
 
 .introStatement h1 {
-  max-width: 12ch;
+  max-width: 22ch;
   font-family: var(--font-editorial);
   font-size: clamp(2.75rem, 4.25vw, 4.75rem);
   font-weight: 400;
