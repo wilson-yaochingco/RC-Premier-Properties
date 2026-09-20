@@ -81,7 +81,12 @@ export class LocalDevelopmentPropertyMediaStorage implements PropertyMediaStorag
 
   async store(bytes: Buffer, image: InspectedImage): Promise<StoredPropertyImage> {
     if (env.IS_PRODUCTION) {
-      throw new HttpError(503, "Production property media storage is not configured.");
+      throw new HttpError(
+        503,
+        "Production property media storage is not configured.",
+        undefined,
+        true,
+      );
     }
     const id = randomUUID();
     const sourcePath = path.join(SOURCE_ROOT, `${id}.${image.extension}`);
@@ -146,11 +151,21 @@ export class UnavailablePropertyMediaStorage implements PropertyMediaStorage {
     }
   }
   async store(): Promise<never> {
-    throw new HttpError(503, "Production property media storage is not configured.");
+    throw new HttpError(
+      503,
+      "Production property media storage is not configured.",
+      undefined,
+      true,
+    );
   }
   async remove(url: string): Promise<void> {
     if (this.owns(url)) {
-      throw new HttpError(503, "Production property media storage is not configured.");
+      throw new HttpError(
+        503,
+        "Production property media storage is not configured.",
+        undefined,
+        true,
+      );
     }
   }
 }

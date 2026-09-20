@@ -11,7 +11,11 @@ test("About uses a subdued motion-aware video and the real Pampanga boundary", a
   await expect(video).toHaveAttribute("loop", "");
   await expect(video).toHaveAttribute("playsinline", "");
   await expect(video).toHaveJSProperty("muted", true);
-  await expect(video).toHaveAttribute("src", /^https:\/\/videos\.ctfassets\.net/);
+  await expect(video).toHaveAttribute("src", "/media/about_video.mp4");
+  await expect
+    .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState))
+    .toBeGreaterThanOrEqual(2);
+  await expect(video).toHaveJSProperty("error", null);
   await expect(
     page.getByRole("img", { name: /Still two-dimensional map of Pampanga/ }),
   ).toBeVisible();
@@ -144,6 +148,9 @@ test("home hero uses the viewport on desktop and keeps the mobile search over it
   expect(Math.abs(desktopGeometry.compositionBottom - 900)).toBeLessThanOrEqual(1);
   expect(desktopGeometry.searchCenter).toBeCloseTo(desktopGeometry.heroCenter, 0);
   expect(desktopGeometry.imageFit).toBe("cover");
+  await expect(page.locator(".home-hero__image")).toHaveAttribute("src", /home_hero/);
+  await expect(page.locator(".hero-search nav")).toHaveCount(0);
+  await expect(page.locator(".home-hero__shade")).toHaveCount(1);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileGeometry = await page.evaluate(() => {
@@ -163,25 +170,23 @@ test("home hero uses the viewport on desktop and keeps the mobile search over it
   await expect(page.getByLabel("Location, Property ID, or keyword")).toBeVisible();
 });
 
-test("location guide removes the mobile doodle without weakening the desktop pairing", async ({
-  page,
-}) => {
+test("location guide fills its introduction without a doodle", async ({ page }) => {
   const doodle = page.getByAltText(
     "Line drawing of homes, trees, a bicycle, and neighborhood streets",
   );
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/locations");
-  await expect(doodle).toBeVisible();
+  await expect(doodle).toHaveCount(0);
   const desktopPanels = await page.evaluate(() => {
     const statement = document.querySelector<HTMLElement>("[class*='introStatement']")!;
-    const media = document.querySelector<HTMLElement>("[class*='introMedia']")!;
+    const grid = document.querySelector<HTMLElement>("[class*='introGrid']")!;
     return {
-      mediaHeight: media.getBoundingClientRect().height,
-      statementHeight: statement.getBoundingClientRect().height,
+      gridWidth: grid.getBoundingClientRect().width,
+      statementWidth: statement.getBoundingClientRect().width,
     };
   });
-  expect(desktopPanels.mediaHeight).toBeCloseTo(desktopPanels.statementHeight, 0);
+  expect(desktopPanels.gridWidth).toBeCloseTo(desktopPanels.statementWidth, 0);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(doodle).toBeHidden();
@@ -294,7 +299,7 @@ test("About video requests playback once and the hero fills the desktop composit
   });
   // Keep real metadata from completing the one-time seek before the controlled
   // loadedmetadata fixture below.
-  await page.route("https://videos.ctfassets.net/**", (route) => route.abort());
+  await page.route("**/media/about_video.mp4", (route) => route.abort());
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/about");
 
@@ -492,6 +497,7 @@ test("seller page uses four purposeful sections and a simplified typed form", as
 
   await page.getByLabel("Name").fill("Playwright Seller");
   await page.getByLabel("Email").fill("seller@example.test");
+  await page.getByLabel("Phone", { exact: true }).fill("+63 917 555 0110");
   await page.getByLabel(/Property location or area/).fill("Angeles City");
   await page
     .getByLabel(/Property details and message/)
@@ -512,7 +518,7 @@ test("seller page uses four purposeful sections and a simplified typed form", as
   expect(request).not.toHaveProperty("propertyId");
 });
 
-test("location discovery uses the supplied drawing and documented local photography", async ({
+test("location discovery omits the doodle and keeps documented local photography", async ({
   page,
 }) => {
   await page.goto("/locations");
@@ -520,7 +526,7 @@ test("location discovery uses the supplied drawing and documented local photogra
     page.getByAltText(
       "Line drawing of homes, trees, a bicycle, and neighborhood streets",
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
 
   const firstLocation = page.locator("[data-location-card]").first();
   await firstLocation.getByRole("link").focus();

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
-  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  SALE_PROPERTY_TYPES,
   type AdminInquiryDetail,
   type AdminInquiryListRequest,
   type AdminInquiryListResponse,
@@ -59,7 +59,7 @@ export class MongooseViewingPropertyRepository implements ViewingPropertyReposit
         propertyId,
         publicationStatus: "published",
         purpose: "sale",
-        propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+        propertyType: { $in: SALE_PROPERTY_TYPES },
       }),
     );
   }
@@ -70,7 +70,7 @@ export class MongooseViewingPropertyRepository implements ViewingPropertyReposit
         propertyId,
         publicationStatus: "published",
         purpose: "sale",
-        propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+        propertyType: { $in: SALE_PROPERTY_TYPES },
         availability: { $ne: "sold" },
       }),
     );
@@ -233,7 +233,15 @@ export class MongooseInquiryService implements InquiryService {
         },
       });
     } catch (error) {
-      if (!idempotencyKeyHash || !isDuplicateKey(error)) throw error;
+      if (!idempotencyKeyHash || !isDuplicateKey(error)) {
+        operationalLogger.error("inquiry_persistence_failed", {
+          dependency: "mongodb",
+          entityType: "inquiry",
+          operation: "create",
+          ...errorIdentity(error),
+        });
+        throw error;
+      }
       const existing = await this.findIdempotentInquiry(idempotencyKeyHash);
       if (!existing) throw error;
       return createResponse(

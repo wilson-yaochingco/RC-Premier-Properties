@@ -69,7 +69,7 @@ describe("property query URLs", () => {
     ).toBe("location=Angeles+City&propertyType=house-and-lot&purpose=sale");
     expect(
       propertyMapApiSearchParams({ propertyType: "commercial" }).has("propertyType"),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("preserves duplicate values and consistently uses the first normalized value", () => {

@@ -103,7 +103,10 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
   }
 
   return (
-    <section className={styles.page} aria-labelledby="admin-inquiries-title">
+    <section
+      className={`${styles.page} ${styles.inquiriesPage} ${viewingOnly ? "" : styles.inquiryQueuePage}`}
+      aria-labelledby="admin-inquiries-title"
+    >
       <div className={styles.pageHeader}>
         <div>
           <p className={styles.eyebrow}>
@@ -284,8 +287,10 @@ export function AdminInquiryList({ viewingOnly = false }: { viewingOnly?: boolea
                 {state.response.items.map((inquiry) => (
                   <tr key={inquiry.id}>
                     <td data-label="Contact">
-                      <strong>{inquiry.name}</strong>
-                      <span>{inquiry.email}</span>
+                      <div>
+                        <strong>{inquiry.name}</strong>
+                        <span>{inquiry.email}</span>
+                      </div>
                     </td>
                     <td data-label="Type">{label(inquiry.inquiryType)}</td>
                     <td data-label="Property">

@@ -90,7 +90,7 @@ export default async function PropertiesPage({
     <main id="main-content" tabIndex={-1} className={styles.catalogPage}>
       <section className={styles.hero}>
         <Container className={styles.heroCopy}>
-          <p className={styles.heroEyebrow}>Residential properties for sale</p>
+          <p className={styles.heroEyebrow}>Property catalog</p>
           <h1>
             {locationSeo.location
               ? `Properties for sale in ${locationSeo.location}`

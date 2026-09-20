@@ -75,7 +75,10 @@ source/derivative removal fails. The metadata-only endpoint rejects attempts to 
 a new adapter-owned reference; validated upload is the sole creation path for such
 references.
 
-Production selects `UnavailablePropertyMediaStorage` and returns 503. This fail-closed
+Production selects `UnavailablePropertyMediaStorage` and returns 503 with the reviewed
+static message “Production property media storage is not configured.” Unexpected storage
+and server failures remain masked in production and retain private operational logs.
+This fail-closed
 choice makes it impossible to deploy local filesystem storage accidentally. Selecting a
 real provider still requires approved credentials/bucket topology, an exact delivery
 hostname, signed-upload/lifecycle decisions, retention/orphan policy, CDN caching, and

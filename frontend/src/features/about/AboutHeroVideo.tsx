@@ -75,7 +75,7 @@ export function AboutHeroVideo({ poster }: { poster: string }) {
       <video
         ref={videoRef}
         className={styles.heroVideo}
-        src="https://videos.ctfassets.net/3xf6g0o5qdho/1uc2E01DTu8ASyAKYoq4oK/40e19ac85c90529f143fec0f001b1cda/MV_About_Header_1080p_.mp4"
+        src="/media/about_video.mp4"
         poster={poster}
         muted
         autoPlay={!reducedMotion}

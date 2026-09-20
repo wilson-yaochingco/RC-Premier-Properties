@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import heroExterior from "@/assets/site/home-hero-level18.jpg";
+import heroExterior from "@/assets/site/home_hero.jpg";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PublicChrome } from "@/components/layout/PublicChrome";

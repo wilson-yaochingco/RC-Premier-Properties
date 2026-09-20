@@ -282,6 +282,120 @@ async function expectFinalAdminData(page: Page, path: string) {
   }
 }
 
+test("admin surfaces reuse public square corners while functional circles and pills retain their shape", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  await mockOperations(page);
+  for (const width of [320, 768, 1366, 1440, 1920]) {
+    await page.setViewportSize({ width, height: width === 1366 ? 768 : 900 });
+    for (const path of [
+      "/admin",
+      "/admin/properties",
+      "/admin/inquiries",
+      "/admin/viewings",
+      "/admin/search",
+      "/admin/audit",
+      "/admin/staff",
+      "/admin/properties/new",
+    ]) {
+      await page.goto(path);
+      await expect(page.locator("[data-collapsed]")).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expectFinalAdminData(page, path);
+      const geometry = await page.locator("main#main-content").evaluate((main) => {
+        const surfaceClasses = [
+          "panel",
+          "filters",
+          "detailCard",
+          "workflowCard",
+          "calendarPanel",
+          "mediaManager",
+          "searchPanel",
+          "preview",
+          "metricCard",
+          "tableWrap",
+          "lifecycleNotice",
+          "errorSummary",
+          "successMessage",
+          "locationNotice",
+          "locationWarning",
+          "mediaItem",
+          "mediaEmpty",
+          "uploadZone",
+          "dayAgenda",
+        ];
+        const surfaces = [
+          ...main.querySelectorAll<HTMLElement>(
+            "[class], fieldset, button, input, select, textarea",
+          ),
+        ].filter((element) => {
+          if (
+            element.matches(
+              "input[type='checkbox'], input[type='radio'], input[type='range']",
+            )
+          )
+            return false;
+          return (
+            element.matches("fieldset, button, input, select, textarea") ||
+            surfaceClasses.some((name) =>
+              [...element.classList].some((className) =>
+                className.includes(`_${name}_`),
+              ),
+            ) ||
+            element.matches("table[class*='responsiveTable'] tbody tr")
+          );
+        });
+        return {
+          token: getComputedStyle(main).getPropertyValue("--radius-card").trim(),
+          roundedSurfaces: surfaces
+            .filter(
+              (element) => getComputedStyle(element).borderTopLeftRadius !== "0px",
+            )
+            .map((element) => ({
+              element: element.tagName,
+              className: element.className,
+              radius: getComputedStyle(element).borderTopLeftRadius,
+            })),
+          pillRadii: [
+            ...main.querySelectorAll(
+              "[class*='statusBadge'], [class*='featuredBadge'], [class*='mutedBadge']",
+            ),
+          ].map((element) => getComputedStyle(element).borderTopLeftRadius),
+          circleRadii: [
+            ...document.querySelectorAll(
+              "[class*='sidebarLogo'], [class*='mobileLogo'], [class*='collapseButton']",
+            ),
+          ].map((element) => getComputedStyle(element).borderTopLeftRadius),
+        };
+      });
+      expect(geometry.token, `${path} at ${width}px`).toBe("0");
+      expect(geometry.roundedSurfaces, `${path} at ${width}px`).toEqual([]);
+      expect(geometry.pillRadii.every((radius) => radius === "999px")).toBe(true);
+      expect(geometry.circleRadii.every((radius) => radius === "50%")).toBe(true);
+      await expectNoDocumentOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`${path.replaceAll("/", "-")}-${width}.png`),
+        fullPage: true,
+      });
+    }
+  }
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.getByRole("button", { name: "Open administration menu" }).click();
+  const drawer = page.getByRole("dialog", { name: "Administration menu" });
+  await expect(drawer).toBeVisible();
+  expect(
+    await drawer
+      .getByRole("button", { name: "Close", exact: true })
+      .evaluate((button) => getComputedStyle(button).borderTopLeftRadius),
+  ).toBe("0px");
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: "Open administration menu" }),
+  ).toBeFocused();
+});
+
 test("dashboard and calendar remain useful and reflow at 320px", async ({ page }) => {
   await mockOperations(page);
   await page.setViewportSize({ width: 320, height: 844 });

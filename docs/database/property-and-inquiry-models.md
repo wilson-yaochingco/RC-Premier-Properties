@@ -18,10 +18,10 @@ exist. Authentication schema and retention rules are documented in
 ## Property taxonomy
 
 The stable historical schema can read house and lot, condominium, townhouse, lot/land,
-commercial, office and warehouse records without a migration. New administration and all
-production-visible workflows accept only the approved residential sale types: house and
-lot, townhouse, and lot/land. Historical condominium, apartment, rental, and commercial
-records stay private and read-only for deliberate reconciliation.
+commercial, office and warehouse records without a migration. Industrial extends that
+schema enum. New administration and public workflows accept the shared sale types: house
+and lot, townhouse, lot/land, Industrial, Commercial, and Condominium. Historical rental
+and other unsupported records stay private and read-only for deliberate reconciliation.
 
 The stable stored listing purpose can still read sale or rent, while every public query
 and new admin write enforces sales-only inventory. Currency is PHP in the public MVP.
@@ -31,7 +31,7 @@ and new admin write enforces sales-only inventory. Currency is PHP in the public
 Two concepts are stored separately:
 
 - `publicationStatus`: `draft`, `published`, `unpublished` or `archived`. Public endpoints
-  always add `publicationStatus: published`, `purpose: sale`, and the approved residential
+  always add `publicationStatus: published`, `purpose: sale`, and the approved sale
   type set themselves; callers cannot override any public boundary.
 - `availability`: `available`, `reserved` or `sold`. This is safe to show on a
   published listing and does not grant publication by itself.
@@ -45,19 +45,19 @@ before production administration is built.
 
 ## Property fields and disclosure
 
-| Field group             | Examples                                                  | Classification                                          |
-| ----------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
-| Public identity         | property ID, slug, title                                  | public when published                                   |
-| Public listing          | purpose, type, availability, featured                     | public when published                                   |
-| Public pricing          | PHP amount, negotiability                                 | public when published                                   |
-| Public location text    | province, city, optional barangay/development             | redacted according to `publicPrecision`                 |
-| Approved map location   | `publicPrecision`, optional GeoJSON `publicPoint`         | public only when independently approved                 |
-| Internal exact location | private street address and internal latitude/longitude    | excluded from normal selection and public serialization |
-| Specifications          | beds, baths, parking, lot/floor area, storeys, furnishing | public when supplied                                    |
-| Content                 | short/full descriptions, highlights, amenities, features  | public when published                                   |
-| Public media metadata   | ID, kind, URL, alt, optional caption, source/provenance   | public when supplied                                    |
-| Workflow                | publication status, internal timestamps                   | internal; selected only as needed                       |
-| Ownership               | owner details, private notes, internal references         | never serialized publicly                               |
+| Field group             | Examples                                                                | Classification                                          |
+| ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| Public identity         | property ID, slug, title                                                | public when published                                   |
+| Public listing          | purpose, type, availability, featured                                   | public when published                                   |
+| Public pricing          | PHP amount, negotiability                                               | public when published                                   |
+| Public location text    | province, city, optional barangay/development                           | redacted according to `publicPrecision`                 |
+| Approved map location   | `publicPrecision`, optional GeoJSON `publicPoint`                       | public only when independently approved                 |
+| Internal exact location | private street address and internal latitude/longitude                  | excluded from normal selection and public serialization |
+| Specifications          | beds, baths, powder rooms, parking, lot/floor area, storeys, furnishing | public when supplied                                    |
+| Content                 | short/full descriptions, highlights, amenities, features                | public when published                                   |
+| Public media metadata   | ID, kind, URL, alt, optional caption, source/provenance                 | public when supplied                                    |
+| Workflow                | publication status, internal timestamps                                 | internal; selected only as needed                       |
+| Ownership               | owner details, private notes, internal references                       | never serialized publicly                               |
 
 `publicPrecision` is one of `exact`, `approximate`, `subdivision`, `barangay-area` or
 `city-only`. It controls both the optional location text and the meaning of
@@ -129,7 +129,7 @@ history snapshots. This avoids duplicating customer and consent data in an appoi
 collection while keeping appointment state separate from inquiry follow-up state. The
 compound viewing-status/requested-date index supports the staff queue and Level 15
 calendar. The related Property ID is accepted only when it resolves to a published,
-not-sold residential sale property.
+not-sold approved sale property.
 
 The public API returns only a new opaque inquiry identifier, `received` acknowledgment
 and creation time. It never echoes the submitted personal data. Staff retrieval waits for

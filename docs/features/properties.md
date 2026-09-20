@@ -29,14 +29,14 @@ public property summary and media renderer remain the only card data source.
 
 ## Catalog behavior
 
-The search surface supports Property ID, location, residential property type,
+The search surface supports Property ID, location, property type,
 availability, minimum price and maximum price fields. A progressively disclosed region
 adds keyword, minimum bedrooms, minimum bathrooms, minimum lot/floor areas and sort. The
 public experience is sales-only: the frontend always requests `purpose=sale`, and public
 backend list, map, facet, detail, related, and viewing-eligibility queries independently
-enforce sale plus the approved `house-and-lot`, `townhouse`, and `lot` types. Historical
-rental, condominium, apartment, and commercial values remain readable only for deliberate
-private reconciliation; they cannot enter production-visible workflows.
+enforce sale plus the shared `SALE_PROPERTY_TYPES`: `house-and-lot`, `townhouse`, `lot`,
+`industrial`, `commercial`, and `condominium`. Existing stored type names are preserved.
+Historical rentals and other unsupported types remain excluded from public workflows.
 
 Search state lives in the URL, so filtered pages can be linked, reloaded and traversed
 with normal browser controls. The frontend keeps only documented scalar keys before
@@ -108,7 +108,7 @@ Source, licensing and regeneration details are in
 ## API and publication rules
 
 The backend owns validation and always constrains list/map/detail/facet/related queries to
-published residential sale inventory. Regex input is escaped, unknown or operator-style
+published approved sale inventory. Regex input is escaped, unknown or operator-style
 parameters are rejected, page size is bounded and only newest, price-low-to-high, and
 price-high-to-low deterministic sorts are accepted. Unpublished, disallowed historical,
 and missing slugs all resolve as public 404s.
@@ -143,7 +143,7 @@ The stable public route uses the listing slug. The page provides:
 - a print-only, ink-conscious summary containing business identity, public facts,
   description, approved contact details, and the canonical public URL; and
 - zero to three related cards selected deterministically from at most 12 real published
-  residential sale candidates, excluding the current property.
+  approved sale candidates, excluding the current property.
 
 The Part 2 detail composition moves the authorized gallery ahead of the title/price
 summary, presents up to four supporting images beside the primary image on desktop, and

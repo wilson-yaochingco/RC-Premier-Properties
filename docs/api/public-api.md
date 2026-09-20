@@ -45,7 +45,8 @@ and exposes no URI, credential, or private infrastructure detail.
 ## `GET /properties`
 
 Only records with `publicationStatus: "published"`, `purpose: "sale"`, and an approved
-residential sale type (`house-and-lot`, `townhouse`, or `lot`) are eligible. None of these
+sale type from shared `SALE_PROPERTY_TYPES` (`house-and-lot`, `townhouse`, `lot`,
+`industrial`, `commercial`, `condominium`) are eligible. None of these
 boundaries is user-controlled. Private addresses, internal coordinates, owner references
 and internal notes are excluded from the public projection. An optional public point is a
 separate, explicitly approved field governed by `publicPrecision`; it is never derived
@@ -53,21 +54,21 @@ from an internal coordinate.
 
 ### Query parameters
 
-| Parameter                    | Meaning                                                            | Constraint                                              |
-| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
-| `keyword`                    | Partial title, short description, Property ID or development match | up to 120 characters                                    |
-| `propertyId`                 | Exact public reference                                             | up to 40 letters, numbers, hyphens or underscores       |
-| `location`                   | Partial province, city, barangay or development match              | up to 120 characters                                    |
-| `propertyType`               | Residential sale category                                          | `house-and-lot`, `townhouse`, or `lot`                  |
-| `purpose`                    | Compatibility input; public inventory remains sales-only           | `sale`; `rent` returns no public matches                |
-| `availability`               | Market state                                                       | `available`, `reserved`, or `sold`                      |
-| `minPrice`, `maxPrice`       | Inclusive PHP price range                                          | 0–1,000,000,000,000; minimum cannot exceed maximum      |
-| `bedrooms`, `bathrooms`      | Minimum room count                                                 | whole number from 0 to 100                              |
-| `minLotArea`, `minFloorArea` | Inclusive minimum square meters                                    | 0–100,000,000                                           |
-| `featured`                   | Featured state                                                     | literal `true` or `false`                               |
-| `sort`                       | Ordering                                                           | `newest`, `price-asc` or `price-desc`; default `newest` |
-| `page`                       | One-based page                                                     | whole number from 1–100,000; default 1                  |
-| `limit`                      | Page size                                                          | 1–48; default 12                                        |
+| Parameter                    | Meaning                                                            | Constraint                                                                     |
+| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `keyword`                    | Partial title, short description, Property ID or development match | up to 120 characters                                                           |
+| `propertyId`                 | Exact public reference                                             | up to 40 letters, numbers, hyphens or underscores                              |
+| `location`                   | Partial province, city, barangay or development match              | up to 120 characters                                                           |
+| `propertyType`               | Approved sale category                                             | `house-and-lot`, `townhouse`, `lot`, `industrial`, `commercial`, `condominium` |
+| `purpose`                    | Compatibility input; public inventory remains sales-only           | `sale`; `rent` returns no public matches                                       |
+| `availability`               | Market state                                                       | `available`, `reserved`, or `sold`                                             |
+| `minPrice`, `maxPrice`       | Inclusive PHP price range                                          | 0–1,000,000,000,000; minimum cannot exceed maximum                             |
+| `bedrooms`, `bathrooms`      | Minimum room count                                                 | whole number from 0 to 100                                                     |
+| `minLotArea`, `minFloorArea` | Inclusive minimum square meters                                    | 0–100,000,000                                                                  |
+| `featured`                   | Featured state                                                     | literal `true` or `false`                                                      |
+| `sort`                       | Ordering                                                           | `newest`, `price-asc` or `price-desc`; default `newest`                        |
+| `page`                       | One-based page                                                     | whole number from 1–100,000; default 1                                         |
+| `limit`                      | Page size                                                          | 1–48; default 12                                                               |
 
 Unknown fields, repeated/array values, nested objects and operator-style keys are
 rejected with `400`, as are malformed values. Text used in partial matching is escaped
@@ -125,7 +126,7 @@ unbounded replacement for the paginated property list.
 ## `GET /properties/facets`
 
 Returns sorted location labels and property types plus the minimum and maximum PHP price
-derived only from published residential sale records. With no eligible inventory, the
+derived only from published approved sale records. With no eligible inventory, the
 arrays are empty and both price bounds are `null`.
 
 This route does not supply example listings. The repository intentionally contains no
@@ -166,7 +167,7 @@ Accepts `CreateInquiryRequest` as JSON. The request must use an
 | ---------------- | ---------------------------------------------------------------------------------------------- |
 | `name`           | required, 2–100 characters                                                                     |
 | `email`          | required valid address, up to 254 characters; normalized to lowercase                          |
-| `phone`          | required for viewing; otherwise optional, up to 30 characters, validated as a phone-like value |
+| `phone`          | required for all new inquiries, up to 30 characters, validated as a phone-like value           |
 | `inquiryType`    | required: `general`, `property`, `viewing` or `selling`                                        |
 | `source`         | required: `contact-page`, `property-detail`, `viewing-page` or `sell-page`                     |
 | `propertyId`     | optional; if supplied it must exist; viewing also requires a published, not-sold sale property |
@@ -192,7 +193,7 @@ uncertain failures.
 
 A viewing inquiry creates structured `requested` appointment state. Its source must be
 `viewing-page`, its date/time must be in the future, and its Property ID must identify a
-published residential sale property that is not sold. The acknowledgment explicitly says
+published approved sale property that is not sold. The acknowledgment explicitly says
 the requested schedule still needs staff confirmation; the endpoint does not expose
 calendar availability or confirm an appointment.
 

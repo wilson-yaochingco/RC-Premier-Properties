@@ -1,10 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import homeHeroOne from "@/assets/site/home-hero-1.png";
 import homeHeroTwo from "@/assets/site/home-hero-2.png";
 import homeHeroThree from "@/assets/site/home-hero-3.png";
 import locationImage from "@/assets/site/location.png";
-import locationsDoodle from "@/assets/site/locations-doodle.png";
 import propertiesImage from "@/assets/site/properties.png";
 import whyImage from "@/assets/site/why-rc-premier.png";
 import { Container } from "@/components/ui/Container";
@@ -50,14 +48,6 @@ export default async function LocationsPage() {
               <p>Location guide · Pampanga</p>
               <h1 id="locations-title">Explore the places behind the properties.</h1>
             </div>
-            <figure className={styles.introMedia}>
-              <Image
-                src={locationsDoodle}
-                alt="Line drawing of homes, trees, a bicycle, and neighborhood streets"
-                fill
-                sizes="(max-width: 767px) 1px, (max-width: 1023px) 100vw, 50vw"
-              />
-            </figure>
           </div>
         </Container>
       </section>

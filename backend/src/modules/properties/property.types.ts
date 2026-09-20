@@ -62,6 +62,7 @@ export interface PropertyLocationEntity {
 export interface PropertySpecificationsEntity {
   bedrooms?: number;
   bathrooms?: number;
+  powderRooms?: number;
   parkingSpaces?: number;
   lotAreaSqm?: number;
   floorAreaSqm?: number;

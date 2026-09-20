@@ -1,5 +1,5 @@
 import {
-  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  SALE_PROPERTY_TYPES,
   type AdminAuditEventSummary,
   type AdminAuditListRequest,
   type AdminAuditListResponse,
@@ -152,7 +152,7 @@ export class MongooseAdminOperationsService implements AdminOperationsService {
         {
           $match: {
             purpose: "sale",
-            propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+            propertyType: { $in: SALE_PROPERTY_TYPES },
           },
         },
         {

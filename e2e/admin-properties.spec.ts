@@ -61,6 +61,73 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, OPTIONS",
 };
 
+test("sale types and room counts survive create/edit, with success only after confirmation", async ({
+  page,
+}) => {
+  await mockSession(page);
+  let property = structuredClone(DRAFT);
+  let failCreation = true;
+  let releaseCreation: (() => void) | undefined;
+  await page.route(`**${API_PREFIX}/admin/properties**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: corsHeaders });
+    if (request.method() === "GET") return json(route, 200, property);
+    expect(request.headers()["x-csrf-token"]).toBe(CSRF_TOKEN);
+    if (failCreation)
+      return json(route, 400, {
+        status: "error",
+        statusCode: 400,
+        message: "Fixture creation rejected.",
+      });
+    await new Promise<void>((resolve) => {
+      releaseCreation = resolve;
+    });
+    property = { ...DRAFT, ...request.postDataJSON(), id: PROPERTY_ID };
+    return json(route, 201, property);
+  });
+  for (const propertyType of ["industrial", "commercial", "condominium"] as const) {
+    await page.goto("/admin/properties/new");
+    await page.getByLabel("Property ID").fill(`RCPP-${propertyType}`);
+    await page.getByLabel("URL slug").fill(`fixture-${propertyType}`);
+    await page.getByLabel("Title", { exact: true }).fill(`Fixture ${propertyType}`);
+    await page.getByLabel("Property type").selectOption(propertyType);
+    await page.getByLabel("Price (PHP)").fill("7500000");
+    await page
+      .getByLabel("Short description")
+      .fill("A synthetic browser-test property.");
+    await page
+      .getByLabel("Full description")
+      .fill("This property exists only inside the browser test boundary.");
+    await page.getByLabel("Bathrooms", { exact: true }).fill("2");
+    await page.getByLabel("Powder Room", { exact: true }).fill("1");
+    await page.getByLabel("Parking Space", { exact: true }).fill("1");
+    await page.getByLabel("Floor/Level", { exact: true }).fill("3");
+    if (failCreation) {
+      await page.getByRole("button", { name: "Create private draft" }).click();
+      await expect(page.locator("main").getByRole("alert")).toContainText(
+        "Fixture creation rejected.",
+      );
+      await expect(page.getByText("Property added successfully!")).toHaveCount(0);
+      failCreation = false;
+    }
+    releaseCreation = undefined;
+    await page.getByRole("button", { name: "Create private draft" }).click();
+    await expect.poll(() => Boolean(releaseCreation)).toBe(true);
+    await expect(page.getByText("Property added successfully!")).toHaveCount(0);
+    releaseCreation!();
+    await expect(page.getByText("Property added successfully!")).toBeVisible();
+    expect(property).toMatchObject({
+      propertyType,
+      specifications: { bathrooms: 2, powderRooms: 1, parkingSpaces: 1, storeys: 3 },
+    });
+    await page.getByRole("link", { name: "Edit the new draft" }).click();
+    await expect(page.getByLabel("Property type")).toHaveValue(propertyType);
+    await expect(page.getByLabel("Bathrooms", { exact: true })).toHaveValue("2");
+    await expect(page.getByLabel("Powder Room", { exact: true })).toHaveValue("1");
+  }
+});
+
 async function json(route: Route, status: number, body: unknown) {
   await route.fulfill({ status, json: body, headers: corsHeaders });
 }
@@ -326,7 +393,7 @@ test("the protected admin property flow lists, creates, and edits a draft", asyn
     .getByLabel("Full description")
     .fill("This private draft was created through the intercepted browser-test API.");
   await page.getByRole("button", { name: "Create private draft" }).click();
-  await expect(page.getByText("Draft property created.")).toBeVisible();
+  await expect(page.getByText("Property added successfully!")).toBeVisible();
   expect(createRequest).not.toHaveProperty("publicationStatus");
   expect(createRequest).not.toHaveProperty("availability");
 

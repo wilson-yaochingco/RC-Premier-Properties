@@ -34,6 +34,8 @@ const TYPE_LABELS: Record<InquiryType, string> = {
   selling: "Sell a property",
 };
 
+const PHONE_PATTERN = /^[+()\d][+()\d\s.-]{5,28}[\d)]$/;
+
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
   email: "Email",
@@ -120,6 +122,14 @@ export function InquiryForm({
     }
 
     const phone = textValue(formData, "phone");
+    if (!PHONE_PATTERN.test(phone)) {
+      setState({
+        kind: "error",
+        message: "Enter a valid phone number before submitting this inquiry.",
+        issues: [{ field: "phone", message: "Enter a valid phone number." }],
+      });
+      return;
+    }
     const selectedPropertyId = textValue(formData, "propertyId");
     const subject = textValue(formData, "subject");
     const controller = new AbortController();
@@ -161,7 +171,9 @@ export function InquiryForm({
       setMessageLength(0);
       setState({
         kind: "success",
-        message: response.message,
+        message: isViewingRequest
+          ? response.message
+          : "Thank you. RC Premier Properties will get back to you soon.",
         inquiryId: response.inquiryId,
       });
     } catch (error) {
@@ -171,13 +183,20 @@ export function InquiryForm({
         }
         setState({
           kind: "error",
-          message: error.message,
-          issues: error.response.issues,
+          message:
+            error.statusCode === 429
+              ? "Please wait a few minutes before trying again."
+              : error.statusCode === 0
+                ? "Please check your connection and try again."
+                : error.response.issues?.length && error.statusCode < 500
+                  ? "Please correct the highlighted details and try again."
+                  : "Please try again. If the problem continues, contact us directly.",
+          issues: error.statusCode < 500 ? error.response.issues : undefined,
         });
       } else {
         setState({
           kind: "error",
-          message: "We could not send your inquiry. Please try again.",
+          message: "Please try again. If the problem continues, contact us directly.",
         });
       }
     }
@@ -223,9 +242,7 @@ export function InquiryForm({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="inquiry-phone">
-            Phone <span className={styles.optional}>(optional)</span>
-          </label>
+          <label htmlFor="inquiry-phone">Phone</label>
           <input
             id="inquiry-phone"
             name="phone"
@@ -233,6 +250,7 @@ export function InquiryForm({
             inputMode="tel"
             autoComplete="tel"
             maxLength={30}
+            required
             aria-invalid={invalidFields.has("phone")}
             aria-describedby={describedBy("phone")}
           />
@@ -381,17 +399,36 @@ export function InquiryForm({
       <FieldError field="privacyConsent" issue={issueFor("privacyConsent")} />
 
       {state.kind === "success" && (
-        <div className={styles.message} role="status" aria-live="polite">
-          <strong>
-            {isViewingRequest ? "Viewing request received." : "Inquiry received."}
-          </strong>{" "}
-          {state.message}
-          {state.inquiryId && (
-            <>
-              {" "}
-              Reference: <span>{state.inquiryId}</span>.
-            </>
-          )}
+        <div
+          className={`${styles.message} ${styles.success}`}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <svg
+            className={styles.indicator}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="m8 12 3 3 5-6" />
+          </svg>
+          <div className={styles.messageContent}>
+            <strong className={styles.messageTitle}>
+              {isViewingRequest
+                ? "Viewing request received."
+                : "Inquiry submitted successfully."}
+            </strong>
+            <p>{state.message}</p>
+            {state.inquiryId && (
+              <p className={styles.reference}>
+                Reference: <span>{state.inquiryId}</span>
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -403,24 +440,42 @@ export function InquiryForm({
           role="alert"
           tabIndex={-1}
         >
-          <strong>We could not submit the form.</strong> {state.message}
-          {state.issues && state.issues.length > 0 && (
-            <ul className={styles.issues}>
-              {state.issues.map((issue) => (
-                <li key={`${issue.field}-${issue.message}`}>
-                  {FIELD_IDS[issue.field] ? (
-                    <a href={`#${FIELD_IDS[issue.field]}`}>
-                      {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
-                    </a>
-                  ) : (
-                    <>
-                      {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          <svg
+            className={styles.indicator}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v6m0 3v1" />
+          </svg>
+          <div className={styles.messageContent}>
+            <strong className={styles.messageTitle}>
+              {state.issues?.length
+                ? "Please check your inquiry details."
+                : "We couldn't submit your inquiry."}
+            </strong>
+            <p>{state.message}</p>
+            {state.issues && state.issues.length > 0 && (
+              <ul className={styles.issues}>
+                {state.issues.map((issue) => (
+                  <li key={`${issue.field}-${issue.message}`}>
+                    {FIELD_IDS[issue.field] ? (
+                      <a href={`#${FIELD_IDS[issue.field]}`}>
+                        {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                      </a>
+                    ) : (
+                      <>
+                        {FIELD_LABELS[issue.field] ?? "Form"}: {issue.message}
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

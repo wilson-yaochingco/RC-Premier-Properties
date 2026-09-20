@@ -92,7 +92,9 @@ export function AdminPropertyPreview({ propertyId }: { propertyId: string }) {
 
       <div className={styles.lifecycleNotice}>
         <span>Publication: {property.publicationStatus}</span>
-        <span>Availability: {property.availability}</span>
+        <span className={styles[`availability_${property.availability}`]}>
+          Availability: {property.availability}
+        </span>
         <span>Version: {property.version}</span>
       </div>
 

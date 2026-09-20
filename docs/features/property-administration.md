@@ -28,9 +28,15 @@ Search covers the Premier Property number, slug, title, and city. Results show l
 List and detail records expose backend-derived publication readiness. Staff see Complete
 or Incomplete plus the exact current missing requirements, and cannot invoke Publish from
 the list while incomplete. The backend remains authoritative and rejects the same case.
-New/edit controls accept only house-and-lot, townhouse, and lot; historical non-residential
-records are read-only for deliberate reconciliation. The list can export its already
+New/edit controls accept house-and-lot, townhouse, lot, Industrial, Commercial, and
+Condominium through the shared `SALE_PROPERTY_TYPES` boundary. Other historical types
+remain read-only for deliberate reconciliation. The list can export its already
 authorized current page as formula-neutralized CSV without private coordinates or notes.
+Known Bathrooms counts use the existing `bathrooms` field. Optional Powder Room counts
+use `specifications.powderRooms`, validated as whole numbers from 0 to 100 without a
+default for older records. Parking Space and Floor/Level retain the stored
+`parkingSpaces` and `storeys` keys. Successful creation shows “Property added
+successfully!” after the API response; failed saves cannot trigger this feedback.
 It also shows Featured state and optional priority. Staff with `property:write` can feature
 an eligible published available/reserved record, adjust its bounded priority, or remove
 the flag. Higher priorities appear first; ties fall back to publication time and stable

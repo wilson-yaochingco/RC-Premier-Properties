@@ -11,7 +11,7 @@ import {
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
   PROPERTY_SORT_OPTIONS,
-  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  SALE_PROPERTY_TYPES,
   type AdminPropertyContentInput,
   type AdminPropertyMediaInput,
   type AdminPropertyAvailabilityRequest,
@@ -169,12 +169,7 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
   const propertyId = boundedString(query, "propertyId", 40, issues);
   const area = enumValue(query, "area", PUBLIC_PROPERTY_AREAS, issues);
   const location = boundedString(query, "location", 120, issues);
-  const propertyType = enumValue(
-    query,
-    "propertyType",
-    RESIDENTIAL_SALE_PROPERTY_TYPES,
-    issues,
-  );
+  const propertyType = enumValue(query, "propertyType", SALE_PROPERTY_TYPES, issues);
   const purpose = enumValue(query, "purpose", LISTING_PURPOSES, issues);
   const availability = enumValue(query, "availability", PROPERTY_AVAILABILITY, issues);
   const minPrice = nonNegativeNumber(query, "minPrice", issues, {
@@ -594,6 +589,7 @@ function parseSpecifications(
   const fields = [
     "bedrooms",
     "bathrooms",
+    "powderRooms",
     "parkingSpaces",
     "lotAreaSqm",
     "floorAreaSqm",
@@ -602,7 +598,13 @@ function parseSpecifications(
   ] as const;
   unknownFields(value, fields, "specifications", issues);
   const result: AdminPropertyContentInput["specifications"] = {};
-  for (const field of ["bedrooms", "bathrooms", "parkingSpaces", "storeys"] as const) {
+  for (const field of [
+    "bedrooms",
+    "bathrooms",
+    "powderRooms",
+    "parkingSpaces",
+    "storeys",
+  ] as const) {
     if (value[field] !== undefined) {
       const parsed = boundedBodyNumber(
         value[field],
@@ -712,7 +714,7 @@ function parseAdminPropertyContent(
     const value = bodyEnum(
       rawBody.propertyType,
       "propertyType",
-      RESIDENTIAL_SALE_PROPERTY_TYPES,
+      SALE_PROPERTY_TYPES,
       issues,
     );
     if (value) result.propertyType = value;

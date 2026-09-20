@@ -50,6 +50,7 @@ const specificationsSchema = new Schema(
   {
     bedrooms: { type: Number, min: 0, max: 100 },
     bathrooms: { type: Number, min: 0, max: 100 },
+    powderRooms: { type: Number, min: 0, max: 100, validate: Number.isInteger },
     parkingSpaces: { type: Number, min: 0, max: 100 },
     lotAreaSqm: { type: Number, min: 0, max: 100_000_000 },
     floorAreaSqm: { type: Number, min: 0, max: 100_000_000 },

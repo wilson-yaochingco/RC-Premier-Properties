@@ -1,4 +1,4 @@
-import { RESIDENTIAL_SALE_PROPERTY_TYPES } from "@rc/shared";
+import { SALE_PROPERTY_TYPES } from "@rc/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SecurityAuditEventModel } from "../src/modules/auth/security-audit-event.model.js";
 import { InquiryModel } from "../src/modules/inquiries/inquiry.model.js";
@@ -136,7 +136,7 @@ describe("admin dashboard queries", () => {
         {
           $match: {
             purpose: "sale",
-            propertyType: { $in: RESIDENTIAL_SALE_PROPERTY_TYPES },
+            propertyType: { $in: SALE_PROPERTY_TYPES },
           },
         },
       ]),

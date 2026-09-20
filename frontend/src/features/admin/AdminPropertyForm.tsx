@@ -14,7 +14,7 @@ import {
   ADMIN_LISTING_PURPOSES,
   PROPERTY_TYPE_LABELS,
   PUBLIC_PROPERTY_AREAS,
-  RESIDENTIAL_SALE_PROPERTY_TYPES,
+  SALE_PROPERTY_TYPES,
   PUBLIC_LOCATION_PRECISIONS,
   type AdminPropertyContentInput,
   type AdminPropertyCoordinates,
@@ -171,6 +171,7 @@ function contentFromForm(form: HTMLFormElement): CreateDraftPropertyRequest {
   const specifications = {
     bedrooms: optionalNumber(data, "bedrooms"),
     bathrooms: optionalNumber(data, "bathrooms"),
+    powderRooms: optionalNumber(data, "powderRooms"),
     parkingSpaces: optionalNumber(data, "parkingSpaces"),
     lotAreaSqm: optionalNumber(data, "lotAreaSqm"),
     floorAreaSqm: optionalNumber(data, "floorAreaSqm"),
@@ -389,7 +390,9 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
       setSubmission({
         kind: "success",
         message:
-          mode === "create" ? "Draft property created." : "Property changes saved.",
+          mode === "create"
+            ? "Property added successfully!"
+            : "Property changes saved.",
         property,
       });
     } catch (error) {
@@ -484,18 +487,15 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
   if (
     mode === "edit" &&
     load.property &&
-    !(RESIDENTIAL_SALE_PROPERTY_TYPES as readonly string[]).includes(
-      load.property.propertyType,
-    )
+    !(SALE_PROPERTY_TYPES as readonly string[]).includes(load.property.propertyType)
   ) {
     return (
       <section className={styles.page}>
         <div className={styles.panel} role="alert">
-          <h1>This legacy non-residential record is read-only.</h1>
+          <h1>This legacy property type is read-only.</h1>
           <p>
-            The production workflow accepts approved residential sale types only.
-            Reconcile this historical record deliberately outside the public publishing
-            workflow.
+            The production workflow accepts approved sale types only. Reconcile this
+            historical record deliberately outside the public publishing workflow.
           </p>
           <Link href="/admin/properties">Back to properties</Link>
         </div>
@@ -526,7 +526,9 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
       {load.property ? (
         <div className={styles.lifecycleNotice}>
           <span>Publication: {load.property.publicationStatus}</span>
-          <span>Availability: {load.property.availability}</span>
+          <span className={styles[`availability_${load.property.availability}`]}>
+            Availability: {load.property.availability}
+          </span>
           <span>
             Publish readiness:{" "}
             {load.property.publicationReadiness.ready ? "Complete" : "Incomplete"}
@@ -634,7 +636,7 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
                 name="propertyType"
                 defaultValue={content.propertyType}
               >
-                {RESIDENTIAL_SALE_PROPERTY_TYPES.map((type: PropertyType) => (
+                {SALE_PROPERTY_TYPES.map((type: PropertyType) => (
                   <option key={type} value={type}>
                     {PROPERTY_TYPE_LABELS[type]}
                   </option>
@@ -916,26 +918,40 @@ export function AdminPropertyForm({ mode, propertyId }: AdminPropertyFormProps) 
         <fieldset disabled={submission.kind === "pending"}>
           <legend>Specifications</legend>
           <div className={styles.formGrid}>
-            {(["bedrooms", "bathrooms", "parkingSpaces", "storeys"] as const).map(
-              (field) => (
-                <Field
-                  key={field}
-                  field={`specifications.${field}`}
-                  label={field.replace(/([A-Z])/g, " $1")}
-                  issues={issues}
-                >
-                  <input
-                    id={`specifications.${field}`}
-                    name={field}
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    defaultValue={content.specifications[field]}
-                  />
-                </Field>
-              ),
-            )}
+            {(
+              [
+                "bedrooms",
+                "bathrooms",
+                "powderRooms",
+                "parkingSpaces",
+                "storeys",
+              ] as const
+            ).map((field) => (
+              <Field
+                key={field}
+                field={`specifications.${field}`}
+                label={
+                  {
+                    bedrooms: "Bedrooms",
+                    bathrooms: "Bathrooms",
+                    powderRooms: "Powder Room",
+                    parkingSpaces: "Parking Space",
+                    storeys: "Floor/Level",
+                  }[field]
+                }
+                issues={issues}
+              >
+                <input
+                  id={`specifications.${field}`}
+                  name={field}
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  defaultValue={content.specifications[field]}
+                />
+              </Field>
+            ))}
             {(["lotAreaSqm", "floorAreaSqm"] as const).map((field) => (
               <Field
                 key={field}
