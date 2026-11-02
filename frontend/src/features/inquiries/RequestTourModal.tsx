@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { usePageScrollLock } from "@/hooks/usePageScrollLock";
 import type { CreateInquiryRequest, ValidationIssue } from "@rc/shared";
 import viewingImage from "@/assets/site/book-viewing.png";
 import { PropertyMedia } from "@/features/properties/PropertyMedia";
@@ -86,6 +87,7 @@ export function RequestTourModal({
   onDismiss: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  usePageScrollLock(true);
   const propertyInputRef = useRef<HTMLInputElement>(null);
   const firstDateRef = useRef<HTMLInputElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -107,15 +109,10 @@ export function RequestTourModal({
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    const previousOverflow = document.body.style.overflow;
     dialog.showModal();
-    document.body.style.overflow = "hidden";
     requestAnimationFrame(() =>
       (property?.propertyId ? firstDateRef.current : propertyInputRef.current)?.focus(),
     );
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
   }, [property?.propertyId]);
 
   useEffect(() => {
@@ -236,6 +233,7 @@ export function RequestTourModal({
 
   return (
     <dialog
+      data-lenis-prevent
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="request-tour-title"

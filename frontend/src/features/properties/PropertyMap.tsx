@@ -72,6 +72,7 @@ export function PropertyMap({
       ref={rootRef}
       className={styles.shell}
       data-map-shell
+      data-lenis-prevent
       data-map-variant={variant}
     >
       <div className={styles.mapHeading}>

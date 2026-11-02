@@ -1,0 +1,211 @@
+.section {
+  --intro-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  padding-block: clamp(6.25rem, 8vw, 8.75rem);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 3vw, 3rem);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: opacity 400ms var(--intro-ease);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--color-accent);
+}
+
+.editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+  align-items: end;
+  gap: clamp(2rem, 5vw, 5rem);
+  margin-top: 2rem;
+}
+
+.heading {
+  font-family: inherit;
+  font-size: clamp(4rem, 5.3vw, 5.25rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+  transition:
+    opacity 650ms var(--intro-ease) 100ms,
+    transform 650ms var(--intro-ease) 100ms;
+}
+
+.copy {
+  max-width: 25rem;
+  justify-self: end;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  transition: opacity 650ms var(--intro-ease) 220ms;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.link span {
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: 0.3rem;
+  transform-origin: left center;
+  transition:
+    transform 300ms var(--intro-ease),
+    text-decoration-color 220ms var(--intro-ease);
+}
+
+.link svg {
+  flex-shrink: 0;
+  transform: rotate(-45deg);
+  transform-box: border-box;
+  transform-origin: center;
+  transition: transform 350ms var(--intro-ease);
+}
+
+.link:is(:hover, :focus-visible) svg {
+  transform: rotate(0deg);
+}
+.link:is(:hover, :focus-visible) span {
+  transform: scale(1.015);
+  text-decoration-color: currentColor;
+}
+
+.figure {
+  margin: clamp(3rem, 5vw, 5rem) 0 0;
+}
+.frame {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+  clip-path: inset(0);
+  transition: clip-path 850ms var(--intro-ease) 320ms;
+}
+.image {
+  object-fit: cover;
+  object-position: center 25%;
+  transition: transform 850ms var(--intro-ease) 320ms;
+}
+.caption {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.rule {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.section[data-reveal="pending"]:not(:focus-within) :is(.eyebrow, .heading, .copy) {
+  opacity: 0;
+}
+.section[data-reveal="pending"]:not(:focus-within) .heading {
+  transform: translateY(6px);
+}
+.section[data-reveal="pending"]:not(:focus-within) .frame {
+  clip-path: inset(0 0 100% 0);
+}
+.section[data-reveal="pending"]:not(:focus-within) .image {
+  transform: scale(1.025);
+}
+
+@media (hover: hover) {
+  .section[data-reveal="visible"] .frame:hover .image {
+    transform: scale(1.01);
+    transition: transform 650ms var(--intro-ease);
+  }
+}
+
+@media (max-width: 64rem) {
+  .editorial {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .heading {
+    font-size: clamp(3rem, 6vw, 4rem);
+  }
+  .copy {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .section {
+    padding-block: 4.5rem;
+  }
+  .editorial {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+    margin-top: 1.5rem;
+  }
+  .heading {
+    font-size: clamp(2.625rem, 6.5vw, 3.25rem);
+  }
+  .heading br {
+    display: none;
+  }
+  .copy {
+    justify-self: start;
+  }
+  .figure {
+    margin-top: 2.5rem;
+  }
+  .frame {
+    aspect-ratio: 4 / 3;
+  }
+  .caption {
+    gap: 0.75rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section * {
+    transition: none !important;
+  }
+  .section[data-reveal="pending"]:not(:focus-within) :is(.eyebrow, .heading, .copy) {
+    opacity: 1;
+    transform: none;
+  }
+  .section[data-reveal="pending"]:not(:focus-within) .frame {
+    clip-path: none;
+  }
+  .section[data-reveal="pending"]:not(:focus-within) .image,
+  .section[data-reveal="visible"] .frame:hover .image,
+  .link:is(:hover, :focus-visible) span {
+    transform: none;
+  }
+}

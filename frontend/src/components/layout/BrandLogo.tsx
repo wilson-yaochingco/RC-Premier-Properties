@@ -9,12 +9,7 @@ export function BrandLogo({ footer = false }: { footer?: boolean }) {
       className={`brand-logo${footer ? " brand-logo--footer" : ""}`}
       aria-label="RC Premier Properties home"
     >
-      <Image
-        src={logo}
-        alt="RC Premier Properties"
-        sizes={footer ? "144px" : "96px"}
-        loading="lazy"
-      />
+      <Image src={logo} alt="RC Premier Properties" sizes={footer ? "144px" : "96px"} />
     </Link>
   );
 }

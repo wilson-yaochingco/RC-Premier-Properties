@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "text";
+type ButtonVariant = "primary" | "secondary" | "gold" | "outline" | "text";
 
 interface ButtonProps {
   children: ReactNode;

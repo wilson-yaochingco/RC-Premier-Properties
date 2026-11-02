@@ -76,6 +76,7 @@
   position: relative;
   min-height: clamp(22rem, 31vw, 28rem);
   overflow: hidden;
+  border-radius: var(--radius-editorial);
   background: var(--surface-warm);
 }
 
@@ -172,6 +173,7 @@
   display: flex;
   align-items: flex-end;
   overflow: hidden;
+  border-radius: var(--radius-editorial);
   color: var(--brand-white);
 }
 
@@ -398,6 +400,7 @@
   min-height: clamp(30rem, 54vw, 48rem);
   margin: 0;
   overflow: hidden;
+  border-radius: var(--radius-editorial);
   background: var(--surface-warm);
 }
 
