@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
+import { Button } from "@/components/ui/Button";
 import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { BrandLogo } from "./BrandLogo";
 import { MobileNavigation } from "./MobileNavigation";
+import heroStyles from "@/features/home/hero.module.css";
 
 const navigation = [
-  { href: "/", label: "Home" },
   { href: "/properties", label: "Properties" },
   { href: "/locations", label: "Locations" },
   { href: "/sell", label: "Sell" },
@@ -17,7 +18,7 @@ const navigation = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
-const NEAR_TOP_PX = 72;
+const NEAR_TOP_PX = 40;
 const DOWNWARD_HIDE_DISTANCE_PX = 48;
 const UPWARD_SHOW_DISTANCE_PX = 24;
 
@@ -28,16 +29,61 @@ export function SiteHeader() {
   const pointerActiveRef = useRef(false);
   const hiddenRef = useRef(false);
   const [isHidden, setIsHidden] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [heroGone, setHeroGone] = useState(false);
+  const [stickyMounted, setStickyMounted] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const heroGoneRef = useRef(false);
+  const isHome = pathname === "/";
+
+  useEffect(() => {
+    if (!isHome) return;
+    const hero = document.querySelector("[data-home-hero]");
+    if (!hero) return;
+    let exitTimeout: number | undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (document.body.style.position === "fixed") return;
+        const gone = !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
+        if (gone === heroGoneRef.current) return;
+        heroGoneRef.current = gone;
+        setHeroGone(gone);
+        window.clearTimeout(exitTimeout);
+        hiddenRef.current = true;
+        setIsHidden(true);
+        if (gone) {
+          setStickyMounted(true);
+        } else {
+          const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? 0
+            : 330;
+          exitTimeout = window.setTimeout(() => {
+            setStickyMounted(false);
+            hiddenRef.current = false;
+            setIsHidden(false);
+          }, duration);
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(hero);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(exitTimeout);
+    };
+  }, [isHome]);
 
   const showHeader = useCallback(() => {
+    if (isHome && !heroGoneRef.current) return;
     if (!hiddenRef.current) return;
     hiddenRef.current = false;
     setIsHidden(false);
-  }, []);
+  }, [isHome]);
 
   const handleMenuOpenChange = useCallback(
     (isOpen: boolean) => {
       menuOpenRef.current = isOpen;
+      setMenuOpen(isOpen);
       if (isOpen) showHeader();
     },
     [showHeader],
@@ -45,8 +91,8 @@ export function SiteHeader() {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      hiddenRef.current = false;
       pointerActiveRef.current = false;
+      setIsScrolled(window.scrollY > NEAR_TOP_PX);
       showHeader();
     });
 
@@ -58,12 +104,21 @@ export function SiteHeader() {
     let lastScrollY = Math.max(window.scrollY, 0);
     let direction: -1 | 0 | 1 = 0;
     let travelled = 0;
+    let scrolled = window.scrollY > NEAR_TOP_PX;
 
     const update = () => {
       frame = undefined;
       const scrollY = Math.max(window.scrollY, 0);
       const delta = scrollY - lastScrollY;
       lastScrollY = scrollY;
+
+      if (document.body.style.position === "fixed") return;
+      if (isHome && !heroGoneRef.current) return;
+
+      if (scrollY > NEAR_TOP_PX !== scrolled) {
+        scrolled = scrollY > NEAR_TOP_PX;
+        setIsScrolled(scrolled);
+      }
 
       if (scrollY <= NEAR_TOP_PX) {
         direction = 0;
@@ -121,11 +176,59 @@ export function SiteHeader() {
       window.removeEventListener("pointerup", endPointerInteraction);
       window.removeEventListener("pointercancel", endPointerInteraction);
     };
-  }, [pathname, showHeader]);
+  }, [pathname, isHome, showHeader]);
 
   function isCurrentPage(href: string) {
     if (href.includes("#")) return false;
-    return href === "/" ? pathname === "/" : pathname.startsWith(href);
+    return pathname.startsWith(href);
+  }
+
+  const isTransparent = isHome && !isScrolled;
+
+  if (isHome) {
+    return (
+      <header
+        ref={headerRef}
+        className={heroStyles.header}
+        data-sticky={stickyMounted}
+        data-eligible={heroGone}
+        data-hidden={stickyMounted && (isHidden || !heroGone)}
+        data-menu-open={menuOpen}
+        inert={stickyMounted && (isHidden || !heroGone)}
+        onFocusCapture={showHeader}
+        onPointerDownCapture={() => {
+          pointerActiveRef.current = true;
+          showHeader();
+        }}
+      >
+        <div
+          className={heroStyles.stickyLogo}
+          aria-hidden={!heroGone}
+          inert={!heroGone}
+        >
+          <BrandLogo />
+        </div>
+        <MobileNavigation
+          items={navigation}
+          currentPath={pathname}
+          onOpenChange={handleMenuOpenChange}
+          cinematic
+        >
+          <Link href="/book-viewing" className={heroStyles.viewing}>
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span>Book a viewing</span>
+          </Link>
+        </MobileNavigation>
+      </header>
+    );
   }
 
   return (
@@ -133,6 +236,8 @@ export function SiteHeader() {
       ref={headerRef}
       className="site-header"
       data-hidden={isHidden}
+      data-transparent={isTransparent}
+      data-scrolled={isScrolled}
       onFocusCapture={showHeader}
       onPointerDownCapture={() => {
         pointerActiveRef.current = true;
@@ -157,7 +262,12 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <RequestTourButton variant="outline" className="site-header__cta" />
+        <div className="site-header__actions">
+          <RequestTourButton variant="outline" className="site-header__tour-btn" />
+          <Button href="/properties" variant="gold" className="site-header__browse-btn">
+            Browse Properties
+          </Button>
+        </div>
 
         <MobileNavigation
           items={navigation}

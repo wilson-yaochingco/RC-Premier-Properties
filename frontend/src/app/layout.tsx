@@ -1,12 +1,28 @@
 import type { Metadata } from "next";
+import { Instrument_Serif, Manrope } from "next/font/google";
 import heroExterior from "@/assets/site/home_hero.jpg";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PublicChrome } from "@/components/layout/PublicChrome";
+import { PublicScroll } from "@/components/layout/PublicScroll";
 import { RequestTourProvider } from "@/features/inquiries/RequestTourProvider";
 import { SITE_URL } from "@/lib/env";
 import { buildPageMetadata } from "@/lib/seo";
 import "./globals.css";
+import "lenis/dist/lenis.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: "400",
+  display: "swap",
+});
 
 const rootMetadata = buildPageMetadata({
   title: "RC Premier Properties | Houses for Sale in Pampanga",
@@ -29,19 +45,21 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body>
+      <body className={`${manrope.variable} ${instrumentSerif.variable}`}>
         <a className="skip-link" href="#main-content">
           Skip to main content
         </a>
-        <RequestTourProvider>
-          <PublicChrome>
-            <SiteHeader />
-          </PublicChrome>
-          {children}
-          <PublicChrome>
-            <SiteFooter />
-          </PublicChrome>
-        </RequestTourProvider>
+        <PublicScroll>
+          <RequestTourProvider>
+            <PublicChrome>
+              <SiteHeader />
+            </PublicChrome>
+            {children}
+            <PublicChrome>
+              <SiteFooter />
+            </PublicChrome>
+          </RequestTourProvider>
+        </PublicScroll>
       </body>
     </html>
   );

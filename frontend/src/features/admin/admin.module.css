@@ -1,4 +1,5 @@
 .admin {
+  --font-editorial: var(--font-sans);
   min-height: 100vh;
   background: #f5f3ee;
 }

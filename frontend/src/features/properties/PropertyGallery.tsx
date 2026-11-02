@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePageScrollLock } from "@/hooks/usePageScrollLock";
 import type { PublicPropertyMedia } from "@rc/shared";
 import { getDevelopmentSampleMedia } from "./development-sample-media";
 import { PropertyMedia } from "./PropertyMedia";
@@ -48,6 +49,7 @@ export function PropertyGallery({
   }, [coverMedia, gallery, propertyIdentifier]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+  usePageScrollLock(fullscreen);
   const touchStart = useRef<number | null>(null);
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const lightbox = useRef<HTMLDivElement>(null);
@@ -70,8 +72,6 @@ export function PropertyGallery({
 
   useEffect(() => {
     if (!fullscreen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     closeButton.current?.focus();
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -99,7 +99,6 @@ export function PropertyGallery({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [closeFullscreen, fullscreen, selectedIndex, select]);
