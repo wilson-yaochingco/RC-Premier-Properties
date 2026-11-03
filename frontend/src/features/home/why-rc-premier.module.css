@@ -1,0 +1,182 @@
+.section {
+  --ink: var(--color-brand-deep);
+  --gutter: clamp(1.25rem, 3vw, 3rem);
+  --card-width: clamp(15.5rem, 20vw, 17.5rem);
+  /* The spacing above comes from the preceding section's own bottom padding. */
+  padding-block: 0 clamp(4.5rem, 6vw, 7rem);
+  background: var(--color-background);
+  color: var(--ink);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ---- Presentation board: the drawing leads, three equal cards support it ---- */
+.board {
+  display: grid;
+  grid-template-columns: var(--card-width) minmax(0, 1fr) var(--card-width);
+  grid-template-rows: 1fr 1fr;
+  column-gap: clamp(1rem, 2vw, 2rem);
+  align-items: center;
+}
+
+/*
+ * The drawing's faces are white. Multiplying it into the page tone makes them take the
+ * ivory background while the slate linework stays as drawn. The drawing's own margins let
+ * it run slightly under the card columns without touching any architecture.
+ */
+.house {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: calc(100% + 4rem);
+  max-width: none;
+  height: auto;
+  margin-inline: -2rem;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.statement {
+  position: relative;
+  z-index: 1;
+  width: var(--card-width);
+  overflow: hidden;
+  padding: 1.5rem 1.5rem 2.75rem;
+  border-radius: 14px 0 14px 0;
+}
+
+.statement[data-index="01"] {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  margin-top: clamp(1rem, 3vw, 3rem);
+  background: var(--ink);
+  color: #f8f6f1;
+}
+
+.statement[data-index="02"] {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: end;
+  margin-bottom: 0.5rem;
+  background: var(--color-surface-muted);
+}
+
+.statement[data-index="03"] {
+  grid-column: 3;
+  grid-row: 2;
+  align-self: start;
+  margin-top: 0.5rem;
+  background: var(--color-surface-muted);
+}
+
+.title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.body {
+  margin-top: 0.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  opacity: 0.8;
+}
+
+/* A small number tab set into the card's bottom-right corner. */
+.index {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0.5rem 0.875rem 0.4375rem 0.75rem;
+  border-top-left-radius: 10px;
+  background: var(--color-surface-muted);
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.statement[data-index="02"] .index,
+.statement[data-index="03"] .index {
+  background: var(--ink);
+  color: #f8f6f1;
+}
+
+/* Tablet: the drawing leads; the three equal cards sit together beneath it. */
+@media (max-width: 74.99rem) {
+  .board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    row-gap: 0.75rem;
+    column-gap: 0.75rem;
+  }
+
+  .house {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    max-width: 52rem;
+    justify-self: center;
+    margin-inline: 0;
+  }
+
+  .statement[data-index] {
+    grid-column: auto;
+    grid-row: 2;
+    align-self: stretch;
+    width: auto;
+    margin: 0;
+    padding: 1.25rem 1.25rem 2.75rem;
+  }
+}
+
+/* Mobile: drawing, then a compact vertical sequence. */
+@media (max-width: 47.99rem) {
+  .section {
+    padding-block: 0 3.5rem;
+  }
+
+  .board {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.625rem;
+  }
+
+  .house {
+    /* Full-bleed on phones so the line work stays legible. */
+    width: calc(100% + 2 * var(--gutter));
+    max-width: none;
+    justify-self: stretch;
+    margin-inline: calc(-1 * var(--gutter));
+    margin-bottom: 0.5rem;
+  }
+
+  .statement[data-index] {
+    grid-row: auto;
+  }
+}
+
+/* Gentle entry where scroll-driven animation is supported; static everywhere else. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .statement {
+      animation: whyRise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+  }
+}
+
+@keyframes whyRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}

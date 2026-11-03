@@ -571,6 +571,8 @@ export interface PropertyFacetsResponse {
   locations: string[];
   /** Published-inventory counts keyed by the same public location labels. */
   locationCounts?: Array<{ location: string; count: number }>;
+  /** Same labels as `locationCounts`, counting available and reserved homes only (sold excluded). */
+  activeLocationCounts?: Array<{ location: string; count: number }>;
   propertyTypes: PropertyType[];
   priceRange: {
     min: number | null;

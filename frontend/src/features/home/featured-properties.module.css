@@ -1,0 +1,439 @@
+.section {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel: #202630;
+  --gutter: clamp(1.25rem, 3vw, 3rem);
+  --gap: clamp(1rem, 1.6vw, 1.5rem);
+  /* Top spacing comes from the preceding section, as in RouteCards. */
+  padding-block: 0 clamp(4.5rem, 6vw, 7rem);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-deep);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--color-brand-deep);
+  transform: rotate(45deg);
+}
+
+/* Headline and View all share a row on desktop; the supporting copy sits under the title. */
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title link"
+    "lede lede";
+  align-items: center;
+  column-gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.header .heading {
+  grid-area: title;
+  margin-top: 0;
+}
+
+.header .lede {
+  grid-area: lede;
+}
+
+.header .viewAllSlot {
+  grid-area: link;
+}
+
+.heading {
+  margin-top: 1.5rem;
+  font-size: clamp(1.875rem, 3.4vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 36rem;
+  margin-top: 0.875rem;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Reserved so the link arriving with the data never moves the cards. */
+.viewAllSlot {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Compact button, matching "Book a viewing" in A Closer Look. */
+.viewAll {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-cta);
+  background: var(--panel);
+  color: #f8f6f1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.viewAll svg,
+.cta svg,
+.statePrimary svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.card:is(:hover, :focus-visible) .cta svg {
+  transform: rotate(0deg);
+}
+
+.viewAll:focus-visible svg,
+.statePrimary:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .viewAll:hover svg,
+  .statePrimary:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+/* ---- Curated grid: the count only chooses the layout ---- */
+.grid {
+  display: grid;
+  gap: var(--gap);
+  margin: clamp(2.75rem, 4.5vw, 4rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid[data-count="1"] {
+  grid-template-columns: minmax(0, 30rem);
+}
+
+.grid[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid[data-count="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ---- Card ---- */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+  color: #fff;
+  text-decoration: none;
+  isolation: isolate;
+}
+
+.card:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -6px;
+}
+
+.cardMedia {
+  position: relative;
+  overflow: hidden;
+}
+
+.cardMedia .cardImage {
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+  border: 0;
+  transition: transform 600ms var(--ease);
+}
+
+.card:is(:hover, :focus-visible) .cardImage {
+  transform: scale(1.02);
+}
+
+.reserved {
+  position: absolute;
+  top: 0.875rem;
+  left: 0.875rem;
+  z-index: 1;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px 0 6px 0;
+  background: rgb(32 38 48 / 82%);
+  color: #f8f6f1;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cardPanel {
+  flex: 1;
+  min-height: 11rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.125rem 1.25rem 1.25rem;
+  background: var(--panel);
+}
+
+.cardMeta {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.price {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.title,
+.location {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.location {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: rgb(255 255 255 / 62%);
+}
+
+/* Specs on the left, View Property on the right of the same row. */
+.cardFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(255 255 255 / 16%);
+}
+
+.specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.875rem;
+  min-height: 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 62%);
+}
+
+.specs span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.specs svg {
+  color: inherit;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.grid[data-count="1"] .price {
+  font-size: 1.625rem;
+}
+
+.grid[data-count="1"] .title {
+  font-size: 1.1875rem;
+}
+
+/* ---- Zero-inventory and unavailable states: one compact content block ---- */
+.stateBody {
+  max-width: 41rem;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.75rem;
+  margin-top: 1.75rem;
+}
+
+.statePrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-cta);
+  background: var(--panel);
+  color: #f8f6f1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.statePrimary:focus-visible,
+.viewAll:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* ---- Skeleton ---- */
+.skeletonCard {
+  pointer-events: none;
+  animation: featuredPulse 1.6s ease-in-out infinite;
+}
+
+.skeletonCard .cardMedia,
+.skeletonCard .cardPanel {
+  background: rgb(32 38 48 / 10%);
+}
+
+.skeletonCard .cardMedia {
+  aspect-ratio: 4 / 3;
+}
+
+@keyframes featuredPulse {
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Tablet: two columns; a third card wraps naturally. Header stacks. */
+@media (max-width: 63.99rem) {
+  .grid[data-count="2"],
+  .grid[data-count="3"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "lede"
+      "link";
+  }
+
+  .header .viewAllSlot {
+    justify-content: flex-start;
+    margin-top: 1.25rem;
+  }
+
+  .grid {
+    margin-top: 1.75rem;
+  }
+}
+
+/* Mobile: one card per row, normal vertical scrolling. */
+@media (max-width: 39.99rem) {
+  .section {
+    padding-block: 0 4rem;
+  }
+
+  .grid[data-count="1"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Two or three properties: a native scroll-snap rail with the next card peeking. */
+  .grid[data-count="2"],
+  .grid[data-count="3"] {
+    display: flex;
+    gap: 0.75rem;
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .grid[data-count="2"]::-webkit-scrollbar,
+  .grid[data-count="3"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  .grid[data-count="2"] > li,
+  .grid[data-count="3"] > li {
+    flex: 0 0 82vw;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .cardPanel {
+    padding: 1rem 1.125rem 1.125rem;
+  }
+
+  .statePrimary {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardMedia .cardImage,
+  .viewAll svg,
+  .cta svg,
+  .statePrimary svg {
+    transition: none;
+  }
+
+  .card:is(:hover, :focus-visible) .cardImage {
+    transform: none;
+  }
+
+  .skeletonCard {
+    animation: none;
+  }
+}

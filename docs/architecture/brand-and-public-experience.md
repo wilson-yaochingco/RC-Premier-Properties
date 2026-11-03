@@ -13,68 +13,44 @@ supplied.
 
 ### Homepage hero refinement (2026-10-03)
 
-The supplied Somerstone screenshot now governs the homepage hero composition only:
-full-viewport property photography, compact Menu and Book a viewing controls at the top
-right, the approved RC Premier logo above a lower-left Manrope headline, an editorial
-text link, a subtle lower-right property card, and a bottom-center scroll cue. Its brand,
-copy, and media are not copied. The hero uses a transparent monochrome white derivative
-of the official logo. The original charcoal/gold
-asset remains the treatment for light backgrounds.
+The full-viewport hero uses approved property photography, a white vector RC Premier
+symbol above "Find a home worth coming home to.", supporting copy, and a Browse
+properties link to `/properties`. A lower-right card links to Explore locations at
+`/locations`; the desktop/tablet scroll cue is decorative. Menu and Book a viewing
+sit at the upper right. The original full wordmark remains a secondary asset.
 
-The home header reuses the existing navigation focus, Escape, and scroll-lock behavior
-in a full-screen charcoal menu. Book a viewing links to `/book-viewing`, which remains a
-request rather than a confirmed appointment. Browse properties links to `/properties`;
-the search panel is removed from the hero. Mobile uses a safe full viewport, a larger
-image request for the tall crop, and hides the supporting card. A plain dark overlay
-provides contrast. All sections below the hero retain their existing implementation.
-
-The hero-specific direction takes precedence over earlier hero descriptions below.
+The hero has no search form. On phones, the supporting card appears only when the
+viewport is tall enough; shorter screens omit it. The image crop, contrast overlay,
+and safe-area spacing keep the content readable. Book a viewing remains an inquiry
+request, not a confirmed appointment.
 
 ### Homepage full-screen menu (2026-10-03)
 
-The homepage menu crossfades the hero into Deep Charcoal, with a fine static SVG grain
-layer, staggered Manrope navigation at the left and one approved property photograph at
-the right. Uppercase navigation uses a balanced 48–60px desktop scale with short muted
-dash markers to the left of each item. The larger editorial image is capped at 520px with the shared editorial corners; approved social
-icons use 36px circles with 44px hit areas below the photograph. A right-aligned
-ANGELES CITY, PAMPANGA / RESIDENTIAL label balances them, using the location supplied
-by the user for this menu image. Static monochrome SVG grain uses a screen blend
-and 12% opacity for visible light speckles over Deep Charcoal.
-It never slides from an edge. The transparent white logo sits at the upper
-left; Close and Book a viewing remain at the upper right. The viewing link preserves the
-hero's arrow rotation and label feedback. Bottom details use the verified public email
-and a current-year copyright. Mobile retains the navigation and socials and hides the
-editorial image.
+The menu fades over a clean Deep Charcoal full-screen surface. A white RC Premier
+symbol, large editorial links for Properties, Locations, Sell, About, and Contact,
+a Book a viewing action, social links, verified email, and current-year copyright
+make up the content. There is no menu photograph, location caption, or grain layer.
+The light sticky header uses the same symbol in Deep Charcoal.
 
 Closing fades the content before the surface. Background content stays inert and body
-scrolling remains locked through the exit transition. The homepage freezes the body at
-its saved position while retaining the native root scrollbar track, then restores the
-position on close without a smooth-scroll animation. The existing menu owns keyboard
-focus trapping, Escape and focus restoration. Reduced motion removes stagger, spatial
-movement and reveal transitions. Interior-page navigation retains its existing treatment.
+scrolling remains locked through the exit transition. The menu restores the saved
+page position on close, traps keyboard focus, supports Escape and focus restoration,
+and removes nonessential motion for reduced-motion preferences. On short mobile
+viewports, the menu surface can scroll so all actions remain reachable. Interior-page
+navigation retains its own treatment.
 
 ### Homepage second section (2026-10-03)
 
-Immediately after the full-viewport hero, Warm Ivory introduces “Not every house feels
-like the right one.” Large Manrope typography leads the left column; concise guidance
-and Explore locations (`/locations`) sit at the right. One oversized cinematic crop of
-the approved `home-hero-1.png` anchors the section. Its caption describes residential
-architecture without asserting an unverified location or presenting editorial media as
-listing inventory. Mobile stacks the text and uses a taller crop.
+Immediately after the hero, Warm Ivory carries the "A clearer way to find home"
+eyebrow, a scroll-filled heading about helping Pampanga buyers and sellers, supporting
+copy, and one approved residential photograph. This section has no Explore locations
+CTA or image caption. Its content remains readable without JavaScript, and reduced
+motion removes the scroll-driven fill.
 
-Section 2 is the primary locations prompt. The hero retains Browse properties and its
-inventory-context supporting link to `/properties`, plus Book a viewing to
-`/book-viewing`; no new routes or fetching behavior are introduced. A one-time viewport
-reveal sequences text and the image mask. Content remains visible without JavaScript,
-keyboard focus reveals the content, and reduced motion removes all spatial reveals.
-The hero scroll marker travels through the full padded interior: 21px desktop, 13px
-mobile, with 6px clearance from the inside of each border and no opacity animation.
-
-The user-supplied `01-home-desktop-1440.png` is the primary visual reference for the
-current homepage and shared public shell. It contributes the full-bleed search-led hero,
-compact listing grid, narrow callout, paired editorial composition, concise location
-discovery, restrained dark footer, and lighter overall density. Its Compass branding,
-copy, inventory, claims, and product features are not part of the implementation.
+The user-supplied `01-home-desktop-1440.png` informed the earlier public
+foundation. The current homepage instead follows the approved hero, editorial
+sections, and public shell described here. Its Compass branding, copy, inventory,
+claims, and product features are not part of RC Premier.
 
 The [Lagom Development homepage](https://lagom-development.com/) is a visual reference
 for the earlier public foundation only. Useful established principlesâ€”restrained
@@ -103,7 +79,7 @@ Public cards and framed imagery use `--radius-editorial`: `18px 0 18px 0`
 on desktop, reduced to `12px 0 12px 0` at 768px and below. Top-left and
 bottom-right corners are rounded; top-right and bottom-left stay sharp. The
 shape applies to property/location cards, framed gallery and editorial media,
-the hero supporting card, menu photograph, and Section 2 photograph. Media
+the hero supporting card and Section 2 photograph. Media
 frames clip their images; the radius never animates. Buttons, forms, pills,
 icon circles, staff UI, full-screen surfaces and full-bleed photography retain
 their existing treatment. New public cards/media should reuse this token.
@@ -176,14 +152,15 @@ The spacing rhythm uses a consistent scale: 4, 8, 12, 16, 24, 32, 48, 64, 80, 96
 144px. Sections alternate deliberately across the page to create visual rhythm:
 
 - Hero: Dominant twilight architectural photography with dark gradient readability overlay
-- Introduction: Warm Ivory (`#F8F6F1`) with asymmetric image collage
-- Featured Properties: Pure White (`#FFFFFF`) with 3-column cards
-- Value Pillars: Deep Charcoal (`#252C36`) with architectural dining media
-- Location Index: Soft Stone (`#EEEAE2`) with 4-column scenic photographic rail
-- Seller Callout: Pure White (`#FFFFFF`) with modern exterior split panel
+- Introduction: Warm Ivory (`#F8F6F1`) with large copy and one residential photograph
+- Featured Properties: Soft Stone (`#EEEAE2`, `--color-surface-muted`) with an editorial
+  horizontal rail of Deep Charcoal (`#202630`) information-panel cards
+- Why RC Premier: Warm Ivory (`#F8F6F1`) with the architectural house SVG and three statements
+- Explore Pampanga: Warm Ivory (`#F8F6F1`) with the SVG location map and ledger
+- Sell statement: Warm Ivory (`#F8F6F1`) with a direct seller CTA
 - Video Tours: Warm Ivory (`#F8F6F1`) with horizontal tour carousel
-- Closing CTA: Deep Charcoal (`#252C36`) with two-column decision split
-- Public Footer: Rich dark surface (`#191F27`) with multi-column structure
+- Route cards: Four photographic paths to property, viewing, details, and selling
+- Public Footer: Soft Stone (`#EEEAE2`) with multi-column navigation and contact details
 
 ### Shape language, borders, and shadows
 
@@ -205,8 +182,8 @@ compositions. Listing records without assigned photos retain a restrained neutra
 fallback; no design photo, random web photo, or agent identity is substituted as listing
 media.
 
-The public shell uses the supplied official logo and favicon. Source PNGs are retained;
-display copies only trim transparent outer margins. Assignments and optimization rules
+The public shell uses the vector RC Premier symbol and symbol-only SVG favicon.
+Source PNGs and the full wordmark are retained for secondary contexts. Assignments and optimization rules
 are documented in
 [`../features/production-content-and-media.md`](../features/production-content-and-media.md).
 
@@ -231,7 +208,7 @@ for a messaging provider that has not been selected.
 
 | Route                   | Primary task                                                                |
 | ----------------------- | --------------------------------------------------------------------------- |
-| `/`                     | Understand the brand, begin a search and reach the next useful page         |
+| `/`                     | Understand the brand, browse properties and reach the next useful page      |
 | `/properties`           | Filter, sort and page through published inventory                           |
 | `/properties/[slug]`    | Evaluate one published property and send an inquiry                         |
 | `/locations`            | Browse bounded, inventory-backed public locations                           |
@@ -246,45 +223,43 @@ management remain Phase 2B work.
 
 ## Figma-driven homepage and shared shell
 
-The homepage keeps server-rendered, API-backed featured listings and location facets. Its
-hero search submits the existing allowlisted sales keyword state to `/properties`; it
-does not introduce rental inventory or a second search contract. Empty and unavailable
-states remain honest when the API or published inventory is absent.
+The homepage keeps server-rendered, API-backed featured listings and location facets.
+The hero links to property discovery instead of embedding a search form. Empty and
+unavailable states remain honest when the API or published inventory is absent.
 
-The public header and approved logo now use the same dimensions, spacing and light
-surface on the homepage and interior routes. The mobile menu moves focus
+The Featured Properties section streams in its own `Suspense` boundary so the hero and
+earlier sections never wait for the property API. It is a horizontally browsable rail whose
+drag cursor, progress indicator, previous/next controls and keyboard scrolling appear only
+when the rail genuinely overflows; the card count only chooses card sizing. Zero listings
+show a lead-generation state, an unavailable API shows a calm contact state, and the two
+are distinct internally. Reserved listings carry a restrained RESERVED chip. Development
+fixtures (`?featuredFixture=…` under `next dev`) never reach production builds and are
+never a fallback.
+
+The homepage header begins over the hero and becomes a light sticky bar after the hero
+leaves the viewport; interior routes retain their light header. The mobile menu moves focus
 into the open panel, traps keyboard focus, closes on Escape, and returns focus to its
 trigger. Current-route state is exposed with `aria-current` where a stable page route can
 be determined.
 
-The three approved YouTube Shorts use a native horizontal scroll-snap carousel. Only the
-current slide is exposed to assistive technology and keyboard focus, only the explicitly
-selected player is mounted, changing slides unmounts the player, and player URLs do not
-request autoplay. No YouTube or thumbnail request occurs during the initial page load.
+Six RC Premier YouTube Shorts use a poster-first, horizontal scroll-snap row with
+lazy thumbnails. A player is mounted only after a visitor selects a tour; the
+selected embed requests autoplay and is removed when the tour is closed.
 
 The shared footer now exposes the current public phone, `rcpremierph@gmail.com`, and
 the supplied Facebook, Instagram, YouTube, and TikTok profiles. This scoped shell update
 does not represent the later repository-wide contact-copy migration.
 
-The app icon remains the approved mark. Its display derivative is a square 512-pixel PNG
-with only a small transparent safe area; the oversized vertical canvas was removed
-without redrawing or recoloring the artwork.
+The app icon is a symbol-only vector SVG that adapts to browser light and dark
+appearance. The original full-color/full-wordmark assets remain available for
+secondary branding contexts.
 
 ## Level 18 public polish
 
-The current visual foundation supersedes earlier color, typography, button, and radius
-details in this historical section. Existing page compositions remain in place until
-their separate redesign work begins. Interactive navigation, text links, cards and footer
-links retain restrained hover feedback plus stronger `:focus-visible` treatment, with
-non-essential transitions removed for reduced motion.
-
-The existing homepage photography treatment remains in place pending its separate
-redesign. Its search is the existing keyword/Property-ID workflow in a larger tabbed,
-reference-led visual frame. Location discovery is now a three-column image-led grid
-populated only from public facet counts and the documented locality photography. Featured
-Property Videos remain a three-item, click-to-load, single-player scroll-snap carousel on
-a white section. The footer uses the primary dark and ends with the dynamic-year copyright
-line; no office or locality claim is appended.
+The earlier Level 18 homepage search, location grid, video carousel, and dark footer
+descriptions are superseded by the current homepage and public shell above. Public
+navigation, cards, and footer links retain visible keyboard focus and reduced-motion
+handling.
 
 The About hero loads the approved Contentful video only on `/about`, begins at about four
 seconds, stays muted/looping/inline, and retains the authorized About photograph as its
@@ -418,27 +393,21 @@ toolbar only after the hero has completely left the viewport. IntersectionObserv
 that boundary; the existing passive, animation-frame-bounded native scroll listener owns
 direction. Lenis continues to drive the native scroll position. Downward travel of 48px
 hides the toolbar; upward travel of 24px reveals it. React updates occur on state changes.
-Warm Ivory, the subtle border, and the original transparent charcoal/gold logo distinguish
-the toolbar from the white hero logo. Only toolbar elements slide, leaving the fixed menu
-anchored to the viewport. Hidden controls are inert; focus and active menu interactions
-keep navigation available. The existing scroll lock retains the native scrollbar and
+
+Warm Ivory, a subtle border, and the charcoal vector symbol distinguish the
+sticky toolbar from the white hero symbol. Only toolbar elements slide, leaving
+the menu anchored to the viewport. Hidden controls are inert; focus and an active
+menu keep navigation available. Scroll lock retains the native scrollbar and
 restores the saved position after the menu exit, including with reduced motion.
 
 The toolbar is 72px on desktop, 68px on tablet, and 64px plus the top safe area on phones.
-Below 640px it shows the logo and Menu; Book a viewing remains prominent in the same
-full-screen menu. The hero keeps both top-right controls from 360px upward. Below that,
-the viewing action is available in the menu. Its light-surface CTA inverts to charcoal;
-arrow rotation and the subtle label scale are preserved.
+Below 640px, the hero and sticky header show Menu while Book a viewing remains available
+inside the full-screen menu. Larger viewports show both controls in the header.
 
-Phone and tablet heroes use 100svh. Intentional photo positions are 60%/45% on phones,
-56%/45% on small tablets, 58%/45% on larger tablets, and the approved center/45% on desktop.
-Phone content stays lower-left with a 112px white logo, a fluid 38�48px three-line Manrope
-heading, bounded 15px copy, and the primary Browse properties link to /properties.
-Tablets use a 50�64px headline and independent content/card sizing. Below 640px the
-compact landscape support card appears only at viewport heights of at least 780px; shorter
-screens omit it. Its contextual action is Explore locations (/locations). Safe-area-aware
-bottom spacing reserves a separate, centered lane for the existing animated scroll cue.
-Interior-page layouts, Section 2 and subsequent sections remain outside this refinement.
+Phone and tablet heroes use 100svh with intentional image crops. Phone content stays
+lower-left with the white symbol, three-line Manrope headline, supporting copy,
+and Browse properties link. Tall phones retain the Explore locations card; short
+phones omit it. The desktop/tablet scroll cue is hidden on phones.
 
 ### Mobile hero and menu follow-up (2026-10-03)
 
@@ -448,37 +417,26 @@ scroll capsule. Hero content shares a 24px left edge, with 24px logo/headline se
 an intentional 58%/45% crop. Tall phones retain the secondary Explore locations card;
 short phones omit it. Tablet and desktop keep their approved hero controls and scroll cue.
 
-The same cinematic menu places the mobile viewing CTA directly below primary navigation,
-then restores the existing approved property photograph in a wide editorial frame. The
-verified social links and supplied Angeles City / Residential metadata sit beneath it;
-metadata stacks below socials on narrow phones. Copyright and verified email remain at
-the bottom of the internally scrollable panel. The existing static grain is unchanged.
-CSS selects the viewing CTA placement, and keyboard trapping includes only visible controls.
-Background locking and Lenis stop/resume continue through the exit transition.
+The mobile menu keeps its Book a viewing action, navigation, social links, verified
+email, and copyright on the same charcoal surface. It has no property photograph,
+location metadata, or grain. Keyboard trapping includes only visible controls;
+background locking and Lenis stop/resume continue through the exit transition.
 
 The hero observer is the source of sticky eligibility in both directions. Any hero
 intersection disables the toolbar immediately and makes its controls inert. A 330ms
-upward exit completes before the same header returns to its absolute hero position;
-reduced motion skips that delay. The normal transparent charcoal/gold logo sits centered
-in a bounded contain-fit image frame: 112px desktop, 104px tablet and 94px phone, with
-52/48/46px maximum display heights to avoid crowding the compact toolbar. These mobile
-rules supersede the previous two-control hero and scroll-cue descriptions above.
+upward exit completes before the same header returns to its hero position; reduced
+motion skips that delay. The sticky header uses the charcoal RC Premier symbol on
+its light surface. These mobile rules supersede the earlier two-control hero and
+scroll-cue descriptions.
 
 ### Mobile menu viewport fit (2026-10-03)
 
-The mobile menu now fits one viewport at 320�568, 360�740, 375�667, 375�812,
-390�844 and 430�932. The previous non-shrinking content, generous block padding/margins,
-and 16:10 image exceeded the viewport; scrolling the whole overlay also moved its absolute
-grain layer away from the visible bottom. The fixed mobile surface now explicitly fills
-100dvh (with 100svh fallback), has no padding or scrolling, and owns the unchanged grain.
-An inner grid places the logo first, a vertically balanced navigation/CTA/image group in
-the flexible middle row, and copyright/email in the bottom row with 16�20px plus safe-area
-clearance. Desktop uses display:contents on this wrapper to preserve its composition.
+The mobile menu fills the viewport with a fixed charcoal surface and responsive
+editorial navigation. Its content can scroll when a short viewport cannot show every
+action at once; the page behind it remains locked. The white symbol, navigation,
+Book a viewing action, social links, copyright, and email remain readable without
+a photograph or grain layer. Reduced motion removes reveal transitions.
 
-Mobile navigation uses 32�42px Manrope at 1.08 line height and compact 44px-or-taller rows.
-The image uses a viewport-height clamp, reducing further below 700px and 600px heights;
-socials are 30px circles with expanded touch areas. Only viewports at or below 480px high
-allow the inner content layer to scroll. The fixed background/grain never scrolls, and the
-emergency footer ends at the same bottom padding. Existing Lenis locking, exact scroll
-restoration, focus trapping, and hero/sticky-header behavior are preserved. This replaces
-the previous default internally scrolling mobile menu treatment.
+The RC Premier symbol mark is white on dark surfaces and Deep Charcoal (#252c36)
+on light surfaces. The symbol-only SVG favicon adapts to the browser color scheme.
+The full wordmark remains available where explicit brand naming is required.

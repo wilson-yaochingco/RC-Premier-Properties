@@ -538,6 +538,7 @@ interface FacetAggregate {
 interface LocationCountAggregate {
   _id: string;
   count: number;
+  activeCount: number;
 }
 
 export class MongoosePropertyService implements PropertyService {
@@ -731,6 +732,9 @@ export class MongoosePropertyService implements PropertyService {
           $group: {
             _id: { $concat: ["$location.city", ", ", "$location.province"] },
             count: { $sum: 1 },
+            activeCount: {
+              $sum: { $cond: [{ $eq: ["$availability", "sold"] }, 0, 1] },
+            },
           },
         },
         { $sort: { count: -1, _id: 1 } },
@@ -747,6 +751,10 @@ export class MongoosePropertyService implements PropertyService {
         location: item._id,
         count: item.count,
       })),
+      activeLocationCounts: locationCounts
+        .filter((item) => item.activeCount > 0)
+        .map((item) => ({ location: item._id, count: item.activeCount }))
+        .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location)),
       propertyTypes: result
         ? result.propertyTypes.sort((a, b) => a.localeCompare(b))
         : [],

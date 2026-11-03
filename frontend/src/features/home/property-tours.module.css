@@ -1,0 +1,279 @@
+.section {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ink: var(--color-brand-deep);
+  --gutter: clamp(1.25rem, 3vw, 3rem);
+  --gap: clamp(1rem, 1.6vw, 1.5rem);
+  --card-width: clamp(17rem, 22vw, 20.5rem);
+  padding-block: clamp(1.5rem, 2vw, 2rem) clamp(5rem, 8vw, 8rem);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ---- Gallery: three portrait Shorts, the rest revealed beneath ---- */
+.gallery {
+}
+
+/* Fixed-width cards in a centred, wrapping row, so a second row of two is centred too. */
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap);
+  max-width: calc(3 * var(--card-width) + 2 * var(--gap));
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  flex: 0 0 var(--card-width);
+  width: var(--card-width);
+}
+
+/* Collapsed: the extra Shorts stay out of layout (and never load) until expanded. */
+.list[data-expanded="false"] .card[data-extra="true"] {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .list[data-expanded="true"] .card[data-extra="true"] {
+    animation: tourReveal 450ms var(--ease) both;
+  }
+}
+
+/* The Short itself is the card: portrait, clipped with the RC corners, no frame. */
+.media {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 14px 0 14px 0;
+  background: #181d25;
+}
+
+.poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.thumbnail {
+  object-fit: cover;
+}
+
+.player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Real title and channel, over a soft top gradient only. */
+.meta {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 0.875rem 3rem;
+  background: linear-gradient(to bottom, rgb(18 22 28 / 72%), rgb(18 22 28 / 0%));
+  color: #f8f6f1;
+  text-align: left;
+  pointer-events: none;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.625rem;
+  height: 2.625rem;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+}
+
+.avatar svg {
+  width: 1.5rem;
+  height: auto;
+}
+
+.metaText {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.videoTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.channel {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  opacity: 0.85;
+}
+
+.play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: rgb(37 44 54 / 88%);
+  color: #f8f6f1;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 250ms var(--ease),
+    opacity 250ms var(--ease);
+}
+
+.play svg {
+  width: 1rem;
+  height: 1rem;
+  margin-left: 2px;
+}
+
+.poster:is(:hover, :focus-visible) .play {
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.poster:focus-visible {
+  outline: 2px solid #f8f6f1;
+  outline-offset: -6px;
+}
+
+/* ---- Expand / collapse ---- */
+.toggle {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin: clamp(2rem, 3vw, 2.75rem) auto 0;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-cta);
+  background: var(--color-background);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 420ms cubic-bezier(0.76, 0, 0.24, 1),
+    border-color 420ms cubic-bezier(0.76, 0, 0.24, 1),
+    color 420ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.toggle:focus-visible {
+  background: var(--ink);
+  color: #f8f6f1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toggle:hover {
+    background: var(--ink);
+    color: #f8f6f1;
+  }
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* Phones: one native swipe rail; the next Short peeks in. */
+@media (max-width: 39.99rem) {
+  .section {
+    --card-width: 78vw;
+    padding-block: 1.5rem 4rem;
+  }
+
+  .list {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: none;
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .list[data-expanded="false"] .card[data-extra="true"] {
+    display: block;
+  }
+
+  .toggle {
+    display: none;
+  }
+
+  .avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .avatar svg {
+    width: 1.25rem;
+  }
+
+  .videoTitle {
+    font-size: 0.9375rem;
+  }
+
+  .card {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
+@keyframes tourReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list[data-expanded="true"] .card[data-extra="true"] {
+    animation: none;
+  }
+
+  .play,
+  .toggle {
+    transition: none;
+  }
+
+  .poster:is(:hover, :focus-visible) .play {
+    transform: translate(-50%, -50%);
+  }
+}

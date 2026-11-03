@@ -26,6 +26,8 @@ export function buildContentSecurityPolicy(config) {
     "data:",
     "blob:",
     config.mapTileOrigin,
+    // YouTube poster thumbnails for the homepage property tours.
+    "https://i.ytimg.com",
     ...(config.mediaOrigin ? [config.mediaOrigin] : []),
   ];
   const directives = [

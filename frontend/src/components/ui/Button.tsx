@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { RollLabel } from "./RollLabel";
 
 type ButtonVariant = "primary" | "secondary" | "gold" | "outline" | "text";
 
@@ -30,10 +31,11 @@ export function Button({
   ariaLabel,
   disabled = false,
 }: ButtonProps) {
-  const classes = `button button--${variant} ${className}`.trim();
+  const rolls = variant !== "text";
+  const classes = `button button--${variant}${rolls ? " cta" : ""} ${className}`.trim();
   const content = (
     <>
-      <span>{children}</span>
+      {rolls ? <RollLabel>{children}</RollLabel> : <span>{children}</span>}
       <ArrowIcon />
     </>
   );

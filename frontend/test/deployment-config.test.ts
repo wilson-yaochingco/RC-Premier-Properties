@@ -90,6 +90,7 @@ describe("frontend content security policy", () => {
     expect(policy).toContain("connect-src 'self' https://api.example.test");
     expect(policy).toContain("https://tiles.example.test");
     expect(policy).toContain("https://media.example.test");
+    expect(policy).toContain("https://i.ytimg.com");
     expect(policy).toContain("frame-src https://www.youtube-nocookie.com");
     expect(policy).toContain("media-src 'self' https://videos.ctfassets.net");
     expect(policy).toContain("frame-ancestors 'none'");

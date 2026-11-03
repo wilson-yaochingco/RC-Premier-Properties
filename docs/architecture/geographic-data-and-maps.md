@@ -200,3 +200,17 @@ The following remain external or deliberately deferred to Phase 2B or launch pre
 - a certified, license-compatible barangay boundary source;
 - a post-change live MongoDB/admin acceptance run; and
 - nearby-landmark data and routing, which are not part of this public MVP map.
+
+## Homepage "Explore Pampanga" map data
+
+The homepage map is an SVG infographic, not a map application: no tiles, provider, key or
+runtime geometry request. `scripts/build-pampanga-map-data.mjs` reads the committed
+`frontend/public/geo/pampanga-admin3.geojson`, applies a latitude-corrected projection,
+simplifies shared borders once (so neighbours keep identical edges) and writes
+`frontend/src/features/locations/pampanga-map-data.ts` (about 23 KB, 8 KB gzipped). Re-run
+the script after changing the GeoJSON; label anchors are computed per area and can be
+overridden in the script. Areas match location labels by `publicLocationSlug` only.
+
+Counts come from `activeLocationCounts` on the facets response (available and reserved
+homes; sold excluded). `locationCounts`, used by `/locations`, is unchanged. The map shows
+the attribution `Boundary data: OCHA/NAMRIA/PSA · CC BY 3.0 IGO`.

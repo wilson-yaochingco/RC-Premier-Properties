@@ -707,3 +707,15 @@
     transition: none;
   }
 }
+
+.sourceNote {
+  margin-top: 2.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.sourceNote a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

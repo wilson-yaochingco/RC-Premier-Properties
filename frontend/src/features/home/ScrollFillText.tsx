@@ -1,0 +1,35 @@
+import { Fragment } from "react";
+import styles from "./scroll-fill.module.css";
+
+/**
+ * Splits text into words and characters for `useScrollFill`. Each entry in `lines` becomes a
+ * span (styled by `lineClassName`, if given); words never break mid-word. The parent heading
+ * should carry the full text as its `aria-label`.
+ */
+export function ScrollFillText({
+  lines,
+  lineClassName,
+}: {
+  lines: readonly string[];
+  lineClassName?: string;
+}) {
+  return lines.map((line, l) => (
+    <Fragment key={l}>
+      {l > 0 && " "}
+      <span className={lineClassName}>
+        {line.split(" ").map((word, w) => (
+          <Fragment key={w}>
+            {w > 0 && " "}
+            <span className={styles.word} aria-hidden="true">
+              {[...word].map((char, c) => (
+                <span key={c} data-char className={styles.char}>
+                  {char}
+                </span>
+              ))}
+            </span>
+          </Fragment>
+        ))}
+      </span>
+    </Fragment>
+  ));
+}

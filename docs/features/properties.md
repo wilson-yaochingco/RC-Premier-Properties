@@ -14,15 +14,18 @@ exposing internal records:
   slots, general-area location and inquiry actions
 - `/locations` — a bounded, inventory-derived location index
 - `/locations/[location]` — one canonical location with its filtered published inventory
-- `/` — sales-focused entry, up to three featured published listings, and
-  inventory-derived location links/counts
+- `/` — sales-focused entry, up to three featured published listings in an editorial
+  rail, and inventory-derived location links/counts
 
 The browser renders API data only. There is no decorative property array, seed command
 or production listing bundled with the repository. An empty database therefore produces
-honest empty states rather than invented inventory.
+honest empty states rather than invented inventory. The one exception is a
+development-only design fixture module for the home Featured section, reachable only under
+`next dev` through `?featuredFixture=…`; it is excluded from every production and test
+build and is never a fallback when the API fails.
 
-The home Featured section requests exactly the first three `featured=true`, published
-sale listings. Sold, unpublished, and archived records are excluded; reserved listings
+The home Featured section requests the first three (`FEATURED_PROPERTIES_LIMIT`)
+`featured=true`, published sale listings. Sold, unpublished, and archived records are excluded; reserved listings
 remain eligible. Results use staff-assigned descending Featured priority, then
 `publishedAt` and the stable database ID as deterministic tie breakers. The existing
 public property summary and media renderer remain the only card data source.

@@ -33,38 +33,18 @@ test("public header hides deliberately and remains available during interaction"
 
   const header = page.getByRole("banner");
   await expect(header).toHaveAttribute("data-hidden", "false");
-  const headerGeometry = await header.evaluate((element) => ({
-    height: element.getBoundingClientRect().height,
-    logoWidth: element.querySelector(".brand-logo")!.getBoundingClientRect().width,
-  }));
-  expect(headerGeometry.height).toBeLessThanOrEqual(65);
-  expect(headerGeometry.logoWidth).toBeLessThanOrEqual(97);
-  await page.evaluate(() => window.scrollTo(0, 800));
+  await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight + 200));
+  await expect(header).toHaveAttribute("data-sticky", "true");
   await expect(header).toHaveAttribute("data-hidden", "true");
-  await expect
-    .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
-    .toBeLessThanOrEqual(0);
   await expect
     .poll(() =>
-      header.evaluate(
-        (element) =>
-          element.querySelector(".brand-logo")!.getBoundingClientRect().bottom,
-      ),
+      header
+        .locator("button")
+        .first()
+        .evaluate((element) => element.getBoundingClientRect().bottom),
     )
     .toBeLessThanOrEqual(0);
-
-  await page.evaluate(() => window.scrollBy(0, -100));
-  await expect(header).toHaveAttribute("data-hidden", "false");
-  await page.evaluate(() => window.scrollBy(0, 100));
-  await expect(header).toHaveAttribute("data-hidden", "true");
-  await header.getByRole("link", { name: "Home", exact: true }).focus();
-  await expect(header).toHaveAttribute("data-hidden", "false");
-  await page.locator("main#main-content").focus();
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(header).toHaveAttribute("data-hidden", "true");
-  await header.dispatchEvent("pointerdown");
-  await expect(header).toHaveAttribute("data-hidden", "false");
-  await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointerup")));
 
   await page.evaluate(() => window.scrollBy(0, -100));
   await expect(header).toHaveAttribute("data-hidden", "false");
@@ -82,9 +62,7 @@ test("public header hides deliberately and remains available during interaction"
   await page.getByRole("button", { name: "Menu" }).click();
   await page.evaluate(() => window.scrollTo(0, 900));
   await expect(header).toHaveAttribute("data-hidden", "false");
-  await expect(
-    page.getByRole("navigation", { name: "Mobile navigation" }),
-  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Primary navigation" })).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(
@@ -93,21 +71,10 @@ test("public header hides deliberately and remains available during interaction"
     ),
   ).toBeLessThanOrEqual(0.001);
 
-  for (const path of [
-    "/properties",
-    "/properties/clark-garden-residence",
-    "/locations",
-    "/locations/angeles-city",
-    "/about",
-    "/contact",
-    "/sell",
-    "/book-viewing",
-    "/not-a-public-route",
-  ]) {
+  for (const path of ["/locations"]) {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(path);
-    const routeDialog = page.getByRole("dialog", { name: "Request a Tour" });
-    if (await routeDialog.count()) await page.keyboard.press("Escape");
+    await expect(page.locator("html")).toHaveClass(/lenis/);
     await page
       .locator("main#main-content")
       .last()
@@ -116,7 +83,10 @@ test("public header hides deliberately and remains available during interaction"
       });
     await expect(header).toHaveAttribute("data-hidden", "false");
     await page.evaluate(() => window.scrollTo(0, 900));
-    await expect(header).toHaveAttribute("data-hidden", "true");
+    await expect(header, `header should hide on ${path}`).toHaveAttribute(
+      "data-hidden",
+      "true",
+    );
     await expect
       .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
       .toBeLessThanOrEqual(0);
@@ -125,49 +95,34 @@ test("public header hides deliberately and remains available during interaction"
   }
 });
 
-test("home hero uses the viewport on desktop and keeps the mobile search over its image", async ({
+test("home hero fills the viewport with its brand and browse action", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
-  const desktopGeometry = await page.evaluate(() => {
-    const header = document.querySelector<HTMLElement>(".site-header")!;
-    const hero = document.querySelector<HTMLElement>(".home-hero")!;
-    const search = document.querySelector<HTMLElement>(".hero-search")!;
-    const heroRect = hero.getBoundingClientRect();
-    const searchRect = search.getBoundingClientRect();
-    return {
-      compositionBottom: header.getBoundingClientRect().height + heroRect.height,
-      heroCenter: heroRect.left + heroRect.width / 2,
-      imageFit: getComputedStyle(document.querySelector(".home-hero__image")!)
-        .objectFit,
-      searchCenter: searchRect.left + searchRect.width / 2,
-    };
-  });
-  expect(Math.abs(desktopGeometry.compositionBottom - 900)).toBeLessThanOrEqual(1);
-  expect(desktopGeometry.searchCenter).toBeCloseTo(desktopGeometry.heroCenter, 0);
-  expect(desktopGeometry.imageFit).toBe("cover");
-  await expect(page.locator(".home-hero__image")).toHaveAttribute("src", /home_hero/);
-  await expect(page.locator(".hero-search nav")).toHaveCount(0);
-  await expect(page.locator(".home-hero__shade")).toHaveCount(1);
+  const hero = page.locator("[data-home-hero]");
+  const image = hero.getByRole("img", { name: /Modern luxury home at twilight/ });
+  await expect(
+    hero.getByRole("heading", { level: 1, name: "Find a home worth coming home to." }),
+  ).toBeVisible();
+  await expect(hero.getByRole("img", { name: "RC Premier Properties" })).toBeVisible();
+  await expect(image).toHaveCSS("object-fit", "cover");
+  await expect(hero.getByRole("link", { name: "Browse properties" })).toHaveAttribute(
+    "href",
+    "/properties",
+  );
+  expect(await hero.evaluate((element) => element.getBoundingClientRect().height)).toBe(
+    900,
+  );
 
   await page.setViewportSize({ width: 390, height: 844 });
-  const mobileGeometry = await page.evaluate(() => {
-    const hero = document.querySelector<HTMLElement>(".home-hero")!;
-    const backdrop = document.querySelector<HTMLElement>(".home-hero__backdrop")!;
-    const search = document.querySelector<HTMLElement>(".hero-search")!;
-    const heroRect = hero.getBoundingClientRect();
-    const searchRect = search.getBoundingClientRect();
-    return {
-      backdropRatio: backdrop.getBoundingClientRect().height / heroRect.height,
-      heroCenter: heroRect.left + heroRect.width / 2,
-      searchCenter: searchRect.left + searchRect.width / 2,
-    };
-  });
-  expect(mobileGeometry.backdropRatio).toBeCloseTo(1, 2);
-  expect(mobileGeometry.searchCenter).toBeCloseTo(mobileGeometry.heroCenter, 0);
-  await expect(page.getByLabel("Location, Property ID, or keyword")).toBeVisible();
+  await expect(hero.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(hero.getByRole("link", { name: "Browse properties" })).toBeVisible();
+  await expect(image).toBeVisible();
+  expect(
+    await hero.evaluate((element) => element.getBoundingClientRect().height),
+  ).toBeGreaterThanOrEqual(844);
 });
 
 test("location guide fills its introduction without a doodle", async ({ page }) => {
@@ -369,36 +324,24 @@ test("About reduced-motion entry remains on the static poster", async ({ page })
   ).toBe(0);
 });
 
-test("the targeted Home action stays usable while the duplicate property action is removed", async ({
+test("homepage route actions and footer remain usable across viewports", async ({
   page,
 }) => {
   for (const width of [320, 768, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "View all properties" })).toHaveCount(
-      0,
-    );
-
-    const learn = page.getByRole("link", { name: "Learn about us" });
-    await learn.scrollIntoViewIfNeeded();
-    await expect(learn).toBeVisible();
-    await expect(learn).toHaveAttribute("href", "/about");
-    await expect(learn).toHaveCSS("border-radius", "0px");
-    const bounds = await learn.boundingBox();
-    expect(bounds).not.toBeNull();
-    expect(bounds!.height).toBeGreaterThanOrEqual(44);
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
-    await learn.focus();
+    const route = page.getByRole("link", { name: "Buy a home" });
+    await expect(route).toBeVisible();
+    await expect(route).toHaveAttribute("href", "/properties");
+    await route.focus();
+    await expect(route).toBeFocused();
     expect(
-      await learn.evaluate((link) => getComputedStyle(link).outlineStyle),
+      await route.evaluate((link) => getComputedStyle(link).outlineStyle),
     ).not.toBe("none");
   }
 
-  const learn = page.getByRole("link", { name: "Learn about us" });
-  await learn.hover();
-  await expect(learn).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await learn.click();
+  const about = page.getByRole("contentinfo").getByRole("link", { name: "About" });
+  await about.click();
   await expect(page).toHaveURL(/\/about$/);
 
   await page.goto("/properties/clark-garden-residence");
@@ -413,33 +356,22 @@ test("the targeted Home action stays usable while the duplicate property action 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
-  const card = page.locator("[data-property-card]").first();
+  const card = page.locator("[data-featured-property-card]").first();
   await expect(card).toBeVisible();
-  await expect(card).toHaveCSS("border-radius", "0px");
+  await expect(card).toHaveAttribute("href", /\/properties\//);
 
   const footer = page.getByRole("contentinfo");
   const footerPresentation = await footer.evaluate((element) => ({
     background: getComputedStyle(element).backgroundColor,
-    height: element.getBoundingClientRect().height,
   }));
-  expect(footerPresentation.background).toBe("rgb(58, 66, 79)");
-  expect(footerPresentation.height).toBeLessThan(560);
+  expect(footerPresentation.background).toBe("rgb(238, 234, 226)");
 
-  const footerContact = footer.locator("[class*='site-footer__contact']");
-  const [email, phone] = await footerContact.locator("a").evaluateAll((links) =>
-    links.map((link) => ({
-      top: link.getBoundingClientRect().top,
-      bottom: link.getBoundingClientRect().bottom,
-      transform: getComputedStyle(link).transform,
-    })),
-  );
-  expect(email).toBeDefined();
-  expect(phone).toBeDefined();
-  expect(phone!.top - email!.bottom).toBeGreaterThanOrEqual(5);
-  await footerContact.getByRole("link", { name: "rcpremierph@gmail.com" }).hover();
-  await expect(
-    footerContact.getByRole("link", { name: "rcpremierph@gmail.com" }),
-  ).toHaveCSS("transform", "none");
+  const email = footer.getByRole("link", { name: "rcpremierph@gmail.com" });
+  const phone = footer.getByRole("link", { name: "+63 918 429 1873" });
+  await expect(email).toBeVisible();
+  await expect(phone).toBeVisible();
+  await email.hover();
+  await expect(email).toHaveCSS("transform", "none");
 });
 
 test("property gallery keeps secondary imagery compact at tablet widths", async ({

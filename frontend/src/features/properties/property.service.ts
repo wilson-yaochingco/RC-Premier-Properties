@@ -10,6 +10,9 @@ import { propertyApiSearchParams, type RawSearchParams } from "./property-query"
 
 const READ_TIMEOUT_MS = 8_000;
 
+/** Maximum featured sale listings requested for the homepage rail. */
+export const FEATURED_PROPERTIES_LIMIT = 3;
+
 function readOptions(init: RequestInit = {}): RequestInit {
   return {
     ...init,
@@ -38,7 +41,7 @@ export function getFeaturedProperties(
     purpose: "sale",
     sort: "newest",
     page: "1",
-    limit: "3",
+    limit: String(FEATURED_PROPERTIES_LIMIT),
   });
 
   return apiRequest<PropertySearchResponse>(

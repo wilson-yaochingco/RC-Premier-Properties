@@ -10,7 +10,7 @@ interface PropertyCardProps {
   resultsHref?: string;
 }
 
-function BedIcon() {
+export function BedIcon() {
   return (
     <svg aria-hidden="true" className={styles.specIcon} viewBox="0 0 18 18" fill="none">
       <path
@@ -25,7 +25,7 @@ function BedIcon() {
   );
 }
 
-function BathIcon() {
+export function BathIcon() {
   return (
     <svg aria-hidden="true" className={styles.specIcon} viewBox="0 0 18 18" fill="none">
       <path
@@ -39,7 +39,7 @@ function BathIcon() {
   );
 }
 
-function AreaIcon() {
+export function AreaIcon() {
   return (
     <svg aria-hidden="true" className={styles.specIcon} viewBox="0 0 18 18" fill="none">
       <path

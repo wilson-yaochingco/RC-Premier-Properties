@@ -20,7 +20,7 @@ for (const viewport of [
     await expect(page.locator("html")).toHaveClass(/lenis/);
     const radius = viewport.width <= 768 ? "12px" : "18px";
     const frame = page.locator('section[aria-labelledby="intro-heading"] figure > div');
-    for (const surface of [frame, page.locator(".home-location-item").first()]) {
+    for (const surface of [frame]) {
       await expect(surface).toHaveCSS("border-top-left-radius", radius);
       await expect(surface).toHaveCSS("border-top-right-radius", "0px");
       await expect(surface).toHaveCSS("border-bottom-right-radius", radius);

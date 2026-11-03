@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  FEATURED_PROPERTIES_LIMIT,
   getFeaturedProperties,
   getProperties,
 } from "../src/features/properties/property.service";
@@ -47,6 +48,7 @@ describe("property service request sizing", () => {
     const requested = new URL(String(fetch.mock.calls[0]?.[0]));
     expect(requested.searchParams.get("featured")).toBe("true");
     expect(requested.searchParams.get("purpose")).toBe("sale");
+    expect(FEATURED_PROPERTIES_LIMIT).toBe(3);
     expect(requested.searchParams.get("limit")).toBe("3");
     expect(requested.searchParams.get("page")).toBe("1");
   });

@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePageScrollLock } from "@/hooks/usePageScrollLock";
 import { useRequestTour } from "@/features/inquiries/RequestTourProvider";
-import whiteLogo from "@/assets/brand/rc-premier-logo-white.png";
-import menuImage from "@/assets/site/home-hero-2.png";
-import { OFFICIAL_EMAIL, OFFICIAL_SOCIAL_LINKS } from "@/lib/public-contact";
+import { RcPremierMark } from "./RcPremierMark";
 import { SocialMediaIcon } from "@/features/contact/SocialMediaIcon";
+import { OFFICIAL_EMAIL, OFFICIAL_SOCIAL_LINKS } from "@/lib/public-contact";
 import heroStyles from "@/features/home/hero.module.css";
 
 interface NavigationItem {
@@ -19,7 +17,7 @@ interface NavigationItem {
 interface MobileNavigationProps {
   items: readonly NavigationItem[];
   currentPath: string;
-  onOpenChange?: (isOpen: boolean) => void;
+  onOpenChange?: (isActive: boolean, isOpen: boolean) => void;
   cinematic?: boolean;
   children?: ReactNode;
 }
@@ -42,8 +40,8 @@ export function MobileNavigation({
   usePageScrollLock(isActive);
 
   useEffect(() => {
-    onOpenChange?.(isActive);
-  }, [isActive, onOpenChange]);
+    onOpenChange?.(isActive, isOpen);
+  }, [isActive, isOpen, onOpenChange]);
 
   useEffect(() => {
     if (!cinematic || !isActive) return;
@@ -170,24 +168,20 @@ export function MobileNavigation({
           style={cinematic ? undefined : { display: "contents" }}
         >
           {cinematic && (
-            <Image
-              className={heroStyles.menuLogo}
-              src={whiteLogo}
-              alt="RC Premier Properties"
-              sizes="112px"
-            />
+            <RcPremierMark className={heroStyles.menuLogo} aria-hidden="true" />
           )}
           <div className={cinematic ? heroStyles.menuBody : undefined}>
-            <nav
-              className={cinematic ? heroStyles.menuNavigation : undefined}
-              aria-label={cinematic ? "Primary navigation" : "Mobile navigation"}
-            >
-              <ul>
+            <nav aria-label={cinematic ? "Primary navigation" : "Mobile navigation"}>
+              <ul className={cinematic ? heroStyles.menuList : undefined}>
                 {items.map((item, index) => (
-                  <li key={item.href}>
+                  <li
+                    key={item.href}
+                    className={cinematic ? heroStyles.menuItem : undefined}
+                  >
                     <Link
                       ref={index === 0 ? firstLinkRef : undefined}
                       href={item.href}
+                      className={cinematic ? heroStyles.menuLink : undefined}
                       onClick={closeMenu}
                       tabIndex={isOpen ? 0 : -1}
                       aria-current={
@@ -200,6 +194,20 @@ export function MobileNavigation({
                       }
                     >
                       {item.label}
+                      {cinematic && (
+                        <svg
+                          aria-hidden="true"
+                          className={heroStyles.menuArrow}
+                          viewBox="0 0 16 16"
+                          fill="none"
+                        >
+                          <path
+                            d="M2 8h12M9 3l5 5-5 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          />
+                        </svg>
+                      )}
                     </Link>
                   </li>
                 ))}
@@ -209,36 +217,21 @@ export function MobileNavigation({
               <div className={heroStyles.menuViewingInline}>{children}</div>
             )}
             {cinematic && (
-              <div className={heroStyles.menuEditorial}>
-                <div className={heroStyles.menuVisual}>
-                  <Image
-                    src={menuImage}
-                    alt="RC Premier residential property with a pool"
-                    fill
-                    sizes="(max-width: 639px) calc(100vw - 48px), (max-width: 768px) 1px, (max-width: 1200px) 45vw, 520px"
-                  />
-                </div>
-                <div className={heroStyles.menuImageDetails}>
-                  <nav className={heroStyles.menuSocials} aria-label="Social media">
-                    {OFFICIAL_SOCIAL_LINKS.map((item) => (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        aria-label={item.label}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        tabIndex={isOpen ? 0 : -1}
-                      >
-                        <SocialMediaIcon platform={item.label} />
-                      </a>
-                    ))}
-                  </nav>
-                  <p className={heroStyles.menuMetadata}>
-                    <span>Angeles City, Pampanga</span>
-                    <span>Residential</span>
-                  </p>
-                </div>
-              </div>
+              <nav className={heroStyles.menuSocials} aria-label="Social media">
+                {OFFICIAL_SOCIAL_LINKS.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    aria-label={item.label}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    tabIndex={isOpen ? 0 : -1}
+                  >
+                    <SocialMediaIcon platform={item.label} />
+                    <span className={heroStyles.menuSocialLabel}>{item.label}</span>
+                  </a>
+                ))}
+              </nav>
             )}
           </div>
 

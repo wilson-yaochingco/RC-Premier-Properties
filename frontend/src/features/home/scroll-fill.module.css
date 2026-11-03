@@ -1,0 +1,12 @@
+.word {
+  overflow-wrap: anywhere;
+}
+
+.char {
+  --fill: 1;
+  color: color-mix(in srgb, var(--color-text) calc(var(--fill) * 100%), #d6d5d0);
+}
+
+[data-scrub="on"] .char {
+  --fill: 0;
+}

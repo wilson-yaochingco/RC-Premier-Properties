@@ -28,27 +28,33 @@ const VIEWPORT_WIDTHS = [
 
 async function expectFixtureInventory(page: Page, path: string) {
   if (path === "/") {
+    await expect(page.locator("[data-featured-property-card]").first()).toBeVisible();
     await expect(
-      page.locator(".home-featured-grid [data-property-card]").first(),
+      page
+        .getByRole("region", { name: "Find the area that feels right." })
+        .getByRole("link", { name: /Angeles City/i }),
     ).toBeVisible();
-    await expect(page.locator(".home-location-grid li").first()).toBeVisible();
   } else if (path === "/properties") {
     await expect(page.locator("[data-property-card]").first()).toBeVisible();
   } else if (path.startsWith("/properties/")) {
+    await expect(page.locator("#property-title")).toHaveCount(1);
     await expect(page.locator("#property-title")).toBeVisible();
   }
 }
 
 async function expectSemanticShell(page: Page) {
+  await expect(page.locator("main#main-content")).toHaveCount(1);
   await expect(page.locator('main#main-content:not([aria-busy="true"])')).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("banner")).toHaveCount(1);
   await expect(page.locator("main#main-content")).toHaveCount(1);
   await expect(page.getByRole("contentinfo")).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Footer navigation" })).toHaveCount(
-    1,
-  );
+  for (const name of ["Properties", "Company", "Locations"]) {
+    await expect(
+      page.getByRole("contentinfo").getByRole("navigation", { name }),
+    ).toHaveCount(1);
+  }
   const structure = await page.evaluate(() => {
     const headingLevels = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map(
       (heading) => Number(heading.tagName.slice(1)),
@@ -90,7 +96,16 @@ async function expectSemanticShell(page: Page) {
   });
   expect(structure.headingLevels[0]).toBe(1);
   expect(structure.skippedHeading).toBe(false);
-  expect(structure.duplicateIds).toEqual([]);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const ids = [...document.querySelectorAll<HTMLElement>("[id]")].map(
+          (element) => element.id,
+        );
+        return ids.filter((id, index) => ids.indexOf(id) !== index);
+      }),
+    )
+    .toEqual([]);
   expect(structure.unlabeledControls).toEqual([]);
   expect(structure.unnamedButtons).toBe(0);
 }
@@ -145,7 +160,7 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
   expect(
     Number.parseFloat(
       await page
-        .locator(".home-hero__content h1")
+        .getByRole("heading", { level: 1, name: "Find a home worth coming home to." })
         .evaluate((heading) => getComputedStyle(heading).animationDuration),
     ),
   ).toBeLessThanOrEqual(0.001);
@@ -163,7 +178,7 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
       `${route.path} overflow at 200% text: ${JSON.stringify(layout.offenders)}`,
     ).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(await inspectSiblingOverlaps(page, ".site-header__inner")).toEqual([]);
-    expect(await inspectSiblingOverlaps(page, ".site-footer__main")).toEqual([]);
+    expect(await inspectSiblingOverlaps(page, "[data-site-footer-main]")).toEqual([]);
   }
 
   for (const width of [320, 390]) {
@@ -361,6 +376,21 @@ async function inspectHorizontalOverflow(page: Page) {
         ) {
           return false;
         }
+        for (
+          let parent = element.parentElement;
+          parent;
+          parent = parent.parentElement
+        ) {
+          const overflow = getComputedStyle(parent).overflowX;
+          const bounds = parent.getBoundingClientRect();
+          if (
+            ["auto", "scroll", "hidden", "clip"].includes(overflow) &&
+            bounds.left >= -1 &&
+            bounds.right <= viewportWidth + 1
+          ) {
+            return false;
+          }
+        }
         const rect = element.getBoundingClientRect();
         return rect.left < -1 || rect.right > viewportWidth + 1;
       })
@@ -432,6 +462,7 @@ for (const width of VIEWPORT_WIDTHS) {
 
     for (const route of CORE_ROUTES) {
       await page.goto(route.path);
+      await expect(page.locator("main#main-content")).toHaveCount(1);
       await expect(
         page.locator('main#main-content:not([aria-busy="true"])'),
       ).toBeVisible();

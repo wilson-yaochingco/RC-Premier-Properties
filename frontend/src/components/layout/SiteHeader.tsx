@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
+import { RollLabel } from "@/components/ui/RollLabel";
 import { Button } from "@/components/ui/Button";
 import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { BrandLogo } from "./BrandLogo";
@@ -32,7 +33,11 @@ export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [heroGone, setHeroGone] = useState(false);
   const [stickyMounted, setStickyMounted] = useState(false);
+  // Slide transitions stay off until the bar has actually been shown once, so a
+  // freshly mounted (hidden) bar snaps out of view instead of animating from visible.
+  const [stickyMotion, setStickyMotion] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuExpanded, setMenuExpanded] = useState(false);
   const heroGoneRef = useRef(false);
   const isHome = pathname === "/";
 
@@ -59,6 +64,7 @@ export function SiteHeader() {
             : 330;
           exitTimeout = window.setTimeout(() => {
             setStickyMounted(false);
+            setStickyMotion(false);
             hiddenRef.current = false;
             setIsHidden(false);
           }, duration);
@@ -77,14 +83,16 @@ export function SiteHeader() {
     if (isHome && !heroGoneRef.current) return;
     if (!hiddenRef.current) return;
     hiddenRef.current = false;
+    setStickyMotion(true);
     setIsHidden(false);
   }, [isHome]);
 
   const handleMenuOpenChange = useCallback(
-    (isOpen: boolean) => {
-      menuOpenRef.current = isOpen;
-      setMenuOpen(isOpen);
-      if (isOpen) showHeader();
+    (isActive: boolean, isExpanded: boolean) => {
+      menuOpenRef.current = isActive;
+      setMenuOpen(isActive);
+      setMenuExpanded(isExpanded);
+      if (isActive) showHeader();
     },
     [showHeader],
   );
@@ -154,6 +162,7 @@ export function SiteHeader() {
       const nextHidden = direction > 0;
       if (nextHidden === hiddenRef.current) return;
       hiddenRef.current = nextHidden;
+      if (!nextHidden) setStickyMotion(true);
       setIsHidden(nextHidden);
     };
 
@@ -192,8 +201,10 @@ export function SiteHeader() {
         className={heroStyles.header}
         data-sticky={stickyMounted}
         data-eligible={heroGone}
+        data-motion={stickyMotion}
         data-hidden={stickyMounted && (isHidden || !heroGone)}
         data-menu-open={menuOpen}
+        data-menu-expanded={menuExpanded}
         inert={stickyMounted && (isHidden || !heroGone)}
         onFocusCapture={showHeader}
         onPointerDownCapture={() => {
@@ -204,7 +215,7 @@ export function SiteHeader() {
         <div
           className={heroStyles.stickyLogo}
           aria-hidden={!heroGone}
-          inert={!heroGone}
+          inert={!heroGone || menuOpen}
         >
           <BrandLogo />
         </div>
@@ -214,7 +225,8 @@ export function SiteHeader() {
           onOpenChange={handleMenuOpenChange}
           cinematic
         >
-          <Link href="/book-viewing" className={heroStyles.viewing}>
+          <Link href="/book-viewing" className={`${heroStyles.viewing} cta`}>
+            <RollLabel>Book a viewing</RollLabel>
             <svg
               aria-hidden="true"
               width="14"
@@ -224,7 +236,6 @@ export function SiteHeader() {
             >
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
             </svg>
-            <span>Book a viewing</span>
           </Link>
         </MobileNavigation>
       </header>

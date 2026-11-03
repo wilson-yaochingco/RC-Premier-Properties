@@ -14,40 +14,27 @@ for (const viewport of [
     await expect(section).toHaveAttribute("data-reveal", "visible");
     await expect(section).toHaveCSS("background-color", "rgb(248, 246, 241)");
     const heading = section.getByRole("heading", { level: 2 });
-    await expect(heading).toHaveText("Not every house feels like the right one.");
+    await expect(heading).toHaveText(
+      "We help buyers and sellers across Pampanga find the right property, understand its value, and move forward with confidence.",
+    );
     await expect(heading).toHaveCSS("font-weight", "600");
     expect(
       await heading.evaluate((element) => getComputedStyle(element).fontFamily),
     ).toContain("Manrope");
     await expect(section.getByRole("img")).toHaveCount(1);
     await expect(section.getByRole("img")).toHaveAttribute("src", /home-hero-1/);
-    await expect(section.locator("figcaption")).toHaveText(
-      "Architectural perspectiveResidential",
-    );
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
     ).toBe(false);
-    const link = section.getByRole("link", { name: "Explore locations" });
-    await expect(link).toHaveAttribute("href", "/locations");
-    await expect(section.getByRole("link")).toHaveCount(1);
-    await link.focus();
-    await expect(link.locator("svg")).toHaveCSS(
-      "transform",
-      "matrix(1, 0, 0, 1, 0, 0)",
-    );
-    await expect(link.locator("span")).toHaveCSS(
-      "transform",
-      "matrix(1.015, 0, 0, 1.015, 0, 0)",
-    );
+    await expect(section.getByText("A clearer way to find home")).toBeVisible();
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await expect(link.locator("span")).toHaveCSS("transform", "none");
     await expect(section.locator("figure > div")).toHaveCSS(
       "transition-duration",
       "0s",
     );
     await expect(section.getByRole("img")).toHaveCSS("transform", "none");
     await expect(
-      page.getByRole("heading", { name: "Homes worth a closer look." }),
+      page.getByRole("heading", { name: "What makes a home worth a closer look." }),
     ).toBeAttached();
   });
 }
@@ -60,6 +47,6 @@ test("second section is visible without JavaScript", async ({ browser, baseURL }
   await expect(section).toHaveAttribute("data-reveal", "visible");
   await section.scrollIntoViewIfNeeded();
   await expect(section.getByRole("heading")).toHaveCSS("opacity", "1");
-  await expect(section.getByRole("link", { name: "Explore locations" })).toBeVisible();
+  await expect(section.getByRole("heading", { level: 2 })).toBeVisible();
   await context.close();
 });

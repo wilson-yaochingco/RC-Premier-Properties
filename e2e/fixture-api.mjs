@@ -369,9 +369,19 @@ const propertyService = {
     )
       .map(([location, count]) => ({ location, count }))
       .sort((left, right) => left.location.localeCompare(right.location));
+    const activeLocationCounts = Object.entries(
+      saleProperties
+        .filter((property) => property.availability !== "sold")
+        .reduce((counts, property) => {
+          const location = `${property.location.city}, ${property.location.province}`;
+          counts[location] = (counts[location] ?? 0) + 1;
+          return counts;
+        }, {}),
+    ).map(([location, count]) => ({ location, count }));
     return {
       locations: locationCounts.map(({ location }) => location),
       locationCounts,
+      activeLocationCounts,
       propertyTypes: RESIDENTIAL_SALE_PROPERTY_TYPES.filter((type) =>
         saleProperties.some((property) => property.propertyType === type),
       ),

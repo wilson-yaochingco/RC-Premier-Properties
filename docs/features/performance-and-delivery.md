@@ -310,3 +310,10 @@ remains the sole prioritized homepage photograph. Existing click-to-load feature
 deferred Leaflet/map initialization, memoized map calculations, public-coordinate privacy,
 and bounded admin data reads are unchanged; no speculative server, cache, database, or
 admin refactor was introduced for visual polish.
+
+The homepage Featured Properties rail streams in its own `Suspense` boundary, so the hero
+and Sections 2–3 do not wait for the property API. Its images use the standard
+`PropertyMedia` lazy loading (none are prioritized) at fixed aspect ratios, and the
+property request keeps `cache: "no-store"`. No cache, revalidation, Redis, or Upstash layer
+was added; caching remains a later phase to be decided from measurements against a
+production-shaped environment.

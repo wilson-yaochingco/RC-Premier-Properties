@@ -93,6 +93,25 @@ export default async function LocationsPage() {
               actionHref="/properties"
             />
           )}
+          <p className={styles.sourceNote}>
+            Boundary data:{" "}
+            <a
+              href="https://data.humdata.org/dataset/cod-ab-phl"
+              rel="noreferrer"
+              target="_blank"
+            >
+              OCHA/NAMRIA/PSA
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://creativecommons.org/licenses/by/3.0/igo/"
+              rel="noreferrer"
+              target="_blank"
+            >
+              CC BY 3.0 IGO
+            </a>
+            . Simplified; areas are approximate.
+          </p>
         </Container>
       </section>
     </main>

@@ -57,6 +57,27 @@ describe("public property read projections", () => {
     expect(JSON.stringify(locationPipeline)).toContain("location.city");
   });
 
+  it("reports active (available and reserved) location counts without sold homes", async () => {
+    const aggregate = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { _id: "Angeles City, Pampanga", count: 5, activeCount: 2 },
+        { _id: "Porac, Pampanga", count: 3, activeCount: 3 },
+        { _id: "Guagua, Pampanga", count: 1, activeCount: 0 },
+      ]);
+    const model = { aggregate } as unknown as Model<PropertyEntity>;
+
+    const result = await new MongoosePropertyService(model).getFacets();
+
+    expect(result.locationCounts).toHaveLength(3);
+    expect(result.activeLocationCounts).toEqual([
+      { location: "Porac, Pampanga", count: 3 },
+      { location: "Angeles City, Pampanga", count: 2 },
+    ]);
+    expect(JSON.stringify(aggregate.mock.calls[1]?.[0])).toContain('"sold"');
+  });
+
   it("keeps list queries free of detail-only copy and gallery metadata", async () => {
     const query = createReadQuery([]);
     const model = {
