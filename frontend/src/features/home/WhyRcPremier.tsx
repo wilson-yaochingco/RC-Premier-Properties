@@ -32,8 +32,8 @@ export function WhyRcPremier() {
             className={styles.house}
             src="/images/home/why-rc-premier-house.svg"
             alt="Line drawing of a contemporary two-storey home with a walled front court"
-            width={1200}
-            height={740}
+            width={1211}
+            height={562}
             sizes="(max-width: 1023px) 100vw, 56vw"
           />
           {STATEMENTS.map(({ index, title, body }) => (

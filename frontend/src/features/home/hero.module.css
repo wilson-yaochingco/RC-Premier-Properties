@@ -1273,3 +1273,30 @@
     margin-block: 1.25rem;
   }
 }
+
+/*
+ * Tablet menu (640-1088px): header / middle / footer zones. The nav and the socials share
+ * one middle region that is centred in the space between the header and footer, with a
+ * small fixed bias upwards. No viewport-height spacer decides where the nav sits, and the
+ * link rows use a fixed padding so the nav height no longer follows the viewport height.
+ * The upper bound matches the global 68rem rules that these overrides counter.
+ */
+@media (min-width: 40rem) and (max-width: 68rem) {
+  .menuBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 2rem;
+    padding-block: 1rem 4.5rem;
+  }
+
+  /* The global block-level link rule would wrap the arrow onto a second line. */
+  .header :global(.mobile-navigation__panel) .menuLink {
+    display: flex;
+    padding-block: 0.625rem;
+  }
+
+  .menuSocials {
+    align-self: center;
+  }
+}
