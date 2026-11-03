@@ -35,8 +35,11 @@ a request, matching the dialog's sold-property protection.
 
 The flow is Schedule → Details → Requested. The preferred date is a month calendar of
 native radio inputs (keyboard arrow navigation, one accessible date name per day) from
-tomorrow in Philippine time through a 90-day request horizon; past dates are not
-selectable. Preferred times are native radios grouped into morning and afternoon. Copy
+tomorrow in Philippine time through 90 days ahead; other dates are not selectable.
+Preferred times are native radios grouped into morning and afternoon. A rejection caused
+only by the page-supplied property (sold or unpublished since the page loaded) is shown
+as "This property is no longer accepting viewing requests." with a link to current
+properties, instead of a Property ID field error. Copy
 states throughout that the selection is a request and that staff confirmation is required.
 Details collect full name, phone, email, optional notes and consent, with the chosen
 schedule summarised and editable. Field and summary errors use the same API issue
@@ -69,8 +72,24 @@ documents. The submission is not a valuation, listing agreement, offer, approval
 promise that the property will be published.
 
 The viewing route remains a **request only**. Times are interpreted in Philippine time.
-The backend verifies that the referenced sale property is published and not sold, but it does
-not expose or invent calendar availability. Submission creates `requested` state and the
+The backend verifies that the referenced sale property is published, of an allowed sale
+type and not sold (reserved listings remain requestable), but it does not expose or invent
+calendar availability.
+
+Public viewing schedule rules are shared constants in `@rc/shared`
+(`VIEWING_REQUEST_TIMES`, `VIEWING_REQUEST_MIN_DAYS_AHEAD`,
+`VIEWING_REQUEST_MAX_DAYS_AHEAD`, `viewingRequestDateWindow`) and are enforced by backend
+validation:
+
+- dates run from tomorrow through 90 days ahead on the Philippine calendar; same-day
+  requests are rejected;
+- preferred times run from 9:00 AM to 4:00 PM in 30-minute steps;
+- weekends are allowed.
+
+These describe what a visitor may ask for, not availability. Staff confirmation and
+rescheduling are bound only by the existing future-time rule, so staff can arrange any
+agreed time. The staff notification text includes the subject and the requested date and
+time when present; delivery remains disabled until a provider is selected. Submission creates `requested` state and the
 success copy explicitly says staff confirmation is still required.
 
 ## Viewing lifecycle and inquiry relationship

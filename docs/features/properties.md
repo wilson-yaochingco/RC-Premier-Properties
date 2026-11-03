@@ -64,6 +64,8 @@ property results. Catalog outcomes are distinct:
 
 - published matches render responsive cards and a live result count;
 - zero matches render a clear-filters action;
+- filters the API rejects (a 400, such as a malformed price, an inverted price range or
+  a negative room count) render "Some filters aren't valid." with a clear-filters action;
 - an API or database failure explains that results are unavailable and preserves the
   query in the URL;
 - route loading and error boundaries provide non-empty transition and recovery states.
@@ -119,8 +121,11 @@ and missing slugs all resolve as public 404s.
 Public projections exclude private street address, internal coordinates, owner
 references and internal notes. A listing can expose a separately stored, approved
 GeoJSON `publicPoint`; `publicPrecision` controls which textual fields remain visible and
-what that point means. The serializer never derives a public point from the internal
-coordinate. See the
+whether that point is published at all. Only `exact`, `approximate` and `subdivision`
+(`PUBLIC_POINT_PRECISIONS`) serialize a point; `barangay-area` and `city-only` never do,
+even when one is stored, and are excluded from map results. The serializer never derives
+a public point from the internal coordinate, and draft validation rejects a public point
+identical to the private coordinates unless precision is `exact`. See the
 [public API reference](../api/public-api.md) and
 [model contract](../database/property-and-inquiry-models.md) for the complete boundary.
 

@@ -92,8 +92,8 @@ field `disclosure`. Optional text and point fields are redacted by precision:
 | `exact`         | barangay and development         | separately approved exact public point |
 | `approximate`   | barangay and development         | deliberately approximate point         |
 | `subdivision`   | barangay and development         | subdivision/general-development point  |
-| `barangay-area` | barangay; development is omitted | barangay-area point                    |
-| `city-only`     | neither barangay nor development | city-level point                       |
+| `barangay-area` | barangay; development is omitted | none; a stored point is withheld       |
+| `city-only`     | neither barangay nor development | none; a stored point is withheld       |
 
 `publicPoint`, when present, is GeoJSON `{ type: "Point", coordinates: [longitude,
 latitude] }`. A missing or invalid explicit precision falls back to `city-only` text and
@@ -173,8 +173,8 @@ Accepts `CreateInquiryRequest` as JSON. The request must use an
 | `propertyId`     | optional; if supplied it must exist; viewing also requires a published, not-sold sale property |
 | `subject`        | optional, up to 150 characters                                                                 |
 | `message`        | required normally; optional for viewing; 10–3,000 characters when supplied                     |
-| `requestedDate`  | viewing only; required real future `YYYY-MM-DD` Philippine date                                |
-| `requestedTime`  | viewing only; required valid 24-hour `HH:mm` Philippine time                                   |
+| `requestedDate`  | viewing only; required real `YYYY-MM-DD` Philippine date from tomorrow through 90 days ahead   |
+| `requestedTime`  | viewing only; required, one of `09:00`–`16:00` in 30-minute steps (Philippine time)            |
 | `privacyConsent` | must be the boolean `true`                                                                     |
 | `website`        | optional honeypot; legitimate clients leave it empty                                           |
 
@@ -192,8 +192,10 @@ second inquiry. The connected browser form generates and reuses this key across
 uncertain failures.
 
 A viewing inquiry creates structured `requested` appointment state. Its source must be
-`viewing-page`, its date/time must be in the future, and its Property ID must identify a
-published approved sale property that is not sold. The acknowledgment explicitly says
+`viewing-page`, its date and time must fit the shared public request rules above
+(`VIEWING_REQUEST_TIMES` and `viewingRequestDateWindow` in `@rc/shared`; weekends are
+allowed), and its Property ID must identify a published approved sale property that is
+not sold. Reserved properties remain requestable. The acknowledgment explicitly says
 the requested schedule still needs staff confirmation; the endpoint does not expose
 calendar availability or confirm an appointment.
 
