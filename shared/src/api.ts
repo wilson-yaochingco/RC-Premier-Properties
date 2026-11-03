@@ -718,17 +718,20 @@ export type AdminInquiryQueue = (typeof ADMIN_INQUIRY_QUEUES)[number];
 export interface CreateInquiryRequest {
   name: string;
   email: string;
-  /** Required for viewing requests; optional for every other inquiry type. */
-  phone?: string;
+  /** Required for every public inquiry; validated by the backend. */
+  phone: string;
   inquiryType: InquiryType;
   source: InquirySource;
   propertyId?: string;
   subject?: string;
   /** Optional only for a structured viewing request. */
   message?: string;
-  /** Required when `inquiryType` is `viewing`; `YYYY-MM-DD` in Philippine time. */
+  /**
+   * Required when `inquiryType` is `viewing`; `YYYY-MM-DD` on the Philippine calendar,
+   * from tomorrow through `VIEWING_REQUEST_MAX_DAYS_AHEAD` days.
+   */
   requestedDate?: string;
-  /** Required when `inquiryType` is `viewing`; 24-hour `HH:mm` Philippine time. */
+  /** Required when `inquiryType` is `viewing`; one of `VIEWING_REQUEST_TIMES`. */
   requestedTime?: string;
   privacyConsent: true;
   /** Honeypot field. Legitimate clients leave it empty. */

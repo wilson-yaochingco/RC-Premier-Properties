@@ -143,7 +143,7 @@ export function InquiryForm({
       source,
       privacyConsent: true,
       website: textValue(formData, "website"),
-      ...(phone ? { phone } : {}),
+      phone,
       ...(selectedPropertyId ? { propertyId: selectedPropertyId } : {}),
       ...(subject ? { subject } : {}),
       ...(textValue(formData, "message")

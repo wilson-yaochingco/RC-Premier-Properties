@@ -180,6 +180,7 @@ export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedI
     issues.length > 0 ||
     !name ||
     !email ||
+    !phone ||
     !inquiryType ||
     !source ||
     (inquiryType !== "viewing" && !message)
@@ -190,7 +191,7 @@ export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedI
   const data: Omit<CreateInquiryRequest, "website"> = {
     name,
     email: email.toLowerCase(),
-    ...(phone ? { phone } : {}),
+    phone,
     inquiryType,
     source,
     ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),

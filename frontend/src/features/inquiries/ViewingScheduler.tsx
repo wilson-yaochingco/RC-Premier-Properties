@@ -305,11 +305,11 @@ export function ViewingScheduler({ context }: { context: ViewingPropertyState })
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const accepted = await submit(event.currentTarget, {
-      propertyId,
-      requestedDate: selectedDate,
-      requestedTime: selectedTime,
-    });
+    const accepted = await submit(
+      event.currentTarget,
+      { propertyId, requestedDate: selectedDate, requestedTime: selectedTime },
+      { propertyFromContext: context.status === "resolved" },
+    );
     if (accepted) goTo("success");
   }
 
@@ -651,7 +651,16 @@ export function ViewingScheduler({ context }: { context: ViewingPropertyState })
                     role="alert"
                     tabIndex={-1}
                   >
-                    <strong>We could not send the request.</strong> {state.message}
+                    {state.propertyUnavailable ? (
+                      <>
+                        <strong>{state.message}</strong>{" "}
+                        <Link href="/properties">Browse current properties</Link>
+                      </>
+                    ) : (
+                      <>
+                        <strong>We could not send the request.</strong> {state.message}
+                      </>
+                    )}
                     {state.issues?.length ? (
                       <ul>
                         {state.issues.map((issue) => (

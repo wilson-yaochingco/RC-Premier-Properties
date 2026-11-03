@@ -102,11 +102,11 @@ export function RequestTourModal({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const accepted = await submit(event.currentTarget, {
-      propertyId,
-      requestedDate: selectedDate,
-      requestedTime: selectedTime,
-    });
+    const accepted = await submit(
+      event.currentTarget,
+      { propertyId, requestedDate: selectedDate, requestedTime: selectedTime },
+      { propertyFromContext: Boolean(property?.propertyId) },
+    );
     if (accepted) setStep("success");
   }
 
@@ -393,7 +393,13 @@ export function RequestTourModal({
                 role="alert"
                 tabIndex={-1}
               >
-                <strong>We could not submit the request.</strong> {state.message}
+                {state.propertyUnavailable ? (
+                  <strong>{state.message}</strong>
+                ) : (
+                  <>
+                    <strong>We could not submit the request.</strong> {state.message}
+                  </>
+                )}
                 {state.issues?.length ? (
                   <ul>
                     {state.issues.map((issue) => (

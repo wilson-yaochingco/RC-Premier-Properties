@@ -66,6 +66,25 @@ export interface TourSubmissionState {
   message?: string;
   inquiryId?: string;
   issues?: ValidationIssue[];
+  /**
+   * The backend no longer accepts viewing requests for the property the page supplied
+   * (sold, unpublished or removed since it loaded). Surfaces render a dedicated state
+   * instead of a Property ID field error the visitor never typed.
+   */
+  propertyUnavailable?: boolean;
+}
+
+export const PROPERTY_UNAVAILABLE_MESSAGE =
+  "This property is no longer accepting viewing requests.";
+
+/**
+ * True when a rejected viewing request failed only because of its property reference.
+ * The backend stays authoritative; this only decides how the rejection is presented.
+ */
+export function isPropertyUnavailableError(error: unknown): boolean {
+  if (!(error instanceof ApiClientError) || error.statusCode !== 400) return false;
+  const issues = error.response.issues ?? [];
+  return issues.length > 0 && issues.every((issue) => issue.field === "propertyId");
 }
 
 export interface TourSchedule {
@@ -108,9 +127,17 @@ export function useTourRequest(idPrefix: string) {
     setState({ kind: "error", message, ...(issues ? { issues } : {}) });
   }, []);
 
-  /** Validates and sends the request. Resolves `true` only when the API accepted it. */
+  /**
+   * Validates and sends the request. Resolves `true` only when the API accepted it.
+   * `propertyFromContext` marks a property the page supplied rather than one the visitor
+   * typed, so a property rejection becomes the unavailable state, not a field error.
+   */
   const submit = useCallback(
-    async (form: HTMLFormElement, schedule: TourSchedule): Promise<boolean> => {
+    async (
+      form: HTMLFormElement,
+      schedule: TourSchedule,
+      { propertyFromContext = false }: { propertyFromContext?: boolean } = {},
+    ): Promise<boolean> => {
       const formData = new FormData(form);
       const name = textValue(formData, "name");
       const phone = textValue(formData, "phone");
@@ -167,6 +194,14 @@ export function useTourRequest(idPrefix: string) {
         if (error instanceof ApiClientError) {
           if (error.statusCode >= 400 && error.statusCode < 500) {
             idempotencyKeyRef.current = null;
+          }
+          if (propertyFromContext && isPropertyUnavailableError(error)) {
+            setState({
+              kind: "error",
+              message: PROPERTY_UNAVAILABLE_MESSAGE,
+              propertyUnavailable: true,
+            });
+            return false;
           }
           fail(error.message, error.response.issues);
         } else {
