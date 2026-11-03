@@ -13,12 +13,36 @@ One connected form supports the public entry points currently exposed by the UI:
 | `/contact`                        | general, or property when a Property ID is present | `contact-page` |
 | property-detail “Send an inquiry” | links to `/contact` with its Property ID           | `contact-page` |
 | Request a Tour dialog             | viewing with property context when available       | `viewing-page` |
-| `/book-viewing`                   | opens the shared Request a Tour dialog             | `viewing-page` |
+| `/book-viewing`                   | inline viewing scheduler                           | `viewing-page` |
 | `/sell`                           | selling                                            | `sell-page`    |
 
-`/contact` accepts `propertyId` in the URL and prefills the form. `/book-viewing` remains
-a direct entry point and opens the same Request a Tour dialog used by the header,
-homepage and eligible property detail pages.
+`/contact` accepts `propertyId` in the URL and prefills the form. `/book-viewing` is an
+inline scheduler rather than a dialog launcher; the Request a Tour dialog remains the entry
+from the classic header and property detail pages. Both surfaces use one shared module,
+`features/inquiries/tour-request.ts`, for the requestable Philippine-time options, client
+validation, payload shape, idempotency key and API error handling, so their business rules
+cannot drift apart. Each surface keeps its own presentation.
+
+## Book a Viewing scheduler
+
+`/book-viewing?propertyId=` resolves the ID through the public property search on the
+server. A match shows the listing's title, Premier Property number, cover image, location,
+type and availability with a link back to the listing; no match or an unsupported ID asks
+the visitor to confirm the Property ID; a failed request says the details could not be
+loaded and still lets the backend validate the ID on submission. Without an ID the visitor
+enters one or browses properties. A sold listing closes the scheduler instead of accepting
+a request, matching the dialog's sold-property protection.
+
+The flow is Schedule → Details → Requested. The preferred date is a month calendar of
+native radio inputs (keyboard arrow navigation, one accessible date name per day) from
+tomorrow in Philippine time through a 90-day request horizon; past dates are not
+selectable. Preferred times are native radios grouped into morning and afternoon. Copy
+states throughout that the selection is a request and that staff confirmation is required.
+Details collect full name, phone, email, optional notes and consent, with the chosen
+schedule summarised and editable. Field and summary errors use the same API issue
+mapping as the dialog. Success shows the property, requested date and time, the opaque
+reference, and that the visit is not yet a confirmed appointment; no calendar event is
+offered.
 
 Approved public contact details are `rcpremierph@gmail.com` and
 `+63 918 429 1873`. The approved Facebook, Instagram, YouTube and TikTok profiles appear

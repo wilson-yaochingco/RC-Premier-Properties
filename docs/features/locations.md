@@ -17,12 +17,16 @@ returns the public not-found surface.
 
 ## Discovery behavior
 
-The index introduction uses one full-width text panel at every breakpoint. The removed
-line drawing has no remaining grid slot or fixed-height gap; the existing brand surface,
-typography, and content spacing carry the introduction. Every inventory-backed card uses the locality's
-documented reusable photograph with a brand-color hover/focus overlay; required names and
-counts are always visible. The homepage uses the same content lookup for up to six real
-facet locations.
+The index is an atlas (see `docs/architecture/brand-and-public-experience.md`): an
+editorial opening with a facet-derived summary of current locations and published homes,
+a dark Pampanga map paired with a numbered ledger of every positive-count location, and
+up to six alternating location stories. Each story uses the locality's documented
+reusable photograph with visible creator/source/license credit; names and counts are
+always visible. Ledger links are the keyboard and assistive-tech navigation path; map
+areas mirror the ledger highlight and add a pointer shortcut without focusable elements
+inside the map image. The index also shows up to four current published listings and
+omits that section when none load. The homepage uses the same content lookup for up to
+six real facet locations.
 
 Every supported detail route uses its reusable locality scenery as the lead hero image,
 with visible creator/source/license attribution. A typed slug-to-content structure owns
