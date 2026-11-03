@@ -1,4 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+/** Book a Viewing is an inline page; the dialog is opened from a listing's inquiry panel. */
+async function openPropertyTour(page: Page, navigate = true) {
+  if (navigate) await page.goto("/properties/clark-garden-residence");
+  await page
+    .getByRole("complementary", { name: "Property inquiry" })
+    .getByRole("button", { name: "Request a Tour" })
+    .click();
+}
 
 test("About uses a subdued motion-aware video and the real Pampanga boundary", async ({
   page,
@@ -87,8 +96,14 @@ test("public header hides deliberately and remains available during interaction"
       "data-hidden",
       "true",
     );
+    // Editorial routes share the homepage header, whose controls slide out of view.
     await expect
-      .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
+      .poll(() =>
+        header
+          .locator("button")
+          .first()
+          .evaluate((element) => element.getBoundingClientRect().bottom),
+      )
       .toBeLessThanOrEqual(0);
     await page.evaluate(() => window.scrollBy(0, -100));
     await expect(header).toHaveAttribute("data-hidden", "false");
@@ -125,7 +140,9 @@ test("home hero fills the viewport with its brand and browse action", async ({
   ).toBeGreaterThanOrEqual(844);
 });
 
-test("location guide fills its introduction without a doodle", async ({ page }) => {
+test("location guide opens with an editorial statement and real inventory summary", async ({
+  page,
+}) => {
   const doodle = page.getByAltText(
     "Line drawing of homes, trees, a bicycle, and neighborhood streets",
   );
@@ -133,20 +150,20 @@ test("location guide fills its introduction without a doodle", async ({ page }) 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/locations");
   await expect(doodle).toHaveCount(0);
-  const desktopPanels = await page.evaluate(() => {
-    const statement = document.querySelector<HTMLElement>("[class*='introStatement']")!;
-    const grid = document.querySelector<HTMLElement>("[class*='introGrid']")!;
-    return {
-      gridWidth: grid.getBoundingClientRect().width,
-      statementWidth: statement.getBoundingClientRect().width,
-    };
-  });
-  expect(desktopPanels.gridWidth).toBeCloseTo(desktopPanels.statementWidth, 0);
+  const opening = page.locator('section[aria-labelledby="locations-title"]').last();
+  const summary = opening.locator("dl");
+  await expect(summary.getByText("Current locations", { exact: true })).toBeVisible();
+  await expect(summary.locator("dd").first()).toHaveText("2");
+  const openingBox = (await opening.boundingBox())!;
+  expect(openingBox.height).toBeLessThanOrEqual(900);
+  expect(openingBox.height).toBeGreaterThan(600);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(doodle).toBeHidden();
   await expect(
-    page.getByRole("heading", { name: "Explore the places behind the properties." }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Where you live shapes how you live.",
+    }),
   ).toBeVisible();
 });
 
@@ -210,7 +227,7 @@ test("tour steps fit normal viewports and remain reachable at 200 percent text",
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    await openPropertyTour(page);
     const dialog = page.getByRole("dialog", { name: "Request a Tour" });
     await expect(dialog).toBeVisible();
     expect(
@@ -227,10 +244,11 @@ test("tour steps fit normal viewports and remain reachable at 200 percent text",
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+  await page.goto("/properties/clark-garden-residence");
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
+  await openPropertyTour(page, false);
   const dialog = page.getByRole("dialog", { name: "Request a Tour" });
   await dialog.getByRole("button", { name: "Next" }).click();
   const submit = dialog.getByRole("button", { name: "Submit request" });
@@ -289,12 +307,20 @@ test("About video requests playback once and the hero fills the desktop composit
     }),
   ).toBe(1);
 
-  const compositionBottom = await page.evaluate(() => {
-    const header = document.querySelector<HTMLElement>(".site-header")!;
+  // The fixed header sits above the hero; together they fill the first viewport.
+  const composition = await page.evaluate(() => {
+    const header = document.querySelector<HTMLElement>("header[data-sticky]")!;
     const hero = document.querySelector<HTMLElement>("main section")!;
-    return header.getBoundingClientRect().height + hero.getBoundingClientRect().height;
+    return {
+      headerBottom: header.getBoundingClientRect().bottom,
+      heroTop: hero.getBoundingClientRect().top,
+      heroBottom: hero.getBoundingClientRect().bottom,
+    };
   });
-  expect(Math.abs(compositionBottom - 900)).toBeLessThanOrEqual(1);
+  expect(Math.abs(composition.heroTop - composition.headerBottom)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(Math.abs(composition.heroBottom - 900)).toBeLessThanOrEqual(1);
 });
 
 test("About reduced-motion entry remains on the static poster", async ({ page }) => {
@@ -414,18 +440,21 @@ test("paired mobile property actions share intentional geometry", async ({ page 
   expect(boxes[0]!.height).toBeGreaterThanOrEqual(44);
 });
 
-test("seller page uses four purposeful sections and a simplified typed form", async ({
+test("seller page explains the journey before a simplified typed form", async ({
   page,
 }) => {
   await page.goto("/sell");
-  await expect(page.locator("main#main-content > section")).toHaveCount(4);
+  const sections = page.locator("main#main-content > section");
+  await expect(sections).toHaveCount(7);
+  await expect(sections.nth(5)).toHaveAttribute("id", "seller-inquiry");
+  await expect(
+    page.getByRole("link", { name: "Start a seller conversation" }),
+  ).toHaveAttribute("href", "#seller-inquiry");
   await expect(page.getByLabel("Inquiry type")).toHaveCount(0);
   await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
   await expect(page.getByLabel(/Property location or area/)).toBeVisible();
   await expect(page.getByLabel(/Property details and message/)).toBeVisible();
-  await expect(
-    page.getByText(/not a valuation, listing agreement/i).first(),
-  ).toBeVisible();
+  await expect(page.getByText("Not a valuation", { exact: true })).toBeVisible();
 
   await page.getByLabel("Name").fill("Playwright Seller");
   await page.getByLabel("Email").fill("seller@example.test");
@@ -450,9 +479,10 @@ test("seller page uses four purposeful sections and a simplified typed form", as
   expect(request).not.toHaveProperty("propertyId");
 });
 
-test("location discovery omits the doodle and keeps documented local photography", async ({
+test("location atlas links its ledger to the map and keeps documented photography", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/locations");
   await expect(
     page.getByAltText(
@@ -460,26 +490,24 @@ test("location discovery omits the doodle and keeps documented local photography
     ),
   ).toHaveCount(0);
 
-  const firstLocation = page.locator("[data-location-card]").first();
-  await firstLocation.getByRole("link").focus();
-  await expect(firstLocation.getByRole("link")).toBeFocused();
-  await expect
-    .poll(() =>
-      firstLocation
-        .locator("img")
-        .evaluate((image) => getComputedStyle(image).transform),
-    )
-    .not.toBe("none");
+  const ledger = page.getByRole("list", { name: "Current property locations" });
+  const row = ledger.getByRole("link", { name: /Angeles City/ });
+  await row.focus();
+  await expect(row).toHaveAttribute("data-selected", "true");
+  const map = page.getByRole("img", { name: /Map of Pampanga highlighting 2 areas/ });
+  await expect(map.locator('[data-selected="true"]')).toHaveCount(1);
+  await expect(map.locator("a, [tabindex]")).toHaveCount(0);
 
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.reload();
-  expect(
-    Number.parseFloat(
-      await firstLocation
-        .locator("img")
-        .evaluate((image) => getComputedStyle(image).transitionDuration),
+  const story = page.getByRole("heading", { level: 3, name: "Angeles City" });
+  await expect(story).toBeVisible();
+  await expect(
+    page.getByAltText(
+      "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
     ),
-  ).toBeLessThanOrEqual(0.001);
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Explore homes in Angeles City" }),
+  ).toHaveAttribute("href", "/locations/angeles-city");
 
   await page.goto("/locations/angeles-city");
   await expect(

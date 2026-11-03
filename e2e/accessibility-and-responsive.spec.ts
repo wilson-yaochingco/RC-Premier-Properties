@@ -246,12 +246,20 @@ test("location layouts adapt across Part 2 widths and 200 percent text", async (
   }
 });
 
+async function openPropertyTour(page: Page) {
+  await page.goto("/properties/clark-garden-residence");
+  await page
+    .getByRole("complementary", { name: "Property inquiry" })
+    .getByRole("button", { name: "Request a Tour" })
+    .click();
+}
+
 test("Request a Tour remains contained and operable across Part 3 viewports and reflow", async ({
   page,
 }) => {
   for (const width of [320, 390, 768, 1024, 1280, 1440, 1920]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
-    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    await openPropertyTour(page);
     const dialog = page.getByRole("dialog", { name: "Request a Tour" });
     await expect(dialog).toBeVisible();
     await expect(
@@ -268,7 +276,7 @@ test("Request a Tour remains contained and operable across Part 3 viewports and 
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+  await openPropertyTour(page);
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
@@ -283,6 +291,37 @@ test("Request a Tour remains contained and operable across Part 3 viewports and 
   await expect(
     dialog.getByRole("button", { name: "Close Request a Tour" }),
   ).toBeVisible();
+});
+
+test("inline viewing scheduler stays contained with usable targets at every width", async ({
+  page,
+}) => {
+  for (const width of [320, 390, 640, 768, 1024, 1088, 1280, 1440]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    const layout = await inspectHorizontalOverflow(page);
+    expect(
+      layout.documentWidth,
+      `scheduler overflow at ${width}px: ${JSON.stringify(layout.offenders)}`,
+    ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.offenders).toEqual([]);
+    const targets = await page
+      .locator(
+        'label:has(input[name="requestedDate"]), label:has(input[name="requestedTime"])',
+      )
+      .evaluateAll((labels) =>
+        labels.map((label) => {
+          const box = label.getBoundingClientRect();
+          return Math.min(box.width, box.height);
+        }),
+      );
+    // Seven day columns cannot reach 44px inside a 320px viewport; 32px stays well above
+    // the WCAG 2.2 minimum there, and every wider phone gets full-size targets.
+    expect(
+      Math.min(...targets),
+      `smallest scheduler target at ${width}px`,
+    ).toBeGreaterThanOrEqual(width < 390 ? 32 : 44);
+  }
 });
 
 test("admin skip link focuses the loading session-state main", async ({ page }) => {

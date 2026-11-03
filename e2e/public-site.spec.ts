@@ -67,7 +67,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   await primaryNavigation.getByRole("link", { name: "About" }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: /clear purpose/ }),
+    page.getByRole("heading", { level: 1, name: /considered differently/ }),
   ).toBeVisible();
   expect(browserErrors).toEqual([]);
 });
@@ -242,12 +242,12 @@ test("location discovery and detail use only inventory-backed facets", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Explore the places behind the properties.",
+      name: "Where you live shapes how you live.",
     }),
   ).toBeVisible();
-  const angeles = page.getByRole("link", {
-    name: /Angeles City 9 published properties/,
-  });
+  const angeles = page
+    .getByRole("list", { name: "Current property locations" })
+    .getByRole("link", { name: /Angeles City 9 homes/ });
   await expect(angeles).toHaveAttribute("href", "/locations/angeles-city");
   await angeles.click();
 
@@ -679,18 +679,24 @@ test("Part 3 editorial pages keep factual RC Premier content and current channel
 }) => {
   await page.goto("/about");
   await expect(
-    page.getByRole("heading", { level: 1, name: /clear purpose/ }),
+    page.getByRole("heading", { level: 1, name: "Property, considered differently." }),
   ).toBeVisible();
   await expect(
-    page.getByText(/offers houses and residential properties/),
+    page.getByRole("heading", { name: /helps people discover residential properties/ }),
   ).toBeVisible();
 
   await page.goto("/sell");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Your property. Your next move." }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Your property deserves the right presentation.",
+    }),
   ).toBeVisible();
+  for (const disclosure of ["Not a valuation", "Not a listing agreement"]) {
+    await expect(page.getByText(disclosure, { exact: true })).toBeVisible();
+  }
   await expect(
-    page.getByText(/not a valuation, listing agreement/).first(),
+    page.getByText("Keep sensitive documents private", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Seller inquiry", exact: true }),
@@ -776,28 +782,67 @@ test("an unrelated admin-prefixed 404 retains the public chrome", async ({ page 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("Request a Tour submits one structured unconfirmed viewing request", async ({
+test("Book a Viewing schedules one structured unconfirmed request inline", async ({
   page,
 }) => {
   await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
 
-  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("Premier Property #RCPP-E2E-001")).toBeVisible();
-  const selectedDate = dialog.locator('input[name="requestedDate"]:checked');
-  await expect(selectedDate).toHaveCount(1);
-  const firstDatePage = await selectedDate.inputValue();
-  await dialog.getByRole("button", { name: "Later dates" }).click();
-  await expect(selectedDate).not.toHaveValue(firstDatePage);
-  const requestedDate = await selectedDate.inputValue();
-  await expect(dialog.getByLabel("Preferred time")).toHaveValue("11:30");
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await expect(dialog.getByLabel(/^Subject/)).toHaveCount(0);
-  await expect(dialog.getByLabel(/Notes for the team/)).toBeVisible();
-  await dialog.getByLabel("Full name").fill("Playwright Viewer");
-  await dialog.getByLabel("Phone number").fill("+63 917 555 0110");
-  await dialog.getByLabel("Email").fill("viewer@example.test");
-  await dialog.getByRole("checkbox").check();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "See the property in person." }),
+  ).toBeVisible();
+  const context = page.getByRole("complementary", { name: "Clark Garden Residence" });
+  await expect(context.getByText("#RCPP-E2E-001")).toBeVisible();
+  await expect(
+    context.getByRole("link", { name: "View property details" }),
+  ).toHaveAttribute("href", "/properties/clark-garden-residence");
+  await expect(page.getByText(/Your selection is a request/)).toBeVisible();
+  await expect(
+    page.getByText("Requested times require staff confirmation."),
+  ).toBeVisible();
+
+  const scheduler = page.getByRole("region", {
+    name: "Choose a preferred date and time.",
+  });
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+  await expect(scheduler.getByRole("alert")).toHaveText(
+    "Choose a preferred date and time to continue.",
+  );
+
+  const dates = scheduler
+    .getByRole("group", { name: "Preferred date" })
+    .getByRole("radio");
+  const firstDate = await dates.first().inputValue();
+  await scheduler.getByRole("button", { name: "Next month" }).click();
+  const requestedDate = await dates.first().inputValue();
+  expect(requestedDate > firstDate).toBe(true);
+  await dates.first().check();
+  await scheduler
+    .getByRole("group", { name: "Afternoon" })
+    .getByRole("radio", { name: "2:30 PM" })
+    .check();
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+
+  const details = page.getByRole("region", { name: "Where should we follow up?" });
+  await expect(
+    details.getByRole("heading", { name: "Where should we follow up?" }),
+  ).toBeFocused();
+  await expect(details.getByText("2:30 PM · Philippine time")).toBeVisible();
+  await details.getByRole("button", { name: "Edit schedule" }).click();
+  await expect(scheduler.getByRole("radio", { checked: true })).toHaveCount(2);
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+
+  await details.getByLabel("Full name").fill("Playwright Viewer");
+  await details.getByLabel("Phone number").fill("invalid");
+  await details.getByLabel("Email").fill("viewer@example.test");
+  await details.getByRole("checkbox").check();
+  await details.getByRole("button", { name: "Send viewing request" }).click();
+  await expect(details.locator("#viewing-errors")).toBeFocused();
+  await expect(details.getByLabel("Phone number")).toHaveAttribute(
+    "aria-describedby",
+    "viewing-phone-error",
+  );
+  await details.getByLabel("Phone number").fill("+63 917 555 0110");
 
   const [apiResponse] = await Promise.all([
     page.waitForResponse(
@@ -805,7 +850,7 @@ test("Request a Tour submits one structured unconfirmed viewing request", async 
         response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
         response.request().method() === "POST",
     ),
-    dialog.getByRole("button", { name: "Submit request" }).click(),
+    details.getByRole("button", { name: "Send viewing request" }).click(),
   ]);
 
   expect(apiResponse.status()).toBe(201);
@@ -815,18 +860,46 @@ test("Request a Tour submits one structured unconfirmed viewing request", async 
     propertyId: "RCPP-E2E-001",
     phone: "+63 917 555 0110",
     requestedDate,
-    requestedTime: "11:30",
+    requestedTime: "14:30",
     privacyConsent: true,
   });
-  await expect(dialog.getByRole("status")).toContainText("Request submitted");
-  await expect(dialog.getByRole("status")).toContainText("Staff must confirm");
-  await expect(dialog.getByRole("status")).toContainText("not confirmed");
+  const success = page.getByRole("status");
+  await expect(success).toContainText("Request received");
+  await expect(success).toContainText("E2E-INQUIRY-001");
+  await expect(success).toContainText("Clark Garden Residence");
+  await expect(success).toContainText("This is not yet a confirmed appointment.");
+  await expect(success.getByRole("link", { name: "Back to property" })).toHaveAttribute(
+    "href",
+    "/properties/clark-garden-residence",
+  );
+});
+
+test("Book a Viewing keeps unknown and missing property context truthful", async ({
+  page,
+}) => {
+  await page.goto("/book-viewing");
+  const choose = page.getByRole("complementary", { name: "Choose the property" });
+  const propertyId = choose.getByLabel("Property ID");
+  await expect(propertyId).toHaveValue("");
+  await page.getByRole("button", { name: "Continue to your details" }).click();
+  expect(await propertyId.evaluate((input) => input.validity.valueMissing)).toBe(true);
+  await expect(choose.getByRole("link", { name: "Browse properties" })).toHaveAttribute(
+    "href",
+    "/properties",
+  );
+
+  await page.goto("/book-viewing?propertyId=RCPP-UNKNOWN-404");
+  const confirm = page.getByRole("complementary", { name: "Confirm the property" });
+  await expect(confirm).toContainText("could not find a published property");
+  await expect(confirm.getByLabel("Property ID")).toHaveValue("RCPP-UNKNOWN-404");
+  await expect(page.getByText("Clark Garden Residence")).toHaveCount(0);
 });
 
 test("the global Request a Tour entry requires a property before continuing", async ({
   page,
 }) => {
-  await page.goto("/about");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/contact");
   const trigger = page.getByRole("banner").getByRole("button", {
     name: "Request a Tour",
   });

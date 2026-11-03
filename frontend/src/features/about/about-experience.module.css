@@ -30,24 +30,21 @@
   place-items: center;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgb(58 66 79 / 16%);
+  border: 1px solid rgb(248 246 241 / 14%);
   border-radius: var(--radius-editorial);
-  background:
-    radial-gradient(circle at 55% 43%, rgb(180 137 61 / 12%), transparent 36%), #fff;
-  box-shadow: var(--shadow-card);
+  background: rgb(248 246 241 / 3%);
 }
 
 .boundaryMap svg {
   width: min(86%, 34rem);
   height: auto;
   max-height: 34rem;
-  filter: drop-shadow(0 0.85rem 1.2rem rgb(58 66 79 / 13%));
 }
 
 .boundaryMap path {
-  fill: rgb(58 66 79 / 92%);
+  fill: rgb(248 246 241 / 5%);
   fill-rule: evenodd;
-  stroke: #b4893d;
+  stroke: var(--color-accent-soft);
   stroke-linejoin: round;
   stroke-width: 1.35;
 }
@@ -55,7 +52,7 @@
 .boundaryMap > p {
   max-width: 22rem;
   padding: 2rem;
-  color: var(--text-muted);
+  color: rgb(248 246 241 / 66%);
   text-align: center;
 }
 
@@ -64,7 +61,7 @@
   right: 1rem;
   bottom: 0.85rem;
   left: 1rem;
-  color: var(--text-muted);
+  color: rgb(248 246 241 / 55%);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   text-align: center;

@@ -20,6 +20,14 @@ const navigation = [
 ] as const;
 
 const NEAR_TOP_PX = 40;
+/** Editorial routes that share the redesigned header; detail routes keep the classic bar. */
+const HEROLESS_PATHS = new Set([
+  "/properties",
+  "/locations",
+  "/sell",
+  "/about",
+  "/book-viewing",
+]);
 const DOWNWARD_HIDE_DISTANCE_PX = 48;
 const UPWARD_SHOW_DISTANCE_PX = 24;
 
@@ -41,7 +49,7 @@ export function SiteHeader() {
   const heroGoneRef = useRef(false);
   const isHome = pathname === "/";
   // Pages without a hero use the homepage header in its sticky state from the first paint.
-  const heroless = pathname === "/properties";
+  const heroless = HEROLESS_PATHS.has(pathname);
   const usesHomeHeader = isHome || heroless;
   const eligible = heroless || heroGone;
   const sticky = heroless || stickyMounted;

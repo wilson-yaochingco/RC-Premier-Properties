@@ -1,0 +1,147 @@
+.page {
+  --ink: var(--color-brand-deep);
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ---- Booking shell: the scheduler is the hero ---- */
+.booking {
+  padding-block: clamp(2.5rem, 5vw, 4.5rem) clamp(4rem, 7vw, 6.5rem);
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 26rem);
+  align-items: end;
+  gap: 1.5rem clamp(2rem, 4vw, 4.5rem);
+  margin-bottom: clamp(2.5rem, 5vw, 4rem);
+  padding-bottom: clamp(2rem, 3.5vw, 2.75rem);
+  border-bottom: 1px solid rgb(32 38 48 / 14%);
+}
+
+.eyebrow {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.headline {
+  color: var(--ink);
+  font-size: clamp(2.75rem, 6.2vw, 5.75rem);
+  font-weight: 600;
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+}
+
+.headline span {
+  display: block;
+}
+
+.lede {
+  max-width: 30rem;
+  justify-self: end;
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.55;
+}
+
+/* ---- What happens next ---- */
+.next {
+  padding-block: clamp(4.5rem, 8vw, 7.5rem);
+  border-top: 1px solid rgb(32 38 48 / 10%);
+  background: var(--color-surface-muted);
+}
+
+.nextLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
+  gap: 2rem clamp(2rem, 4vw, 4.5rem);
+}
+
+.nextHeading {
+  color: var(--ink);
+  font-size: clamp(2rem, 3.6vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.nextList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgb(32 38 48 / 18%);
+}
+
+.nextList li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(9rem, 0.7fr) minmax(0, 1.3fr);
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  padding-block: clamp(1.5rem, 2.5vw, 2rem);
+  border-bottom: 1px solid rgb(32 38 48 / 18%);
+}
+
+.nextNumber {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.nextList h3 {
+  color: var(--ink);
+  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.nextList p {
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 59.99rem) {
+  .intro,
+  .nextLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lede {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .headline {
+    font-size: clamp(2.5rem, 12vw, 3.25rem);
+  }
+
+  .nextList li {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .nextList p {
+    grid-column: 2;
+  }
+}

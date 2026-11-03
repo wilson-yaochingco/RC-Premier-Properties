@@ -30,48 +30,11 @@
   text-decoration: none;
 }
 
-.introGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: stretch;
-  gap: clamp(1rem, 2vw, 2rem);
-}
-
-.introGrid > *,
 .detailHeroGrid > *,
 .inventoryLayout > * {
   min-width: 0;
 }
 
-.introGrid .introStatement {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: clamp(1.25rem, 3vw, 2.5rem);
-  padding: clamp(1.75rem, 3vw, 3rem);
-  background: var(--brand-primary-deep);
-  color: var(--brand-white);
-}
-
-.introStatement p {
-  color: var(--brand-secondary-light);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.introStatement h1 {
-  max-width: 22ch;
-  font-family: var(--font-editorial);
-  font-size: clamp(2.75rem, 4.25vw, 4.75rem);
-  font-weight: 400;
-  letter-spacing: -0.05em;
-  line-height: 0.95;
-}
-
-.introMedia,
 .detailMedia {
   position: relative;
   min-height: clamp(22rem, 31vw, 28rem);
@@ -105,129 +68,6 @@
   color: var(--brand-white);
   text-decoration: underline;
   text-underline-offset: 0.18rem;
-}
-
-.introMedia {
-  background: #fff;
-}
-
-.introMedia img {
-  object-fit: contain;
-  padding: clamp(0.25rem, 1vw, 0.75rem);
-}
-
-.locationsSection {
-  padding-bottom: clamp(5rem, 9vw, 9rem);
-}
-
-.sectionHeading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.sectionHeading h2 {
-  max-width: 16ch;
-  font-family: var(--font-editorial);
-  font-size: clamp(2.2rem, 4vw, 4.5rem);
-  font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 1;
-}
-
-.sectionHeading p {
-  max-width: 30rem;
-  color: var(--text-muted);
-  text-align: right;
-}
-
-.locationGrid {
-  display: grid;
-  grid-auto-flow: dense;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.locationCard {
-  min-height: clamp(15rem, 22vw, 24rem);
-}
-
-.locationCard:nth-child(7n + 1),
-.locationCard:nth-child(7n + 5) {
-  grid-column: span 2;
-}
-
-.locationCard:nth-child(7n + 4) {
-  grid-row: span 2;
-}
-
-.locationCard a {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: inherit;
-  display: flex;
-  align-items: flex-end;
-  overflow: hidden;
-  border-radius: var(--radius-editorial);
-  color: var(--brand-white);
-}
-
-.locationCard img {
-  object-fit: cover;
-  transition: transform 760ms cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.locationShade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgb(58 66 79 / 84%), rgb(58 66 79 / 4%) 68%);
-  transition: background-color 760ms ease;
-}
-
-.locationCardCopy {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 0.35rem;
-  padding: clamp(1.25rem, 2.5vw, 2.25rem);
-}
-
-.locationCardCopy strong {
-  max-width: 16ch;
-  font-family: var(--font-editorial);
-  font-size: clamp(1.75rem, 2.8vw, 3rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1;
-}
-
-.locationCardCopy span {
-  color: rgb(255 255 255 / 78%);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.locationArrow {
-  position: absolute;
-  z-index: 1;
-  top: 1rem;
-  right: 1rem;
-  width: 2.75rem;
-  height: 2.75rem;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 66%);
-  border-radius: 50%;
-  transition:
-    background 200ms ease,
-    color 200ms ease;
 }
 
 .detailHero {
@@ -521,36 +361,7 @@
   min-height: 34rem;
 }
 
-@media (hover: hover) {
-  .locationCard a:hover img {
-    transform: scale(1.065);
-  }
-
-  .locationCard a:hover .locationShade {
-    background-color: rgb(58 66 79 / 94%);
-  }
-
-  .locationCard a:hover .locationArrow {
-    background: var(--brand-white);
-    color: var(--brand-primary);
-  }
-}
-
-.locationCard a:focus-visible img {
-  transform: scale(1.065);
-}
-
-.locationCard a:focus-visible .locationShade {
-  background-color: rgb(58 66 79 / 94%);
-}
-
-.locationCard a:focus-visible .locationArrow {
-  background: var(--brand-white);
-  color: var(--brand-primary);
-}
-
 @media (max-width: 63.99rem) {
-  .introGrid,
   .detailHeroGrid,
   .inventoryLayout,
   .editorialFeature {
@@ -576,41 +387,14 @@
     min-height: clamp(24rem, 65vw, 38rem);
   }
 
-  .introStatement,
-  .introMedia {
-    min-height: clamp(20rem, 48vw, 28rem);
-  }
-
   .inventoryMap {
     position: static;
-  }
-
-  .locationGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .locationCard:nth-child(n) {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
-  .locationCard:nth-child(5n + 1) {
-    grid-column: span 2;
   }
 }
 
 @media (max-width: 47.99rem) {
-  .introMedia {
-    display: none;
-  }
-
-  .sectionHeading,
   .inventoryHeader {
     display: grid;
-  }
-
-  .sectionHeading p {
-    text-align: left;
   }
 
   .detailIntroGrid {
@@ -660,26 +444,10 @@
 }
 
 @media (max-width: 39.99rem) {
-  .introGrid,
-  .locationGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .locationCard:nth-child(n) {
-    grid-column: auto;
-  }
-
-  .introStatement {
-    min-height: 21rem;
-  }
-
-  .introStatement,
   .detailTitle {
     padding: min(1.75rem, 7vw);
   }
 
-  .introStatement h1,
-  .sectionHeading h2,
   .detailTitle h1,
   .detailIntroGrid h2,
   .inventoryHeader h2 {
@@ -698,24 +466,4 @@
   .detailTitle {
     min-height: 20rem;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .locationCard img,
-  .locationArrow,
-  .locationShade {
-    transition: none;
-  }
-}
-
-.sourceNote {
-  margin-top: 2.5rem;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
-.sourceNote a {
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }

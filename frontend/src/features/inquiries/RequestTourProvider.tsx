@@ -143,16 +143,3 @@ export function RequestTourButton({
     </button>
   );
 }
-
-export function LegacyViewingLauncher({ propertyId }: { propertyId?: string }) {
-  const { openTour } = useRequestTour();
-  const launchedRef = useRef(false);
-
-  useEffect(() => {
-    if (launchedRef.current) return;
-    launchedRef.current = true;
-    openTour(propertyId ? { propertyId } : undefined);
-  }, [openTour, propertyId]);
-
-  return null;
-}
