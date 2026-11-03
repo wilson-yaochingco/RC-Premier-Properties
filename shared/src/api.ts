@@ -190,6 +190,17 @@ export const PUBLIC_LOCATION_PRECISIONS = [
 
 export type PublicLocationPrecision = (typeof PUBLIC_LOCATION_PRECISIONS)[number];
 
+/**
+ * Precisions whose approved public point may be published. `barangay-area` and
+ * `city-only` describe an area, not a place, so the backend never serializes a point for
+ * them even when one is stored.
+ */
+export const PUBLIC_POINT_PRECISIONS = [
+  "exact",
+  "approximate",
+  "subdivision",
+] as const satisfies readonly PublicLocationPrecision[];
+
 /** An independently approved public GeoJSON point. Coordinate order is longitude, latitude. */
 export interface PublicMapPoint {
   type: "Point";
