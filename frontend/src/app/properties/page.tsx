@@ -17,6 +17,7 @@ import {
   CatalogHeading,
   CatalogIntro,
   CatalogSort,
+  CatalogInvalidFilters,
   CatalogUnavailable,
   ZeroResults,
 } from "@/features/properties/PropertyCatalogSections";
@@ -146,7 +147,13 @@ export default async function PropertiesPage({
               <div className={styles.resultsBar}>
                 <CatalogHeading />
               </div>
-              <CatalogUnavailable retryHref={resultsHref} />
+              {inventory.status === "invalid" ? (
+                <CatalogInvalidFilters
+                  clearHref={withCatalogFixture("/properties", fixture)}
+                />
+              ) : (
+                <CatalogUnavailable retryHref={resultsHref} />
+              )}
             </>
           )}
         </div>
