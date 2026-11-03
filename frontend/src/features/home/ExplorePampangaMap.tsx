@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   PAMPANGA_MAP_AREAS,
@@ -17,9 +18,11 @@ const percentY = (y: number) => `${(y / PAMPANGA_MAP_HEIGHT) * 100}%`;
 
 /**
  * The Pampanga map plus its numbered location ledger. With no locations it renders the
- * muted map alone. The ledger is the dependable navigation path; the map only mirrors it.
+ * muted map alone. The ledger holds the real links (keyboard and assistive tech); the map is a
+ * pointer-only shortcut, so it carries no focusable elements inside its image role.
  */
 export function ExplorePampangaMap({ locations }: { locations: ExploreLocation[] }) {
+  const router = useRouter();
   const [selectedSlug, setSelectedSlug] = useState(locations[0]?.slug);
   const active = new Map(locations.map((location) => [location.slug, location]));
   // The ledger and the map's numbered markers share one list, so 01-04 always agree.
@@ -46,10 +49,9 @@ export function ExplorePampangaMap({ locations }: { locations: ExploreLocation[]
               return <path key={area.slug} d={area.d} className={styles.area} />;
             }
             return (
-              <a
+              <g
                 key={area.slug}
-                href={location.href}
-                tabIndex={-1}
+                onClick={() => router.push(location.href)}
                 onMouseEnter={() => setSelectedSlug(location.slug)}
               >
                 <path
@@ -58,7 +60,7 @@ export function ExplorePampangaMap({ locations }: { locations: ExploreLocation[]
                   data-active="true"
                   data-selected={location.slug === selected?.slug}
                 />
-              </a>
+              </g>
             );
           })}
           <path d={PAMPANGA_MAP_OUTLINE} className={styles.outline} />
