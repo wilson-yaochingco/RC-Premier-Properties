@@ -819,7 +819,7 @@ test("Book a Viewing schedules one structured unconfirmed request inline", async
   await dates.first().check();
   await scheduler
     .getByRole("group", { name: "Afternoon" })
-    .getByRole("radio", { name: "2:30 PM" })
+    .getByRole("radio", { name: "2:30 PM", exact: true })
     .check();
   await scheduler.getByRole("button", { name: "Continue to your details" }).click();
 

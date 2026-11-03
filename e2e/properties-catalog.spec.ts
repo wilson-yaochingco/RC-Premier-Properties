@@ -300,3 +300,19 @@ test.describe("hybrid filter apply", () => {
     await expect(page).toHaveURL(/\/properties$/);
   });
 });
+
+test("invalid filter URLs show a recoverable state rather than an outage", async ({
+  page,
+}) => {
+  for (const query of ["minPrice=abc", "minPrice=5000000&maxPrice=1", "bedrooms=-1"]) {
+    await page.goto(`/properties?${query}`);
+    // `.last()`: the streamed copy can briefly coexist with the swapped-in content.
+    const state = page.locator('[data-catalog-state="invalid"]').last();
+    await expect(state, query).toContainText("Some filters");
+    await expect(state.getByRole("link", { name: "Clear filters" })).toHaveAttribute(
+      "href",
+      "/properties",
+    );
+    await expect(page.locator('[data-catalog-state="unavailable"]')).toHaveCount(0);
+  }
+});
