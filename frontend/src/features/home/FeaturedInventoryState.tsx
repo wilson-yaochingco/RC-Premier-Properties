@@ -41,7 +41,7 @@ export function FeaturedInventoryState({ kind }: { kind: "empty" | "unavailable"
       </h2>
       <p className={`${styles.lede} ${styles.stateBody}`}>{copy.body}</p>
       <div className={styles.stateActions}>
-        <Link href="/contact" className={`${styles.statePrimary} cta`}>
+        <Link href="/contact" className={`${styles.statePrimary} cta cta--wrap`}>
           <RollLabel>Contact RC Premier</RollLabel>
           <CtaArrow />
         </Link>

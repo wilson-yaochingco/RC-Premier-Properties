@@ -108,6 +108,27 @@
   }
 }
 
+/* Centred editorial intro on mobile; the figure below is unchanged. */
+@media (max-width: 48rem) {
+  .eyebrow {
+    justify-content: center;
+  }
+
+  .heading,
+  .copy {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .heading {
+    max-width: 28rem;
+  }
+
+  .copy {
+    max-width: 28rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .section * {
     transition: none !important;

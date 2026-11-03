@@ -30,7 +30,7 @@ export function SellStatement() {
         </h2>
 
         <div className={styles.footer}>
-          <Link href="/sell" className={`${styles.button} cta`}>
+          <Link href="/sell" className={`${styles.button} cta cta--wrap`}>
             <RollLabel>Sell your property</RollLabel>
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />

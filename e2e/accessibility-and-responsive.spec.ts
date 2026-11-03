@@ -141,14 +141,21 @@ test("form controls retain a visible keyboard focus indicator", async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  const propertyId = page.getByLabel("Property ID");
-  await expect(propertyId).toBeVisible();
+  const location = page.getByLabel("Search", { exact: true });
+  await expect(location).toBeVisible();
+  await expect(page.locator("main#main-content")).toHaveCount(1);
   await page.locator("main#main-content").focus();
   await page.keyboard.press("Tab");
-  await expect(propertyId).toBeFocused();
-  expect(
-    await propertyId.evaluate((control) => getComputedStyle(control).outlineStyle),
-  ).not.toBe("none");
+  await expect(location).toBeFocused();
+  // The ring is drawn on the field that wraps the control, so accept either.
+  const ring = await location.evaluate((control) => {
+    for (let node: Element | null = control; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (style.outlineStyle !== "none") return Number.parseFloat(style.outlineWidth);
+    }
+    return 0;
+  });
+  expect(ring).toBeGreaterThanOrEqual(2);
 });
 
 test("reduced motion and 200 percent text sizing preserve core content", async ({

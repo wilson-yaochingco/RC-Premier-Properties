@@ -9,6 +9,7 @@ import { CLOSER_LOOK_SLIDES } from "@/features/home/closer-look-slides";
 import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
 import { ExplorePampangaSection } from "@/features/home/ExplorePampanga";
 import { FeaturedPropertiesSection } from "@/features/home/FeaturedProperties";
+import { EditorialCta } from "@/components/ui/EditorialCta";
 import { PropertyToursSection } from "@/features/home/PropertyToursSection";
 import { HomeIntroduction } from "@/features/home/HomeIntroduction";
 import { WhyRcPremier } from "@/features/home/WhyRcPremier";
@@ -113,6 +114,15 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* 7. PROPERTY TOURS */}
       <PropertyToursSection />
+
+      <EditorialCta
+        id="home-cta-heading"
+        eyebrow="Ready when you are"
+        headline={["Let’s find the right", "property for you."]}
+        body="Tell us what matters most and RC Premier can help you narrow the search and plan the next step."
+        label="Talk to RC Premier"
+        href="/contact"
+      />
     </main>
   );
 }

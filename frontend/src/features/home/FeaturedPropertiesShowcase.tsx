@@ -27,7 +27,11 @@ export function FeaturedPropertiesShowcase({
           </li>
         ))}
       </ul>
-      <SwipeIndicator railId="featured-rail" count={properties.length} />
+      <SwipeIndicator
+        railId="featured-rail"
+        count={properties.length}
+        until={properties.length > 2 ? "tablet" : "phone"}
+      />
     </div>
   );
 }

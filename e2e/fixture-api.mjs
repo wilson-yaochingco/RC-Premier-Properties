@@ -226,12 +226,20 @@ function searchFixtureProperties(request) {
       return false;
     }
     if (request.location) {
-      const matchesLocation = [
-        property.location.province,
-        property.location.city,
-        property.location.barangay,
-        property.location.development,
-      ].some((part) => includes(part, request.location));
+      // Like the real API: an exact "City, Province" facet label, else a partial match.
+      const [city, province, ...rest] = request.location
+        .split(",")
+        .map((part) => part.trim());
+      const facetLabel = city && province && rest.length === 0;
+      const matchesLocation = facetLabel
+        ? property.location.city.toLowerCase() === city.toLowerCase() &&
+          property.location.province.toLowerCase() === province.toLowerCase()
+        : [
+            property.location.province,
+            property.location.city,
+            property.location.barangay,
+            property.location.development,
+          ].some((part) => includes(part, request.location));
       if (!matchesLocation) return false;
     }
     if (request.keyword) {

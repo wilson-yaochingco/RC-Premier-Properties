@@ -348,10 +348,37 @@
   }
 }
 
-/* Tablet: two columns; a third card wraps naturally. Header stacks. */
-@media (max-width: 63.99rem) {
-  .grid[data-count="2"],
+/*
+ * Up to 1024px three properties become a native swipe rail: roughly two cards and the edge
+ * of a third, so it is clear there is more. Two properties stay a two-column grid.
+ */
+@media (max-width: 64rem) {
   .grid[data-count="3"] {
+    display: flex;
+    gap: var(--gap);
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .grid[data-count="3"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  .grid[data-count="3"] > li {
+    flex: 0 0 calc((100vw - 2 * var(--gutter)) * 0.455);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
+/* Tablet: header stacks; a pair of properties is a two-column grid. */
+@media (max-width: 63.99rem) {
+  .grid[data-count="2"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -419,6 +446,36 @@
     justify-content: center;
     min-height: 3rem;
   }
+}
+
+/* Centred header on mobile; the cards and rail below are unchanged. */
+@media (max-width: 48rem) {
+  .eyebrow {
+    justify-content: center;
+  }
+
+  .header .heading,
+  .header .lede,
+  .stateBody {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .heading,
+  .lede {
+    max-width: 28rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .header .viewAllSlot,
+  .stateActions {
+    justify-content: center;
+  }
+}
+
+:is(.viewAll, .statePrimary) {
+  max-width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

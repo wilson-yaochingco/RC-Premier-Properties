@@ -150,23 +150,28 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties");
 
+  // Typed Property ID waits; each select then applies the whole form straight away.
+  await page.getByRole("button", { name: /^More filters/ }).click();
   await page.getByLabel("Property ID").fill("RCPP-E2E-001");
-  await page.getByLabel("Location").fill("Angeles City");
-  await page.locator("summary").filter({ hasText: "Filters" }).click();
-  await page.getByLabel("Property type").selectOption("house-and-lot");
-  await page.getByLabel("Minimum price").fill("12450000");
-  await page.getByLabel("Maximum price").fill("12550000");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page
+    .getByLabel("Location", { exact: true })
+    .selectOption({ label: "Angeles City, Pampanga" });
+  await page.getByLabel("Type", { exact: true }).selectOption("house-and-lot");
+  await expect(page).toHaveURL(/propertyType=house-and-lot/);
+  await page.getByRole("button", { name: /^Price/ }).click();
+  await page.getByLabel("Minimum price (PHP)").fill("12450000");
+  await page.getByLabel("Maximum price (PHP)").fill("12550000");
+  await page.getByRole("button", { name: "Apply price" }).click();
 
-  await expect(page).toHaveURL(/\/properties\?/);
+  await expect(page).toHaveURL(/maxPrice=12550000/);
   const filteredUrl = new URL(page.url());
   expect(filteredUrl.searchParams.get("propertyId")).toBe("RCPP-E2E-001");
-  expect(filteredUrl.searchParams.get("location")).toBe("Angeles City");
+  expect(filteredUrl.searchParams.get("location")).toContain("Angeles City");
   expect(filteredUrl.searchParams.get("propertyType")).toBe("house-and-lot");
   expect(filteredUrl.searchParams.get("minPrice")).toBe("12450000");
   expect(filteredUrl.searchParams.get("maxPrice")).toBe("12550000");
   const filteredHref = page.url();
-  await expect(page.getByText("1 result", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 property", { exact: true }).first()).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Clark Garden Residence" }),
   ).toBeVisible();
@@ -175,13 +180,11 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   ).toHaveCount(0);
 
   await page.goto("/properties?location=No+Such+Fixture+District");
-  await expect(page.getByText("0 results", { exact: true })).toBeVisible();
+  await expect(page.getByText("0 properties", { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByRole("heading", {
-      name: "No published properties match these filters.",
-    }),
+    page.getByRole("heading", { name: /No homes match\s*those filters yet\./ }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Clear all filters" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /Clear filters/ })).toHaveAttribute(
     "href",
     "/properties",
   );
@@ -189,15 +192,16 @@ test("property filters stay in the URL, affect results, and expose an empty stat
   await page.goBack();
   await expect(page).toHaveURL(filteredHref);
   await expect(page.getByLabel("Property ID")).toHaveValue("RCPP-E2E-001");
-  await expect(page.getByLabel("Location")).toHaveValue("Angeles City");
-  await expect(page.getByLabel("Property type")).toHaveValue("house-and-lot");
-  await expect(page.getByText("1 result", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Location", { exact: true })).toHaveValue(
+    /Angeles City/,
+  );
+  await expect(page.getByLabel("Type", { exact: true })).toHaveValue("house-and-lot");
+  await expect(page.getByText("1 property", { exact: true }).first()).toBeVisible();
 
   await page.goto("/properties");
-  await page.getByLabel("Sort results").selectOption("price-asc");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("link", { name: "Price: low to high", exact: true }).click();
   await expect(page).toHaveURL(/sort=price-asc/);
-  await expect(page.getByText("10 results", { exact: true })).toBeVisible();
+  await expect(page.getByText("10 properties", { exact: true }).first()).toBeVisible();
   await expect(page.locator("main article h3").first()).toHaveText(
     "Pagination Fixture 01",
   );

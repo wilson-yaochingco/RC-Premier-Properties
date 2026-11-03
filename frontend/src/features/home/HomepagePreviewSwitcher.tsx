@@ -11,6 +11,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "./homepage-preview-switcher.module.css";
 
 interface Row {
+  path: string;
   label: string;
   param: string;
   options: Array<{ label: string; value: string | null }>;
@@ -18,6 +19,7 @@ interface Row {
 
 const ROWS: Row[] = [
   {
+    path: "/",
     label: "Featured",
     param: "featuredFixture",
     options: [
@@ -30,6 +32,7 @@ const ROWS: Row[] = [
     ],
   },
   {
+    path: "/",
     label: "Locations",
     param: "locationFixture",
     options: [
@@ -38,6 +41,19 @@ const ROWS: Row[] = [
       { label: "1", value: "one" },
       { label: "2", value: "two" },
       { label: "4", value: "four" },
+      { label: "Error", value: "unavailable" },
+    ],
+  },
+  {
+    path: "/properties",
+    label: "Catalog",
+    param: "catalogFixture",
+    options: [
+      { label: "Real", value: null },
+      ...["0", "1", "2", "3", "4", "5", "6"].map((count) => ({
+        label: count,
+        value: count,
+      })),
       { label: "Error", value: "unavailable" },
     ],
   },
@@ -59,10 +75,10 @@ export function HomepagePreviewSwitcher() {
     <div
       className={styles.switcher}
       role="group"
-      aria-label="Homepage preview (development only)"
+      aria-label="Preview (development only)"
     >
       <span className={styles.title}>Preview</span>
-      {ROWS.map(({ label, param, options }) => {
+      {ROWS.filter((row) => row.path === pathname).map(({ label, param, options }) => {
         const current = searchParams.get(param);
         return (
           <div key={param} className={styles.row} role="group" aria-label={label}>

@@ -1,4 +1,4 @@
-/* Phones only; tablet and desktop keep their grids and need no position hint. */
+/* Shown only while the section is a rail (see `data-until` below). */
 .indicator {
   display: flex;
   align-items: center;
@@ -33,7 +33,13 @@
 }
 
 @media (min-width: 40rem) {
-  .indicator {
+  .indicator[data-until="phone"] {
+    display: none;
+  }
+}
+
+@media (min-width: 64.01rem) {
+  .indicator[data-until="tablet"] {
     display: none;
   }
 }

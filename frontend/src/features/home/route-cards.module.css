@@ -251,6 +251,20 @@
   }
 }
 
+/* Centred intro on mobile; the cards below stay left-aligned. */
+@media (max-width: 48rem) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .lede {
+    margin-inline: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .arrow,

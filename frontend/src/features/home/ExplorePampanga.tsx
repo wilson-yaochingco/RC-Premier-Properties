@@ -62,7 +62,7 @@ function ExploreHeader({
         </div>
         <div className={styles.viewAllSlot}>
           {action ? (
-            <Link href={action.href} className={`${styles.button} cta`}>
+            <Link href={action.href} className={`${styles.button} cta cta--wrap`}>
               <RollLabel>{action.label}</RollLabel>
               <Arrow />
             </Link>

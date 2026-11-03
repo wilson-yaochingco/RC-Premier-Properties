@@ -1,31 +1,37 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared";
+import type { PropertyFacetsResponse } from "@rc/shared";
 import propertiesImage from "@/assets/site/properties.png";
-import { Button } from "@/components/ui/Button";
-import { Container } from "@/components/ui/Container";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ApiClientError } from "@/services/api-client";
-import { PropertyCard } from "@/features/properties/PropertyCard";
-import { PropertyFilterChips } from "@/features/properties/PropertyFilterChips";
+import { EditorialCta } from "@/components/ui/EditorialCta";
+import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
+import {
+  activeCatalogFixture,
+  loadCatalogInventory,
+  withCatalogFixture,
+} from "@/features/properties/catalog-inventory";
+import { PropertyCatalogCard } from "@/features/properties/PropertyCatalogCard";
+import { PropertyCatalogFilters } from "@/features/properties/PropertyCatalogFilters";
+import {
+  CatalogActiveFilters,
+  CatalogHeading,
+  CatalogIntro,
+  CatalogSort,
+  CatalogUnavailable,
+  ZeroResults,
+} from "@/features/properties/PropertyCatalogSections";
 import { PropertyPagination } from "@/features/properties/PropertyPagination";
-import { PropertyResultsExperience } from "@/features/properties/PropertyResultsExperience";
-import { PropertySearchForm } from "@/features/properties/PropertySearchForm";
 import {
   paginationHref,
   propertyFormValues,
   type RawSearchParams,
 } from "@/features/properties/property-query";
-import {
-  getProperties,
-  getPropertyFacets,
-} from "@/features/properties/property.service";
+import { getPropertyFacets } from "@/features/properties/property.service";
 import {
   buildPropertiesMetadata,
   resolveLocationSeoState,
 } from "@/features/properties/property-seo";
-import styles from "@/features/properties/properties.module.css";
+import styles from "@/features/properties/property-catalog.module.css";
 
 const getCachedPropertyFacets = cache(getPropertyFacets);
 
@@ -56,22 +62,15 @@ export default async function PropertiesPage({
   const resultQuery = new URLSearchParams();
   Object.entries(rawSearchParams).forEach(([key, value]) => {
     const first = Array.isArray(value) ? value[0] : value;
-    if (first) resultQuery.set(key, first);
+    if (first && key !== "catalogFixture") resultQuery.set(key, first);
   });
   const resultsHref = `/properties${resultQuery.size ? `?${resultQuery.toString()}` : ""}`;
   const values = propertyFormValues(rawSearchParams);
-  const facetsPromise = loadFacets();
-  let response: PropertySearchResponse | undefined;
-  let errorMessage: string | undefined;
-
-  try {
-    response = await getProperties(rawSearchParams);
-  } catch (error) {
-    errorMessage =
-      error instanceof ApiClientError
-        ? error.message
-        : "Property results are temporarily unavailable.";
-  }
+  const fixture = activeCatalogFixture(rawSearchParams.catalogFixture);
+  // A fixture supplies its own facets; the live endpoint is never mixed with fixture results.
+  const facetsPromise = fixture ? undefined : loadFacets();
+  const inventory = await loadCatalogInventory(rawSearchParams, fixture);
+  const response = inventory.status === "ready" ? inventory.response : undefined;
 
   if (
     response &&
@@ -83,108 +82,85 @@ export default async function PropertiesPage({
     redirect(paginationHref(rawSearchParams, response.pagination.totalPages));
   }
 
-  const facets = await facetsPromise;
+  const facets =
+    inventory.source === "fixture"
+      ? inventory.status === "ready"
+        ? inventory.facets
+        : undefined
+      : await facetsPromise;
   const locationSeo = resolveLocationSeoState(rawSearchParams, facets);
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.catalogPage}>
-      <section className={styles.hero}>
-        <Container className={styles.heroCopy}>
-          <p className={styles.heroEyebrow}>Property catalog</p>
-          <h1>
-            {locationSeo.location
-              ? `Properties for sale in ${locationSeo.location}`
-              : "Properties for sale in Pampanga"}
-          </h1>
-          {locationSeo.location ? (
-            <p className={styles.heroIntro}>
-              {locationSeo.count?.toLocaleString("en-PH")} published{" "}
-              {locationSeo.count === 1 ? "property is" : "properties are"} currently
-              available to explore in this location.
-            </p>
-          ) : null}
-          {!locationSeo.location ? (
-            <p className={styles.heroIntro}>
-              Search current published inventory by Premier Property number, location,
-              type, specifications, and budget.
-            </p>
-          ) : null}
-        </Container>
-      </section>
+    <main id="main-content" tabIndex={-1} className={styles.page}>
+      <CatalogIntro location={locationSeo.location} count={locationSeo.count} />
 
-      <Container className={styles.searchWrap}>
-        <PropertySearchForm values={values} facets={facets} />
-        <PropertyFilterChips values={values} searchParams={rawSearchParams} />
-      </Container>
+      <div className={styles.container}>
+        <PropertyCatalogFilters values={values} facets={facets} fixture={fixture} />
+        <CatalogActiveFilters
+          values={values}
+          searchParams={rawSearchParams}
+          fixture={fixture}
+        />
+      </div>
 
-      <section
-        className={styles.resultsSection}
-        aria-labelledby="property-results-title"
-      >
-        <Container className={styles.catalogContainer}>
-          <div className={styles.resultsHeader}>
-            <h2 id="property-results-title">Available properties</h2>
-            <p className={styles.resultCount} aria-live="polite">
-              {response
-                ? `${response.pagination.total.toLocaleString("en-PH")} result${response.pagination.total === 1 ? "" : "s"}`
-                : "Results unavailable"}
-            </p>
-          </div>
-
-          {errorMessage ? (
-            <div className={styles.errorState} role="alert">
-              <strong>We could not load the property catalog.</strong> {errorMessage}
-              <br />
-              Your filters remain in the URL. Check that the Express API and MongoDB are
-              available, then try again.
-              <Button href={resultsHref} variant="outline">
-                Retry property search
-              </Button>
-            </div>
-          ) : null}
-
+      <section className={styles.results} aria-labelledby="property-results-title">
+        <div className={styles.container}>
           {response ? (
-            <PropertyResultsExperience
-              properties={response.items}
-              selectedLocation={values.location}
-              total={response.pagination.total}
-            >
+            <>
+              <div className={styles.resultsBar}>
+                <CatalogHeading total={response.pagination.total} />
+                <CatalogSort
+                  current={values.sort}
+                  searchParams={rawSearchParams}
+                  fixture={fixture}
+                />
+              </div>
               {response.items.length > 0 ? (
                 <>
-                  <div className={styles.grid}>
-                    {response.items.map((property) => (
-                      <PropertyCard
-                        key={property.id}
-                        property={property}
-                        resultsHref={resultsHref}
-                      />
+                  <ul
+                    className={styles.grid}
+                    data-count={Math.min(response.items.length, 9)}
+                    aria-label="Available properties"
+                  >
+                    {response.items.map((property, index) => (
+                      <li key={property.id}>
+                        <PropertyCatalogCard
+                          property={property}
+                          resultsHref={resultsHref}
+                          priority={index < 3}
+                        />
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                   <PropertyPagination
                     pagination={response.pagination}
                     searchParams={rawSearchParams}
                   />
                 </>
               ) : (
-                <EmptyState
-                  eyebrow="No matching inventory"
-                  title="No published properties match these filters."
-                  description="Choose another map area, adjust one or more filters, or clear the search to see the full published collection."
-                  actionLabel="Clear all filters"
-                  actionHref="/properties"
-                />
+                <ZeroResults clearHref={withCatalogFixture("/properties", fixture)} />
               )}
-            </PropertyResultsExperience>
-          ) : null}
-
-          {!response && !errorMessage ? (
-            <EmptyState
-              title="The catalog is being prepared."
-              description="Published properties will appear here when they are available."
-            />
-          ) : null}
-        </Container>
+            </>
+          ) : (
+            <>
+              <div className={styles.resultsBar}>
+                <CatalogHeading />
+              </div>
+              <CatalogUnavailable retryHref={resultsHref} />
+            </>
+          )}
+        </div>
       </section>
+
+      <EditorialCta
+        id="properties-cta-heading"
+        eyebrow="Still looking?"
+        headline={["Let’s find the right", "property for you."]}
+        body="Tell us what matters most and RC Premier can help narrow the search around your location, budget, and property needs."
+        label="Talk to RC Premier"
+        href="/contact"
+      />
+      <DevHomepagePreview />
     </main>
   );
 }

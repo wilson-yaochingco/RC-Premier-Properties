@@ -347,6 +347,48 @@
   }
 }
 
+/* Centred intro on mobile; the map, ledger and counts keep their own alignment. */
+@media (max-width: 48rem) {
+  .eyebrow {
+    justify-content: center;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+    text-align: center;
+  }
+
+  [data-explore-state] .header {
+    align-items: center;
+  }
+
+  .headerCopy {
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .stateBody {
+    margin-inline: auto;
+  }
+
+  .viewAllSlot {
+    justify-content: center;
+    max-width: 100%;
+  }
+
+  .heading {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .button {
+    max-width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .area,
   .marker,

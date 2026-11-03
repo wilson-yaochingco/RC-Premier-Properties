@@ -20,11 +20,10 @@
 .gallery {
 }
 
-/* Fixed-width cards in a centred, wrapping row, so a second row of two is centred too. */
+/* Three equal portrait columns that shrink with the container; six Shorts are 3 + 3. */
 .list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--gap);
   max-width: calc(3 * var(--card-width) + 2 * var(--gap));
   margin: 0 auto;
@@ -33,8 +32,7 @@
 }
 
 .card {
-  flex: 0 0 var(--card-width);
-  width: var(--card-width);
+  min-width: 0;
 }
 
 /* Collapsed: the extra Shorts stay out of layout (and never load) until expanded. */
@@ -42,7 +40,7 @@
   display: none;
 }
 
-@media (min-width: 40rem) {
+@media (min-width: 44rem) {
   .list[data-expanded="true"] .card[data-extra="true"] {
     animation: tourReveal 450ms var(--ease) both;
   }
@@ -205,15 +203,20 @@
   outline-offset: 3px;
 }
 
-/* Phones: one native swipe rail; the next Short peeks in. */
-@media (max-width: 39.99rem) {
+/* Below ~700px three portrait cards get too narrow: one native swipe rail, next Short peeking. */
+@media (max-width: 43.99rem) {
   .section {
-    --card-width: 78vw;
+    --card-width: min(78vw, 19rem);
     padding-block: 1.5rem 4rem;
   }
 
+  .card {
+    flex: 0 0 var(--card-width);
+    width: var(--card-width);
+  }
+
   .list {
-    flex-wrap: nowrap;
+    display: flex;
     justify-content: flex-start;
     max-width: none;
     margin-inline: calc(-1 * var(--gutter));

@@ -136,12 +136,6 @@
 .mediaSlide img {
   object-fit: cover;
   object-position: var(--op);
-  transform: scale(1.025);
-  transition: transform 1100ms var(--ease);
-}
-
-.mediaSlide[data-active="true"] img {
-  transform: scale(1);
 }
 
 .content {
@@ -181,15 +175,32 @@
   gap: 0.375rem;
 }
 
+/*
+ * The line is the auto-advance timer. Each segment is a muted track with a fill whose state
+ * comes from the active index: `done` is full, `active` is the timer, `todo` is empty. The
+ * active fill defaults to 0 because the component animates it 0 -> 1 (Web Animations API,
+ * linear) from a layout effect, so it never paints full first. Only without that animation
+ * (reduced motion, or before the client takes over) is it shown full and static.
+ */
 .bars span {
+  position: relative;
   flex: 1;
   height: 2px;
+  overflow: hidden;
   background: rgb(255 255 255 / 28%);
-  transition: background-color 450ms var(--ease);
 }
 
-.bars span[data-active="true"] {
+.fill {
+  position: absolute;
+  inset: 0;
   background: #f8f6f1;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.bars span[data-state="done"] .fill,
+.progress[data-static="true"] .bars span[data-state="active"] .fill {
+  transform: scaleX(1);
 }
 
 /* Every slide's text shares one grid cell so nothing resizes while switching. */
@@ -279,8 +290,8 @@
   background: rgb(255 255 255 / 8%);
 }
 
-/* ---- Tablet and mobile: one panel, photo on top with a fixed angled lower edge ---- */
-@media (max-width: 63.99rem) {
+/* ---- Up to 1024px: one panel, a straight-edged photo above the copy ---- */
+@media (max-width: 64rem) {
   .panel {
     display: flex;
     flex-direction: column;
@@ -291,8 +302,8 @@
     position: relative;
     inset: auto;
     width: 100%;
-    height: clamp(15rem, 48vw, 22rem);
-    clip-path: polygon(0 0, 100% 0, 100% 72%, 0 100%);
+    aspect-ratio: 16 / 7.5;
+    clip-path: none;
   }
 
   .mediaSlide img {
@@ -330,10 +341,9 @@
     margin-top: 2.125rem;
   }
 
-  /* Phones: a clean full-width rectangle; the geometric cut is for tablet and desktop. */
+  /* Phones: a taller 4:3 rectangle. */
   .media {
-    height: clamp(13.75rem, 58vw, 15.5rem);
-    clip-path: none;
+    aspect-ratio: 4 / 3;
   }
 
   .content {
@@ -359,18 +369,26 @@
   }
 }
 
+/* Centred header on mobile; the slide card below stays left-aligned. */
+@media (max-width: 48rem) {
+  .eyebrow {
+    justify-content: center;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mediaSlide,
-  .mediaSlide img,
   .slide,
-  .bars span,
   .book svg,
   .control {
     transition: none;
-  }
-
-  .mediaSlide img {
-    transform: none;
   }
 
   .slide,

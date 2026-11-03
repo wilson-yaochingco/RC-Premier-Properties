@@ -40,6 +40,11 @@ export function SiteHeader() {
   const [menuExpanded, setMenuExpanded] = useState(false);
   const heroGoneRef = useRef(false);
   const isHome = pathname === "/";
+  // Pages without a hero use the homepage header in its sticky state from the first paint.
+  const heroless = pathname === "/properties";
+  const usesHomeHeader = isHome || heroless;
+  const eligible = heroless || heroGone;
+  const sticky = heroless || stickyMounted;
 
   useEffect(() => {
     if (!isHome) return;
@@ -194,18 +199,18 @@ export function SiteHeader() {
 
   const isTransparent = isHome && !isScrolled;
 
-  if (isHome) {
+  if (usesHomeHeader) {
     return (
       <header
         ref={headerRef}
         className={heroStyles.header}
-        data-sticky={stickyMounted}
-        data-eligible={heroGone}
+        data-sticky={sticky}
+        data-eligible={eligible}
         data-motion={stickyMotion}
-        data-hidden={stickyMounted && (isHidden || !heroGone)}
+        data-hidden={sticky && (isHidden || !eligible)}
         data-menu-open={menuOpen}
         data-menu-expanded={menuExpanded}
-        inert={stickyMounted && (isHidden || !heroGone)}
+        inert={sticky && (isHidden || !eligible)}
         onFocusCapture={showHeader}
         onPointerDownCapture={() => {
           pointerActiveRef.current = true;
@@ -214,8 +219,8 @@ export function SiteHeader() {
       >
         <div
           className={heroStyles.stickyLogo}
-          aria-hidden={!heroGone}
-          inert={!heroGone || menuOpen}
+          aria-hidden={!eligible}
+          inert={!eligible || menuOpen}
         >
           <BrandLogo />
         </div>

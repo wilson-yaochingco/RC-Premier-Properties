@@ -190,3 +190,15 @@ export function activePropertyFilters(
 
   return filters;
 }
+
+export function sortHref(
+  searchParams: RawSearchParams,
+  sort: PropertySort,
+  basePath = "/properties",
+): string {
+  const query = propertyApiSearchParams(searchParams);
+  query.delete("limit");
+  query.delete("page");
+  query.set("sort", sort);
+  return `${basePath}?${query.toString()}`;
+}

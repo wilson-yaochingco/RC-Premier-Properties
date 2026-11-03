@@ -3477,3 +3477,68 @@ video {
     transition: none !important;
   }
 }
+
+/*
+ * Opt-in: a roll label that may wrap. Both labels share ONE grid cell, so the cell is as tall
+ * as the wrapped text, whatever the line count, and the roll moves each label by its own
+ * height. For section CTAs that must reflow under very large text or in a narrow column; a
+ * single-line label looks and animates exactly like the default.
+ */
+.cta--wrap {
+  max-width: 100%;
+}
+
+.cta--wrap .cta-roll {
+  display: inline-grid;
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.cta--wrap .cta-roll__track {
+  display: contents;
+}
+
+.cta--wrap .cta-roll__track > span {
+  grid-area: 1 / 1;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.cta--wrap .cta-roll__track > span:last-child {
+  transform: translateY(100%);
+}
+
+.cta--wrap:focus-visible .cta-roll__track > span:first-child {
+  transform: translateY(-100%);
+}
+
+.cta--wrap:focus-visible .cta-roll__track > span:last-child {
+  transform: translateY(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cta--wrap:hover .cta-roll__track > span:first-child {
+    transform: translateY(-100%);
+  }
+
+  .cta--wrap:hover .cta-roll__track > span:last-child {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta--wrap .cta-roll__track > span {
+    transition: none;
+  }
+
+  .cta--wrap .cta-roll__track > span:first-child {
+    transform: none !important;
+  }
+
+  .cta--wrap .cta-roll__track > span:last-child {
+    transform: translateY(100%) !important;
+  }
+}

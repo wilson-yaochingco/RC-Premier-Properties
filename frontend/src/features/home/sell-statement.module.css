@@ -94,6 +94,18 @@
   }
 }
 
+/* Small phones: about 10% smaller, still large editorial type but fewer one-word lines. */
+@media (max-width: 30rem) {
+  .statement {
+    margin-bottom: 2.125rem;
+    font-size: clamp(1.9rem, 8.6vw, 2.35rem);
+  }
+}
+
+.button {
+  max-width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .button svg {
     transition: none;
