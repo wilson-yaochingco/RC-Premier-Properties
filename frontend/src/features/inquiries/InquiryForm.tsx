@@ -44,8 +44,6 @@ const FIELD_LABELS: Record<string, string> = {
   propertyId: "Property ID",
   subject: "Subject",
   message: "Message",
-  requestedDate: "Requested date",
-  requestedTime: "Requested time",
   privacyConsent: "Privacy consent",
 };
 
@@ -57,8 +55,6 @@ const FIELD_IDS: Record<string, string> = {
   propertyId: "inquiry-property-id",
   subject: "inquiry-subject",
   message: "inquiry-message",
-  requestedDate: "viewing-requested-date",
-  requestedTime: "viewing-requested-time",
   privacyConsent: "inquiry-privacy-consent",
 };
 
@@ -88,8 +84,6 @@ export function InquiryForm({
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [messageLength, setMessageLength] = useState(0);
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
-  const isViewingRequest =
-    defaultInquiryType === "viewing" && source === "viewing-page";
 
   useEffect(() => {
     if (state.kind === "error") errorRef.current?.focus();
@@ -149,12 +143,6 @@ export function InquiryForm({
       ...(textValue(formData, "message")
         ? { message: textValue(formData, "message") }
         : {}),
-      ...(isViewingRequest
-        ? {
-            requestedDate: textValue(formData, "requestedDate"),
-            requestedTime: textValue(formData, "requestedTime"),
-          }
-        : {}),
     };
 
     setState({ kind: "pending" });
@@ -171,9 +159,7 @@ export function InquiryForm({
       setMessageLength(0);
       setState({
         kind: "success",
-        message: isViewingRequest
-          ? response.message
-          : "Thank you. RC Premier Properties will get back to you soon.",
+        message: "Thank you. RC Premier Properties will get back to you soon.",
         inquiryId: response.inquiryId,
       });
     } catch (error) {
@@ -257,12 +243,8 @@ export function InquiryForm({
           <FieldError field="phone" issue={issueFor("phone")} />
         </div>
 
-        {isViewingRequest || simplifiedSeller ? (
-          <input
-            type="hidden"
-            name="inquiryType"
-            value={simplifiedSeller ? "selling" : "viewing"}
-          />
+        {simplifiedSeller ? (
+          <input type="hidden" name="inquiryType" value="selling" />
         ) : (
           <div className={styles.field}>
             <label htmlFor="inquiry-type">Inquiry type</label>
@@ -287,10 +269,7 @@ export function InquiryForm({
         {!simplifiedSeller ? (
           <div className={styles.field}>
             <label htmlFor="inquiry-property-id">
-              Property ID{" "}
-              {!isViewingRequest ? (
-                <span className={styles.optional}>(optional)</span>
-              ) : null}
+              Property ID <span className={styles.optional}>(optional)</span>
             </label>
             <input
               id="inquiry-property-id"
@@ -298,44 +277,11 @@ export function InquiryForm({
               defaultValue={propertyId}
               maxLength={40}
               autoComplete="off"
-              required={isViewingRequest}
               aria-invalid={invalidFields.has("propertyId")}
               aria-describedby={describedBy("propertyId")}
             />
             <FieldError field="propertyId" issue={issueFor("propertyId")} />
           </div>
-        ) : null}
-
-        {isViewingRequest ? (
-          <>
-            <div className={styles.field}>
-              <label htmlFor="viewing-requested-date">Requested date</label>
-              <input
-                id="viewing-requested-date"
-                name="requestedDate"
-                type="date"
-                required
-                aria-invalid={invalidFields.has("requestedDate")}
-                aria-describedby={describedBy("requestedDate", "viewing-time-note")}
-              />
-              <FieldError field="requestedDate" issue={issueFor("requestedDate")} />
-            </div>
-            <div className={styles.field}>
-              <label htmlFor="viewing-requested-time">Requested time</label>
-              <input
-                id="viewing-requested-time"
-                name="requestedTime"
-                type="time"
-                required
-                aria-invalid={invalidFields.has("requestedTime")}
-                aria-describedby={describedBy("requestedTime", "viewing-time-note")}
-              />
-              <p id="viewing-time-note" className={styles.optional}>
-                Philippine time. Staff confirmation is required.
-              </p>
-              <FieldError field="requestedTime" issue={issueFor("requestedTime")} />
-            </div>
-          </>
         ) : null}
 
         <div className={styles.field}>
@@ -355,17 +301,14 @@ export function InquiryForm({
 
         <div className={`${styles.field} ${styles.wide}`}>
           <label htmlFor="inquiry-message">
-            {simplifiedSeller ? "Property details and message" : "Message"}{" "}
-            {isViewingRequest ? (
-              <span className={styles.optional}>(optional)</span>
-            ) : null}
+            {simplifiedSeller ? "Property details and message" : "Message"}
           </label>
           <textarea
             id="inquiry-message"
             name="message"
             minLength={10}
             maxLength={2000}
-            required={!isViewingRequest}
+            required
             onChange={(event) => setMessageLength(event.target.value.length)}
             aria-invalid={invalidFields.has("message")}
             aria-describedby={describedBy("message", "inquiry-message-count")}
@@ -418,9 +361,7 @@ export function InquiryForm({
           </svg>
           <div className={styles.messageContent}>
             <strong className={styles.messageTitle}>
-              {isViewingRequest
-                ? "Viewing request received."
-                : "Inquiry submitted successfully."}
+              Inquiry submitted successfully.
             </strong>
             <p>{state.message}</p>
             {state.inquiryId && (
