@@ -57,6 +57,29 @@ const ROWS: Row[] = [
       { label: "Error", value: "unavailable" },
     ],
   },
+  {
+    path: "/book-viewing",
+    label: "Listings",
+    param: "viewingFixture",
+    options: [
+      { label: "Real", value: null },
+      ...["0", "1", "2", "4", "6"].map((count) => ({ label: count, value: count })),
+      { label: "Error", value: "unavailable" },
+    ],
+  },
+  {
+    path: "/book-viewing",
+    label: "Property",
+    param: "viewingPropertyFixture",
+    options: [
+      { label: "None", value: null },
+      { label: "Available", value: "available" },
+      { label: "Reserved", value: "reserved" },
+      { label: "Sold", value: "sold" },
+      { label: "Not found", value: "not-found" },
+      { label: "Lookup error", value: "lookup-failed" },
+    ],
+  },
 ];
 
 export function HomepagePreviewSwitcher() {

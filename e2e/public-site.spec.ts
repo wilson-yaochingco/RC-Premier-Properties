@@ -791,11 +791,17 @@ test("Book a Viewing schedules one structured unconfirmed request inline", async
   await expect(
     page.getByRole("heading", { level: 1, name: "See the property in person." }),
   ).toBeVisible();
-  const context = page.getByRole("complementary", { name: "Clark Garden Residence" });
+  const context = page.getByRole("region", { name: "Clark Garden Residence" });
   await expect(context.getByText("#RCPP-E2E-001")).toBeVisible();
-  await expect(
-    context.getByRole("link", { name: "View property details" }),
-  ).toHaveAttribute("href", "/properties/clark-garden-residence");
+  // Availability is only called out when it changes expectations (reserved).
+  await expect(context.getByText(/reserved/i)).toHaveCount(0);
+  await expect(context.getByRole("link", { name: "View listing" })).toHaveAttribute(
+    "href",
+    "/properties/clark-garden-residence",
+  );
+  await expect(context.getByRole("button", { name: "Change" })).toHaveCount(0);
+  await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
+  await expect(page.getByText("What happens next?")).toHaveCount(0);
   await expect(page.getByText(/Your selection is a request/)).toBeVisible();
   await expect(
     page.getByText("Requested times require staff confirmation."),
@@ -874,25 +880,47 @@ test("Book a Viewing schedules one structured unconfirmed request inline", async
   );
 });
 
-test("Book a Viewing keeps unknown and missing property context truthful", async ({
+test("Book a Viewing offers current listings instead of a raw property number", async ({
   page,
 }) => {
   await page.goto("/book-viewing");
-  const choose = page.getByRole("complementary", { name: "Choose the property" });
-  const propertyId = choose.getByLabel("Property ID");
-  await expect(propertyId).toHaveValue("");
-  await page.getByRole("button", { name: "Continue to your details" }).click();
-  expect(await propertyId.evaluate((input) => input.validity.valueMissing)).toBe(true);
-  await expect(choose.getByRole("link", { name: "Browse properties" })).toHaveAttribute(
-    "href",
-    "/properties",
+  const picker = page.getByRole("region", {
+    name: "Which property would you like to see?",
+  });
+  const listings = picker.getByRole("list", { name: "Current listings" });
+  await expect(listings.getByRole("button")).not.toHaveCount(0);
+  await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
+
+  const scheduler = page.getByRole("region", {
+    name: "Choose a preferred date and time.",
+  });
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+  await expect(scheduler.getByRole("alert")).toHaveText(
+    "Choose a property to continue.",
   );
 
+  // Choosing a listing swaps the picker for the chosen-property strip.
+  await listings.getByRole("button", { name: /^Clark Garden Residence,/ }).click();
+  const chosen = page.getByRole("region", { name: "Clark Garden Residence" });
+  await expect(chosen.getByText("#RCPP-E2E-001")).toBeVisible();
+  await expect(
+    chosen.getByRole("heading", { name: "Clark Garden Residence" }),
+  ).toBeFocused();
+  await chosen.getByRole("button", { name: "Change" }).click();
+  await expect(picker).toBeVisible();
+
+  await expect(
+    picker.getByRole("link", { name: "Browse all properties" }),
+  ).toHaveAttribute("href", "/properties");
+
   await page.goto("/book-viewing?propertyId=RCPP-UNKNOWN-404");
-  const confirm = page.getByRole("complementary", { name: "Confirm the property" });
-  await expect(confirm).toContainText("could not find a published property");
-  await expect(confirm.getByLabel("Property ID")).toHaveValue("RCPP-UNKNOWN-404");
-  await expect(page.getByText("Clark Garden Residence")).toHaveCount(0);
+  await expect(
+    page.getByText(/couldn’t find a current listing numbered “RCPP-UNKNOWN-404”/),
+  ).toBeVisible();
+  await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Clark Garden Residence" }),
+  ).toHaveCount(0);
 });
 
 test("the global Request a Tour entry requires a property before continuing", async ({

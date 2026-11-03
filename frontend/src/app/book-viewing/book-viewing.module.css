@@ -2,146 +2,104 @@
   --ink: var(--color-brand-deep);
 }
 
-.container {
-  max-width: 1440px;
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-}
-
-/* ---- Booking shell: the scheduler is the hero ---- */
+/* The introduction sits centred on the page's own warm white, directly above the card. */
 .booking {
-  padding-block: clamp(2.5rem, 5vw, 4.5rem) clamp(4rem, 7vw, 6.5rem);
+  padding-bottom: clamp(3.5rem, 7vw, 6rem);
 }
 
 .intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 26rem);
-  align-items: end;
-  gap: 1.5rem clamp(2rem, 4vw, 4.5rem);
-  margin-bottom: clamp(2.5rem, 5vw, 4rem);
-  padding-bottom: clamp(2rem, 3.5vw, 2.75rem);
-  border-bottom: 1px solid rgb(32 38 48 / 14%);
+  justify-items: center;
+  gap: 1.25rem;
+  padding: clamp(3rem, 7vw, 5.75rem) var(--gutter) clamp(2.5rem, 5vw, 4rem);
+  text-align: center;
+}
+
+.intro > * {
+  max-width: 46rem;
 }
 
 .eyebrow {
-  grid-column: 1 / -1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
   color: var(--ink);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.eyebrow::before {
+.eyebrow::before,
+.eyebrow::after {
   content: "";
-  width: 6px;
-  height: 6px;
-  background: currentColor;
-  transform: rotate(45deg);
+  width: 1.75rem;
+  height: 1px;
+  background: rgb(32 38 48 / 35%);
 }
 
 .headline {
   color: var(--ink);
-  font-size: clamp(2.75rem, 6.2vw, 5.75rem);
+  font-size: clamp(2.5rem, 5.6vw, 5rem);
   font-weight: 600;
-  line-height: 0.96;
+  line-height: 0.98;
   letter-spacing: -0.05em;
-}
-
-.headline span {
-  display: block;
+  text-wrap: balance;
 }
 
 .lede {
-  max-width: 30rem;
-  justify-self: end;
+  max-width: 31rem;
   color: var(--color-text-muted);
   font-size: clamp(1rem, 1.3vw, 1.125rem);
-  line-height: 1.55;
+  line-height: 1.6;
+  text-wrap: pretty;
 }
 
-/* ---- What happens next ---- */
-.next {
-  padding-block: clamp(4.5rem, 8vw, 7.5rem);
-  border-top: 1px solid rgb(32 38 48 / 10%);
-  background: var(--color-surface-muted);
+.stage {
+  position: relative;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-inline: var(--gutter);
 }
 
-.nextLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
-  gap: 2rem clamp(2rem, 4vw, 4.5rem);
-}
-
-.nextHeading {
-  color: var(--ink);
-  font-size: clamp(2rem, 3.6vw, 3.25rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.045em;
-}
-
-.nextList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid rgb(32 38 48 / 18%);
-}
-
-.nextList li {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(9rem, 0.7fr) minmax(0, 1.3fr);
-  align-items: baseline;
-  gap: 0.5rem 1.5rem;
-  padding-block: clamp(1.5rem, 2.5vw, 2rem);
-  border-bottom: 1px solid rgb(32 38 48 / 18%);
-}
-
-.nextNumber {
+.closing {
+  margin-top: clamp(1.75rem, 3vw, 2.5rem);
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-align: center;
 }
 
-.nextList h3 {
+.closing a {
   color: var(--ink);
-  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
   font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-color: rgb(32 38 48 / 30%);
+  text-underline-offset: 0.25em;
+  white-space: nowrap;
 }
 
-.nextList p {
-  color: var(--color-text-muted);
-  line-height: 1.55;
+.closing a:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
 }
 
-@media (max-width: 59.99rem) {
-  .intro,
-  .nextLayout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .lede {
-    justify-self: start;
-  }
+.closing a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 @media (max-width: 39.99rem) {
-  .headline {
-    font-size: clamp(2.5rem, 12vw, 3.25rem);
+  .intro {
+    gap: 1rem;
+    padding-top: 2.5rem;
   }
 
-  .nextList li {
-    grid-template-columns: 2.75rem minmax(0, 1fr);
+  .eyebrow::before,
+  .eyebrow::after {
+    width: 1.25rem;
   }
 
-  .nextList p {
-    grid-column: 2;
+  .closing a {
+    white-space: normal;
   }
 }

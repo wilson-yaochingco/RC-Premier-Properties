@@ -26,12 +26,15 @@ cannot drift apart. Each surface keeps its own presentation.
 ## Book a Viewing scheduler
 
 `/book-viewing?propertyId=` resolves the ID through the public property search on the
-server. A match shows the listing's title, Premier Property number, cover image, location,
-type and availability with a link back to the listing; no match or an unsupported ID asks
-the visitor to confirm the Property ID; a failed request says the details could not be
-loaded and still lets the backend validate the ID on submission. Without an ID the visitor
-enters one or browses properties. A sold listing closes the scheduler instead of accepting
-a request, matching the dialog's sold-property protection.
+server. A match shows the listing's title, Premier Property number, cover image, location
+and type with a link back to the listing; availability is only called out when the listing
+is reserved. Without a resolved property the visitor chooses from current listings: photo
+cards with type filters when there are enough to narrow. A property number is never typed
+in. If the ID is unknown or its details could not be loaded, the same cards are offered
+with a short notice; if no listings can be offered (none open, or the list failed to load)
+the page points to the property catalogue instead of showing the scheduler. A sold listing
+closes the scheduler instead of accepting a request, matching the dialog's sold-property
+protection.
 
 The flow is Schedule → Details → Requested. The preferred date is a month calendar of
 native radio inputs (keyboard arrow navigation, one accessible date name per day) from
@@ -39,7 +42,7 @@ tomorrow in Philippine time through 90 days ahead; other dates are not selectabl
 Preferred times are native radios grouped into morning and afternoon. A rejection caused
 only by the page-supplied property (sold or unpublished since the page loaded) is shown
 as "This property is no longer accepting viewing requests." with a link to current
-properties, instead of a Property ID field error. Copy
+properties. Copy
 states throughout that the selection is a request and that staff confirmation is required.
 Details collect full name, phone, email, optional notes and consent, with the chosen
 schedule summarised and editable. Field and summary errors use the same API issue
