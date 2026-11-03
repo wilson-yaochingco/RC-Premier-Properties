@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { CreateInquiryRequest, ValidationIssue } from "@rc/shared";
-import { ApiClientError } from "@/services/api-client";
+import {
+  VIEWING_REQUEST_TIMES,
+  type CreateInquiryRequest,
+  type ValidationIssue,
+} from "@rc/shared";
+import { ApiClientError } from "../../services/api-client";
 import { createInquiry } from "./inquiry.service";
 
 /**
@@ -12,22 +16,19 @@ import { createInquiry } from "./inquiry.service";
  * live here so the two entry points cannot drift apart.
  */
 
-/** Requestable wall-clock times in Philippine time. These are not availability. */
-export const TOUR_TIME_OPTIONS = [
-  ["09:00", "9:00 AM"],
-  ["09:30", "9:30 AM"],
-  ["10:00", "10:00 AM"],
-  ["10:30", "10:30 AM"],
-  ["11:00", "11:00 AM"],
-  ["11:30", "11:30 AM"],
-  ["13:00", "1:00 PM"],
-  ["13:30", "1:30 PM"],
-  ["14:00", "2:00 PM"],
-  ["14:30", "2:30 PM"],
-  ["15:00", "3:00 PM"],
-  ["15:30", "3:30 PM"],
-  ["16:00", "4:00 PM"],
-] as const;
+function timeLabel(value: string): string {
+  const [hours = 0, minutes = 0] = value.split(":").map(Number);
+  const suffix = hours >= 12 ? "PM" : "AM";
+  return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+}
+
+/**
+ * Preferred times a visitor may request, from the shared contract the backend enforces.
+ * Philippine time; these are requests for staff to confirm, never availability.
+ */
+export const TOUR_TIME_OPTIONS = VIEWING_REQUEST_TIMES.map(
+  (value) => [value, timeLabel(value)] as const,
+);
 
 export const TOUR_FIELD_LABELS: Record<string, string> = {
   name: "Full name",
@@ -43,7 +44,7 @@ export const TOUR_FIELD_LABELS: Record<string, string> = {
 const PHONE_PATTERN = /^[+()\d][+()\d\s.-]{5,28}[\d)]$/;
 
 export function tourTimeLabel(value: string): string {
-  return TOUR_TIME_OPTIONS.find(([option]) => option === value)?.[1] ?? value;
+  return /^\d{2}:\d{2}$/.test(value) ? timeLabel(value) : value;
 }
 
 /** Formats a YYYY-MM-DD request date without letting the browser timezone shift it. */

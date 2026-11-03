@@ -645,6 +645,72 @@ export type ViewingStaffTransitionStatus =
 export const BUSINESS_TIME_ZONE = "Asia/Manila" as const;
 export const VIEWING_TIME_ZONE = BUSINESS_TIME_ZONE;
 
+/**
+ * Public viewing-request rules. A request is a preferred date and time that staff must
+ * confirm; these values describe what visitors may ask for, never availability. Staff
+ * confirmation and rescheduling are not bound by them.
+ */
+export const VIEWING_REQUEST_MIN_DAYS_AHEAD = 1;
+export const VIEWING_REQUEST_MAX_DAYS_AHEAD = 90;
+/** 9:00 AM to 4:00 PM Philippine time in 30-minute steps. Weekends are allowed. */
+export const VIEWING_REQUEST_TIMES = [
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+] as const;
+export type ViewingRequestTime = (typeof VIEWING_REQUEST_TIMES)[number];
+
+export function isViewingRequestTime(value: string): value is ViewingRequestTime {
+  return (VIEWING_REQUEST_TIMES as readonly string[]).includes(value);
+}
+
+function businessCalendarDate(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: BUSINESS_TIME_ZONE,
+  }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function addCalendarDays(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const value = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1));
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+/**
+ * The inclusive `YYYY-MM-DD` range a visitor may request, from tomorrow through 90 days
+ * ahead, counted on the Philippine calendar. Shared so the backend and every public form
+ * compute the same window.
+ */
+export function viewingRequestDateWindow(now: Date = new Date()): {
+  earliest: string;
+  latest: string;
+} {
+  const today = businessCalendarDate(now);
+  return {
+    earliest: addCalendarDays(today, VIEWING_REQUEST_MIN_DAYS_AHEAD),
+    latest: addCalendarDays(today, VIEWING_REQUEST_MAX_DAYS_AHEAD),
+  };
+}
+
 export const ADMIN_INQUIRY_QUEUES = ["active", "spam", "archived", "all"] as const;
 export type AdminInquiryQueue = (typeof ADMIN_INQUIRY_QUEUES)[number];
 

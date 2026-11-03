@@ -3,7 +3,7 @@ import {
   type CreateInquiryRequest,
   type CreateInquiryResponse,
 } from "@rc/shared";
-import { apiRequest } from "@/services/api-client";
+import { apiRequest } from "../../services/api-client";
 
 export function createInquiry(
   request: CreateInquiryRequest,

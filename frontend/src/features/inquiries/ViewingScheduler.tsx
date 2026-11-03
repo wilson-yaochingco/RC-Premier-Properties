@@ -3,16 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
-import type {
-  PropertyAvailability,
-  PublicPropertyMedia,
-  ValidationIssue,
+import {
+  viewingRequestDateWindow,
+  type PropertyAvailability,
+  type PublicPropertyMedia,
+  type ValidationIssue,
 } from "@rc/shared";
 import viewingImage from "@/assets/site/book-viewing.png";
 import { RollLabel } from "@/components/ui/RollLabel";
 import { PropertyMedia } from "@/features/properties/PropertyMedia";
 import {
-  addInputCalendarDays,
   businessDateInputValue,
   inputMonthDays,
   shiftInputMonth,
@@ -51,8 +51,6 @@ const STEPS: Array<{ id: Step; label: string }> = [
   { id: "success", label: "Requested" },
 ];
 
-/** A UI horizon for requests; the backend only requires a future Philippine time. */
-const REQUEST_HORIZON_DAYS = 90;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 const TIME_GROUPS = [
@@ -236,8 +234,10 @@ function PropertyPanel({
 
 export function ViewingScheduler({ context }: { context: ViewingPropertyState }) {
   const [today] = useState(() => businessDateInputValue());
-  const firstDate = addInputCalendarDays(today, 1);
-  const lastDate = addInputCalendarDays(today, REQUEST_HORIZON_DAYS);
+  // The shared contract the backend enforces: tomorrow through 90 days, Philippine time.
+  const [{ earliest: firstDate, latest: lastDate }] = useState(() =>
+    viewingRequestDateWindow(),
+  );
   const firstMonth = firstDate.slice(0, 7);
   const lastMonth = lastDate.slice(0, 7);
 

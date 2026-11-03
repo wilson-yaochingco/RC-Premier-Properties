@@ -2,7 +2,11 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import type { ValidationIssue } from "@rc/shared";
+import {
+  VIEWING_REQUEST_MAX_DAYS_AHEAD,
+  VIEWING_REQUEST_MIN_DAYS_AHEAD,
+  type ValidationIssue,
+} from "@rc/shared";
 import { usePageScrollLock } from "@/hooks/usePageScrollLock";
 import viewingImage from "@/assets/site/book-viewing.png";
 import { PropertyMedia } from "@/features/properties/PropertyMedia";
@@ -47,7 +51,9 @@ export function RequestTourModal({
   const firstDateRef = useRef<HTMLInputElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const today = useMemo(() => businessDateInputValue(), []);
-  const [datePageStart, setDatePageStart] = useState(1);
+  const [datePageStart, setDatePageStart] = useState(VIEWING_REQUEST_MIN_DAYS_AHEAD);
+  // Three dates per page; the last page ends on the final requestable day.
+  const lastPageStart = VIEWING_REQUEST_MAX_DAYS_AHEAD - 2;
   const dateOptions = useMemo(
     () => [0, 1, 2].map((days) => addInputCalendarDays(today, datePageStart + days)),
     [datePageStart, today],
@@ -86,7 +92,10 @@ export function RequestTourModal({
   }
 
   function showDatePage(nextStart: number) {
-    const boundedStart = Math.max(1, nextStart);
+    const boundedStart = Math.min(
+      lastPageStart,
+      Math.max(VIEWING_REQUEST_MIN_DAYS_AHEAD, nextStart),
+    );
     setDatePageStart(boundedStart);
     setSelectedDate(addInputCalendarDays(today, boundedStart));
   }
@@ -193,7 +202,7 @@ export function RequestTourModal({
                   type="button"
                   className={styles.dateNavigation}
                   aria-label="Earlier dates"
-                  disabled={datePageStart === 1}
+                  disabled={datePageStart <= VIEWING_REQUEST_MIN_DAYS_AHEAD}
                   onClick={() => showDatePage(datePageStart - 3)}
                 >
                   <span aria-hidden="true">‹</span>
@@ -224,6 +233,7 @@ export function RequestTourModal({
                   type="button"
                   className={styles.dateNavigation}
                   aria-label="Later dates"
+                  disabled={datePageStart >= lastPageStart}
                   onClick={() => showDatePage(datePageStart + 3)}
                 >
                   <span aria-hidden="true">›</span>
