@@ -62,32 +62,6 @@
   padding-inline: var(--gutter);
 }
 
-.closing {
-  margin-top: clamp(1.75rem, 3vw, 2.5rem);
-  color: var(--color-text-muted);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  text-align: center;
-}
-
-.closing a {
-  color: var(--ink);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: rgb(32 38 48 / 30%);
-  text-underline-offset: 0.25em;
-  white-space: nowrap;
-}
-
-.closing a:is(:hover, :focus-visible) {
-  text-decoration-color: currentColor;
-}
-
-.closing a:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
 @media (max-width: 39.99rem) {
   .intro {
     gap: 1rem;
@@ -97,9 +71,5 @@
   .eyebrow::before,
   .eyebrow::after {
     width: 1.25rem;
-  }
-
-  .closing a {
-    white-space: normal;
   }
 }

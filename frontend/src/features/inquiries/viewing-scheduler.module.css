@@ -40,8 +40,7 @@
 .stepEyebrow,
 .summaryLabel,
 .fieldsetLabel,
-.timeGroupLabel,
-.timeZone {
+.timeGroupLabel {
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -194,7 +193,7 @@
 .pickerHead {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.9rem 2rem;
 }
@@ -403,13 +402,38 @@
 
 .pickerFoot {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 1.5rem;
+  justify-content: flex-start;
 }
 
-.footSpacer {
-  flex: 1 1 auto;
+/* Outlined catalogue link, top-right of the picker heading. */
+.browseAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding-inline: 1.1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-cta);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    border-color 200ms var(--ease),
+    background-color 200ms var(--ease);
+}
+
+.browseAction:is(:hover, :focus-visible) {
+  border-color: var(--ink);
+  background: var(--color-surface);
+}
+
+.browseAction:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 /* No listing can be offered: a centred pointer to the catalogue. */
@@ -698,11 +722,6 @@
   line-height: 1.5;
 }
 
-.timeZone {
-  margin: -0.5rem 0 1.25rem;
-  color: var(--color-text-muted);
-}
-
 .timeGroup + .timeGroup {
   margin-top: 1.25rem;
 }
@@ -806,8 +825,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  border-left: 2px solid var(--ink);
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px 0 10px 0;
   background: var(--color-background);
 }
 
@@ -884,6 +904,12 @@
 
 .field textarea {
   resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.75;
 }
 
 .field input:focus-visible,
@@ -1065,14 +1091,6 @@
 
   .cardChoose {
     display: none;
-  }
-
-  .footSpacer {
-    display: none;
-  }
-
-  .pickerFoot {
-    gap: 0 1.25rem;
   }
 
   .summaryStrip > .stripActions {

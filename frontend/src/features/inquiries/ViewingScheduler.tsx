@@ -216,36 +216,36 @@ function PropertyPicker({
             Which property would you like to see?
           </h2>
         </div>
-        {showChips ? (
-          <div
-            className={styles.chips}
-            role="group"
-            aria-label="Filter by property type"
-          >
-            {[["all", "All"] as const, ...types].map(([value, label]) => {
-              const count =
-                value === "all"
-                  ? items.length
-                  : items.filter((item) => item.propertyType === value).length;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={styles.chip}
-                  aria-pressed={type === value}
-                  onClick={() => {
-                    setType(value);
-                    setExpanded(false);
-                  }}
-                >
-                  {label}
-                  <span className={styles.chipCount}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+        <Link href="/properties" className={styles.browseAction}>
+          Browse all properties
+          <Arrow />
+        </Link>
       </div>
+      {showChips ? (
+        <div className={styles.chips} role="group" aria-label="Filter by property type">
+          {[["all", "All"] as const, ...types].map(([value, label]) => {
+            const count =
+              value === "all"
+                ? items.length
+                : items.filter((item) => item.propertyType === value).length;
+            return (
+              <button
+                key={value}
+                type="button"
+                className={styles.chip}
+                aria-pressed={type === value}
+                onClick={() => {
+                  setType(value);
+                  setExpanded(false);
+                }}
+              >
+                {label}
+                <span className={styles.chipCount}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       {notice ? <p className={styles.notice}>{notice}</p> : null}
       <ul className={styles.pickerGrid} aria-label="Current listings">
         {visible.map((property) => (
@@ -292,8 +292,8 @@ function PropertyPicker({
           </li>
         ))}
       </ul>
-      <div className={styles.pickerFoot}>
-        {filtered.length > PICKER_PREVIEW ? (
+      {filtered.length > PICKER_PREVIEW ? (
+        <div className={styles.pickerFoot}>
           <button
             type="button"
             className={styles.quietAction}
@@ -302,12 +302,8 @@ function PropertyPicker({
           >
             {expanded ? "Show fewer" : `Show all ${filtered.length} listings`}
           </button>
-        ) : null}
-        <span className={styles.footSpacer} />
-        <Link href="/properties" className={styles.quietAction}>
-          Browse all properties
-        </Link>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -590,7 +586,6 @@ export function ViewingScheduler({
 
                     <fieldset className={styles.timeFieldset}>
                       <legend className={styles.fieldsetLabel}>Preferred time</legend>
-                      <p className={styles.timeZone}>Philippine time</p>
                       {TIME_GROUPS.map((group) => (
                         <div
                           key={group.id}
@@ -682,7 +677,7 @@ export function ViewingScheduler({
                         {tourDateLabel(selectedDate, "long")}
                       </p>
                       <p className={styles.summaryTime}>
-                        {tourTimeLabel(selectedTime)} · Philippine time
+                        {tourTimeLabel(selectedTime)}
                       </p>
                     </div>
                     <button
@@ -703,6 +698,7 @@ export function ViewingScheduler({
                       <input
                         id="viewing-name"
                         name="name"
+                        placeholder="Enter your full name"
                         autoComplete="name"
                         minLength={2}
                         maxLength={100}
@@ -718,6 +714,7 @@ export function ViewingScheduler({
                       <input
                         id="viewing-phone"
                         name="phone"
+                        placeholder="e.g. 0917 123 4567"
                         type="tel"
                         inputMode="tel"
                         autoComplete="tel"
@@ -737,6 +734,7 @@ export function ViewingScheduler({
                       <input
                         id="viewing-email"
                         name="email"
+                        placeholder="you@example.com"
                         type="email"
                         inputMode="email"
                         autoComplete="email"
@@ -758,6 +756,7 @@ export function ViewingScheduler({
                       <textarea
                         id="viewing-message"
                         name="message"
+                        placeholder="Anything you'd like us to know before your visit?"
                         minLength={10}
                         maxLength={2000}
                         rows={4}
@@ -883,7 +882,7 @@ export function ViewingScheduler({
                     </div>
                     <div>
                       <dt>Requested time</dt>
-                      <dd>{tourTimeLabel(selectedTime)} · Philippine time</dd>
+                      <dd>{tourTimeLabel(selectedTime)}</dd>
                     </div>
                     {state.inquiryId ? (
                       <div>

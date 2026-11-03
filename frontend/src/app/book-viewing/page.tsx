@@ -7,11 +7,6 @@ import {
   loadViewingOptions,
   resolveViewingProperty,
 } from "@/features/inquiries/viewing-property";
-import {
-  OFFICIAL_EMAIL,
-  OFFICIAL_PHONE,
-  OFFICIAL_PHONE_HREF,
-} from "@/lib/public-contact";
 import { buildPageMetadata } from "@/lib/seo";
 import styles from "./book-viewing.module.css";
 
@@ -61,11 +56,6 @@ export default async function BookViewingPage({
 
         <div className={styles.stage}>
           <ViewingScheduler context={context} {...(options ? { options } : {})} />
-          <p className={styles.closing}>
-            Prefer to talk it through first? Call{" "}
-            <a href={OFFICIAL_PHONE_HREF}>{OFFICIAL_PHONE}</a> or email{" "}
-            <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>.
-          </p>
         </div>
       </section>
       <DevHomepagePreview />

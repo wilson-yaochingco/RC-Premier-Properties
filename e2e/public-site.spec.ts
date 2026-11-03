@@ -802,6 +802,8 @@ test("Book a Viewing schedules one structured unconfirmed request inline", async
   await expect(context.getByRole("button", { name: "Change" })).toHaveCount(0);
   await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
   await expect(page.getByText("What happens next?")).toHaveCount(0);
+  await expect(page.getByText(/Prefer to talk it through first/)).toHaveCount(0);
+  await expect(page.getByText("Philippine time")).toHaveCount(0);
   await expect(page.getByText(/Your selection is a request/)).toBeVisible();
   await expect(
     page.getByText("Requested times require staff confirmation."),
@@ -833,7 +835,20 @@ test("Book a Viewing schedules one structured unconfirmed request inline", async
   await expect(
     details.getByRole("heading", { name: "Where should we follow up?" }),
   ).toBeFocused();
-  await expect(details.getByText("2:30 PM · Philippine time")).toBeVisible();
+  await expect(details.getByText("2:30 PM", { exact: true })).toBeVisible();
+  await expect(details.getByText(/Philippine time/)).toHaveCount(0);
+  await expect(details.getByLabel("Full name")).toHaveAttribute(
+    "placeholder",
+    "Enter your full name",
+  );
+  await expect(details.getByLabel("Phone number")).toHaveAttribute(
+    "placeholder",
+    "e.g. 0917 123 4567",
+  );
+  await expect(details.getByLabel("Email")).toHaveAttribute(
+    "placeholder",
+    "you@example.com",
+  );
   await details.getByRole("button", { name: "Edit schedule" }).click();
   await expect(scheduler.getByRole("radio", { checked: true })).toHaveCount(2);
   await scheduler.getByRole("button", { name: "Continue to your details" }).click();
@@ -874,6 +889,8 @@ test("Book a Viewing schedules one structured unconfirmed request inline", async
   await expect(success).toContainText("E2E-INQUIRY-001");
   await expect(success).toContainText("Clark Garden Residence");
   await expect(success).toContainText("This is not yet a confirmed appointment.");
+  await expect(success).toContainText("2:30 PM");
+  await expect(success).not.toContainText("Philippine time");
   await expect(success.getByRole("link", { name: "Back to property" })).toHaveAttribute(
     "href",
     "/properties/clark-garden-residence",
