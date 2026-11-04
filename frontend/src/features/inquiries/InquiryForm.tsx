@@ -123,11 +123,8 @@ export function InquiryForm({
   const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [messageLength, setMessageLength] = useState(0);
-  // Contact: the page-supplied listing can be dropped for a general inquiry, and a
-  // listing reference can be typed only on request.
+  // Contact: the page-supplied listing can be dropped for a general inquiry.
   const [contextDropped, setContextDropped] = useState(false);
-  const [referenceOpen, setReferenceOpen] = useState(false);
-  const referenceInputRef = useRef<HTMLInputElement>(null);
   const successTitleRef = useRef<HTMLHeadingElement>(null);
   const carriedPropertyId = contextDropped
     ? undefined
@@ -343,43 +340,12 @@ export function InquiryForm({
     </div>
   );
 
-  const referenceVisible = referenceOpen || invalidFields.has("propertyId");
+  // Contact never asks visitors for an internal ID: a listing arrives only through a
+  // resolved `?propertyId=` link and travels with the form as a hidden value.
   const propertyField = simplifiedSeller ? null : contact ? (
     carriedPropertyId ? (
       <input type="hidden" name="propertyId" value={carriedPropertyId} />
-    ) : (
-      <div className={`${styles.field} ${styles.wide} ${styles.listingRef}`}>
-        {referenceVisible ? (
-          <>
-            <label htmlFor="inquiry-property-id">
-              Property ID <span className={styles.optional}>(optional)</span>
-            </label>
-            <input
-              ref={referenceInputRef}
-              id="inquiry-property-id"
-              name="propertyId"
-              maxLength={40}
-              autoComplete="off"
-              placeholder="As shown on the listing, e.g. RCPP-001"
-              aria-invalid={invalidFields.has("propertyId")}
-              aria-describedby={describedBy("propertyId")}
-            />
-            <FieldError field="propertyId" issue={issueFor("propertyId")} />
-          </>
-        ) : (
-          <button
-            type="button"
-            className={styles.referenceToggle}
-            onClick={() => {
-              setReferenceOpen(true);
-              window.requestAnimationFrame(() => referenceInputRef.current?.focus());
-            }}
-          >
-            Asking about a specific listing?
-          </button>
-        )}
-      </div>
-    )
+    ) : null
   ) : (
     <div className={styles.field}>
       <label htmlFor="inquiry-property-id">

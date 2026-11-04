@@ -203,6 +203,101 @@ test("contact opens with an editorial introduction and the shared modern header"
   ).toHaveCount(2);
 });
 
+test("contact headline is upright and its actions share one arrow and roll interaction", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/contact");
+
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toHaveText("Let’s talk about your next move.");
+  await expect(heading.locator("em")).toHaveCount(0);
+  await expect(heading).toHaveCSS("font-style", "normal");
+
+  const main = page.locator("main#main-content");
+  const actions = [
+    main.getByRole("link", { name: /\+63 918 429 1873/ }),
+    main.getByRole("link", { name: /rcpremierph@gmail\.com/ }),
+    main.getByRole("link", { name: "Book a viewing" }),
+    main.getByRole("link", { name: /Sell a property/ }),
+  ];
+  // Angle of the arrow in degrees: -45 is up-right, 0 is a plain right arrow.
+  const rotation = (link: {
+    locator: (selector: string) => ReturnType<typeof page.locator>;
+  }) =>
+    link.locator("svg").evaluate((svg) => {
+      const { transform } = getComputedStyle(svg);
+      if (transform === "none") return 0;
+      const matrix = new DOMMatrix(transform);
+      return Math.round((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI);
+    });
+  const rolled = (link: (typeof actions)[number]) =>
+    link
+      .locator(".cta-roll__track > span")
+      .first()
+      .evaluate((span) => {
+        const { transform } = getComputedStyle(span);
+        return transform === "none" ? 0 : new DOMMatrix(transform).m42;
+      });
+
+  for (const link of actions) {
+    await link.scrollIntoViewIfNeeded();
+    // Rolling labels keep one spoken label: the duplicate is hidden from assistive tech.
+    await expect(
+      link.locator(".cta-roll__track > span[aria-hidden='true']"),
+    ).toHaveCount(1);
+    // Default: up-right arrow. Hover: plain right arrow.
+    expect(await rotation(link)).toBe(-45);
+    const before = await link.boundingBox();
+    await link.hover();
+    await expect.poll(() => rotation(link)).toBe(0);
+    await expect.poll(() => rolled(link)).toBeLessThan(0);
+    const after = await link.boundingBox();
+    expect(after?.width).toBeCloseTo(before!.width, 0);
+    expect(after?.height).toBeCloseTo(before!.height, 0);
+    await page.mouse.move(0, 0);
+    await expect.poll(() => rotation(link)).toBe(-45);
+
+    // Keyboard focus gives the same treatment.
+    await link.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect(link).toBeFocused();
+    await expect.poll(() => rotation(link)).toBe(0);
+    await link.blur();
+  }
+
+  // The submit button uses the same arrow; the labels and fields stay static.
+  const submit = page.getByRole("button", { name: "Send inquiry" });
+  await submit.scrollIntoViewIfNeeded();
+  expect(await rotation(submit)).toBe(-45);
+  await submit.hover();
+  await expect.poll(() => rotation(submit)).toBe(0);
+  await expect(page.locator("main label .cta-roll")).toHaveCount(0);
+  await expect(heading.locator(".cta-roll")).toHaveCount(0);
+});
+
+test("contact arrows and labels stay still under reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/contact");
+  const link = page
+    .locator("main#main-content")
+    .getByRole("link", { name: "Book a viewing" });
+  await link.scrollIntoViewIfNeeded();
+  await link.hover();
+  await page.waitForTimeout(400);
+  expect(
+    await link.locator("svg").evaluate((svg) => getComputedStyle(svg).transform),
+  ).toMatch(/^matrix\(0\.70/);
+  expect(
+    await link
+      .locator(".cta-roll__track > span")
+      .first()
+      .evaluate((span) => getComputedStyle(span).transform),
+  ).toBe("none");
+});
+
 test("tour steps fit normal viewports and remain reachable at 200 percent text", async ({
   page,
 }) => {

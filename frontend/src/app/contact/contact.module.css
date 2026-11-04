@@ -49,14 +49,6 @@
   text-wrap: balance;
 }
 
-.headline em {
-  font-family: var(--font-editorial);
-  font-size: 1.06em;
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-}
-
 .introAside {
   display: grid;
   gap: 1.75rem;
@@ -109,12 +101,21 @@
   width: 14px;
   height: 14px;
   flex: none;
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Starts pointing up-right and straightens to a plain right arrow on hover or focus. */
+  transform: rotate(-45deg);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.channels a:is(:hover, :focus-visible) svg,
-.more a:is(:hover, :focus-visible) svg {
-  transform: translateX(3px);
+.channels a:focus-visible svg,
+.more a:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .channels a:hover svg,
+  .more a:hover svg {
+    transform: rotate(0deg);
+  }
 }
 
 .channels a:focus-visible,
@@ -241,7 +242,7 @@
   color: var(--ink);
 }
 
-.more a span {
+.more a > span {
   color: var(--color-text-muted);
   font-size: 0.8125rem;
 }
@@ -342,6 +343,18 @@
 
   .channels a {
     grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  }
+}
+
+/* Very narrow screens: keep the email address on one line. */
+@media (max-width: 24rem) {
+  .channels a {
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+    gap: 0.5rem;
+  }
+
+  .channelValue {
+    font-size: 0.9375rem;
   }
 }
 

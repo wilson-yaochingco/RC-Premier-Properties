@@ -371,38 +371,6 @@
   font-size: 0.8125rem;
 }
 
-.listingRef {
-  align-content: start;
-}
-
-.referenceToggle {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--rule-strong);
-  text-underline-offset: 0.3em;
-  cursor: pointer;
-  transition: text-decoration-color 200ms var(--ease);
-}
-
-.referenceToggle:is(:hover, :focus-visible) {
-  text-decoration-color: currentColor;
-}
-
-.referenceToggle:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
 .contact .consent {
   align-items: start;
   gap: 0.9rem;
@@ -485,12 +453,21 @@
   width: 14px;
   height: 14px;
   flex: none;
-  transition: transform 260ms var(--ease);
+  /* Starts pointing up-right and straightens to a plain right arrow on hover or focus. */
+  transform: rotate(-45deg);
+  transition: transform 220ms var(--ease);
 }
 
-.contact .submit:not(:disabled):is(:hover, :focus-visible) svg,
-.done .submit:is(:hover, :focus-visible) svg {
-  transform: translateX(3px);
+.contact .submit:not(:disabled):focus-visible svg,
+.done .submit:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contact .submit:not(:disabled):hover svg,
+  .done .submit:hover svg {
+    transform: rotate(0deg);
+  }
 }
 
 .contact .submit:focus-visible,
@@ -750,7 +727,6 @@
 @media (prefers-reduced-motion: reduce) {
   .contact .submit svg,
   .done .submit svg,
-  .referenceToggle,
   .contextAction,
   .doneLink {
     transition: none;

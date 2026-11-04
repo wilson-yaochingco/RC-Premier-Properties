@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import contactImage from "@/assets/site/contact.png";
+import { RollLabel } from "@/components/ui/RollLabel";
 import frame from "@/components/layout/editorial-page.module.css";
 import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
 import { InquiryForm } from "@/features/inquiries/InquiryForm";
@@ -53,7 +54,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
         <div className={styles.introMain}>
           <p className={styles.eyebrow}>Get in touch</p>
           <h1 id="contact-heading" className={styles.headline}>
-            Let’s talk about your <em>next move.</em>
+            Let’s talk about your next move.
           </h1>
         </div>
         <div className={styles.introAside}>
@@ -63,16 +64,20 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
           </p>
           <ul className={styles.channels} aria-label="Contact RC Premier directly">
             <li>
-              <a href={OFFICIAL_PHONE_HREF}>
+              <a href={OFFICIAL_PHONE_HREF} className="cta cta--wrap">
                 <span className={styles.channelLabel}>Call</span>
-                <span className={styles.channelValue}>{OFFICIAL_PHONE}</span>
+                <span className={styles.channelValue}>
+                  <RollLabel>{OFFICIAL_PHONE}</RollLabel>
+                </span>
                 <Arrow />
               </a>
             </li>
             <li>
-              <a href={`mailto:${OFFICIAL_EMAIL}`}>
+              <a href={`mailto:${OFFICIAL_EMAIL}`} className="cta cta--wrap">
                 <span className={styles.channelLabel}>Email</span>
-                <span className={styles.channelValue}>{OFFICIAL_EMAIL}</span>
+                <span className={styles.channelValue}>
+                  <RollLabel>{OFFICIAL_EMAIL}</RollLabel>
+                </span>
                 <Arrow />
               </a>
             </li>
@@ -123,17 +128,17 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
           </div>
 
           <nav className={styles.more} aria-label="Other ways to get started">
-            <Link href="/book-viewing">
+            <Link href="/book-viewing" className="cta cta--wrap">
               <span>Prefer to see it in person?</span>
               <strong>
-                Book a viewing
+                <RollLabel>Book a viewing</RollLabel>
                 <Arrow />
               </strong>
             </Link>
-            <Link href="/sell">
+            <Link href="/sell" className="cta cta--wrap">
               <span>Thinking of selling?</span>
               <strong>
-                Sell a property
+                <RollLabel>Sell a property</RollLabel>
                 <Arrow />
               </strong>
             </Link>

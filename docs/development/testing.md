@@ -208,3 +208,25 @@ WebKit or physical Safari/iOS behavior, and the configured Chrome CI project is 
 pass until that workflow has actually run. Real screen-reader review, forced-colors
 review and physical phone/tablet upload acceptance remain manual checks unless their
 exact environment and results are recorded.
+
+## Known browser-test notes
+
+Recorded from the Contact and navigation-menu work on `feat/public-pages-editorial-redesign`
+(local Chrome channel, three workers). None are caused by the public Contact, menu or
+Book Viewing changes; confirm against the previous commit before treating a new failure
+as new.
+
+- **Intermittent streaming duplicate.** Some pages that use a `loading.tsx` boundary
+  occasionally render their content inside a second `[id="S:1"]` wrapper, so a locator
+  fails with a strict-mode violation (“resolved to 2 elements”). It has hit
+  `seo.spec.ts` (“homepage and property JSON-LD are factual and privacy-safe”, and the
+  location-discovery test), `property-map.spec.ts` and one `client-polish.spec.ts`
+  location test. The same test passes on an immediate rerun of identical code. Rerun the
+  single test before investigating.
+- **Load-sensitive scroll test.** `public-scroll.spec.ts` (“wheel interpolation…”) can fail
+  under the full parallel suite and passes in isolation on both the previous and current
+  builds.
+- **Failing before this work.** Four admin layout tests (`admin-inquiries.spec.ts:127`,
+  `admin-operations.spec.ts:285`, `:399`, `:446`) and `performance.spec.ts:123`
+  (“critical images are singular…”) fail on the previous commit as well and are tracked
+  separately from the public pages.

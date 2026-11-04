@@ -23,8 +23,7 @@ asked to type it. “Not about this property” drops the reference and sends a 
 inquiry. An unknown ID shows a short notice and a general inquiry; a failed lookup keeps the
 reference and says details could not be loaded. If the backend rejects a page-supplied
 listing on submit, the reference is dropped and the visitor is asked to send again. A
-general inquiry shows no ID field; “Asking about a specific listing?” reveals an optional
-one. Contact uses `InquiryForm variant="contact"`; Sell keeps the default layout. After a
+general inquiry never shows an ID field and sends no property reference. Contact uses `InquiryForm variant="contact"`; Sell keeps the default layout. After a
 successful submission the form is replaced by a confirmation with the opaque reference and
 follow-up actions. `/book-viewing` is an
 inline scheduler rather than a dialog launcher; the Request a Tour dialog remains the entry

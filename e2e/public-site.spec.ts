@@ -691,20 +691,23 @@ test("contact form sends its typed payload and displays API success feedback", a
   expect(browserErrors).toEqual([]);
 });
 
-test("a general contact inquiry carries no property reference unless asked", async ({
+test("a general contact inquiry never asks for or sends a property reference", async ({
   page,
 }) => {
   await page.goto("/contact");
   await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Asking about a specific listing?" }),
+  ).toHaveCount(0);
+  await expect(page.locator('input[name="propertyId"]')).toHaveCount(0);
   await expect(page.getByLabel("Inquiry type")).toHaveValue("general");
-  await page.getByRole("button", { name: "Asking about a specific listing?" }).click();
-  await expect(page.getByLabel(/^Property ID/)).toBeFocused();
-  await page.getByLabel(/^Property ID/).fill("RCPP-E2E-002");
+  // Visitors still choose an inquiry type.
+  await page.getByLabel("Inquiry type").selectOption("selling");
 
   await page.getByLabel("Name", { exact: true }).fill("Playwright Visitor");
   await page.getByLabel("Email", { exact: true }).fill("visitor@example.test");
   await page.getByLabel("Phone", { exact: true }).fill("+63 917 123 4567");
-  await page.getByLabel("Message").fill("A general question that names a listing.");
+  await page.getByLabel("Message").fill("A general question without a listing.");
   await page.getByRole("checkbox").check();
   const [apiResponse] = await Promise.all([
     page.waitForResponse(
@@ -714,11 +717,9 @@ test("a general contact inquiry carries no property reference unless asked", asy
     ),
     page.getByRole("button", { name: "Send inquiry" }).click(),
   ]);
-  expect(apiResponse.request().postDataJSON()).toMatchObject({
-    inquiryType: "general",
-    propertyId: "RCPP-E2E-002",
-    source: "contact-page",
-  });
+  const payload = apiResponse.request().postDataJSON();
+  expect(payload).toMatchObject({ inquiryType: "selling", source: "contact-page" });
+  expect(payload).not.toHaveProperty("propertyId");
 });
 
 test("contact recovers from unknown properties and lets a listing be dropped", async ({
