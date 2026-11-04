@@ -80,6 +80,19 @@ const ROWS: Row[] = [
       { label: "Lookup error", value: "lookup-failed" },
     ],
   },
+  {
+    path: "/contact",
+    label: "Property",
+    param: "contactPropertyFixture",
+    options: [
+      { label: "None", value: null },
+      { label: "Available", value: "available" },
+      { label: "Reserved", value: "reserved" },
+      { label: "Sold", value: "sold" },
+      { label: "Not found", value: "not-found" },
+      { label: "Lookup error", value: "lookup-failed" },
+    ],
+  },
 ];
 
 export function HomepagePreviewSwitcher() {

@@ -283,7 +283,7 @@ test("editorial menu reveal, interrupted close, and reduced motion", async ({
 
 test("interior mobile navigation retains its existing controls", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/contact");
+  await page.goto("/locations/angeles-city");
   const menu = page.getByRole("button", { name: "Menu", exact: true });
   await menu.click();
   const navigation = page.getByRole("navigation", { name: "Mobile navigation" });

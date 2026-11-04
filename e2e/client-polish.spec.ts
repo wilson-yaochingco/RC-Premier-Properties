@@ -167,56 +167,40 @@ test("location guide opens with an editorial statement and real inventory summar
   ).toBeVisible();
 });
 
-test("contact starts with its image hero and social links expose motion-aware interaction", async ({
+test("contact opens with an editorial introduction and the shared modern header", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/contact");
   await expect(page.getByText("Say hello", { exact: true })).toHaveCount(0);
-  const firstSection = page.locator("main > section").first();
-  await expect(firstSection.getByRole("heading", { level: 1 })).toHaveText(
-    "Looking for the right next step?",
+  const intro = page.locator("main > section").first();
+  await expect(intro.getByRole("heading", { level: 1 })).toHaveText(
+    "Let’s talk about your next move.",
   );
+  await expect(intro.locator("img")).toHaveCount(0);
+  await expect(page.locator("main img")).toHaveCount(0);
+  await expect(intro.getByRole("link", { name: /\+63 918 429 1873/ })).toHaveAttribute(
+    "href",
+    "tel:+639184291873",
+  );
+
+  // Same header as Home's sticky state, Properties and Book Viewing: no classic nav bar.
+  const header = page.getByRole("banner");
+  await expect(header.getByRole("link", { name: /Book a viewing/i })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Menu", exact: true })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Request a Tour" })).toHaveCount(0);
+  await expect(page.locator(".desktop-navigation")).toHaveCount(0);
+
+  // The old three-column section and duplicate social links are gone.
+  await expect(page.getByRole("heading", { name: "Need a direct line?" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("heading", { name: "Follow along" })).toHaveCount(0);
   await expect(
-    firstSection.getByAltText(
-      "Dining area with warm wood finishes and sculptural lighting",
-    ),
-  ).toBeVisible();
-
-  const socialSection = page
-    .getByRole("heading", { name: "Follow along" })
-    .locator("..");
-
-  for (const platform of ["Facebook", "Instagram", "YouTube", "TikTok"]) {
-    const link = socialSection.getByRole("link", { name: new RegExp(platform) });
-    await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link.locator("svg")).toHaveCount(1);
-  }
-
-  const facebook = socialSection.getByRole("link", { name: /Facebook/ });
-  const facebookIcon = facebook.locator("span").first();
-  await facebook.hover();
-  expect(await facebook.evaluate((link) => getComputedStyle(link).transform)).not.toBe(
-    "none",
-  );
-  await expect(facebookIcon).toHaveCSS("background-color", "rgb(180, 137, 61)");
-  await facebook.focus();
-  await expect(facebook).toBeFocused();
-  expect(
-    await facebook.evaluate((link) => getComputedStyle(link).outlineStyle),
-  ).not.toBe("none");
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.reload();
-  const reducedFacebook = page.getByRole("link", {
-    name: /Facebook — RC Premier Properties/,
-  });
-  expect(
-    Number.parseFloat(
-      await reducedFacebook.evaluate(
-        (link) => getComputedStyle(link).transitionDuration,
-      ),
-    ),
-  ).toBeLessThanOrEqual(0.001);
+    page
+      .getByRole("navigation", { name: "Other ways to get started" })
+      .getByRole("link"),
+  ).toHaveCount(2);
 });
 
 test("tour steps fit normal viewports and remain reachable at 200 percent text", async ({

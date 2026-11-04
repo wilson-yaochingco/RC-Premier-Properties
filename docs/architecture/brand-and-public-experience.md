@@ -237,12 +237,14 @@ fixtures (`?featuredFixture=…` under `next dev`) never reach production builds
 never a fallback.
 
 The homepage header begins over the hero and becomes a light sticky bar after the hero
-leaves the viewport. The editorial routes `/properties`, `/locations`, `/about`, `/sell` and
-`/book-viewing` render that same header in its sticky state from the first paint; detail,
-contact and other interior routes retain the classic light header. The mobile menu moves focus
-into the open panel, traps keyboard focus, closes on Escape, and returns focus to its
-trigger. Current-route state is exposed with `aria-current` where a stable page route can
-be determined.
+leaves the viewport. The editorial routes `/properties`, `/locations`, `/about`, `/sell`,
+`/contact` and `/book-viewing` render that same header in its sticky state from the first
+paint; detail and other interior routes retain the classic light header. The mobile menu
+moves focus into the open panel, traps keyboard focus, closes on Escape, and returns focus
+to its trigger. The menu is open only for the route it was opened on, and any internal
+link inside it, including the Book a viewing action, closes it, so a route change or
+back/forward navigation cannot leave a stale open menu or page scroll lock. Current-route
+state is exposed with `aria-current` where a stable page route can be determined.
 
 Six RC Premier YouTube Shorts use a poster-first, horizontal scroll-snap row with
 lazy thumbnails. A player is mounted only after a visitor selects a tour; the

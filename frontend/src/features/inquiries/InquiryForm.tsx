@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   INQUIRY_TYPES,
   type CreateInquiryRequest,
@@ -8,8 +9,11 @@ import {
   type InquiryType,
   type ValidationIssue,
 } from "@rc/shared";
+import { RollLabel } from "@/components/ui/RollLabel";
 import { ApiClientError } from "@/services/api-client";
 import { createInquiry } from "./inquiry.service";
+import { InquiryPropertyContext } from "./InquiryPropertyContext";
+import type { ViewingProperty } from "./ViewingScheduler";
 import styles from "./InquiryForm.module.css";
 
 interface InquiryFormProps {
@@ -18,6 +22,12 @@ interface InquiryFormProps {
   propertyId?: string;
   submitLabel?: string;
   simplifiedSeller?: boolean;
+  /** `contact` is the art-directed Contact page layout; Sell keeps `default`. */
+  variant?: "default" | "contact";
+  /** Contact only: the listing the page resolved from `?propertyId=`. */
+  property?: ViewingProperty;
+  /** Contact only: why a `?propertyId=` could not be shown as a listing. */
+  propertyIssue?: "not-found" | "lookup-failed";
 }
 
 interface SubmissionState {
@@ -63,6 +73,32 @@ function textValue(formData: FormData, key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function Group({
+  enabled,
+  title,
+  children,
+}: {
+  enabled: boolean;
+  title: string;
+  children: ReactNode;
+}) {
+  if (!enabled) return <div className={styles.grid}>{children}</div>;
+  return (
+    <fieldset className={styles.group}>
+      <legend>{title}</legend>
+      <div className={styles.grid}>{children}</div>
+    </fieldset>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 function FieldError({ field, issue }: { field: string; issue?: ValidationIssue }) {
   return issue ? (
     <p id={`inquiry-${field}-error`} className={styles.fieldError}>
@@ -77,17 +113,37 @@ export function InquiryForm({
   propertyId,
   submitLabel = "Send inquiry",
   simplifiedSeller = false,
+  variant = "default",
+  property,
+  propertyIssue,
 }: InquiryFormProps) {
+  const contact = variant === "contact";
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [messageLength, setMessageLength] = useState(0);
+  // Contact: the page-supplied listing can be dropped for a general inquiry, and a
+  // listing reference can be typed only on request.
+  const [contextDropped, setContextDropped] = useState(false);
+  const [referenceOpen, setReferenceOpen] = useState(false);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+  const successTitleRef = useRef<HTMLHeadingElement>(null);
+  const carriedPropertyId = contextDropped
+    ? undefined
+    : contact
+      ? (property?.propertyId ??
+        (propertyIssue === "lookup-failed" ? propertyId : undefined))
+      : undefined;
   const invalidFields = new Set(state.issues?.map((issue) => issue.field));
 
   useEffect(() => {
     if (state.kind === "error") errorRef.current?.focus();
   }, [state.kind, state.issues]);
+
+  useEffect(() => {
+    if (contact && state.kind === "success") successTitleRef.current?.focus();
+  }, [contact, state.kind]);
 
   function issueFor(field: string): ValidationIssue | undefined {
     return state.issues?.find((issue) => issue.field === field);
@@ -167,6 +223,22 @@ export function InquiryForm({
         if (error.statusCode >= 400 && error.statusCode < 500) {
           idempotencyKeyRef.current = null;
         }
+        const issues = error.statusCode < 500 ? error.response.issues : undefined;
+        // A page-supplied listing the backend no longer accepts is dropped, so the
+        // visitor is never asked to fix a reference they cannot see or edit.
+        const staleListing =
+          Boolean(carriedPropertyId) &&
+          issues?.some((issue) => issue.field === "propertyId");
+        if (staleListing) {
+          setContextDropped(true);
+          setState({
+            kind: "error",
+            message:
+              "That listing is no longer available, so this will be sent as a general inquiry. Send it again to continue.",
+            issues: issues?.filter((issue) => issue.field !== "propertyId"),
+          });
+          return;
+        }
         setState({
           kind: "error",
           message:
@@ -177,7 +249,7 @@ export function InquiryForm({
                 : error.response.issues?.length && error.statusCode < 500
                   ? "Please correct the highlighted details and try again."
                   : "Please try again. If the problem continues, contact us directly.",
-          issues: error.statusCode < 500 ? error.response.issues : undefined,
+          issues,
         });
       } else {
         setState({
@@ -188,137 +260,302 @@ export function InquiryForm({
     }
   }
 
-  return (
-    <form
-      ref={formRef}
-      className={styles.form}
-      onSubmit={handleSubmit}
-      aria-busy={state.kind === "pending"}
-    >
-      <div className={styles.grid}>
-        <div className={styles.field}>
-          <label htmlFor="inquiry-name">Name</label>
-          <input
-            id="inquiry-name"
-            name="name"
-            autoComplete="name"
-            minLength={2}
-            maxLength={100}
-            required
-            aria-invalid={invalidFields.has("name")}
-            aria-describedby={describedBy("name")}
-          />
-          <FieldError field="name" issue={issueFor("name")} />
-        </div>
+  const success = state.kind === "success";
 
-        <div className={styles.field}>
-          <label htmlFor="inquiry-email">Email</label>
-          <input
-            id="inquiry-email"
-            name="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            maxLength={254}
-            required
-            aria-invalid={invalidFields.has("email")}
-            aria-describedby={describedBy("email")}
-          />
-          <FieldError field="email" issue={issueFor("email")} />
-        </div>
+  const nameField = (
+    <div className={`${styles.field} ${contact ? styles.wide : ""}`}>
+      <label htmlFor="inquiry-name">Name</label>
+      <input
+        id="inquiry-name"
+        name="name"
+        autoComplete="name"
+        placeholder={contact ? "Your full name" : undefined}
+        minLength={2}
+        maxLength={100}
+        required
+        aria-invalid={invalidFields.has("name")}
+        aria-describedby={describedBy("name")}
+      />
+      <FieldError field="name" issue={issueFor("name")} />
+    </div>
+  );
 
-        <div className={styles.field}>
-          <label htmlFor="inquiry-phone">Phone</label>
-          <input
-            id="inquiry-phone"
-            name="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            maxLength={30}
-            required
-            aria-invalid={invalidFields.has("phone")}
-            aria-describedby={describedBy("phone")}
-          />
-          <FieldError field="phone" issue={issueFor("phone")} />
-        </div>
+  const emailField = (
+    <div className={styles.field}>
+      <label htmlFor="inquiry-email">Email</label>
+      <input
+        id="inquiry-email"
+        name="email"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        placeholder={contact ? "you@example.com" : undefined}
+        maxLength={254}
+        required
+        aria-invalid={invalidFields.has("email")}
+        aria-describedby={describedBy("email")}
+      />
+      <FieldError field="email" issue={issueFor("email")} />
+    </div>
+  );
 
-        {simplifiedSeller ? (
-          <input type="hidden" name="inquiryType" value="selling" />
-        ) : (
-          <div className={styles.field}>
-            <label htmlFor="inquiry-type">Inquiry type</label>
-            <select
-              id="inquiry-type"
-              name="inquiryType"
-              defaultValue={defaultInquiryType}
-              required
-              aria-invalid={invalidFields.has("inquiryType")}
-              aria-describedby={describedBy("inquiryType")}
-            >
-              {INQUIRY_TYPES.filter((type) => type !== "viewing").map((type) => (
-                <option key={type} value={type}>
-                  {TYPE_LABELS[type]}
-                </option>
-              ))}
-            </select>
-            <FieldError field="inquiryType" issue={issueFor("inquiryType")} />
-          </div>
-        )}
+  const phoneField = (
+    <div className={styles.field}>
+      <label htmlFor="inquiry-phone">Phone</label>
+      <input
+        id="inquiry-phone"
+        name="phone"
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder={contact ? "e.g. 0917 123 4567" : undefined}
+        maxLength={30}
+        required
+        aria-invalid={invalidFields.has("phone")}
+        aria-describedby={describedBy("phone")}
+      />
+      <FieldError field="phone" issue={issueFor("phone")} />
+    </div>
+  );
 
-        {!simplifiedSeller ? (
-          <div className={styles.field}>
+  const typeField = simplifiedSeller ? (
+    <input type="hidden" name="inquiryType" value="selling" />
+  ) : (
+    <div className={styles.field}>
+      <label htmlFor="inquiry-type">Inquiry type</label>
+      <select
+        // Dropping the listing resets a "Property inquiry" back to a general one.
+        key={contextDropped ? "dropped" : "initial"}
+        id="inquiry-type"
+        name="inquiryType"
+        defaultValue={contextDropped ? "general" : defaultInquiryType}
+        required
+        aria-invalid={invalidFields.has("inquiryType")}
+        aria-describedby={describedBy("inquiryType")}
+      >
+        {INQUIRY_TYPES.filter((type) => type !== "viewing").map((type) => (
+          <option key={type} value={type}>
+            {TYPE_LABELS[type]}
+          </option>
+        ))}
+      </select>
+      <FieldError field="inquiryType" issue={issueFor("inquiryType")} />
+    </div>
+  );
+
+  const referenceVisible = referenceOpen || invalidFields.has("propertyId");
+  const propertyField = simplifiedSeller ? null : contact ? (
+    carriedPropertyId ? (
+      <input type="hidden" name="propertyId" value={carriedPropertyId} />
+    ) : (
+      <div className={`${styles.field} ${styles.wide} ${styles.listingRef}`}>
+        {referenceVisible ? (
+          <>
             <label htmlFor="inquiry-property-id">
               Property ID <span className={styles.optional}>(optional)</span>
             </label>
             <input
+              ref={referenceInputRef}
               id="inquiry-property-id"
               name="propertyId"
-              defaultValue={propertyId}
               maxLength={40}
               autoComplete="off"
+              placeholder="As shown on the listing, e.g. RCPP-001"
               aria-invalid={invalidFields.has("propertyId")}
               aria-describedby={describedBy("propertyId")}
             />
             <FieldError field="propertyId" issue={issueFor("propertyId")} />
-          </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            className={styles.referenceToggle}
+            onClick={() => {
+              setReferenceOpen(true);
+              window.requestAnimationFrame(() => referenceInputRef.current?.focus());
+            }}
+          >
+            Asking about a specific listing?
+          </button>
+        )}
+      </div>
+    )
+  ) : (
+    <div className={styles.field}>
+      <label htmlFor="inquiry-property-id">
+        Property ID <span className={styles.optional}>(optional)</span>
+      </label>
+      <input
+        id="inquiry-property-id"
+        name="propertyId"
+        defaultValue={propertyId}
+        maxLength={40}
+        autoComplete="off"
+        aria-invalid={invalidFields.has("propertyId")}
+        aria-describedby={describedBy("propertyId")}
+      />
+      <FieldError field="propertyId" issue={issueFor("propertyId")} />
+    </div>
+  );
+
+  const subjectField = (
+    <div className={styles.field}>
+      <label htmlFor="inquiry-subject">
+        {simplifiedSeller ? "Property location or area" : "Subject"}{" "}
+        <span className={styles.optional}>(optional)</span>
+      </label>
+      <input
+        id="inquiry-subject"
+        name="subject"
+        placeholder={contact ? "What is this about?" : undefined}
+        maxLength={150}
+        aria-invalid={invalidFields.has("subject")}
+        aria-describedby={describedBy("subject")}
+      />
+      <FieldError field="subject" issue={issueFor("subject")} />
+    </div>
+  );
+
+  const messageField = (
+    <div className={`${styles.field} ${styles.wide}`}>
+      <label htmlFor="inquiry-message">
+        {simplifiedSeller ? "Property details and message" : "Message"}
+      </label>
+      <textarea
+        id="inquiry-message"
+        name="message"
+        placeholder={
+          contact
+            ? "Tell us what you are looking for or what you would like to know."
+            : undefined
+        }
+        minLength={10}
+        maxLength={2000}
+        required
+        onChange={(event) => setMessageLength(event.target.value.length)}
+        aria-invalid={invalidFields.has("message")}
+        aria-describedby={describedBy("message", "inquiry-message-count")}
+      />
+      <span id="inquiry-message-count" className={styles.counter}>
+        {messageLength} of 2000 characters
+      </span>
+      <FieldError field="message" issue={issueFor("message")} />
+    </div>
+  );
+
+  if (contact && success) {
+    return (
+      <div
+        className={`${styles.contact} ${styles.done}`}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <svg
+          className={styles.doneMark}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="m7.5 12.5 3 3 6-7" />
+        </svg>
+        <h3 ref={successTitleRef} tabIndex={-1} className={styles.doneTitle}>
+          Inquiry submitted successfully.
+        </h3>
+        <p className={styles.doneCopy}>{state.message}</p>
+        {state.inquiryId ? (
+          <p className={styles.doneReference}>
+            Reference: <span>{state.inquiryId}</span>
+          </p>
         ) : null}
-
-        <div className={styles.field}>
-          <label htmlFor="inquiry-subject">
-            {simplifiedSeller ? "Property location or area" : "Subject"}{" "}
-            <span className={styles.optional}>(optional)</span>
-          </label>
-          <input
-            id="inquiry-subject"
-            name="subject"
-            maxLength={150}
-            aria-invalid={invalidFields.has("subject")}
-            aria-describedby={describedBy("subject")}
-          />
-          <FieldError field="subject" issue={issueFor("subject")} />
-        </div>
-
-        <div className={`${styles.field} ${styles.wide}`}>
-          <label htmlFor="inquiry-message">
-            {simplifiedSeller ? "Property details and message" : "Message"}
-          </label>
-          <textarea
-            id="inquiry-message"
-            name="message"
-            minLength={10}
-            maxLength={2000}
-            required
-            onChange={(event) => setMessageLength(event.target.value.length)}
-            aria-invalid={invalidFields.has("message")}
-            aria-describedby={describedBy("message", "inquiry-message-count")}
-          />
-          <span id="inquiry-message-count" className={styles.counter}>
-            {messageLength} of 2000 characters
-          </span>
-          <FieldError field="message" issue={issueFor("message")} />
+        <div className={styles.doneActions}>
+          <Link href="/properties" className={`${styles.submit} cta`}>
+            <RollLabel>Browse properties</RollLabel>
+            <ArrowIcon />
+          </Link>
+          {property && !contextDropped ? (
+            <Link href={`/properties/${property.slug}`} className={styles.doneLink}>
+              Back to {property.title}
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            className={styles.doneLink}
+            onClick={() => {
+              setState({ kind: "idle" });
+              window.requestAnimationFrame(() =>
+                document.getElementById("inquiry-name")?.focus(),
+              );
+            }}
+          >
+            Send another inquiry
+          </button>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <form
+      ref={formRef}
+      className={`${styles.form} ${contact ? styles.contact : ""}`}
+      onSubmit={handleSubmit}
+      aria-busy={state.kind === "pending"}
+    >
+      {contact && property && !contextDropped ? (
+        <InquiryPropertyContext
+          property={property}
+          onDrop={() => setContextDropped(true)}
+        />
+      ) : null}
+      {contact && !property && propertyIssue && !contextDropped ? (
+        <p className={styles.contextNotice}>
+          {propertyIssue === "not-found"
+            ? "We couldn’t find a current listing for that link. You can still send a general inquiry below."
+            : "We couldn’t load that listing’s details right now. Its reference will still be sent with your inquiry."}
+          {propertyIssue === "lookup-failed" ? (
+            <>
+              {" "}
+              <button
+                type="button"
+                className={styles.contextAction}
+                onClick={() => setContextDropped(true)}
+              >
+                Send as a general inquiry
+              </button>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+
+      {contact ? (
+        <>
+          <Group enabled title="Your details">
+            {nameField}
+            {emailField}
+            {phoneField}
+          </Group>
+          <Group enabled title="Your inquiry">
+            {typeField}
+            {subjectField}
+            {propertyField}
+            {messageField}
+          </Group>
+        </>
+      ) : (
+        <Group enabled={false} title="">
+          {nameField}
+          {emailField}
+          {phoneField}
+          {typeField}
+          {propertyField}
+          {subjectField}
+          {messageField}
+        </Group>
+      )}
 
       <div className={styles.honeypot} aria-hidden="true">
         <label htmlFor="inquiry-website">Website</label>
@@ -420,13 +657,29 @@ export function InquiryForm({
         </div>
       )}
 
-      <button
-        className={styles.submit}
-        type="submit"
-        disabled={state.kind === "pending"}
-      >
-        {state.kind === "pending" ? "Sending…" : submitLabel}
-      </button>
+      {contact ? (
+        <div className={styles.submitRow}>
+          <button
+            className={`${styles.submit} cta`}
+            type="submit"
+            disabled={state.kind === "pending"}
+          >
+            <RollLabel>{state.kind === "pending" ? "Sending…" : submitLabel}</RollLabel>
+            <ArrowIcon />
+          </button>
+          <p className={styles.submitNote}>
+            Your details are used to respond to this inquiry.
+          </p>
+        </div>
+      ) : (
+        <button
+          className={styles.submit}
+          type="submit"
+          disabled={state.kind === "pending"}
+        >
+          {state.kind === "pending" ? "Sending…" : submitLabel}
+        </button>
+      )}
     </form>
   );
 }

@@ -26,6 +26,7 @@ const HEROLESS_PATHS = new Set([
   "/locations",
   "/sell",
   "/about",
+  "/contact",
   "/book-viewing",
 ]);
 const DOWNWARD_HIDE_DISTANCE_PX = 48;

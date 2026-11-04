@@ -50,6 +50,8 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     await expect(success).toHaveAttribute("aria-atomic", "true");
     await expectNoOverflow(page, success);
     await success.screenshot({ path: testInfo.outputPath("success.png") });
+    // The confirmation replaces the form; start a fresh inquiry for the failure paths.
+    await page.getByRole("button", { name: "Send another inquiry" }).click();
 
     let responseStatus = 500;
     const keys: Array<string | undefined> = [];
@@ -105,20 +107,15 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     await error.screenshot({ path: testInfo.outputPath("validation.png") });
 
     await page.goto("/");
-    const heading = page.getByRole("heading", {
-      level: 1,
-      name: "Discover Your Next Home",
-      exact: true,
-    });
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toHaveText(/Find a home\s*worth coming\s*home to\./);
     await expectNoOverflow(page, heading);
-    await expect(page.locator(".home-hero__image")).toBeVisible();
-    await expect(page.locator(".home-hero__shade")).toBeVisible();
-    const search = page.getByRole("search", { name: "Search properties for sale" });
-    await search.getByRole("textbox").fill("RCPP-E2E-001");
-    await search
-      .getByRole("button", { name: "Search properties", exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/properties\?keyword=RCPP-E2E-001&purpose=sale/);
+    await expect(
+      page.getByRole("img", { name: /Modern luxury home at twilight/ }),
+    ).toBeVisible();
+    const hero = page.locator('section[aria-labelledby="home-heading"]');
+    await hero.getByRole("link", { name: "Browse properties" }).click();
+    await expect(page).toHaveURL(/\/properties$/);
   });
 }
 

@@ -254,3 +254,505 @@
     transition: none;
   }
 }
+
+/* ==========================================================================
+   Contact variant. Everything below is scoped to `.contact` (or the pieces only
+   the contact layout renders), so the default form used by Sell is unchanged.
+   ========================================================================== */
+.contact {
+  --ink: var(--color-brand-deep, #252c36);
+  --panel: #202630;
+  --muted: var(--color-text-muted, #68707c);
+  --rule: rgb(32 38 48 / 12%);
+  --rule-strong: rgb(32 38 48 / 26%);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color: var(--ink);
+}
+
+.form.contact {
+  gap: 1.75rem;
+}
+
+.group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.group legend {
+  padding: 0;
+  margin-bottom: 1.1rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.contact .grid {
+  gap: 1.15rem 1rem;
+}
+
+.contact .field {
+  align-content: start;
+  gap: 0.55rem;
+}
+
+.contact .field label {
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.contact .optional {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.contact .field input,
+.contact .field select,
+.contact .field textarea {
+  min-height: 3.25rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px 0 8px 0;
+  background-color: #fff;
+  color: var(--ink);
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+}
+
+.contact .field input::placeholder,
+.contact .field textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.contact .field :is(input, select, textarea):hover {
+  border-color: rgb(32 38 48 / 48%);
+}
+
+.contact .field :is(input, select, textarea):focus-visible {
+  border-color: var(--ink);
+  box-shadow: none;
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.contact .field [aria-invalid="true"] {
+  border-color: #9b2c2c;
+}
+
+.contact .field select {
+  appearance: none;
+  padding-right: 2.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%23252c36' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-position: right 1.05rem center;
+  background-repeat: no-repeat;
+  background-size: 0.75rem;
+  cursor: pointer;
+}
+
+.contact .field textarea {
+  min-height: 8rem;
+  line-height: 1.55;
+}
+
+.contact .counter {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.contact .fieldError {
+  color: #8f2a2a;
+  font-size: 0.8125rem;
+}
+
+.listingRef {
+  align-content: start;
+}
+
+.referenceToggle {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+  transition: text-decoration-color 200ms var(--ease);
+}
+
+.referenceToggle:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.referenceToggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.contact .consent {
+  align-items: start;
+  gap: 0.9rem;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px 0 8px 0;
+  background: #fbfaf7;
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.contact .consent input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.05rem;
+  accent-color: var(--ink);
+}
+
+.contact .consent input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.contact .message {
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px 0 8px 0;
+  background: #fbfaf7;
+  padding: 1rem 1.1rem;
+}
+
+.contact .error {
+  border-color: rgb(155 44 44 / 45%);
+  background: #fbf3f2;
+  color: #702323;
+}
+
+.contact .message:focus {
+  outline: 2px solid #9b2c2c;
+  outline-offset: 3px;
+}
+
+.submitRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem 1.5rem;
+}
+
+.contact .submit,
+.done .submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  min-width: 0;
+  padding: 0 1.75rem;
+  border: 0;
+  border-radius: var(--radius-cta, 8px 0 8px 0);
+  background: var(--panel);
+  color: #f8f6f1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: none;
+}
+
+.contact .submit:hover:not(:disabled),
+.done .submit:hover {
+  background: var(--panel);
+  color: #f8f6f1;
+  transform: none;
+}
+
+.contact .submit svg,
+.done .submit svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transition: transform 260ms var(--ease);
+}
+
+.contact .submit:not(:disabled):is(:hover, :focus-visible) svg,
+.done .submit:is(:hover, :focus-visible) svg {
+  transform: translateX(3px);
+}
+
+.contact .submit:focus-visible,
+.done .submit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.submitNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* Listing the visitor came from. */
+.context {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px 0 10px 0;
+  background: #fbfaf7;
+}
+
+.contextThumb {
+  position: relative;
+  display: block;
+  width: 4.25rem;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 8px 0 8px 0;
+  background: var(--color-surface-muted, #ece7dd);
+}
+
+.contextThumb :global(.property-media),
+.contextThumb :global(.media-placeholder) {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.contextThumb img {
+  object-fit: cover;
+}
+
+.contextThumb :global(.media-placeholder) > * {
+  display: none;
+}
+
+.contextCopy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.contextEyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.contextTitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.contextMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 1rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.contextNote {
+  margin: 0.2rem 0 0;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.contextActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.contextAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+  transition: text-decoration-color 200ms var(--ease);
+}
+
+.contextAction:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.contextAction:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.contextNotice {
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px 0 10px 0;
+  background: #fbfaf7;
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.contextNotice .contextAction {
+  min-height: 0;
+  display: inline;
+}
+
+/* Replaces the form once the inquiry is accepted. */
+.done {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  padding-block: clamp(0.25rem, 2vw, 1.5rem);
+}
+
+.doneMark {
+  width: 2.75rem;
+  height: 2.75rem;
+  color: #21633e;
+}
+
+.doneTitle {
+  margin: 0;
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.doneTitle:focus {
+  outline: none;
+}
+
+.doneTitle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.doneCopy {
+  max-width: 30rem;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.doneReference {
+  width: 100%;
+  margin: 0.5rem 0 0;
+  padding-block: 0.9rem;
+  border-block: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.doneReference span {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.doneActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.doneLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+  transition: text-decoration-color 200ms var(--ease);
+}
+
+.doneLink:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.doneLink:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@media (max-width: 39.99rem) {
+  .context {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .contextActions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 1.5rem;
+  }
+
+  .contact .submit,
+  .done .submit {
+    width: 100%;
+  }
+
+  .doneActions {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact .submit svg,
+  .done .submit svg,
+  .referenceToggle,
+  .contextAction,
+  .doneLink {
+    transition: none;
+  }
+}

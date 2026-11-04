@@ -30,7 +30,11 @@ export function MobileNavigation({
   children,
 }: MobileNavigationProps) {
   const { openTour, pageProperty } = useRequestTour();
-  const [isOpen, setIsOpen] = useState(false);
+  // The menu is open only for the route it was opened on, so a route change (a link,
+  // back/forward, a programmatic push) can never leave a stale open menu or scroll lock.
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+  if (openedAt !== null && openedAt !== currentPath) setOpenedAt(null);
+  const isOpen = openedAt === currentPath;
   const [isClosing, setIsClosing] = useState(false);
   const isActive = isOpen || isClosing;
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -78,12 +82,21 @@ export function MobileNavigation({
         !isOpenNext &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
-    setIsOpen(isOpenNext);
+    setOpenedAt(isOpenNext ? currentPath : null);
     if (!isOpenNext) triggerRef.current?.focus();
   }
 
   function closeMenu() {
     updateMenu(false);
+  }
+
+  // Any internal link inside the menu, including the Book a Viewing CTA passed as
+  // `children`, closes it; this also covers a click on the page the visitor is already on.
+  function handleLinkClick(event: React.MouseEvent<HTMLDivElement>) {
+    if (!isOpen || event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = (event.target as Element).closest<HTMLAnchorElement>("a[href]");
+    if (link?.getAttribute("href")?.startsWith("/")) closeMenu();
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -116,6 +129,7 @@ export function MobileNavigation({
     <div
       className="mobile-navigation"
       onKeyDown={handleKeyDown}
+      onClickCapture={handleLinkClick}
       role={cinematic && isActive ? "dialog" : undefined}
       aria-modal={cinematic && isActive ? true : undefined}
       aria-label={cinematic && isActive ? "Primary navigation" : undefined}
@@ -182,7 +196,6 @@ export function MobileNavigation({
                       ref={index === 0 ? firstLinkRef : undefined}
                       href={item.href}
                       className={cinematic ? heroStyles.menuLink : undefined}
-                      onClick={closeMenu}
                       tabIndex={isOpen ? 0 : -1}
                       aria-current={
                         !item.href.includes("#") &&

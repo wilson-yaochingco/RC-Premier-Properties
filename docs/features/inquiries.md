@@ -8,15 +8,25 @@ and staff workflow still require the existing live Auth0/MongoDB acceptance pass
 
 One connected form supports the public entry points currently exposed by the UI:
 
-| Route or action                   | Default type                                       | Source         |
-| --------------------------------- | -------------------------------------------------- | -------------- |
-| `/contact`                        | general, or property when a Property ID is present | `contact-page` |
-| property-detail “Send an inquiry” | links to `/contact` with its Property ID           | `contact-page` |
-| Request a Tour dialog             | viewing with property context when available       | `viewing-page` |
-| `/book-viewing`                   | inline viewing scheduler                           | `viewing-page` |
-| `/sell`                           | selling                                            | `sell-page`    |
+| Route or action                   | Default type                                    | Source         |
+| --------------------------------- | ----------------------------------------------- | -------------- |
+| `/contact`                        | general, or property when a listing is resolved | `contact-page` |
+| property-detail “Send an inquiry” | links to `/contact` with its Property ID        | `contact-page` |
+| Request a Tour dialog             | viewing with property context when available    | `viewing-page` |
+| `/book-viewing`                   | inline viewing scheduler                        | `viewing-page` |
+| `/sell`                           | selling                                         | `sell-page`    |
 
-`/contact` accepts `propertyId` in the URL and prefills the form. `/book-viewing` is an
+`/contact` accepts `propertyId` in the URL. The server resolves it through the public
+property search and shows the listing's title, Premier Property number, location and type
+in a context card; the internal ID is submitted with the form and the visitor is never
+asked to type it. “Not about this property” drops the reference and sends a general
+inquiry. An unknown ID shows a short notice and a general inquiry; a failed lookup keeps the
+reference and says details could not be loaded. If the backend rejects a page-supplied
+listing on submit, the reference is dropped and the visitor is asked to send again. A
+general inquiry shows no ID field; “Asking about a specific listing?” reveals an optional
+one. Contact uses `InquiryForm variant="contact"`; Sell keeps the default layout. After a
+successful submission the form is replaced by a confirmation with the opaque reference and
+follow-up actions. `/book-viewing` is an
 inline scheduler rather than a dialog launcher; the Request a Tour dialog remains the entry
 from the classic header and property detail pages. Both surfaces use one shared module,
 `features/inquiries/tour-request.ts`, for the requestable Philippine-time options, client
