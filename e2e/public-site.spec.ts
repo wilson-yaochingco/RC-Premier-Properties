@@ -242,12 +242,13 @@ test("location discovery and detail use only inventory-backed facets", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Where you live shapes how you live.",
+      name: "Find the right place for your next home.",
     }),
   ).toBeVisible();
   const angeles = page
-    .getByRole("list", { name: "Current property locations" })
-    .getByRole("link", { name: /Angeles City 9 homes/ });
+    .locator("#featured-locations article")
+    .getByRole("link", { name: /Angeles City/ });
+  await expect(angeles).toContainText("9 properties");
   await expect(angeles).toHaveAttribute("href", "/locations/angeles-city");
   await angeles.click();
 

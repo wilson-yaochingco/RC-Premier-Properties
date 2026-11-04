@@ -61,7 +61,8 @@ heading, and count are derived from that facet; unsupported or ambiguous locatio
 The location guide exposes a stable lowercase slug only after resolving it against the
 same bounded, positive-count facets. Its canonical path is `/locations/[location]`;
 substantive filters and non-default pages keep that canonical but receive `noindex,
-follow`. Location JSON-LD contains a breadcrumb only. It never contains coordinates,
+follow`. The four curated locations resolve with zero published properties but are `noindex`
+until they have inventory. Location JSON-LD contains a breadcrumb only. It never contains coordinates,
 addresses, editorial claims, or manually maintained popularity data.
 
 ## Social previews

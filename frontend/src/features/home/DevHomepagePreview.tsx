@@ -8,7 +8,7 @@ async function DevHomepagePreviewToolbar() {
   return <HomepagePreviewSwitcher />;
 }
 
-/** Development-only fixture toolbar for homepage, catalog, Book a Viewing and Contact previews. */
+/** Development-only fixture toolbar for homepage, catalog, Book a Viewing, Contact and Locations previews. */
 export function DevHomepagePreview() {
   return (
     <Suspense fallback={null}>

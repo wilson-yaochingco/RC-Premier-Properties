@@ -453,14 +453,15 @@ sharing one section template. All four use the sticky homepage header and a shar
 `components/layout/editorial-page.module.css` frame whose top offset mirrors that header's
 breakpoint heights.
 
-- **Locations** is a property atlas: an ivory editorial opening with an inventory summary
-  derived from the facets, a charcoal atlas pairing the generated Pampanga map with a
-  numbered ledger, alternating location stories built from the documented locality
-  scenery (with attribution), four location considerations, up to four current listings,
-  an architectural interlude and the shared closing CTA. The ledger links are the only
-  keyboard/assistive-tech path; map areas mirror the ledger selection and are a pointer
-  shortcut with no focusable elements inside the map image. Counts are published-inventory
-  `locationCounts`; a failed facet request shows an unavailable state, never sample areas.
+- **Locations** is a location-discovery page: a centred hero over an original architectural
+  line drawing of a two-storey residence, a charcoal photographic mosaic of four curated
+  destinations (Angeles City dominant; Mabalacat City, Magalang and Porac supporting) with
+  credited locality photographs, a compact light Pampanga explorer (real buttons drive the
+  map and a contextual panel), a homes-by-location selector showing up to three published
+  properties per area, and the shared closing CTA. The curated four are permanent; counts
+  and homes come from the published `locationCounts` and property search. A confirmed
+  `0 properties` is distinct from `Inventory unavailable`, and sample content is never
+  substituted. See [`docs/features/locations.md`](../features/locations.md).
 - **Sell** leads with presentation and process before the form: hero, proposition, a
   five-stage journey, a real published listing shown as the presentation example (omitted
   when none is available), what to prepare with the sensitive-documents rule, the

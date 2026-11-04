@@ -140,7 +140,7 @@ test("home hero fills the viewport with its brand and browse action", async ({
   ).toBeGreaterThanOrEqual(844);
 });
 
-test("location guide opens with an editorial statement and real inventory summary", async ({
+test("location guide opens with a centred architectural hero and no photograph", async ({
   page,
 }) => {
   const doodle = page.getByAltText(
@@ -149,22 +149,44 @@ test("location guide opens with an editorial statement and real inventory summar
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/locations");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
   await expect(doodle).toHaveCount(0);
-  const opening = page.locator('section[aria-labelledby="locations-title"]').last();
-  const summary = opening.locator("dl");
-  await expect(summary.getByText("Current locations", { exact: true })).toBeVisible();
-  await expect(summary.locator("dd").first()).toHaveText("2");
-  const openingBox = (await opening.boundingBox())!;
-  expect(openingBox.height).toBeLessThanOrEqual(900);
-  expect(openingBox.height).toBeGreaterThan(600);
+  const hero = page.locator('section[aria-labelledby="locations-title"]');
+  await expect(hero.getByRole("heading", { level: 1 })).toHaveText(
+    "Find the right place for your next home.",
+  );
+  await expect(hero.getByText("Location guide · Pampanga")).toBeVisible();
+  // The illustration is decorative: hidden from assistive tech, text-free and inert.
+  const art = hero.locator("svg[viewBox='0 0 1200 560']");
+  await expect(art).toHaveCount(1);
+  await expect(art).toHaveAttribute("aria-hidden", "true");
+  await expect(art.locator("text")).toHaveCount(0);
+  await expect(hero.locator("img")).toHaveCount(0);
+  expect(
+    await art.evaluate((svg) => getComputedStyle(svg.parentElement!).pointerEvents),
+  ).toBe("none");
+  const heroBox = (await hero.boundingBox())!;
+  expect(heroBox.height).toBeLessThanOrEqual(900);
+  expect(heroBox.height).toBeGreaterThan(450);
+
+  // The call to action scrolls to the featured locations.
+  const cta = hero.getByRole("link", { name: "Explore locations" });
+  await expect(cta).toHaveAttribute("href", "#featured-locations");
+  await cta.click();
+  await expect(page.locator("#featured-locations")).toBeInViewport();
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/locations");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Where you live shapes how you live.",
+      name: "Find the right place for your next home.",
     }),
   ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(0);
 });
 
 test("contact opens with an editorial introduction and the shared modern header", async ({
@@ -558,35 +580,52 @@ test("seller page explains the journey before a simplified typed form", async ({
   expect(request).not.toHaveProperty("propertyId");
 });
 
-test("location atlas links its ledger to the map and keeps documented photography", async ({
+test("featured locations, the explorer and homes by location lead to real routes", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/locations");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
   await expect(
     page.getByAltText(
       "Line drawing of homes, trees, a bicycle, and neighborhood streets",
     ),
   ).toHaveCount(0);
 
-  const ledger = page.getByRole("list", { name: "Current property locations" });
-  const row = ledger.getByRole("link", { name: /Angeles City/ });
-  await row.focus();
-  await expect(row).toHaveAttribute("data-selected", "true");
-  const map = page.getByRole("img", { name: /Map of Pampanga highlighting 2 areas/ });
-  await expect(map.locator('[data-selected="true"]')).toHaveCount(1);
-  await expect(map.locator("a, [tabindex]")).toHaveCount(0);
-
-  const story = page.getByRole("heading", { level: 3, name: "Angeles City" });
-  await expect(story).toBeVisible();
+  // Four curated tiles, each a real photograph and a link to its location page.
+  const featured = page.locator("#featured-locations");
+  for (const [name, slug] of [
+    ["Angeles City", "angeles-city"],
+    ["Mabalacat City", "mabalacat-city"],
+    ["Magalang", "magalang"],
+    ["Porac", "porac"],
+  ] as const) {
+    await expect(
+      featured.getByRole("link", { name: new RegExp(`${name}`) }).first(),
+    ).toHaveAttribute("href", `/locations/${slug}`);
+  }
   await expect(
     page.getByAltText(
       "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
     ),
   ).toBeVisible();
+
+  // The explorer's buttons drive its map, and the map exposes nothing focusable.
+  const explorer = page.locator('section[aria-labelledby="explorer-title"]');
+  const porac = explorer.getByRole("button", { name: /^Porac/ });
+  await porac.focus();
+  await expect(explorer.locator('path[data-active="true"]')).toHaveCount(1);
+  await porac.click();
+  await expect(porac).toHaveAttribute("aria-pressed", "true");
   await expect(
-    page.getByRole("link", { name: "Explore homes in Angeles City" }),
-  ).toHaveAttribute("href", "/locations/angeles-city");
+    explorer.getByRole("heading", { level: 3, name: "Porac" }),
+  ).toBeVisible();
+  await expect(
+    explorer.getByRole("link", { name: "Explore location" }),
+  ).toHaveAttribute("href", "/locations/porac");
+  await expect(
+    explorer.locator("svg[aria-hidden='true'] :is(a, [tabindex])"),
+  ).toHaveCount(0);
 
   await page.goto("/locations/angeles-city");
   await expect(
