@@ -67,9 +67,12 @@ or business hours, so neither is displayed.
 ## Form behavior
 
 The general form collects name, email, required phone, inquiry type, optional Property ID,
-optional subject, message and explicit privacy consent. The Sell page instead fixes the
-type to `selling`, removes the visible type and Property ID controls, and asks for the
-seller's property area and relevant details. The viewing dialog fixes the type to
+optional subject, message and explicit privacy consent. The Sell page (`variant="seller"`)
+fixes the type to `selling` and asks for full name, email, phone, a required property
+location or area, an optional property type (House & Lot, Townhouse, Lot/Land, Other) and
+the property details. The contract has no structured property fields, so location and type
+are sent together in the existing `subject` (for example `Townhouse · Angeles City`);
+the message stays the owner's own text. No backend change was needed. The viewing dialog fixes the type to
 `viewing`, requires full name, phone, email, property context and structured requested
 date and time, and keeps optional notes without a Subject field. A known property is
 displayed rather than requested again; the generic tour entry asks for a Property ID.

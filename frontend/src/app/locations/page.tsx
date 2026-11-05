@@ -5,9 +5,7 @@ import { EditorialCta } from "@/components/ui/EditorialCta";
 import { RollLabel } from "@/components/ui/RollLabel";
 import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
 import { FeaturedLocations } from "@/features/locations/FeaturedLocations";
-import { LocationSearch } from "@/features/locations/LocationSearch";
 import { LocationShowcase } from "@/features/locations/LocationShowcase";
-import { buildSearchOptions } from "@/features/locations/location-search";
 import { buildLocationsMetadata } from "@/features/locations/location-seo";
 import {
   loadLocationsInventory,
@@ -31,11 +29,6 @@ export default async function LocationsPage({ searchParams }: PageProps<"/locati
   // `locationsFixture` is a development-only preview; production ignores it.
   const inventory = await loadLocationsInventory(
     parseLocationsFixtureScenario(query.locationsFixture),
-  );
-  // Search options come from the public facets when they loaded, else the curated and
-  // residential defaults; every option maps to a real catalog filter.
-  const searchOptions = buildSearchOptions(
-    inventory.status === "ready" ? inventory.filters : {},
   );
 
   return (
@@ -69,30 +62,11 @@ export default async function LocationsPage({ searchParams }: PageProps<"/locati
           Featured locations
         </h2>
         <div className={styles.featuredInner}>
-          <FeaturedLocations inventory={inventory} />
+          <FeaturedLocations />
         </div>
       </section>
 
-      {/* 3. Refine the search */}
-      <section className={styles.refine} aria-labelledby="refine-title">
-        <div className={styles.refineInner}>
-          <div className={styles.refineHead}>
-            <div className={styles.refineTitleGroup}>
-              <p className={styles.eyebrow}>Discover by what matters</p>
-              <h2 id="refine-title" className={styles.refineTitle}>
-                Refine the search around your priorities.
-              </h2>
-            </div>
-            <p className={styles.refineLede}>
-              Explore available properties across Pampanga using the location, property
-              type, and budget that work for you.
-            </p>
-          </div>
-          <LocationSearch options={searchOptions} />
-        </div>
-      </section>
-
-      {/* 4. Current collection */}
+      {/* 3. Current collection */}
       <section className={styles.collection} aria-labelledby="collection-title">
         <div className={styles.collectionInner}>
           <div className={styles.collectionHead}>
@@ -114,7 +88,7 @@ export default async function LocationsPage({ searchParams }: PageProps<"/locati
         </div>
       </section>
 
-      {/* 5. Closing */}
+      {/* 4. Closing */}
       <EditorialCta
         id="locations-cta-heading"
         eyebrow="Not sure where to begin?"

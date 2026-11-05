@@ -9,7 +9,9 @@ government buildings, or generic property photography. They are editorial locali
 context only: they are not listing media and do not imply that a property is near the
 photographed scene.
 
-Runtime attribution is visible beneath each detail-page image. The typed source of truth
+Runtime attribution is visible beneath each detail-page image. The Locations index
+shows no credits; the same photographs are attributed on their detail pages, and all
+sources remain recorded here. The typed source of truth
 is `frontend/src/features/locations/location-content.ts`. Each selected file was checked
 against its Commons description for locality, subject, creator, and reuse terms, then
 visually reviewed after download. The application serves only these local files and does

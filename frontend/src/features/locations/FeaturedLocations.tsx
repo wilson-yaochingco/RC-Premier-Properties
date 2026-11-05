@@ -1,11 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { RollLabel } from "@/components/ui/RollLabel";
-import {
-  FEATURED_LOCATIONS,
-  inventoryLabel,
-  type LocationsInventory,
-} from "./featured-locations";
+import { FEATURED_LOCATIONS } from "./featured-locations";
 import styles from "./locations-index.module.css";
 
 function Arrow() {
@@ -23,23 +19,12 @@ const TILE_SIZES = [
   "(max-width: 63.99rem) 100vw, 27vw",
 ] as const;
 
-/**
- * The approved asymmetric mosaic: one dominant destination (Angeles City) and three
- * supporting ones. All four are permanent, so they render and link whatever the inventory
- * says; only the count line changes (a number, a confirmed `0 properties`, or
- * `Inventory unavailable`).
- */
-export function FeaturedLocations({ inventory }: { inventory: LocationsInventory }) {
+/** Permanent destinations, independent of published inventory. */
+export function FeaturedLocations() {
   return (
     <>
       <div className={styles.mosaic}>
         {FEATURED_LOCATIONS.map((location, index) => {
-          const state =
-            inventory.status !== "ready"
-              ? "unavailable"
-              : (inventory.counts[location.slug] ?? 0) > 0
-                ? "homes"
-                : "empty";
           return (
             <article
               key={location.slug}
@@ -58,9 +43,6 @@ export function FeaturedLocations({ inventory }: { inventory: LocationsInventory
                 />
                 <span className={styles.tileScrim} aria-hidden="true" />
                 <span className={styles.tileBody}>
-                  <span className={styles.tileCount} data-state={state}>
-                    {inventoryLabel(inventory, location.slug)}
-                  </span>
                   <h3 className={styles.tileName}>{location.name}</h3>
                   <span className={styles.tileText}>{location.description}</span>
                   <span className={styles.tileAction}>
@@ -73,30 +55,6 @@ export function FeaturedLocations({ inventory }: { inventory: LocationsInventory
           );
         })}
       </div>
-
-      <details className={styles.credits}>
-        <summary>Photo credits</summary>
-        <p>
-          Via Wikimedia Commons:{" "}
-          {FEATURED_LOCATIONS.map((location, index) => (
-            <span key={location.slug}>
-              {index > 0 ? " · " : ""}
-              <a href={location.scenery.sourceUrl} target="_blank" rel="noreferrer">
-                {location.name}
-              </a>{" "}
-              by {location.scenery.creator},{" "}
-              {location.scenery.licenseUrl ? (
-                <a href={location.scenery.licenseUrl} target="_blank" rel="noreferrer">
-                  {location.scenery.license}
-                </a>
-              ) : (
-                location.scenery.license
-              )}
-            </span>
-          ))}
-          .
-        </p>
-      </details>
     </>
   );
 }

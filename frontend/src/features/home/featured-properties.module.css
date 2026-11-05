@@ -16,6 +16,21 @@
   padding-inline: var(--gutter);
 }
 
+/* Inside another page's gutter (Locations): same cards and rail, no section chrome. */
+.section.embedded {
+  padding-block: 0;
+  background: transparent;
+}
+
+.embedded .container {
+  max-width: none;
+  padding-inline: 0;
+}
+
+.embedded .grid {
+  margin-top: 0;
+}
+
 .eyebrow {
   display: flex;
   align-items: center;

@@ -826,17 +826,17 @@ test("Part 3 editorial pages keep factual RC Premier content and current channel
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Your property deserves the right presentation.",
+      name: "Thinking of selling your property?",
     }),
   ).toBeVisible();
-  for (const disclosure of ["Not a valuation", "Not a listing agreement"]) {
-    await expect(page.getByText(disclosure, { exact: true })).toBeVisible();
-  }
   await expect(
-    page.getByText("Keep sensitive documents private", { exact: true }),
+    page.getByRole("heading", { level: 2, name: "Tell us about your property." }),
   ).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Seller inquiry", exact: true }),
+    page.getByText(/does not create a valuation or listing agreement/),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Keep IDs and ownership documents out of this form/),
   ).toBeVisible();
 
   await page.goto("/contact");

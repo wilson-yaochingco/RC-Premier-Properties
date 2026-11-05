@@ -238,6 +238,11 @@ test("contact headline is upright and its actions share one arrow and roll inter
   await expect(heading).toHaveText("Let’s talk about your next move.");
   await expect(heading.locator("em")).toHaveCount(0);
   await expect(heading).toHaveCSS("font-style", "normal");
+  await expect(
+    page.getByText("Your details are used to respond to this inquiry.", {
+      exact: true,
+    }),
+  ).toBeVisible();
 
   const main = page.locator("main#main-content");
   const actions = [
@@ -544,26 +549,34 @@ test("paired mobile property actions share intentional geometry", async ({ page 
   expect(boxes[0]!.height).toBeGreaterThanOrEqual(44);
 });
 
-test("seller page explains the journey before a simplified typed form", async ({
+test("seller page opens with the inquiry form and maps its fields into the contract", async ({
   page,
 }) => {
   await page.goto("/sell");
   const sections = page.locator("main#main-content > section");
-  await expect(sections).toHaveCount(7);
-  await expect(sections.nth(5)).toHaveAttribute("id", "seller-inquiry");
-  await expect(
-    page.getByRole("link", { name: "Start a seller conversation" }),
-  ).toHaveAttribute("href", "#seller-inquiry");
+  await expect(sections).toHaveCount(5);
+  await expect(sections.nth(1)).toHaveAttribute("id", "seller-inquiry");
+  await expect(page.getByRole("link", { name: "Start your inquiry" })).toHaveAttribute(
+    "href",
+    "#seller-inquiry",
+  );
   await expect(page.getByLabel("Inquiry type")).toHaveCount(0);
   await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
   await expect(page.getByLabel(/Property location or area/)).toBeVisible();
   await expect(page.getByLabel(/Property details and message/)).toBeVisible();
-  await expect(page.getByText("Not a valuation", { exact: true })).toBeVisible();
+  await expect(page.getByText("A first conversation, not a commitment.")).toBeVisible();
+  await expect(
+    page.getByText("Your details are used to respond to this inquiry.", {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/^Residential properties in Pampanga$/i)).toHaveCount(0);
 
-  await page.getByLabel("Name").fill("Playwright Seller");
-  await page.getByLabel("Email").fill("seller@example.test");
-  await page.getByLabel("Phone", { exact: true }).fill("+63 917 555 0110");
+  await page.getByLabel("Full name").fill("Playwright Seller");
+  await page.getByLabel("Email address").fill("seller@example.test");
+  await page.getByLabel("Phone number").fill("+63 917 555 0110");
   await page.getByLabel(/Property location or area/).fill("Angeles City");
+  await page.getByLabel(/Property type/).selectOption("Townhouse");
   await page
     .getByLabel(/Property details and message/)
     .fill("A synthetic seller inquiry used only for browser testing.");
@@ -573,17 +586,17 @@ test("seller page explains the journey before a simplified typed form", async ({
       candidate.url().endsWith("/api/v1/inquiries") &&
       candidate.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Start the conversation" }).click();
+  await page.getByRole("button", { name: "Send seller inquiry" }).click();
   const request = (await response).request().postDataJSON();
   expect(request).toMatchObject({
     inquiryType: "selling",
     source: "sell-page",
-    subject: "Angeles City",
+    subject: "Townhouse · Angeles City",
   });
   expect(request).not.toHaveProperty("propertyId");
 });
 
-test("featured locations, the search and the collection lead to real routes", async ({
+test("featured locations and the curated collection lead to real routes", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -608,29 +621,33 @@ test("featured locations, the search and the collection lead to real routes", as
     ).toHaveAttribute("href", `/locations/${slug}`);
   }
   await expect(
-    page.getByAltText(
+    featured.getByAltText(
       "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
     ),
   ).toBeVisible();
 
-  // Sections 3 and 4 are the search strip and the collection; no explorer map remains.
+  // The four destinations stay available without a search section on this page.
   await expect(page.locator("#explore-modes")).toHaveCount(0);
   await expect(
     page.getByRole("search", { name: /Search properties by location/ }),
-  ).toBeVisible();
-  await expect(page.locator("[data-property-card]").first()).toHaveAttribute(
-    "data-variant",
-    "lead",
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Browse all properties" }).first(),
+  ).toHaveAttribute("href", "/properties");
+  await expect(page.locator("[data-featured-property-card]").first()).toHaveAttribute(
+    "href",
+    /^\/properties\//,
   );
 
   await page.goto("/locations/angeles-city");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
   await expect(
     page.getByRole("heading", { name: "Find a property in Angeles City." }),
   ).toBeVisible();
   await expect(
-    page.getByAltText(
-      "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
-    ),
+    page
+      .locator('section[aria-labelledby="location-title"]')
+      .getByAltText("Angeles City skyline and Mount Arayat beneath a pale sunset sky"),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Wikimedia Commons" })).toHaveAttribute(
     "href",

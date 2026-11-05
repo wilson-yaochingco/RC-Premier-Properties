@@ -21,9 +21,8 @@ interface InquiryFormProps {
   source: InquirySource;
   propertyId?: string;
   submitLabel?: string;
-  simplifiedSeller?: boolean;
-  /** `contact` is the art-directed Contact page layout; Sell keeps `default`. */
-  variant?: "default" | "contact";
+  /** `contact` is the art-directed Contact layout; `seller` is the Sell page's property inquiry. */
+  variant?: "default" | "contact" | "seller";
   /** Contact only: the listing the page resolved from `?propertyId=`. */
   property?: ViewingProperty;
   /** Contact only: why a `?propertyId=` could not be shown as a listing. */
@@ -43,6 +42,8 @@ const TYPE_LABELS: Record<InquiryType, string> = {
   viewing: "Viewing request",
   selling: "Sell a property",
 };
+
+const PROPERTY_TYPES = ["House & Lot", "Townhouse", "Lot/Land", "Other"] as const;
 
 const PHONE_PATTERN = /^[+()\d][+()\d\s.-]{5,28}[\d)]$/;
 
@@ -112,12 +113,12 @@ export function InquiryForm({
   source,
   propertyId,
   submitLabel = "Send inquiry",
-  simplifiedSeller = false,
   variant = "default",
   property,
   propertyIssue,
 }: InquiryFormProps) {
-  const contact = variant === "contact";
+  const seller = variant === "seller";
+  const contact = variant !== "default";
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -178,13 +179,19 @@ export function InquiryForm({
       return;
     }
     const selectedPropertyId = textValue(formData, "propertyId");
-    const subject = textValue(formData, "subject");
+    // The inquiry contract has no structured property fields, so a seller's location and
+    // type travel in the existing `subject`.
+    const subject = seller
+      ? [textValue(formData, "propertyType"), textValue(formData, "propertyLocation")]
+          .filter(Boolean)
+          .join(" · ")
+      : textValue(formData, "subject");
     const controller = new AbortController();
 
     const payload: CreateInquiryRequest = {
       name: textValue(formData, "name"),
       email: textValue(formData, "email"),
-      inquiryType: simplifiedSeller
+      inquiryType: seller
         ? "selling"
         : (textValue(formData, "inquiryType") as InquiryType),
       source,
@@ -212,7 +219,9 @@ export function InquiryForm({
       setMessageLength(0);
       setState({
         kind: "success",
-        message: "Thank you. RC Premier Properties will get back to you soon.",
+        message: seller
+          ? "Thank you. RC Premier Properties will review your inquiry and follow up using the contact details you provided."
+          : "Thank you. RC Premier Properties will get back to you soon.",
         inquiryId: response.inquiryId,
       });
     } catch (error) {
@@ -261,7 +270,7 @@ export function InquiryForm({
 
   const nameField = (
     <div className={`${styles.field} ${contact ? styles.wide : ""}`}>
-      <label htmlFor="inquiry-name">Name</label>
+      <label htmlFor="inquiry-name">{seller ? "Full name" : "Name"}</label>
       <input
         id="inquiry-name"
         name="name"
@@ -279,7 +288,7 @@ export function InquiryForm({
 
   const emailField = (
     <div className={styles.field}>
-      <label htmlFor="inquiry-email">Email</label>
+      <label htmlFor="inquiry-email">{seller ? "Email address" : "Email"}</label>
       <input
         id="inquiry-email"
         name="email"
@@ -298,7 +307,7 @@ export function InquiryForm({
 
   const phoneField = (
     <div className={styles.field}>
-      <label htmlFor="inquiry-phone">Phone</label>
+      <label htmlFor="inquiry-phone">{seller ? "Phone number" : "Phone"}</label>
       <input
         id="inquiry-phone"
         name="phone"
@@ -315,7 +324,7 @@ export function InquiryForm({
     </div>
   );
 
-  const typeField = simplifiedSeller ? (
+  const typeField = seller ? (
     <input type="hidden" name="inquiryType" value="selling" />
   ) : (
     <div className={styles.field}>
@@ -342,7 +351,7 @@ export function InquiryForm({
 
   // Contact never asks visitors for an internal ID: a listing arrives only through a
   // resolved `?propertyId=` link and travels with the form as a hidden value.
-  const propertyField = simplifiedSeller ? null : contact ? (
+  const propertyField = seller ? null : contact ? (
     carriedPropertyId ? (
       <input type="hidden" name="propertyId" value={carriedPropertyId} />
     ) : null
@@ -367,8 +376,7 @@ export function InquiryForm({
   const subjectField = (
     <div className={styles.field}>
       <label htmlFor="inquiry-subject">
-        {simplifiedSeller ? "Property location or area" : "Subject"}{" "}
-        <span className={styles.optional}>(optional)</span>
+        Subject <span className={styles.optional}>(optional)</span>
       </label>
       <input
         id="inquiry-subject"
@@ -382,26 +390,72 @@ export function InquiryForm({
     </div>
   );
 
+  const locationField = (
+    <div className={`${styles.field} ${styles.wide}`}>
+      <label htmlFor="inquiry-subject">Property location or area</label>
+      <input
+        id="inquiry-subject"
+        name="propertyLocation"
+        placeholder="e.g. Balibago, Angeles City"
+        autoComplete="off"
+        minLength={2}
+        maxLength={100}
+        required
+        aria-invalid={invalidFields.has("subject")}
+        aria-describedby={describedBy("subject")}
+      />
+      <FieldError field="subject" issue={issueFor("subject")} />
+    </div>
+  );
+
+  const propertyTypeField = (
+    <div className={`${styles.field} ${styles.wide}`}>
+      <label htmlFor="inquiry-property-type">
+        Property type <span className={styles.optional}>(optional)</span>
+      </label>
+      <select id="inquiry-property-type" name="propertyType" defaultValue="">
+        <option value="">Select a type</option>
+        {PROPERTY_TYPES.map((type) => (
+          <option key={type} value={type}>
+            {type}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   const messageField = (
     <div className={`${styles.field} ${styles.wide}`}>
       <label htmlFor="inquiry-message">
-        {simplifiedSeller ? "Property details and message" : "Message"}
+        {seller ? "Property details and message" : "Message"}
       </label>
       <textarea
         id="inquiry-message"
         name="message"
         placeholder={
-          contact
-            ? "Tell us what you are looking for or what you would like to know."
-            : undefined
+          seller
+            ? "Approximate lot or floor area, current condition, and what you would like to discuss."
+            : contact
+              ? "Tell us what you are looking for or what you would like to know."
+              : undefined
         }
         minLength={10}
         maxLength={2000}
         required
         onChange={(event) => setMessageLength(event.target.value.length)}
         aria-invalid={invalidFields.has("message")}
-        aria-describedby={describedBy("message", "inquiry-message-count")}
+        aria-describedby={describedBy(
+          "message",
+          seller ? "inquiry-message-hint" : undefined,
+          "inquiry-message-count",
+        )}
       />
+      {seller ? (
+        <span id="inquiry-message-hint" className={styles.hint}>
+          Share only what you are comfortable with. Please do not include ID or
+          ownership documents.
+        </span>
+      ) : null}
       <span id="inquiry-message-count" className={styles.counter}>
         {messageLength} of 2000 characters
       </span>
@@ -429,7 +483,9 @@ export function InquiryForm({
           <path d="m7.5 12.5 3 3 6-7" />
         </svg>
         <h3 ref={successTitleRef} tabIndex={-1} className={styles.doneTitle}>
-          Inquiry submitted successfully.
+          {seller
+            ? "Thank you. Your inquiry is in."
+            : "Inquiry submitted successfully."}
         </h3>
         <p className={styles.doneCopy}>{state.message}</p>
         {state.inquiryId ? (
@@ -438,8 +494,8 @@ export function InquiryForm({
           </p>
         ) : null}
         <div className={styles.doneActions}>
-          <Link href="/properties" className={`${styles.submit} cta`}>
-            <RollLabel>Browse properties</RollLabel>
+          <Link href={seller ? "/" : "/properties"} className={`${styles.submit} cta`}>
+            <RollLabel>{seller ? "Back to home" : "Browse properties"}</RollLabel>
             <ArrowIcon />
           </Link>
           {property && !contextDropped ? (
@@ -504,9 +560,15 @@ export function InquiryForm({
             {emailField}
             {phoneField}
           </Group>
-          <Group enabled title="Your inquiry">
+          <Group enabled title={seller ? "About your property" : "Your inquiry"}>
+            {seller ? (
+              <>
+                {locationField}
+                {propertyTypeField}
+              </>
+            ) : null}
             {typeField}
-            {subjectField}
+            {seller ? null : subjectField}
             {propertyField}
             {messageField}
           </Group>
@@ -633,9 +695,11 @@ export function InquiryForm({
             <RollLabel>{state.kind === "pending" ? "Sending…" : submitLabel}</RollLabel>
             <ArrowIcon />
           </button>
-          <p className={styles.submitNote}>
-            Your details are used to respond to this inquiry.
-          </p>
+          {seller ? null : (
+            <p className={styles.submitNote}>
+              Your details are used to respond to this inquiry.
+            </p>
+          )}
         </div>
       ) : (
         <button

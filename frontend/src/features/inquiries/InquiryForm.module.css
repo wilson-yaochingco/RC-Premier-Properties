@@ -366,6 +366,12 @@
   font-size: 0.75rem;
 }
 
+.contact .hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
 .contact .fieldError {
   color: #8f2a2a;
   font-size: 0.8125rem;

@@ -1,5 +1,5 @@
-/* /locations — centred architectural opening, one dominant photographic mosaic, a compact
-   light explorer and dynamic homes by location. */
+/* /locations — centred architectural opening, one dominant photographic mosaic, a curated
+   editorial property collection. */
 .page {
   --ink: var(--color-brand-deep);
   --panel: #202630;
@@ -113,9 +113,7 @@
 
 .primaryAction:focus-visible,
 .quietAction:focus-visible,
-.heroAction:focus-visible,
-.searchSubmit:focus-visible,
-.searchClear:focus-visible {
+.heroAction:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
@@ -186,7 +184,7 @@
 /* ---- 2. Featured locations (light page, photographic mosaic) ---- */
 .featured {
   scroll-margin-top: 5.5rem;
-  padding: clamp(1.25rem, 3vw, 2.25rem) var(--gutter) clamp(3rem, 6vw, 5rem);
+  padding: clamp(1.25rem, 3vw, 2.25rem) var(--gutter) 0;
 }
 
 .featuredInner {
@@ -280,30 +278,6 @@
   text-shadow: 0 1px 2px rgb(0 0 0 / 40%);
 }
 
-.tileCount {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--color-accent-soft, #d3b878);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.tileCount::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  flex: none;
-  background: currentColor;
-  transform: rotate(45deg);
-}
-
-.tileCount[data-state="unavailable"] {
-  color: rgb(255 255 255 / 78%);
-}
-
 .tileName {
   font-size: clamp(1.5rem, 2.3vw, 2rem);
   font-weight: 600;
@@ -343,241 +317,7 @@
   }
 }
 
-/* Attribution stays available without a long caption in the layout. */
-.credits {
-  margin-top: 1rem;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  line-height: 1.7;
-}
-
-.credits summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: var(--rule-strong);
-  text-underline-offset: 0.25em;
-}
-
-.credits summary:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
-.credits p {
-  max-width: 60rem;
-}
-
-.credits a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-/* ---- 3. Refine the search ---- */
-.refine {
-  padding: clamp(3rem, 6vw, 5.5rem) var(--gutter) clamp(4rem, 7vw, 6rem);
-  border-block: 1px solid var(--rule);
-  background: var(--color-surface);
-}
-
-.refineInner {
-  max-width: var(--stage);
-  margin-inline: auto;
-}
-
-.refineHead {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr);
-  align-items: end;
-  gap: 1.5rem clamp(2rem, 6vw, 6rem);
-}
-
-.refineTitleGroup {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.refineTitle {
-  max-width: 13em;
-  color: var(--ink);
-  font-size: clamp(2.25rem, 4.6vw, 4.25rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  text-wrap: balance;
-}
-
-.refineLede {
-  max-width: 26rem;
-  color: var(--color-text-muted);
-  font-size: clamp(1rem, 1.2vw, 1.0625rem);
-  line-height: 1.6;
-  text-wrap: pretty;
-}
-
-.search {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: clamp(2rem, 4vw, 3rem);
-  border: 1px solid var(--rule-strong);
-  border-radius: 14px 0 14px 0;
-  background: var(--color-background);
-}
-
-.searchFields {
-  display: grid;
-  grid-template-columns: 1.35fr 1fr 1fr 0.8fr;
-  min-width: 0;
-}
-
-.searchField {
-  display: grid;
-  align-content: center;
-  gap: 0.25rem;
-  min-width: 0;
-  padding: 1rem 1.4rem;
-  border-left: 1px solid var(--rule);
-  transition: background-color 200ms var(--ease);
-}
-
-.searchField:first-child {
-  border-left: 0;
-}
-
-.searchField:focus-within,
-.searchField:hover {
-  background: #fff;
-}
-
-.searchField label {
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.selectWrap {
-  position: relative;
-}
-
-.selectWrap select {
-  width: 100%;
-  min-height: 44px;
-  padding: 0.3rem 1.6rem 0.3rem 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  appearance: none;
-}
-
-.selectWrap select:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
-.selectChevron {
-  position: absolute;
-  top: 50%;
-  right: 0.1rem;
-  width: 12px;
-  height: 12px;
-  color: var(--ink);
-  pointer-events: none;
-  transform: translateY(-50%);
-}
-
-.searchActions {
-  display: grid;
-  align-items: center;
-  padding: 0.75rem;
-  border-left: 1px solid var(--rule);
-}
-
-.searchSubmit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  min-height: 3.5rem;
-  padding-inline: 1.9rem;
-  border: 0;
-  border-radius: var(--radius-cta);
-  background: var(--panel);
-  color: var(--color-background);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.searchSubmit svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  transform: rotate(-45deg);
-  transition: transform 220ms var(--ease);
-}
-
-.searchSubmit:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
-.searchSubmit:focus-visible svg {
-  transform: rotate(0deg);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .searchSubmit:hover svg {
-    transform: rotate(0deg);
-  }
-}
-
-/* Out of flow, so choosing a filter never shifts the layout. */
-.searchClear {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  right: 0;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--rule-strong);
-  text-underline-offset: 0.3em;
-  cursor: pointer;
-}
-
-.searchClear:is(:hover, :focus-visible) {
-  text-decoration-color: currentColor;
-}
-
-.searchClear:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
-/* ---- 4. Current collection ---- */
+/* ---- 3. Current collection ---- */
 .collection {
   padding: clamp(3.5rem, 7vw, 6rem) var(--gutter) clamp(3.5rem, 7vw, 6rem);
 }
@@ -607,558 +347,86 @@
   line-height: 1.6;
 }
 
-/* One lead listing beside up to three supporting ones. */
-.showcase {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: clamp(1rem, 2vw, 1.5rem);
-  align-items: stretch;
-}
-
-.showcase[data-count="1"] {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* Two listings carry equal weight; the first still leads. */
-.showcase[data-count="2"] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.showcaseAside {
-  display: grid;
-  grid-auto-rows: 1fr;
-  gap: clamp(1rem, 2vw, 1.5rem);
-  min-width: 0;
-}
-
-.showcaseNote {
-  margin-top: 1.1rem;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-}
-
-.propCard {
-  display: grid;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  border-radius: 14px 0 14px 0;
-  background: var(--color-surface);
-  transition:
-    border-color 220ms var(--ease),
-    box-shadow 220ms var(--ease);
-}
-
-.propCard:is(:hover, :focus-within) {
-  border-color: var(--rule-strong);
-  box-shadow: 0 24px 44px -34px rgb(32 38 48 / 45%);
-}
-
-.propLink {
-  display: grid;
-  min-width: 0;
-  color: var(--ink);
-}
-
-.propLink:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -4px;
-}
-
-.propMedia {
-  position: relative;
-  display: block;
-  min-height: 9rem;
-  overflow: hidden;
-  background: #ece7dd;
-}
-
-.propMedia :global(.property-media),
-.propMedia :global(.media-placeholder) {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  min-height: 0;
-  border: 0;
-}
-
-.propMedia img {
-  object-fit: cover;
-  transition: transform 600ms var(--ease);
-}
-
-.propCard:is(:hover, :focus-within) .propMedia img {
-  transform: scale(1.02);
-}
-
-.propBody {
-  display: grid;
-  align-content: start;
-  gap: 0.35rem;
-  min-width: 0;
-  padding: 1.15rem 1.35rem 1.25rem;
-}
-
-.propType {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.6rem;
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.propTag {
-  padding: 0.2rem 0.45rem;
-  border-radius: 4px 0 4px 0;
-  background: var(--panel);
-  color: #f8f6f1;
-  font-size: 0.625rem;
-  letter-spacing: 0.1em;
-  line-height: 1;
-}
-
-.propPrice {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  overflow-wrap: anywhere;
-}
-
-.propTitle {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.propLocation {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.propFoot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-top: 0.6rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--rule);
-}
-
-.propSpecs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.9rem;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-}
-
-.propSpecs > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.propSpecs svg {
-  width: 16px;
-  height: 16px;
-}
-
-.propAction {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.propAction svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  transform: rotate(-45deg);
-  transition: transform 220ms var(--ease);
-}
-
-.propLink:focus-visible .propAction svg {
-  transform: rotate(0deg);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .propLink:hover .propAction svg {
-    transform: rotate(0deg);
-  }
-}
-
-/* Lead card: a tall image (or typographic plate) over the details. */
-.propCard[data-variant="lead"] {
-  height: 100%;
-}
-
-.propCard[data-variant="lead"] .propLink {
-  grid-template-rows: minmax(16rem, 1fr) auto;
-  height: 100%;
-}
-
-.propCard[data-variant="lead"] .propBody {
-  padding: 1.35rem 1.6rem 1.5rem;
-}
-
-.propCard[data-variant="lead"] .propPrice {
-  font-size: clamp(1.75rem, 2.8vw, 2.5rem);
-}
-
-.propCard[data-variant="lead"] .propTitle {
-  font-size: 1.1875rem;
-}
-
-/* Typography-led stand-in for a missing photograph: a deliberate composition, not an
-   empty image slot. The faint line drawing is the Locations brand illustration. */
-.plate {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-height: 16rem;
-  padding: clamp(1.25rem, 2.4vw, 1.75rem);
-  overflow: hidden;
-  background: #ece6d9;
-  isolation: isolate;
-}
-
-.plate::before {
-  content: "";
-  position: absolute;
-  inset: auto -6% -4% -6%;
-  z-index: -1;
-  height: 78%;
-  background: url("/images/locations/hero-elevation.svg") center bottom / contain
-    no-repeat;
-  opacity: 0.4;
-}
-
-.plateMark {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--ink);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.plateMark::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  flex: none;
-  background: currentColor;
-  transform: rotate(45deg);
-}
-
-.plateName {
-  max-width: 10em;
-  color: var(--ink);
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
-}
-
-/* A single listing becomes one wide horizontal feature. */
-.showcase[data-count="1"] .propCard[data-variant="lead"] .propLink {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  grid-template-rows: none;
-}
-
-.showcase[data-count="1"] .propCard[data-variant="lead"] .propBody {
-  align-content: center;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
-}
-
-/* Supporting cards: image beside the details, or text only without a photograph. */
-.propCard[data-variant="compact"] .propLink {
-  height: 100%;
-}
-
-.propCard[data-variant="compact"][data-media="image"] .propLink {
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-}
-
-.propCard[data-variant="compact"] .propBody {
-  align-content: center;
-  padding: 1rem 1.25rem;
-}
-
-.propCard[data-variant="compact"] .propPrice {
-  font-size: 1.375rem;
-}
-
-.propCard[data-variant="compact"] .propFoot {
-  margin-top: 0.4rem;
-  padding-top: 0.55rem;
-}
-
-.propCard[data-variant="compact"] .propAction {
-  display: none;
-}
-
-/* ---- Empty and unavailable states ---- */
 .state {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  align-items: center;
-  gap: 1.5rem 2rem;
-  min-height: 15rem;
-  padding: clamp(1.75rem, 4vw, 3rem);
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  border-radius: 22px 0 22px 0;
-  background: #fff;
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-block: 1.5rem;
+  text-align: center;
 }
-
 .stateCopy {
   display: grid;
-  justify-items: start;
-  gap: 0.9rem;
-  min-width: 0;
+  justify-items: center;
+  gap: 1rem;
 }
-
 .stateCopy h3 {
-  max-width: 22ch;
-  color: var(--ink);
-  font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+  max-width: 24ch;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
   font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
-
 .stateCopy p {
   max-width: 34rem;
   color: var(--color-text-muted);
   line-height: 1.6;
 }
-
 .stateEyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--ink) !important;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
-
-.stateEyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: currentColor;
-  transform: rotate(45deg);
-}
-
 .stateActions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  justify-content: center;
   gap: 0.75rem 1rem;
-  margin-top: 0.5rem;
 }
-
-/* The brand illustration, faint, balances the copy of a confirmed-empty state. */
-.stateArt {
-  align-self: stretch;
-  min-height: 11rem;
-  background: url("/images/locations/hero-elevation.svg") center bottom / contain
-    no-repeat;
-  opacity: 0.45;
-}
-
-/* ---- Recomposition ---- */
 @media (max-width: 63.99rem) {
   .mosaic {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: 24rem 16rem 15rem;
   }
-
   .tile[data-tile="angeles-city"] {
     grid-column: 1 / -1;
     grid-row: 1;
   }
-
   .tile[data-tile="mabalacat-city"] {
     grid-column: 1 / -1;
     grid-row: 2;
   }
-
   .tile[data-tile="magalang"] {
     grid-column: 1;
     grid-row: 3;
   }
-
   .tile[data-tile="porac"] {
     grid-column: 2;
     grid-row: 3;
   }
-
-  .refineHead {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* Four fields in a 2 x 2 grid, with the action beneath. */
-  .search {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .searchFields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .searchField:nth-child(odd) {
-    border-left: 0;
-  }
-
-  .searchField:nth-child(n + 3) {
-    border-top: 1px solid var(--rule);
-  }
-
-  .searchActions {
-    border-top: 1px solid var(--rule);
-    border-left: 0;
-  }
-
-  .searchSubmit {
-    width: 100%;
-  }
-
-  .showcase {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .showcase[data-count="2"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .showcaseAside {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: auto;
-    align-items: start;
-  }
-
-  .showcase[data-count="2"] .showcaseAside {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .propCard[data-variant="compact"][data-media="image"] .propLink {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .propCard[data-variant="compact"] .propMedia {
-    aspect-ratio: 16 / 10;
-    min-height: 0;
-  }
 }
-
-@media (max-width: 47.99rem) {
-  .showcase[data-count="2"] {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .showcase[data-count="1"] .propCard[data-variant="lead"] .propLink {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(14rem, auto) auto;
-  }
-
-  .showcaseAside {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .state {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .stateArt {
-    display: none;
-  }
-}
-
 @media (max-width: 39.99rem) {
   .hero {
     --art-w: 46rem;
     padding-top: 2rem;
   }
-
   .mosaic {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 23rem repeat(3, 16rem);
   }
-
   .tile[data-tile] {
     grid-column: 1;
     grid-row: auto;
   }
-
-  .searchFields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .searchField {
-    border-left: 0;
-    border-top: 1px solid var(--rule);
-  }
-
-  .searchField:first-child {
-    border-top: 0;
-  }
-
-  .propCard[data-variant="lead"] .propLink {
-    grid-template-rows: minmax(13rem, auto) auto;
-  }
-
-  .stateActions .primaryAction {
-    width: 100%;
-  }
 }
-
 @media (prefers-reduced-motion: reduce) {
   .tileImage,
-  .propMedia img,
   .primaryAction svg,
   .quietAction svg,
   .heroAction svg,
-  .tileAction svg,
-  .searchSubmit svg,
-  .propAction svg,
-  .searchField {
+  .tileAction svg {
     transition: none;
   }
-
-  .tileLink:hover .tileImage,
-  .propCard:hover .propMedia img {
+  .tileLink:hover .tileImage {
     transform: none;
   }
 }
