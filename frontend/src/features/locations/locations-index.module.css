@@ -10,8 +10,7 @@
   overflow-x: clip;
 }
 
-.eyebrow,
-.eyebrowLight {
+.eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
@@ -25,12 +24,7 @@
   color: var(--ink);
 }
 
-.eyebrowLight {
-  color: var(--color-accent-soft, #d3b878);
-}
-
-.eyebrow::before,
-.eyebrowLight::before {
+.eyebrow::before {
   content: "";
   width: 6px;
   height: 6px;
@@ -39,8 +33,7 @@
   transform: rotate(45deg);
 }
 
-.sectionTitle,
-.sectionTitleLight {
+.sectionTitle {
   font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 600;
   line-height: 1;
@@ -50,10 +43,6 @@
 
 .sectionTitle {
   color: var(--ink);
-}
-
-.sectionTitleLight {
-  color: var(--color-background);
 }
 
 /* ---- Shared actions: up-right arrow that straightens on hover/focus ---- */
@@ -125,21 +114,22 @@
 .primaryAction:focus-visible,
 .quietAction:focus-visible,
 .heroAction:focus-visible,
-.selectorButton:focus-visible,
-.areaTab:focus-visible {
+.searchSubmit:focus-visible,
+.searchClear:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
 /* ---- 1. Hero ---- */
 .hero {
+  /* The villa (1600 x 740) sets the hero's height: its roofline lands just under the lede. */
+  --art-w: clamp(50rem, 94vw, 84rem);
   position: relative;
   isolation: isolate;
   display: grid;
   justify-items: center;
   align-content: start;
-  min-height: clamp(34rem, 76svh, 41rem);
-  padding: clamp(2.5rem, 5vw, 4.25rem) var(--gutter) clamp(2.5rem, 5vw, 4rem);
+  padding: clamp(2.5rem, 5vw, 4.25rem) var(--gutter) calc(var(--art-w) * 0.305 - 1.5rem);
   overflow: hidden;
   text-align: center;
 }
@@ -175,51 +165,28 @@
   margin-top: 0.75rem;
 }
 
+/* The supplied architectural elevation (public/images/locations/hero-elevation.svg), drawn
+   as a decorative background image: inert, hidden from assistive tech, set low behind the
+   copy. Only its size, position and opacity are adjusted here. */
 .heroArt {
   position: absolute;
   left: 50%;
-  bottom: clamp(-3.75rem, -4vw, -1.5rem);
+  bottom: 0;
   z-index: 0;
-  width: clamp(46rem, 98vw, 76rem);
+  width: var(--art-w);
+  aspect-ratio: 1600 / 740;
+  background: url("/images/locations/hero-elevation.svg") center bottom / contain
+    no-repeat;
+  opacity: 0.5;
   transform: translateX(-50%);
   pointer-events: none;
   user-select: none;
 }
 
-.house {
-  display: block;
-  width: 100%;
-  height: auto;
-  color: var(--ink);
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1;
-}
-
-.house :is(path, line, circle, rect) {
-  vector-effect: non-scaling-stroke;
-}
-
-.houseStructure {
-  stroke-opacity: 0.3;
-}
-
-.houseDetail {
-  stroke-opacity: 0.2;
-}
-
-.houseContext {
-  stroke-opacity: 0.12;
-}
-
-/* ---- 2. Featured locations ---- */
+/* ---- 2. Featured locations (light page, photographic mosaic) ---- */
 .featured {
   scroll-margin-top: 5.5rem;
-  padding: clamp(3rem, 6vw, 5.5rem) var(--gutter) clamp(2rem, 4vw, 3rem);
-  background: var(--panel);
-  color: var(--color-background);
+  padding: clamp(1.25rem, 3vw, 2.25rem) var(--gutter) clamp(3rem, 6vw, 5rem);
 }
 
 .featuredInner {
@@ -227,10 +194,14 @@
   margin-inline: auto;
 }
 
-.featuredHead {
-  display: grid;
-  gap: 1.1rem;
-  margin-bottom: clamp(1.75rem, 3.5vw, 2.75rem);
+/* The section heading is kept for assistive technology only; the mosaic stands alone. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .mosaic {
@@ -245,7 +216,8 @@
   min-width: 0;
   overflow: hidden;
   border-radius: 14px 0 14px 0;
-  background: #2b3240;
+  background: #d9d3c6;
+  box-shadow: 0 28px 50px -38px rgb(32 38 48 / 45%);
 }
 
 .tile[data-tile="angeles-city"] {
@@ -277,8 +249,9 @@
 }
 
 .tileLink:focus-visible {
-  outline: 2px solid var(--color-accent-soft, #d3b878);
-  outline-offset: -4px;
+  outline: 2px solid var(--ink);
+  outline-offset: -5px;
+  box-shadow: inset 0 0 0 5px #fff;
 }
 
 .tileImage {
@@ -292,19 +265,19 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgb(18 22 28 / 82%) 0%,
-    rgb(18 22 28 / 46%) 46%,
-    transparent 78%
+    rgb(18 22 28 / 90%) 0%,
+    rgb(18 22 28 / 66%) 48%,
+    transparent 86%
   );
 }
 
 .tileBody {
-  text-shadow: 0 1px 2px rgb(0 0 0 / 40%);
   position: absolute;
   inset: auto 0 0 0;
   display: grid;
   gap: 0.4rem;
   padding: clamp(1.1rem, 2vw, 1.75rem);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 40%);
 }
 
 .tileCount {
@@ -346,7 +319,7 @@
   display: -webkit-box;
   max-width: 26rem;
   overflow: hidden;
-  color: rgb(255 255 255 / 86%);
+  color: rgb(255 255 255 / 88%);
   font-size: 0.875rem;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -370,105 +343,117 @@
   }
 }
 
+/* Attribution stays available without a long caption in the layout. */
 .credits {
-  margin-top: 1.25rem;
-  color: rgb(248 246 241 / 62%);
+  margin-top: 1rem;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   line-height: 1.7;
+}
+
+.credits summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.25em;
+}
+
+.credits summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.credits p {
+  max-width: 60rem;
 }
 
 .credits a {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: rgb(248 246 241 / 30%);
   text-underline-offset: 0.2em;
 }
 
-.credits a:is(:hover, :focus-visible) {
-  text-decoration-color: currentColor;
+/* ---- 3. Refine the search ---- */
+.refine {
+  padding: clamp(3rem, 6vw, 5.5rem) var(--gutter) clamp(4rem, 7vw, 6rem);
+  border-block: 1px solid var(--rule);
+  background: var(--color-surface);
 }
 
-/* ---- 3. Explorer ---- */
-.explorer {
-  padding: clamp(3.5rem, 7vw, 6rem) var(--gutter) clamp(2.5rem, 5vw, 4rem);
-}
-
-.explorerInner {
+.refineInner {
   max-width: var(--stage);
   margin-inline: auto;
 }
 
-.explorerHead {
+.refineHead {
   display: grid;
-  gap: 1.1rem;
-  max-width: 40rem;
-  margin-bottom: clamp(1.75rem, 3.5vw, 2.5rem);
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr);
+  align-items: end;
+  gap: 1.5rem clamp(2rem, 6vw, 6rem);
 }
 
-.explorerGrid {
+.refineTitleGroup {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: clamp(1.5rem, 4vw, 4rem);
-  align-items: start;
+  gap: 1.25rem;
 }
 
-.explorerControls {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.selector {
-  display: grid;
-  border-top: 1px solid var(--rule);
-}
-
-.selectorButton,
-.areaTab {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 3.5rem;
-  padding: 0.75rem 0;
-  border: 0;
-  border-bottom: 1px solid var(--rule);
-  background: transparent;
+.refineTitle {
+  max-width: 13em;
   color: var(--ink);
-  font: inherit;
-  font-size: 1.0625rem;
+  font-size: clamp(2.25rem, 4.6vw, 4.25rem);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  text-align: left;
-  cursor: pointer;
-  transition: padding 240ms var(--ease);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
 }
 
-.selectorButton[aria-pressed="true"] {
-  padding-inline: 0.9rem;
-  border-bottom-color: var(--ink);
-  background: #fff;
-}
-
-.selectorCount,
-.areaTabCount {
+.refineLede {
+  max-width: 26rem;
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-align: right;
+  font-size: clamp(1rem, 1.2vw, 1.0625rem);
+  line-height: 1.6;
+  text-wrap: pretty;
 }
 
-.panel {
+.search {
+  position: relative;
   display: grid;
-  justify-items: start;
-  gap: 0.75rem;
-  padding: clamp(1.25rem, 2.4vw, 1.75rem);
-  border: 1px solid var(--rule);
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  border: 1px solid var(--rule-strong);
   border-radius: 14px 0 14px 0;
+  background: var(--color-background);
+}
+
+.searchFields {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 0.8fr;
+  min-width: 0;
+}
+
+.searchField {
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 1rem 1.4rem;
+  border-left: 1px solid var(--rule);
+  transition: background-color 200ms var(--ease);
+}
+
+.searchField:first-child {
+  border-left: 0;
+}
+
+.searchField:focus-within,
+.searchField:hover {
   background: #fff;
 }
 
-.panelEyebrow {
+.searchField label {
   color: var(--color-text-muted);
   font-size: 0.6875rem;
   font-weight: 600;
@@ -476,238 +461,492 @@
   text-transform: uppercase;
 }
 
-.panelTitle {
-  color: var(--ink);
-  font-size: clamp(1.5rem, 2.4vw, 2rem);
-  font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.035em;
-}
-
-.panelText {
-  max-width: 28rem;
-  color: var(--color-text-muted);
-  line-height: 1.6;
-}
-
-.panelInventory {
-  color: var(--ink);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.panelInventory[data-state="unavailable"] {
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
-.mapCard {
-  display: grid;
-  gap: 0.9rem;
-  padding: clamp(1rem, 2vw, 1.5rem);
-  border: 1px solid var(--rule);
-  border-radius: 22px 0 22px 0;
-  background: #fff;
-}
-
-.mapWrap {
+.selectWrap {
   position: relative;
-  width: min(100%, 36rem);
-  margin-inline: auto;
 }
 
-.map {
-  display: block;
+.selectWrap select {
   width: 100%;
-  height: auto;
+  min-height: 44px;
+  padding: 0.3rem 1.6rem 0.3rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  appearance: none;
 }
 
-.area {
-  fill: #ece7dd;
-  stroke: #fff;
-  stroke-width: 1.2;
-  transition: fill 200ms var(--ease);
+.selectWrap select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
-.area[data-featured="true"] {
-  fill: #c9bfa8;
+.selectChevron {
+  position: absolute;
+  top: 50%;
+  right: 0.1rem;
+  width: 12px;
+  height: 12px;
+  color: var(--ink);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.searchActions {
+  display: grid;
+  align-items: center;
+  padding: 0.75rem;
+  border-left: 1px solid var(--rule);
+}
+
+.searchSubmit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding-inline: 1.9rem;
+  border: 0;
+  border-radius: var(--radius-cta);
+  background: var(--panel);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.area[data-active="true"] {
-  fill: var(--panel);
-}
-
-.outline {
-  fill: none;
-  stroke: rgb(32 38 48 / 40%);
-  stroke-width: 1.4;
-  pointer-events: none;
-}
-
-.pin {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-
-.pinDot {
-  width: 9px;
-  height: 9px;
+.searchSubmit svg {
+  width: 14px;
+  height: 14px;
   flex: none;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: var(--panel);
-  box-shadow: 0 0 0 1px rgb(32 38 48 / 40%);
+  transform: rotate(-45deg);
+  transition: transform 220ms var(--ease);
 }
 
-.pinLabel {
+.searchSubmit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.searchSubmit:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .searchSubmit:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+/* Out of flow, so choosing a filter never shifts the layout. */
+.searchClear {
   position: absolute;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px 0 4px 0;
-  background: #fff;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--ink);
-  font-size: 0.6875rem;
+  font: inherit;
+  font-size: 0.8125rem;
   font-weight: 600;
-  line-height: 1.3;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgb(32 38 48 / 18%);
-}
-
-.pin[data-side="right"] .pinLabel {
-  left: 16px;
-}
-
-.pin[data-side="left"] .pinLabel {
-  right: 16px;
-}
-
-.pin[data-side="below"] .pinLabel {
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.pin[data-active="true"] .pinDot {
-  background: var(--color-accent, #b4893d);
-}
-
-.pin[data-active="true"] .pinLabel {
-  background: var(--panel);
-  color: #fff;
-}
-
-.sourceNote {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
-.sourceNote a {
-  color: inherit;
   text-decoration: underline;
-  text-underline-offset: 0.2em;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.3em;
+  cursor: pointer;
 }
 
-/* ---- 4. Homes by location ---- */
-.homes {
-  padding: clamp(2.5rem, 5vw, 4rem) var(--gutter) clamp(3.5rem, 7vw, 6rem);
+.searchClear:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
 }
 
-.homesInner {
+.searchClear:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ---- 4. Current collection ---- */
+.collection {
+  padding: clamp(3.5rem, 7vw, 6rem) var(--gutter) clamp(3.5rem, 7vw, 6rem);
+}
+
+.collectionInner {
   max-width: var(--stage);
   margin-inline: auto;
 }
 
-.homesHead {
+.collectionHead {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.25rem 2rem;
-  margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  margin-bottom: clamp(1.75rem, 3.5vw, 2.5rem);
 }
 
-.homesHeadCopy {
+.collectionCopy {
   display: grid;
   gap: 1.1rem;
 }
 
-.homesBody {
+.collectionLede {
+  max-width: 28rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* One lead listing beside up to three supporting ones. */
+.showcase {
   display: grid;
-  gap: 1.75rem;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: stretch;
 }
 
-.areaTabs {
+.showcase[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Two listings carry equal weight; the first still leads. */
+.showcase[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.showcaseAside {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid var(--rule);
+  grid-auto-rows: 1fr;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  min-width: 0;
 }
 
-.areaTab {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.15rem;
-  min-height: 4.25rem;
-  padding: 0.85rem 1rem 0.85rem 0;
+.showcaseNote {
+  margin-top: 1.1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
 }
 
-.areaTab[aria-pressed="true"] {
-  border-bottom: 2px solid var(--ink);
-}
-
-.areaTab:not([aria-pressed="true"]) .areaTabCount {
-  opacity: 0.85;
-}
-
-.areaTabCount {
-  text-align: left;
-}
-
-.homesPanel {
+.propCard {
   display: grid;
-  gap: 1.5rem;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 14px 0 14px 0;
+  background: var(--color-surface);
+  transition:
+    border-color 220ms var(--ease),
+    box-shadow 220ms var(--ease);
 }
 
-.homesPanel[hidden] {
-  display: none;
+.propCard:is(:hover, :focus-within) {
+  border-color: var(--rule-strong);
+  box-shadow: 0 24px 44px -34px rgb(32 38 48 / 45%);
 }
 
-.homesPanelHead {
+.propLink {
+  display: grid;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.propLink:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -4px;
+}
+
+.propMedia {
+  position: relative;
+  display: block;
+  min-height: 9rem;
+  overflow: hidden;
+  background: #ece7dd;
+}
+
+.propMedia :global(.property-media),
+.propMedia :global(.media-placeholder) {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+}
+
+.propMedia img {
+  object-fit: cover;
+  transition: transform 600ms var(--ease);
+}
+
+.propCard:is(:hover, :focus-within) .propMedia img {
+  transform: scale(1.02);
+}
+
+.propBody {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 1.15rem 1.35rem 1.25rem;
+}
+
+.propType {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.propTag {
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px 0 4px 0;
+  background: var(--panel);
+  color: #f8f6f1;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.propPrice {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.propTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.propLocation {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.propFoot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem 1.5rem;
+  gap: 0.5rem 1rem;
+  margin-top: 0.6rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
 }
 
-.homesPanelHead > p {
+.propSpecs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
   color: var(--color-text-muted);
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
 }
 
-.homesGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(1rem, 2vw, 1.5rem);
+.propSpecs > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
+.propSpecs svg {
+  width: 16px;
+  height: 16px;
+}
+
+.propAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.propAction svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform 220ms var(--ease);
+}
+
+.propLink:focus-visible .propAction svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .propLink:hover .propAction svg {
+    transform: rotate(0deg);
+  }
+}
+
+/* Lead card: a tall image (or typographic plate) over the details. */
+.propCard[data-variant="lead"] {
+  height: 100%;
+}
+
+.propCard[data-variant="lead"] .propLink {
+  grid-template-rows: minmax(16rem, 1fr) auto;
+  height: 100%;
+}
+
+.propCard[data-variant="lead"] .propBody {
+  padding: 1.35rem 1.6rem 1.5rem;
+}
+
+.propCard[data-variant="lead"] .propPrice {
+  font-size: clamp(1.75rem, 2.8vw, 2.5rem);
+}
+
+.propCard[data-variant="lead"] .propTitle {
+  font-size: 1.1875rem;
+}
+
+/* Typography-led stand-in for a missing photograph: a deliberate composition, not an
+   empty image slot. The faint line drawing is the Locations brand illustration. */
+.plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 16rem;
+  padding: clamp(1.25rem, 2.4vw, 1.75rem);
+  overflow: hidden;
+  background: #ece6d9;
+  isolation: isolate;
+}
+
+.plate::before {
+  content: "";
+  position: absolute;
+  inset: auto -6% -4% -6%;
+  z-index: -1;
+  height: 78%;
+  background: url("/images/locations/hero-elevation.svg") center bottom / contain
+    no-repeat;
+  opacity: 0.4;
+}
+
+.plateMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.plateMark::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: none;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.plateName {
+  max-width: 10em;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+/* A single listing becomes one wide horizontal feature. */
+.showcase[data-count="1"] .propCard[data-variant="lead"] .propLink {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-rows: none;
+}
+
+.showcase[data-count="1"] .propCard[data-variant="lead"] .propBody {
+  align-content: center;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+/* Supporting cards: image beside the details, or text only without a photograph. */
+.propCard[data-variant="compact"] .propLink {
+  height: 100%;
+}
+
+.propCard[data-variant="compact"][data-media="image"] .propLink {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.propCard[data-variant="compact"] .propBody {
+  align-content: center;
+  padding: 1rem 1.25rem;
+}
+
+.propCard[data-variant="compact"] .propPrice {
+  font-size: 1.375rem;
+}
+
+.propCard[data-variant="compact"] .propFoot {
+  margin-top: 0.4rem;
+  padding-top: 0.55rem;
+}
+
+.propCard[data-variant="compact"] .propAction {
+  display: none;
+}
+
+/* ---- Empty and unavailable states ---- */
 .state {
+  position: relative;
   display: grid;
-  justify-items: start;
-  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 1.5rem 2rem;
+  min-height: 15rem;
   padding: clamp(1.75rem, 4vw, 3rem);
+  overflow: hidden;
   border: 1px solid var(--rule);
   border-radius: 22px 0 22px 0;
   background: #fff;
 }
 
-.state h3 {
-  max-width: 24ch;
+.stateCopy {
+  display: grid;
+  justify-items: start;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.stateCopy h3 {
+  max-width: 22ch;
   color: var(--ink);
   font-size: clamp(1.5rem, 2.6vw, 2.25rem);
   font-weight: 600;
@@ -716,7 +955,7 @@
   text-wrap: balance;
 }
 
-.state p {
+.stateCopy p {
   max-width: 34rem;
   color: var(--color-text-muted);
   line-height: 1.6;
@@ -750,10 +989,13 @@
   margin-top: 0.5rem;
 }
 
-.homesFoot {
-  display: flex;
-  justify-content: center;
-  margin-top: clamp(1.5rem, 3vw, 2.25rem);
+/* The brand illustration, faint, balances the copy of a confirmed-empty state. */
+.stateArt {
+  align-self: stretch;
+  min-height: 11rem;
+  background: url("/images/locations/hero-elevation.svg") center bottom / contain
+    no-repeat;
+  opacity: 0.45;
 }
 
 /* ---- Recomposition ---- */
@@ -783,38 +1025,91 @@
     grid-row: 3;
   }
 
-  .explorerGrid {
+  .refineHead {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Map first on smaller screens, then the chooser beneath it. */
-  .mapCard {
-    order: -1;
+  /* Four fields in a 2 x 2 grid, with the action beneath. */
+  .search {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .homesGrid {
+  .searchFields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .searchField:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .searchField:nth-child(n + 3) {
+    border-top: 1px solid var(--rule);
+  }
+
+  .searchActions {
+    border-top: 1px solid var(--rule);
+    border-left: 0;
+  }
+
+  .searchSubmit {
+    width: 100%;
+  }
+
+  .showcase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .showcase[data-count="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .showcaseAside {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    align-items: start;
+  }
+
+  .showcase[data-count="2"] .showcaseAside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .propCard[data-variant="compact"][data-media="image"] .propLink {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .propCard[data-variant="compact"] .propMedia {
+    aspect-ratio: 16 / 10;
+    min-height: 0;
   }
 }
 
 @media (max-width: 47.99rem) {
-  .areaTabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .showcase[data-count="2"] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .areaTab {
-    padding-right: 0.75rem;
+  .showcase[data-count="1"] .propCard[data-variant="lead"] .propLink {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(14rem, auto) auto;
+  }
+
+  .showcaseAside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .state {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stateArt {
+    display: none;
   }
 }
 
 @media (max-width: 39.99rem) {
   .hero {
-    min-height: 31rem;
+    --art-w: 46rem;
     padding-top: 2rem;
-  }
-
-  .heroArt {
-    width: 44rem;
   }
 
   .mosaic {
@@ -827,16 +1122,21 @@
     grid-row: auto;
   }
 
-  .mapWrap {
-    width: min(100%, 22rem);
-  }
-
-  .pinLabel {
-    font-size: 0.625rem;
-  }
-
-  .homesGrid {
+  .searchFields {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .searchField {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .searchField:first-child {
+    border-top: 0;
+  }
+
+  .propCard[data-variant="lead"] .propLink {
+    grid-template-rows: minmax(13rem, auto) auto;
   }
 
   .stateActions .primaryAction {
@@ -846,16 +1146,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tileImage,
+  .propMedia img,
   .primaryAction svg,
   .quietAction svg,
   .heroAction svg,
   .tileAction svg,
-  .selectorButton,
-  .area {
+  .searchSubmit svg,
+  .propAction svg,
+  .searchField {
     transition: none;
   }
 
-  .tileLink:hover .tileImage {
+  .tileLink:hover .tileImage,
+  .propCard:hover .propMedia img {
     transform: none;
   }
 }

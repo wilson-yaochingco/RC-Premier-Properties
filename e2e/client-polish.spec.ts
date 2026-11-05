@@ -156,15 +156,18 @@ test("location guide opens with a centred architectural hero and no photograph",
     "Find the right place for your next home.",
   );
   await expect(hero.getByText("Location guide · Pampanga")).toBeVisible();
-  // The illustration is decorative: hidden from assistive tech, text-free and inert.
-  const art = hero.locator("svg[viewBox='0 0 1200 560']");
+  // The supplied villa is decorative: hidden from assistive tech, inert and text-free.
+  const art = hero.locator(":scope > div[aria-hidden='true']");
   await expect(art).toHaveCount(1);
-  await expect(art).toHaveAttribute("aria-hidden", "true");
-  await expect(art.locator("text")).toHaveCount(0);
-  await expect(hero.locator("img")).toHaveCount(0);
+  await expect(art).toHaveCSS("pointer-events", "none");
   expect(
-    await art.evaluate((svg) => getComputedStyle(svg.parentElement!).pointerEvents),
-  ).toBe("none");
+    await art.evaluate((element) => getComputedStyle(element).backgroundImage),
+  ).toContain("/images/locations/hero-elevation.svg");
+  await expect(hero.locator("img, svg:not([aria-hidden='true'])")).toHaveCount(0);
+  const asset = await page.request.get("/images/locations/hero-elevation.svg");
+  expect(asset.status()).toBe(200);
+  expect(asset.headers()["content-type"]).toContain("image/svg+xml");
+  expect(await asset.text()).not.toMatch(/<text|<script|<image/);
   const heroBox = (await hero.boundingBox())!;
   expect(heroBox.height).toBeLessThanOrEqual(900);
   expect(heroBox.height).toBeGreaterThan(450);
@@ -580,7 +583,7 @@ test("seller page explains the journey before a simplified typed form", async ({
   expect(request).not.toHaveProperty("propertyId");
 });
 
-test("featured locations, the explorer and homes by location lead to real routes", async ({
+test("featured locations, the search and the collection lead to real routes", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -610,22 +613,15 @@ test("featured locations, the explorer and homes by location lead to real routes
     ),
   ).toBeVisible();
 
-  // The explorer's buttons drive its map, and the map exposes nothing focusable.
-  const explorer = page.locator('section[aria-labelledby="explorer-title"]');
-  const porac = explorer.getByRole("button", { name: /^Porac/ });
-  await porac.focus();
-  await expect(explorer.locator('path[data-active="true"]')).toHaveCount(1);
-  await porac.click();
-  await expect(porac).toHaveAttribute("aria-pressed", "true");
+  // Sections 3 and 4 are the search strip and the collection; no explorer map remains.
+  await expect(page.locator("#explore-modes")).toHaveCount(0);
   await expect(
-    explorer.getByRole("heading", { level: 3, name: "Porac" }),
+    page.getByRole("search", { name: /Search properties by location/ }),
   ).toBeVisible();
-  await expect(
-    explorer.getByRole("link", { name: "Explore location" }),
-  ).toHaveAttribute("href", "/locations/porac");
-  await expect(
-    explorer.locator("svg[aria-hidden='true'] :is(a, [tabindex])"),
-  ).toHaveCount(0);
+  await expect(page.locator("[data-property-card]").first()).toHaveAttribute(
+    "data-variant",
+    "lead",
+  );
 
   await page.goto("/locations/angeles-city");
   await expect(

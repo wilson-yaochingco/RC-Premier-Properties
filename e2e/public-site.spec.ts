@@ -84,16 +84,13 @@ test("homepage browse action opens real property discovery", async ({ page }) =>
   ).toBeVisible();
 });
 
-test("locations map credits its boundary data", async ({ page }) => {
+test("locations carries no map, so it shows no boundary-data credit", async ({
+  page,
+}) => {
   await page.goto("/locations");
-  await expect(page.getByRole("link", { name: "OCHA/NAMRIA/PSA" })).toHaveAttribute(
-    "href",
-    "https://data.humdata.org/dataset/cod-ab-phl",
-  );
-  await expect(page.getByRole("link", { name: "CC BY 3.0 IGO" })).toHaveAttribute(
-    "href",
-    "https://creativecommons.org/licenses/by/3.0/igo/",
-  );
+  await expect(page.getByRole("link", { name: "OCHA/NAMRIA/PSA" })).toHaveCount(0);
+  // Photograph credits stay available through the compact disclosure.
+  await expect(page.locator("#featured-locations details")).toHaveCount(1);
 });
 
 test("homepage sections keep their routes and guided actions", async ({ page }) => {

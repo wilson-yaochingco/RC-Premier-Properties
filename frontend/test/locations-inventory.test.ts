@@ -60,26 +60,44 @@ describe("featured locations", () => {
     const ready = fixtureLocationsInventory("1");
     expect(inventoryLabel(ready, "angeles-city")).toBe("3 properties");
     expect(inventoryLabel(ready, "porac")).toBe("0 properties");
-    expect(inventoryLabel({ status: "unavailable" }, "porac")).toBe(
-      "Inventory unavailable",
-    );
+    expect(
+      inventoryLabel(
+        { status: "unavailable", collection: { status: "unavailable" } },
+        "porac",
+      ),
+    ).toBe("Inventory unavailable");
   });
 });
 
 describe("location fixtures", () => {
-  it("cover 0, 1, 2, 4 and a larger distribution, never more than three homes", () => {
-    const active = LOCATIONS_FIXTURE_SCENARIOS.filter(
+  it("cover 0, 1, 2, 4 and a larger distribution, with showcases of 0 to 4 listings", () => {
+    const rows = LOCATIONS_FIXTURE_SCENARIOS.filter(
       (scenario) => scenario !== "unavailable",
     ).map((scenario) => {
       const inventory = fixtureLocationsInventory(scenario);
       if (inventory.status !== "ready") throw new Error("fixture should be ready");
-      for (const homes of Object.values(inventory.homes)) {
-        expect(Array.isArray(homes) ? homes.length : 0).toBeLessThanOrEqual(3);
-      }
-      return Object.values(inventory.counts).filter((count) => count > 0).length;
+      if (inventory.collection.status !== "ready") throw new Error("collection ready");
+      const ids = inventory.collection.items.map(({ id }) => id);
+      expect(new Set(ids).size).toBe(ids.length);
+      return [
+        Object.values(inventory.counts).filter((count) => count > 0).length,
+        ids.length,
+      ];
     });
-    expect(active).toEqual([0, 1, 2, 4, 4]);
-    expect(fixtureLocationsInventory("many").status).toBe("ready");
+    expect(rows).toEqual([
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [4, 3],
+      [4, 4],
+    ]);
+  });
+
+  it("makes the error scenario unavailable for both counts and the collection", () => {
+    expect(fixtureLocationsInventory("unavailable")).toEqual({
+      status: "unavailable",
+      collection: { status: "unavailable" },
+    });
   });
 
   it("parses only known scenarios", () => {
@@ -90,84 +108,80 @@ describe("location fixtures", () => {
 });
 
 describe("loadLocationsInventory", () => {
-  function api(
-    facets: unknown,
-    homes: (location: string) => Response | Promise<Response> = () => page([]),
-  ) {
-    return vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/properties/facets")) {
-        return facets instanceof Response ? facets : json(facets);
-      }
-      const location = new URL(url).searchParams.get("location") ?? "";
-      return homes(location);
-    });
-  }
   const base = { locations: [], propertyTypes: [], priceRange: {} };
+  const facetsBody = {
+    ...base,
+    locationCounts: [
+      { location: "Angeles City, Pampanga", count: 2 },
+      { location: "Porac, Pampanga", count: 1 },
+    ],
+  };
 
-  it("reports a confirmed empty area as 0, not unavailable", async () => {
+  function api(facets: Response, collection: Response) {
+    return vi.fn(async (input: RequestInfo | URL) =>
+      String(input).includes("/properties/facets") ? facets : collection,
+    );
+  }
+
+  it("reports a confirmed empty area as 0 and keeps the real collection", async () => {
     const fetchMock = api(
-      { ...base, locationCounts: [{ location: "Angeles City, Pampanga", count: 2 }] },
-      () =>
-        page([
-          { id: "a", slug: "a" },
-          { id: "b", slug: "b" },
-        ]),
+      json(facetsBody),
+      page([
+        { id: "a", slug: "a" },
+        { id: "b", slug: "b" },
+      ]),
     );
     vi.stubGlobal("fetch", fetchMock);
     const inventory = await (await load()).loadLocationsInventory();
     expect(inventory).toMatchObject({
       status: "ready",
-      counts: { "angeles-city": 2, "mabalacat-city": 0, magalang: 0, porac: 0 },
+      counts: { "angeles-city": 2, "mabalacat-city": 0, magalang: 0, porac: 1 },
+      collection: { status: "ready", total: 2 },
     });
-    // Only the area with published homes triggers a property request.
-    const homesRequests = fetchMock.mock.calls.filter(
+    // One facets request and one bounded newest-first collection request.
+    const collectionCalls = fetchMock.mock.calls.filter(
       ([input]) => !String(input).includes("/facets"),
     );
-    expect(homesRequests).toHaveLength(1);
-    expect(String(homesRequests[0]?.[0])).toContain("location=Angeles+City");
+    expect(collectionCalls).toHaveLength(1);
+    const query = new URL(String(collectionCalls[0]?.[0])).searchParams;
+    expect(query.get("limit")).toBe("4");
+    expect(query.get("sort")).toBe("newest");
   });
 
-  it("is unavailable when the counts cannot be retrieved", async () => {
-    vi.stubGlobal("fetch", api(json({}, 500)));
-    expect(await (await load()).loadLocationsInventory()).toEqual({
+  it("is unavailable when the counts cannot be retrieved, yet keeps the collection", async () => {
+    vi.stubGlobal("fetch", api(json({}, 500), page([{ id: "a", slug: "a" }])));
+    expect(await (await load()).loadLocationsInventory()).toMatchObject({
       status: "unavailable",
+      collection: { status: "ready", items: [{ id: "a" }] },
     });
-    vi.stubGlobal("fetch", api({ ...base }));
-    expect(await (await load()).loadLocationsInventory()).toEqual({
+    vi.stubGlobal("fetch", api(json({ ...base }), page([])));
+    expect(await (await load()).loadLocationsInventory()).toMatchObject({
       status: "unavailable",
     });
   });
 
-  it("marks only the area whose homes request failed as unavailable", async () => {
-    vi.stubGlobal(
-      "fetch",
-      api(
-        {
-          ...base,
-          locationCounts: [
-            { location: "Angeles City, Pampanga", count: 3 },
-            { location: "Porac, Pampanga", count: 1 },
-          ],
-        },
-        (location) =>
-          location === "Porac" ? json({}, 500) : page([{ id: "a", slug: "a" }]),
-      ),
-    );
-    const inventory = await (await load()).loadLocationsInventory();
-    if (inventory.status !== "ready") throw new Error("expected ready");
-    expect(inventory.homes["angeles-city"]).toHaveLength(1);
-    expect(inventory.homes.porac).toBe("unavailable");
-    expect(inventory.homes.magalang).toEqual([]);
-    expect(inventory.counts.porac).toBe(1);
+  it("keeps counts when only the collection fails, and tells it apart from empty", async () => {
+    vi.stubGlobal("fetch", api(json(facetsBody), json({}, 500)));
+    expect(await (await load()).loadLocationsInventory()).toMatchObject({
+      status: "ready",
+      collection: { status: "unavailable" },
+    });
+    vi.stubGlobal("fetch", api(json(facetsBody), page([])));
+    expect(await (await load()).loadLocationsInventory()).toMatchObject({
+      status: "ready",
+      collection: { status: "ready", items: [], total: 0 },
+    });
   });
 
   it("never serves fixtures in production, even when a scenario is requested", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    const fetchMock = api(json({}, 500));
+    const fetchMock = api(json({}, 500), json({}, 500));
     vi.stubGlobal("fetch", fetchMock);
     const inventory = await (await load()).loadLocationsInventory("4");
-    expect(inventory).toEqual({ status: "unavailable" });
+    expect(inventory).toEqual({
+      status: "unavailable",
+      collection: { status: "unavailable" },
+    });
     expect(fetchMock).toHaveBeenCalled();
   });
 });

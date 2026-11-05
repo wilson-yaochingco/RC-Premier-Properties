@@ -1,4 +1,5 @@
 import type { PublicPropertySummary } from "@rc/shared";
+import type { SearchFilters } from "./location-search";
 import {
   findPublicLocationBySlug,
   publicLocationPath,
@@ -75,21 +76,24 @@ export function resolveLocationFacet(
   return featured ? { location: featured.name, count: 0 } : undefined;
 }
 
-/** Homes shown per location in the discovery section. */
-export const LOCATION_HOMES_LIMIT = 3;
-
 /**
- * What the page knows about each curated location. `ready` means the inventory request
- * succeeded, so a count of 0 is a confirmed empty area; `unavailable` means it could not
- * be retrieved and must never be shown as 0.
+ * What the page knows about the curated locations and the published collection.
+ * `ready` means the inventory request succeeded, so a count of 0 is a confirmed empty
+ * area; `unavailable` means it could not be retrieved and must never be shown as 0. The
+ * collection has its own status so one failed request never hides the other.
  */
 export type LocationsInventory =
   | {
       status: "ready";
       counts: Readonly<Record<string, number>>;
-      /** Up to three homes per area, or `unavailable` if that area's request failed. */
-      homes: Readonly<Record<string, readonly PublicPropertySummary[] | "unavailable">>;
+      /** Facet-derived options for the search; absent when the facets had none. */
+      filters: SearchFilters;
+      collection: CollectionState;
     }
+  | { status: "unavailable"; collection: CollectionState };
+
+export type CollectionState =
+  | { status: "ready"; items: readonly PublicPropertySummary[]; total: number }
   | { status: "unavailable" };
 
 export function propertyCountLabel(count: number): string {

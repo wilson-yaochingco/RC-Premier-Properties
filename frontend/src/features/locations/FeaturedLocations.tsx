@@ -74,26 +74,29 @@ export function FeaturedLocations({ inventory }: { inventory: LocationsInventory
         })}
       </div>
 
-      <p className={styles.credits}>
-        Photography, via Wikimedia Commons:{" "}
-        {FEATURED_LOCATIONS.map((location, index) => (
-          <span key={location.slug}>
-            {index > 0 ? " · " : ""}
-            <a href={location.scenery.sourceUrl} target="_blank" rel="noreferrer">
-              {location.name}
-            </a>{" "}
-            by {location.scenery.creator},{" "}
-            {location.scenery.licenseUrl ? (
-              <a href={location.scenery.licenseUrl} target="_blank" rel="noreferrer">
-                {location.scenery.license}
-              </a>
-            ) : (
-              location.scenery.license
-            )}
-          </span>
-        ))}
-        .
-      </p>
+      <details className={styles.credits}>
+        <summary>Photo credits</summary>
+        <p>
+          Via Wikimedia Commons:{" "}
+          {FEATURED_LOCATIONS.map((location, index) => (
+            <span key={location.slug}>
+              {index > 0 ? " · " : ""}
+              <a href={location.scenery.sourceUrl} target="_blank" rel="noreferrer">
+                {location.name}
+              </a>{" "}
+              by {location.scenery.creator},{" "}
+              {location.scenery.licenseUrl ? (
+                <a href={location.scenery.licenseUrl} target="_blank" rel="noreferrer">
+                  {location.scenery.license}
+                </a>
+              ) : (
+                location.scenery.license
+              )}
+            </span>
+          ))}
+          .
+        </p>
+      </details>
     </>
   );
 }

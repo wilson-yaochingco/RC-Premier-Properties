@@ -453,15 +453,17 @@ sharing one section template. All four use the sticky homepage header and a shar
 `components/layout/editorial-page.module.css` frame whose top offset mirrors that header's
 breakpoint heights.
 
-- **Locations** is a location-discovery page: a centred hero over an original architectural
-  line drawing of a two-storey residence, a charcoal photographic mosaic of four curated
-  destinations (Angeles City dominant; Mabalacat City, Magalang and Porac supporting) with
-  credited locality photographs, a compact light Pampanga explorer (real buttons drive the
-  map and a contextual panel), a homes-by-location selector showing up to three published
-  properties per area, and the shared closing CTA. The curated four are permanent; counts
-  and homes come from the published `locationCounts` and property search. A confirmed
-  `0 properties` is distinct from `Inventory unavailable`, and sample content is never
-  substituted. See [`docs/features/locations.md`](../features/locations.md).
+- **Locations** is a light location-discovery page: a centred hero over an original
+  architectural line drawing of a two-storey residence, a photographic mosaic of four
+  curated destinations (Angeles City dominant; Mabalacat City, Magalang and Porac
+  supporting) with place imagery and no visible heading, a typography-led "Refine the search
+  around your priorities" strip (location, property type, budget and bedrooms, handed to
+  the real `/properties` query), a "Homes worth exploring" showcase (one lead plus up to
+  three supporting published properties, with an intentional no-photograph composition),
+  and the shared closing CTA. The curated four are permanent; counts and homes come from
+  the published `locationCounts` and property search. A confirmed `0 properties` is
+  distinct from `Inventory unavailable`, and sample content is never substituted. See
+  [`docs/features/locations.md`](../features/locations.md).
 - **Sell** leads with presentation and process before the form: hero, proposition, a
   five-stage journey, a real published listing shown as the presentation example (omitted
   when none is available), what to prepare with the sensitive-documents rule, the

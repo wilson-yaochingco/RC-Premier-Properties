@@ -38,16 +38,15 @@ test("the four curated locations stay visible with truthful counts", async ({
   }
   // A confirmed zero is never worded as an outage.
   await expect(page.getByText("Inventory unavailable")).toHaveCount(0);
-  // Every photograph is credited with its creator and licence.
-  const credits = featured.locator("p", {
-    hasText: "Photography, via Wikimedia Commons",
-  });
+  // No long caption in the layout, but every photograph stays credited on request.
+  await expect(page.getByText("Photography, via Wikimedia Commons")).toHaveCount(0);
+  const credits = featured.locator("details");
+  await credits.getByText("Photo credits").click();
   for (const creator of ["Patrickroque01", "Judgefloro", "Ralff Nestor Nacor"]) {
     await expect(credits).toContainText(creator);
   }
   await expect(credits.getByRole("link", { name: "CC BY-SA 4.0" })).toHaveCount(2);
 });
-
 test("every curated location route resolves, including areas with no listings", async ({
   page,
 }) => {
@@ -91,84 +90,119 @@ test("every curated location route resolves, including areas with no listings", 
   ).toBeGreaterThan(0);
 });
 
-test("homes by location shows real homes or an honest empty state per area", async ({
+test("Section 2 stands on its own without a visible heading or eyebrow", async ({
   page,
 }) => {
   await open(page, "/locations");
-  const homes = page.locator('section[aria-labelledby="homes-title"]');
-  await expect(
-    homes.getByRole("heading", {
-      level: 2,
-      name: "Explore available homes in Pampanga.",
-    }),
-  ).toBeVisible();
-
-  // Defaults to the first area that has published homes.
-  const angeles = homes.getByRole("button", { name: /^Angeles City/ });
-  await expect(angeles).toHaveAttribute("aria-pressed", "true");
-  const panel = homes.getByRole("region", { name: "Homes in Angeles City" });
-  await expect(panel.locator("[data-property-card]")).toHaveCount(3);
-  await expect(
-    panel.getByRole("link", { name: "View all in Angeles City" }),
-  ).toHaveAttribute("href", "/locations/angeles-city");
-  const firstCard = panel.locator("[data-property-card] a").first();
-  await expect(firstCard).toHaveAttribute(
-    "href",
-    /^\/properties\/.+\?from=%2Flocations%2Fangeles-city$/,
-  );
-
-  // An area with no published homes says so and offers real next steps.
-  await homes.getByRole("button", { name: /^Porac/ }).click();
-  await expect(
-    homes.getByRole("region", { name: "Homes in Angeles City" }),
-  ).toBeHidden();
-  const empty = homes.getByRole("region", { name: "Homes in Porac" });
-  await expect(
-    empty.getByRole("heading", {
-      name: "Porac has no published properties right now.",
-    }),
-  ).toBeVisible();
-  await expect(empty.locator("[data-property-card]")).toHaveCount(0);
-  await expect(
-    empty.getByRole("link", { name: "Browse all properties" }),
-  ).toHaveAttribute("href", "/properties");
-  await expect(empty.getByRole("link", { name: "Talk to RC Premier" })).toHaveAttribute(
-    "href",
-    "/contact",
-  );
-
-  // A property card leads to its real detail page.
-  await angeles.click();
-  await panel.locator("[data-property-card] a").first().click();
-  await expect(page).toHaveURL(/\/properties\/.+/);
+  const featured = page.locator("#featured-locations");
+  // The heading stays in the outline for assistive technology only.
+  const heading = featured.getByRole("heading", {
+    level: 2,
+    name: "Featured locations",
+  });
+  await expect(heading).toHaveCount(1);
+  await expect(heading).not.toBeInViewport();
+  await expect(page.getByText("Four places to start your search.")).toHaveCount(0);
+  await expect(page.getByText("Featured locations", { exact: true })).toHaveCount(1);
 });
 
-test("the explorer keeps the map in sync with real buttons", async ({ page }) => {
+test("refine the search sends real catalog filters to /properties", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page, "/locations");
-  const explorer = page.locator('section[aria-labelledby="explorer-title"]');
-  const group = explorer.getByRole("group", { name: "Choose a location" });
-  await expect(group.getByRole("button")).toHaveCount(4);
-
-  const magalang = group.getByRole("button", { name: /^Magalang/ });
-  await magalang.hover();
-  await expect(explorer.locator('path[data-active="true"]')).toHaveCount(1);
-  await magalang.click();
+  const section = page.locator('section[aria-labelledby="refine-title"]');
+  await expect(section.getByText("Discover by what matters")).toBeVisible();
   await expect(
-    explorer.getByRole("heading", { level: 3, name: "Magalang" }),
+    section.getByRole("heading", {
+      level: 2,
+      name: "Refine the search around your priorities.",
+    }),
   ).toBeVisible();
-  await expect(explorer.getByText("0 properties").first()).toBeVisible();
   await expect(
-    explorer.getByRole("link", { name: "Explore location" }),
-  ).toHaveAttribute("href", "/locations/magalang");
+    section.getByText(
+      "Explore available properties across Pampanga using the location, property type, and budget that work for you.",
+    ),
+  ).toBeVisible();
+  // The earlier explorer and its toggles are gone.
+  await expect(page.locator("#explore-modes")).toHaveCount(0);
+  await expect(page.getByRole("tablist")).toHaveCount(0);
+  await expect(page.getByText("Investment Property")).toHaveCount(0);
 
-  // Clicking the map selects too, while the map itself stays out of the focus order.
-  await explorer.locator('path[data-featured="true"]').first().click();
-  await expect(group.getByRole("button", { pressed: true })).toHaveCount(1);
+  const form = section.getByRole("search");
+  const location = form.getByLabel("Location");
+  await expect(location.locator("option").first()).toHaveText("All of Pampanga");
+  for (const name of ["Angeles City", "Mabalacat City", "Magalang", "Porac"]) {
+    await expect(location.locator("option", { hasText: name })).toHaveCount(1);
+  }
+
+  // Nothing chosen: a clean catalog URL.
+  await form.getByRole("button", { name: "Find properties" }).click();
+  await expect(page).toHaveURL(/\/properties$/);
+
+  // A full selection serializes exactly the catalog's own parameters.
+  await open(page, "/locations");
+  await expect(form.getByRole("button", { name: "Clear selection" })).toHaveCount(0);
+  await form.getByLabel("Location").selectOption("Angeles City");
+  await form.getByLabel("Property type").selectOption({ index: 1 });
+  const propertyType = await form.getByLabel("Property type").inputValue();
+  await form.getByLabel("Budget").selectOption("6-10");
+  await form.getByLabel("Bedrooms").selectOption("3");
+  await form.getByRole("button", { name: "Find properties" }).click();
+  await expect(page).toHaveURL(/\/properties\?/);
+  const url = new URL(page.url());
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    location: "Angeles City",
+    propertyType,
+    minPrice: "6000000",
+    maxPrice: "10000000",
+    bedrooms: "3",
+  });
+  // The catalog reads the same filters back into its own form.
+  await expect(page.getByLabel("Bedrooms").first()).toHaveValue("3");
+
+  // Clear resets every control.
+  await open(page, "/locations");
+  await form.getByLabel("Budget").selectOption("u3");
+  await form.getByRole("button", { name: "Clear selection" }).click();
+  await expect(form.getByLabel("Budget")).toHaveValue("");
+  await expect(form.getByRole("button", { name: "Clear selection" })).toHaveCount(0);
+});
+
+test("homes worth exploring shows real published properties", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, "/locations");
+  const section = page.locator('section[aria-labelledby="collection-title"]');
+  await expect(section.getByText("Current collection")).toBeVisible();
   await expect(
-    explorer.locator("svg[aria-hidden='true'] :is(a, button, [tabindex])"),
-  ).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "OCHA/NAMRIA/PSA" })).toBeVisible();
+    section.getByRole("heading", { level: 2, name: "Homes worth exploring." }),
+  ).toBeVisible();
+  await expect(
+    section.getByText("Discover currently published properties across Pampanga."),
+  ).toBeVisible();
+  await expect(
+    section.getByRole("link", { name: "Browse all properties" }),
+  ).toHaveAttribute("href", "/properties");
+
+  // One lead and three supporting listings, none repeated, each a real detail route.
+  const cards = section.locator("[data-property-card]");
+  await expect(cards).toHaveCount(4);
+  await expect(section.locator('[data-variant="lead"]')).toHaveCount(1);
+  await expect(section.locator('[data-variant="compact"]')).toHaveCount(3);
+  const ids = await cards.evaluateAll((els) =>
+    els.map((el) => el.getAttribute("data-property-id")),
+  );
+  expect(new Set(ids).size).toBe(4);
+  const lead = section.locator('[data-variant="lead"] a');
+  await expect(lead).toHaveAttribute("href", /^\/properties\/.+\?from=%2Flocations$/);
+  await expect(
+    section.getByText(/Showing the latest 4 of \d+ published properties\./),
+  ).toBeVisible();
+  await expect(section.getByText(/₱/).first()).toBeVisible();
+  await expect(section.getByText("Collection unavailable")).toHaveCount(0);
+
+  await lead.click();
+  await expect(page).toHaveURL(/\/properties\/.+/);
 });
 
 test("fixtures are never served by the production build", async ({ page }) => {
@@ -182,6 +216,7 @@ test("fixtures are never served by the production build", async ({ page }) => {
   ).toContainText("9 properties");
   await expect(page.getByText("12 properties")).toHaveCount(0);
   await expect(page.getByLabel("Preview (development only)")).toHaveCount(0);
+  await expect(page.locator('[data-property-id^="fixture-locations-"]')).toHaveCount(0);
   const html = await page.content();
   expect(html).not.toContain("fixtureLocationsInventory");
   expect(html).not.toContain("fixture-locations-");
@@ -216,9 +251,10 @@ test("Locations actions share the up-right to right arrow and rolling label", as
     page
       .locator("#featured-locations article")
       .getByRole("link", { name: /Angeles City/ }),
+    page.getByRole("button", { name: "Find properties" }),
     page
-      .locator('section[aria-labelledby="explorer-title"]')
-      .getByRole("link", { name: "Explore location" }),
+      .locator('section[aria-labelledby="collection-title"]')
+      .getByRole("link", { name: "Browse all properties" }),
   ];
   for (const target of targets) {
     await target.scrollIntoViewIfNeeded();
