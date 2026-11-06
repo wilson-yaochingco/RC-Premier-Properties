@@ -9,10 +9,13 @@ import styles from "./featured-properties.module.css";
  */
 export function FeaturedPropertiesShowcase({
   properties,
+  embedded = false,
 }: {
-  properties: PublicPropertySummary[];
+  properties: readonly PublicPropertySummary[];
+  /** Hosts the rail inside another page's container, keeping Home's tokens but none of its section chrome. */
+  embedded?: boolean;
 }) {
-  return (
+  const rail = (
     <div className={styles.container}>
       <ul
         id="featured-rail"
@@ -33,5 +36,11 @@ export function FeaturedPropertiesShowcase({
         until={properties.length > 2 ? "tablet" : "phone"}
       />
     </div>
+  );
+
+  return embedded ? (
+    <div className={`${styles.section} ${styles.embedded}`}>{rail}</div>
+  ) : (
+    rail
   );
 }

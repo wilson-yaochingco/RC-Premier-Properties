@@ -129,7 +129,7 @@ export function CatalogHeading({ total }: { total?: number }) {
 }
 
 interface CatalogStateProps {
-  kind: "empty" | "unavailable";
+  kind: "empty" | "invalid" | "unavailable";
   eyebrow: string;
   headline: [string, string];
   body: string;
@@ -172,6 +172,24 @@ export function ZeroResults({ clearHref = "/properties" }: { clearHref?: string 
       eyebrow="No matches"
       headline={["No homes match", "those filters yet."]}
       body="Try widening your location, price, or property preferences — or tell RC Premier what you’re looking for."
+      primary={{ label: "Clear filters", href: clearHref }}
+      secondary={{ label: "Contact RC Premier", href: "/contact" }}
+    />
+  );
+}
+
+/** The API rejected the URL's filters; clearing them always recovers. */
+export function CatalogInvalidFilters({
+  clearHref = "/properties",
+}: {
+  clearHref?: string;
+}) {
+  return (
+    <CatalogState
+      kind="invalid"
+      eyebrow="Check your filters"
+      headline={["Some filters", "aren’t valid."]}
+      body="A price, room count or area in this link can’t be used. Clear the filters to see every current listing, then refine your search again."
       primary={{ label: "Clear filters", href: clearHref }}
       secondary={{ label: "Contact RC Premier", href: "/contact" }}
     />

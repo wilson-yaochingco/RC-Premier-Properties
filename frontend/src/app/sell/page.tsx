@@ -1,145 +1,172 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import contactImage from "@/assets/site/contact.png";
-import locationImage from "@/assets/site/location.png";
-import { Button } from "@/components/ui/Button";
-import { Container } from "@/components/ui/Container";
+import ogImage from "@/assets/site/home-hero-1.png";
+import frame from "@/components/layout/editorial-page.module.css";
+import { EditorialCta } from "@/components/ui/EditorialCta";
+import { RollLabel } from "@/components/ui/RollLabel";
 import { InquiryForm } from "@/features/inquiries/InquiryForm";
+import {
+  OFFICIAL_EMAIL,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_HREF,
+} from "@/lib/public-contact";
 import { buildPageMetadata } from "@/lib/seo";
 import styles from "./sell.module.css";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Sell a Property",
   description:
-    "Start a private property-selling conversation with RC Premier Properties in Pampanga.",
+    "Start a direct conversation with RC Premier Properties about selling a residential property in Pampanga. An inquiry is not a valuation or listing agreement.",
   canonicalPath: "/sell",
-  imagePath: locationImage.src,
+  imagePath: ogImage.src,
 });
 
-const steps = [
+const STEPS = [
   {
-    number: "01",
     title: "Share the essentials",
-    description:
-      "Tell us where the property is, what kind of home it is, and anything useful for an initial conversation.",
+    description: "Tell us where the property is and what you’d like to discuss.",
   },
   {
-    number: "02",
-    title: "The team reviews your inquiry",
-    description:
-      "RC Premier Properties can follow up using the contact details you provide and discuss what may be needed next.",
+    title: "We review your inquiry",
+    description: "Our team reviews the details and follows up with you directly.",
   },
   {
-    number: "03",
-    title: "Decisions stay explicit",
+    title: "Discuss what’s next",
     description:
-      "An inquiry is not a valuation, listing agreement, offer, approval, or promise that the property will be published.",
+      "We’ll talk through possible next steps, without an automatic commitment.",
   },
 ] as const;
 
+const REASSURANCES = [
+  "An inquiry does not create a valuation or listing agreement.",
+  "Submitting a property does not mean it is approved or published.",
+  "Keep IDs and ownership documents out of this form. We’ll explain how to share them if needed.",
+] as const;
+
+function Arrow() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export default function SellPage() {
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page}>
+    <main id="main-content" tabIndex={-1} className={`${frame.page} ${styles.page}`}>
+      {/* 1. Hero: typography and the supplied architectural drawing */}
       <section className={styles.hero} aria-labelledby="sell-heading">
+        <div className={styles.heroCopy}>
+          <p className={styles.eyebrow}>Sell with RC Premier</p>
+          <h1 id="sell-heading" className={styles.headline}>
+            Thinking of selling your property?
+          </h1>
+        </div>
         <Image
-          src={locationImage}
-          alt="Contemporary residence with timber cladding under a blue sky"
-          fill
+          className={styles.heroArt}
+          src="/images/sell/sell-hero-house.svg"
+          alt=""
+          aria-hidden="true"
+          width={1000}
+          height={522}
           priority
-          sizes="100vw"
+          sizes="(max-width: 767px) 100vw, 56vw"
         />
-        <div className={styles.heroShade} aria-hidden="true" />
-        <Container className={styles.heroInner}>
-          <div>
-            <p className={styles.eyebrowLight}>For property owners</p>
-            <h1 id="sell-heading">Your property. Your next move.</h1>
-            <p>Start a private, direct conversation with RC Premier Properties.</p>
-            <Button href="#seller-conversation" variant="secondary">
-              Sell with us
-            </Button>
-          </div>
-        </Container>
       </section>
 
+      {/* 2. Inquiry */}
       <section
-        id="seller-conversation"
-        className={styles.conversation}
-        aria-labelledby="seller-conversation-heading"
+        id="seller-inquiry"
+        className={styles.inquiry}
+        aria-labelledby="seller-inquiry-heading"
       >
-        <Container className={styles.conversationInner}>
-          <div className={styles.conversationCopy}>
-            <p className={styles.eyebrow}>Sell with us</p>
-            <h2 id="seller-conversation-heading">Begin with the useful details.</h2>
-            <p>
-              Share the property information you are comfortable providing. This first
-              step does not ask for ownership records, identity documents, or an
-              account.
+        <div className={styles.card}>
+          <div className={styles.rail}>
+            <p className={styles.railEyebrow}>Start here</p>
+            <h2 id="seller-inquiry-heading" className={styles.railTitle}>
+              Tell us about your property.
+            </h2>
+            <p className={styles.railCopy}>
+              A few details are enough to begin. No ownership documents are needed at
+              this stage, and no account is created.
             </p>
-            <p className={styles.disclaimer}>
-              Submitting this form starts an inquiry only. It is not a valuation,
-              listing agreement, offer, approval, or publication promise.
-            </p>
+            <ul className={styles.channels} aria-label="Contact RC Premier directly">
+              <li>
+                <a href={OFFICIAL_PHONE_HREF} className="cta cta--wrap">
+                  <span className={styles.channelLabel}>Call</span>
+                  <span className={styles.channelValue}>
+                    <RollLabel>{OFFICIAL_PHONE}</RollLabel>
+                  </span>
+                  <Arrow />
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${OFFICIAL_EMAIL}`} className="cta cta--wrap">
+                  <span className={styles.channelLabel}>Email</span>
+                  <span className={styles.channelValue}>
+                    <RollLabel>{OFFICIAL_EMAIL}</RollLabel>
+                  </span>
+                  <Arrow />
+                </a>
+              </li>
+            </ul>
           </div>
-          <div className={styles.formPanel} role="region" aria-label="Seller inquiry">
+          <div className={styles.formArea}>
             <InquiryForm
+              variant="seller"
               defaultInquiryType="selling"
               source="sell-page"
-              submitLabel="Start the conversation"
-              simplifiedSeller
+              submitLabel="Send seller inquiry"
             />
           </div>
-        </Container>
+        </div>
       </section>
 
+      {/* 3. Process */}
       <section className={styles.process} aria-labelledby="process-heading">
-        <Container className={styles.narrow}>
-          <div className={styles.centerHeading}>
-            <p className={styles.eyebrow}>What happens next</p>
-            <h2 id="process-heading">A clear first conversation.</h2>
-            <p>The process begins with facts and leaves every later decision open.</p>
-          </div>
-          <ol className={styles.stepGrid}>
-            {steps.map((step) => (
-              <li key={step.number}>
-                <span>{step.number}</span>
-                <h3>{step.title}</h3>
-                <p>{step.description}</p>
-              </li>
-            ))}
-          </ol>
-        </Container>
+        <h2 id="process-heading" className="visually-hidden">
+          What happens next
+        </h2>
+        <ol className={styles.steps}>
+          {STEPS.map((step, index) => (
+            <li key={step.title}>
+              <span className={styles.stepNumber} aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section className={styles.privacy} aria-labelledby="privacy-heading">
-        <Container className={styles.privacyInner}>
-          <figure>
-            <Image
-              src={contactImage}
-              alt="Warm dining area inside a contemporary residence"
-              fill
-              sizes="(max-width: 800px) 100vw, 50vw"
-            />
-          </figure>
-          <div>
-            <p className={styles.eyebrow}>A private first step</p>
-            <h2 id="privacy-heading">
-              Keep sensitive documents out of the public form.
-            </h2>
-            <p>
-              Start with contact details and practical property context. If further
-              information is appropriate, the team can explain what is needed in a
-              direct follow-up.
-            </p>
-            <p>
-              No automated valuation is produced, no agreement is created, and no
-              listing is published from this inquiry alone.
-            </p>
-            <Button href="#seller-conversation" variant="outline">
-              Start your seller inquiry
-            </Button>
-          </div>
-        </Container>
+      {/* 4. Reassurance */}
+      <section className={styles.reassurance} aria-labelledby="reassurance-heading">
+        <div className={styles.copy}>
+          <h2 id="reassurance-heading" className={styles.sectionTitle}>
+            A first conversation, not a commitment.
+          </h2>
+          <p>
+            Share what you know. We’ll discuss any additional information directly when
+            needed.
+          </p>
+        </div>
+        <ul className={styles.points}>
+          {REASSURANCES.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ul>
       </section>
+
+      <EditorialCta
+        id="sell-cta-heading"
+        eyebrow="Ready when you are"
+        headline={["Tell us about", "your property."]}
+        body="A few details are enough to begin the conversation."
+        label="Start your inquiry"
+        href="#seller-inquiry"
+        wide
+      />
     </main>
   );
 }

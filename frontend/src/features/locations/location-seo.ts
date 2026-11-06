@@ -26,7 +26,10 @@ export function buildLocationMetadata({
   const name = shortPublicLocation(location);
   return buildPageMetadata({
     title: `Properties for Sale in ${name}`,
-    description: `Browse ${count.toLocaleString("en-PH")} published residential ${count === 1 ? "property" : "properties"} for sale in ${location}.`,
+    description:
+      count > 0
+        ? `Browse ${count.toLocaleString("en-PH")} published residential ${count === 1 ? "property" : "properties"} for sale in ${location}.`
+        : `Explore ${name} in Pampanga with RC Premier Properties. No residential properties are published here right now.`,
     canonicalPath: publicLocationPath(location),
     imagePath,
     noIndex,

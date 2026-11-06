@@ -67,7 +67,7 @@ test("home renders fixture inventory and primary navigation works", async ({
   await primaryNavigation.getByRole("link", { name: "About" }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: /clear purpose/ }),
+    page.getByRole("heading", { level: 1, name: /considered differently/ }),
   ).toBeVisible();
   expect(browserErrors).toEqual([]);
 });
@@ -84,16 +84,13 @@ test("homepage browse action opens real property discovery", async ({ page }) =>
   ).toBeVisible();
 });
 
-test("locations map credits its boundary data", async ({ page }) => {
+test("locations carries no map, so it shows no boundary-data credit", async ({
+  page,
+}) => {
   await page.goto("/locations");
-  await expect(page.getByRole("link", { name: "OCHA/NAMRIA/PSA" })).toHaveAttribute(
-    "href",
-    "https://data.humdata.org/dataset/cod-ab-phl",
-  );
-  await expect(page.getByRole("link", { name: "CC BY 3.0 IGO" })).toHaveAttribute(
-    "href",
-    "https://creativecommons.org/licenses/by/3.0/igo/",
-  );
+  await expect(page.getByRole("link", { name: "OCHA/NAMRIA/PSA" })).toHaveCount(0);
+  // Photograph credits stay available through the compact disclosure.
+  await expect(page.locator("#featured-locations details")).toHaveCount(1);
 });
 
 test("homepage sections keep their routes and guided actions", async ({ page }) => {
@@ -129,7 +126,7 @@ test("homepage sections keep their routes and guided actions", async ({ page }) 
   await closer.getByRole("button", { name: "Next step" }).click();
   await expect(closer.getByRole("group", { name: "2 of 4" })).toBeVisible();
 
-  const explore = page.getByRole("region", { name: "Find the area that feels right." });
+  const explore = page.locator('section[aria-labelledby="explore-pampanga-heading"]');
   await expect(explore.getByRole("link", { name: /Angeles City/i })).toBeVisible();
   await expect(
     explore.getByRole("link", { name: "Explore all locations" }),
@@ -242,12 +239,13 @@ test("location discovery and detail use only inventory-backed facets", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Explore the places behind the properties.",
+      name: "Find the right place for your next home.",
     }),
   ).toBeVisible();
-  const angeles = page.getByRole("link", {
-    name: /Angeles City 9 published properties/,
-  });
+  const angeles = page
+    .locator("#featured-locations article")
+    .getByRole("link", { name: /Angeles City/ });
+  await expect(angeles).toContainText("9 properties");
   await expect(angeles).toHaveAttribute("href", "/locations/angeles-city");
   await angeles.click();
 
@@ -631,12 +629,15 @@ test("contact form sends its typed payload and displays API success feedback", a
   await expect(
     main.getByRole("link", { name: "+63 918 429 1873" }).first(),
   ).toHaveAttribute("href", "tel:+639184291873");
-  await expect(main.getByRole("link", { name: /Facebook/ })).toHaveAttribute(
-    "href",
-    "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/",
-  );
 
-  await expect(page.getByLabel(/^Property ID/)).toHaveValue("RCPP-E2E-001");
+  // A resolved link shows the listing itself; the internal ID travels with the form.
+  const context = main.getByRole("region", { name: "Clark Garden Residence" });
+  await expect(context.getByText("#RCPP-E2E-001")).toBeVisible();
+  await expect(context.getByRole("link", { name: "View listing" })).toHaveAttribute(
+    "href",
+    "/properties/clark-garden-residence",
+  );
+  await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
   await expect(page.getByLabel("Inquiry type")).toHaveValue("property");
   await page.getByLabel("Name").fill("Playwright Visitor");
   await page.getByLabel("Email").fill("visitor@example.test");
@@ -671,7 +672,143 @@ test("contact form sends its typed payload and displays API success feedback", a
     "Inquiry submitted successfully.",
   );
   await expect(page.getByRole("status")).toContainText("E2E-INQUIRY-001");
+  // The form is replaced by a confirmation with working follow-up actions.
+  await expect(page.getByLabel("Message")).toHaveCount(0);
+  await expect(
+    page.getByRole("status").getByRole("heading", { name: /submitted successfully/ }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole("status").getByRole("link", { name: "Browse properties" }),
+  ).toHaveAttribute("href", "/properties");
+  await expect(
+    page.getByRole("status").getByRole("link", { name: /Back to Clark Garden/ }),
+  ).toHaveAttribute("href", "/properties/clark-garden-residence");
+  await page.getByRole("button", { name: "Send another inquiry" }).click();
+  await expect(page.getByLabel("Name", { exact: true })).toBeFocused();
+  await expect(page.getByLabel("Message")).toHaveValue("");
   expect(browserErrors).toEqual([]);
+});
+
+test("a general contact inquiry never asks for or sends a property reference", async ({
+  page,
+}) => {
+  await page.goto("/contact");
+  await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Asking about a specific listing?" }),
+  ).toHaveCount(0);
+  await expect(page.locator('input[name="propertyId"]')).toHaveCount(0);
+  await expect(page.getByLabel("Inquiry type")).toHaveValue("general");
+  // Visitors still choose an inquiry type.
+  await page.getByLabel("Inquiry type").selectOption("selling");
+
+  await page.getByLabel("Name", { exact: true }).fill("Playwright Visitor");
+  await page.getByLabel("Email", { exact: true }).fill("visitor@example.test");
+  await page.getByLabel("Phone", { exact: true }).fill("+63 917 123 4567");
+  await page.getByLabel("Message").fill("A general question without a listing.");
+  await page.getByRole("checkbox").check();
+  const [apiResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
+        response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "Send inquiry" }).click(),
+  ]);
+  const payload = apiResponse.request().postDataJSON();
+  expect(payload).toMatchObject({ inquiryType: "selling", source: "contact-page" });
+  expect(payload).not.toHaveProperty("propertyId");
+});
+
+test("contact recovers from unknown properties and lets a listing be dropped", async ({
+  page,
+}) => {
+  await page.goto("/contact?propertyId=RCPP-UNKNOWN-404");
+  await expect(
+    page.getByText(/couldn’t find a current listing for that link/),
+  ).toBeVisible();
+  await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
+  await expect(page.getByLabel("Inquiry type")).toHaveValue("general");
+
+  await page.goto("/contact?propertyId=RCPP-E2E-001");
+  const context = page.getByRole("region", { name: "Clark Garden Residence" });
+  await context.getByRole("button", { name: "Not about this property" }).click();
+  await expect(context).toHaveCount(0);
+  await expect(page.getByLabel("Inquiry type")).toHaveValue("general");
+
+  await page.getByLabel("Name", { exact: true }).fill("Playwright Visitor");
+  await page.getByLabel("Email", { exact: true }).fill("visitor@example.test");
+  await page.getByLabel("Phone", { exact: true }).fill("+63 917 123 4567");
+  await page
+    .getByLabel("Message")
+    .fill("A general question after dropping the listing.");
+  await page.getByRole("checkbox").check();
+  const [apiResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
+        response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "Send inquiry" }).click(),
+  ]);
+  const payload = apiResponse.request().postDataJSON();
+  expect(payload).toMatchObject({ inquiryType: "general", source: "contact-page" });
+  expect(payload).not.toHaveProperty("propertyId");
+});
+
+test("a listing the backend rejects is dropped and the inquiry can still be sent", async ({
+  page,
+}) => {
+  let attempts = 0;
+  await page.route(`**${API_PREFIX}/inquiries`, (route) => {
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3100",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers": "Content-Type, Idempotency-Key",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    };
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers });
+    }
+    attempts += 1;
+    if (attempts > 1) return route.continue();
+    return route.fulfill({
+      status: 422,
+      headers,
+      json: {
+        status: "error",
+        statusCode: 422,
+        message: "Please correct the highlighted fields.",
+        issues: [{ field: "propertyId", message: "Select a current property." }],
+      },
+    });
+  });
+  await page.goto("/contact?propertyId=RCPP-E2E-001");
+  await page.getByLabel("Name", { exact: true }).fill("Playwright Visitor");
+  await page.getByLabel("Email", { exact: true }).fill("visitor@example.test");
+  await page.getByLabel("Phone", { exact: true }).fill("+63 917 123 4567");
+  await page.getByLabel("Message").fill("A question about a listing that went away.");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Send inquiry" }).click();
+
+  const alert = page.locator("#inquiry-errors");
+  await expect(alert).toContainText("no longer available");
+  await expect(alert.getByRole("link")).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Clark Garden Residence" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
+
+  const [retry] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
+        response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "Send inquiry" }).click(),
+  ]);
+  expect(retry.status()).toBe(201);
+  expect(retry.request().postDataJSON()).not.toHaveProperty("propertyId");
 });
 
 test("Part 3 editorial pages keep factual RC Premier content and current channels", async ({
@@ -679,32 +816,41 @@ test("Part 3 editorial pages keep factual RC Premier content and current channel
 }) => {
   await page.goto("/about");
   await expect(
-    page.getByRole("heading", { level: 1, name: /clear purpose/ }),
+    page.getByRole("heading", { level: 1, name: /Rooted in Pampanga/ }),
   ).toBeVisible();
   await expect(
-    page.getByText(/offers houses and residential properties/),
+    page.getByRole("heading", {
+      name: "Thoughtfully presented homes, clearer property decisions, and a more personal way forward in Pampanga.",
+    }),
   ).toBeVisible();
 
   await page.goto("/sell");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Your property. Your next move." }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Thinking of selling your property?",
+    }),
   ).toBeVisible();
   await expect(
-    page.getByText(/not a valuation, listing agreement/).first(),
+    page.getByRole("heading", { level: 2, name: "Tell us about your property." }),
   ).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Seller inquiry", exact: true }),
+    page.getByText(/does not create a valuation or listing agreement/),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Keep IDs and ownership documents out of this form/),
   ).toBeVisible();
 
   await page.goto("/contact");
   await expect(
-    page.getByRole("heading", { name: "Start a Conversation." }),
+    page.getByRole("heading", { level: 1, name: /Let’s talk about your next move/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "How can we help?" }),
   ).toBeVisible();
   for (const channel of ["Facebook", "Instagram", "YouTube", "TikTok"]) {
     await expect(
-      page
-        .locator("main#main-content")
-        .getByRole("link", { name: new RegExp(channel) }),
+      page.getByRole("contentinfo").getByRole("link", { name: new RegExp(channel) }),
     ).toBeVisible();
   }
 });
@@ -776,28 +922,88 @@ test("an unrelated admin-prefixed 404 retains the public chrome", async ({ page 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("Request a Tour submits one structured unconfirmed viewing request", async ({
+test("Book a Viewing schedules one structured unconfirmed request inline", async ({
   page,
 }) => {
   await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
 
-  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("Premier Property #RCPP-E2E-001")).toBeVisible();
-  const selectedDate = dialog.locator('input[name="requestedDate"]:checked');
-  await expect(selectedDate).toHaveCount(1);
-  const firstDatePage = await selectedDate.inputValue();
-  await dialog.getByRole("button", { name: "Later dates" }).click();
-  await expect(selectedDate).not.toHaveValue(firstDatePage);
-  const requestedDate = await selectedDate.inputValue();
-  await expect(dialog.getByLabel("Preferred time")).toHaveValue("11:30");
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await expect(dialog.getByLabel(/^Subject/)).toHaveCount(0);
-  await expect(dialog.getByLabel(/Notes for the team/)).toBeVisible();
-  await dialog.getByLabel("Full name").fill("Playwright Viewer");
-  await dialog.getByLabel("Phone number").fill("+63 917 555 0110");
-  await dialog.getByLabel("Email").fill("viewer@example.test");
-  await dialog.getByRole("checkbox").check();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "See the property in person." }),
+  ).toBeVisible();
+  const context = page.getByRole("region", { name: "Clark Garden Residence" });
+  await expect(context.getByText("#RCPP-E2E-001")).toBeVisible();
+  // Availability is only called out when it changes expectations (reserved).
+  await expect(context.getByText(/reserved/i)).toHaveCount(0);
+  await expect(context.getByRole("link", { name: "View listing" })).toHaveAttribute(
+    "href",
+    "/properties/clark-garden-residence",
+  );
+  await expect(context.getByRole("button", { name: "Change" })).toHaveCount(0);
+  await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
+  await expect(page.getByText("What happens next?")).toHaveCount(0);
+  await expect(page.getByText(/Prefer to talk it through first/)).toHaveCount(0);
+  await expect(page.getByText("Philippine time")).toHaveCount(0);
+  await expect(page.getByText(/Your selection is a request/)).toBeVisible();
+  await expect(
+    page.getByText("Requested times require staff confirmation."),
+  ).toBeVisible();
+
+  const scheduler = page.getByRole("region", {
+    name: "Choose a preferred date and time.",
+  });
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+  await expect(scheduler.getByRole("alert")).toHaveText(
+    "Choose a preferred date and time to continue.",
+  );
+
+  const dates = scheduler
+    .getByRole("group", { name: "Preferred date" })
+    .getByRole("radio");
+  const firstDate = await dates.first().inputValue();
+  await scheduler.getByRole("button", { name: "Next month" }).click();
+  const requestedDate = await dates.first().inputValue();
+  expect(requestedDate > firstDate).toBe(true);
+  await dates.first().check();
+  await scheduler
+    .getByRole("group", { name: "Afternoon" })
+    .getByRole("radio", { name: "2:30 PM", exact: true })
+    .check();
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+
+  const details = page.getByRole("region", { name: "Where should we follow up?" });
+  await expect(
+    details.getByRole("heading", { name: "Where should we follow up?" }),
+  ).toBeFocused();
+  await expect(details.getByText("2:30 PM", { exact: true })).toBeVisible();
+  await expect(details.getByText(/Philippine time/)).toHaveCount(0);
+  await expect(details.getByLabel("Full name")).toHaveAttribute(
+    "placeholder",
+    "Enter your full name",
+  );
+  await expect(details.getByLabel("Phone number")).toHaveAttribute(
+    "placeholder",
+    "e.g. 0917 123 4567",
+  );
+  await expect(details.getByLabel("Email")).toHaveAttribute(
+    "placeholder",
+    "you@example.com",
+  );
+  await details.getByRole("button", { name: "Edit schedule" }).click();
+  await expect(scheduler.getByRole("radio", { checked: true })).toHaveCount(2);
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+
+  await details.getByLabel("Full name").fill("Playwright Viewer");
+  await details.getByLabel("Phone number").fill("invalid");
+  await details.getByLabel("Email").fill("viewer@example.test");
+  await details.getByRole("checkbox").check();
+  await details.getByRole("button", { name: "Send viewing request" }).click();
+  await expect(details.locator("#viewing-errors")).toBeFocused();
+  await expect(details.getByLabel("Phone number")).toHaveAttribute(
+    "aria-describedby",
+    "viewing-phone-error",
+  );
+  await details.getByLabel("Phone number").fill("+63 917 555 0110");
 
   const [apiResponse] = await Promise.all([
     page.waitForResponse(
@@ -805,7 +1011,7 @@ test("Request a Tour submits one structured unconfirmed viewing request", async 
         response.url() === `${FIXTURE_API_ORIGIN}${API_PREFIX}/inquiries` &&
         response.request().method() === "POST",
     ),
-    dialog.getByRole("button", { name: "Submit request" }).click(),
+    details.getByRole("button", { name: "Send viewing request" }).click(),
   ]);
 
   expect(apiResponse.status()).toBe(201);
@@ -815,18 +1021,70 @@ test("Request a Tour submits one structured unconfirmed viewing request", async 
     propertyId: "RCPP-E2E-001",
     phone: "+63 917 555 0110",
     requestedDate,
-    requestedTime: "11:30",
+    requestedTime: "14:30",
     privacyConsent: true,
   });
-  await expect(dialog.getByRole("status")).toContainText("Request submitted");
-  await expect(dialog.getByRole("status")).toContainText("Staff must confirm");
-  await expect(dialog.getByRole("status")).toContainText("not confirmed");
+  const success = page.getByRole("status");
+  await expect(success).toContainText("Request received");
+  await expect(success).toContainText("E2E-INQUIRY-001");
+  await expect(success).toContainText("Clark Garden Residence");
+  await expect(success).toContainText("This is not yet a confirmed appointment.");
+  await expect(success).toContainText("2:30 PM");
+  await expect(success).not.toContainText("Philippine time");
+  await expect(success.getByRole("link", { name: "Back to property" })).toHaveAttribute(
+    "href",
+    "/properties/clark-garden-residence",
+  );
+});
+
+test("Book a Viewing offers current listings instead of a raw property number", async ({
+  page,
+}) => {
+  await page.goto("/book-viewing");
+  const picker = page.getByRole("region", {
+    name: "Which property would you like to see?",
+  });
+  const listings = picker.getByRole("list", { name: "Current listings" });
+  await expect(listings.getByRole("button")).not.toHaveCount(0);
+  await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
+
+  const scheduler = page.getByRole("region", {
+    name: "Choose a preferred date and time.",
+  });
+  await scheduler.getByRole("button", { name: "Continue to your details" }).click();
+  await expect(scheduler.getByRole("alert")).toHaveText(
+    "Choose a property to continue.",
+  );
+
+  // Choosing a listing swaps the picker for the chosen-property strip.
+  await listings.getByRole("button", { name: /^Clark Garden Residence,/ }).click();
+  const chosen = page.getByRole("region", { name: "Clark Garden Residence" });
+  await expect(chosen.getByText("#RCPP-E2E-001")).toBeVisible();
+  await expect(
+    chosen.getByRole("heading", { name: "Clark Garden Residence" }),
+  ).toBeFocused();
+  await chosen.getByRole("button", { name: "Change" }).click();
+  await expect(picker).toBeVisible();
+
+  await expect(
+    picker.getByRole("link", { name: "Browse all properties" }),
+  ).toHaveAttribute("href", "/properties");
+
+  await page.goto("/book-viewing?propertyId=RCPP-UNKNOWN-404");
+  await expect(
+    page.getByText(/couldn’t find a current listing numbered “RCPP-UNKNOWN-404”/),
+  ).toBeVisible();
+  await expect(page.getByLabel(/Premier Property number/)).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Clark Garden Residence" }),
+  ).toHaveCount(0);
 });
 
 test("the global Request a Tour entry requires a property before continuing", async ({
   page,
 }) => {
-  await page.goto("/about");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/locations/angeles-city");
   const trigger = page.getByRole("banner").getByRole("button", {
     name: "Request a Tour",
   });

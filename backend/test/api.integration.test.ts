@@ -8,7 +8,7 @@ import type {
   PropertySearchResponse,
   PublicPropertyDetail,
 } from "@rc/shared";
-import { API_PREFIX } from "@rc/shared";
+import { API_PREFIX, viewingRequestDateWindow } from "@rc/shared";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
@@ -341,6 +341,7 @@ describe("Phase 2A public API", () => {
   );
 
   it("accepts a structured future viewing request and rejects malformed schedules", async () => {
+    const requestedDate = viewingRequestDateWindow().earliest;
     const valid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
       name: "Maria Santos",
       email: "maria@example.com",
@@ -348,7 +349,7 @@ describe("Phase 2A public API", () => {
       inquiryType: "viewing",
       source: "viewing-page",
       propertyId: "rc-100",
-      requestedDate: "2030-09-20",
+      requestedDate,
       requestedTime: "10:30",
       privacyConsent: true,
     });
@@ -357,7 +358,7 @@ describe("Phase 2A public API", () => {
       expect.objectContaining({
         inquiryType: "viewing",
         propertyId: "RC-100",
-        requestedDate: "2030-09-20",
+        requestedDate,
         requestedTime: "10:30",
       }),
     );

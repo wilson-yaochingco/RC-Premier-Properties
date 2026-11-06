@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { RouteRail } from "./RouteRail";
 import { SwipeIndicator } from "./SwipeIndicator";
 import styles from "./route-cards.module.css";
 
@@ -51,7 +52,7 @@ export function RouteCards() {
             path that fits you best.
           </p>
         </div>
-        <ul id="route-rail" className={styles.grid} aria-label="Where to start">
+        <RouteRail>
           {CARDS.map((card, i) => (
             <li key={card.title}>
               <Link
@@ -96,7 +97,7 @@ export function RouteCards() {
               </Link>
             </li>
           ))}
-        </ul>
+        </RouteRail>
         <SwipeIndicator railId="route-rail" count={CARDS.length} />
       </div>
     </section>

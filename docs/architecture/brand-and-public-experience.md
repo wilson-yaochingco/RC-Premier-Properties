@@ -211,12 +211,12 @@ for a messaging provider that has not been selected.
 | `/`                     | Understand the brand, browse properties and reach the next useful page      |
 | `/properties`           | Filter, sort and page through published inventory                           |
 | `/properties/[slug]`    | Evaluate one published property and send an inquiry                         |
-| `/locations`            | Browse bounded, inventory-backed public locations                           |
+| `/locations`            | Explore an inventory-backed atlas of current Pampanga locations             |
 | `/locations/[location]` | Explore one inventory-backed location and its published listings            |
 | `/about`                | Understand the positioning and service-area focus without fabricated claims |
 | `/contact`              | Submit a general or property-related inquiry                                |
 | `/sell`                 | Start a seller conversation; no documents are collected publicly            |
-| `/book-viewing`         | Request a viewing through the inquiry workflow; no time is promised         |
+| `/book-viewing`         | Request a preferred viewing date and time inline; staff must confirm it     |
 
 The last route records a request, not a confirmed appointment. Scheduling and booking
 management remain Phase 2B work.
@@ -237,10 +237,14 @@ fixtures (`?featuredFixture=…` under `next dev`) never reach production builds
 never a fallback.
 
 The homepage header begins over the hero and becomes a light sticky bar after the hero
-leaves the viewport; interior routes retain their light header. The mobile menu moves focus
-into the open panel, traps keyboard focus, closes on Escape, and returns focus to its
-trigger. Current-route state is exposed with `aria-current` where a stable page route can
-be determined.
+leaves the viewport. The editorial routes `/properties`, `/locations`, `/about`, `/sell`,
+`/contact` and `/book-viewing` render that same header in its sticky state from the first
+paint; detail and other interior routes retain the classic light header. The mobile menu
+moves focus into the open panel, traps keyboard focus, closes on Escape, and returns focus
+to its trigger. The menu is open only for the route it was opened on, and any internal
+link inside it, including the Book a viewing action, closes it, so a route change or
+back/forward navigation cannot leave a stale open menu or page scroll lock. Current-route
+state is exposed with `aria-current` where a stable page route can be determined.
 
 Six RC Premier YouTube Shorts use a poster-first, horizontal scroll-snap row with
 lazy thumbnails. A player is mounted only after a visitor selects a tour; the
@@ -367,8 +371,8 @@ The Part 3 references guide composition, spacing and hierarchy only. Every photo
 an existing authorized RC Premier asset because the exact flattened-reference sources
 were not available. About and Sell avoid third-party facts, metrics, founders, programs,
 valuation promises and syndication claims. Contact uses the current email, phone and four
-approved social profiles. The legacy `/book-viewing` route remains indexable and compatible
-but no longer maintains a second booking-page presentation.
+approved social profiles. `/book-viewing` is superseded by the inline scheduler described
+in “Editorial public pages” below.
 
 ## Accessibility contract
 
@@ -440,3 +444,35 @@ a photograph or grain layer. Reduced motion removes reveal transitions.
 The RC Premier symbol mark is white on dark surfaces and Deep Charcoal (#252c36)
 on light surfaces. The symbol-only SVG favicon adapts to the browser color scheme.
 The full wordmark remains available where explicit brand naming is required.
+
+### Editorial public pages (2026-11-03)
+
+Locations, Sell, About and Book a Viewing share the Home/Properties language (Warm Ivory,
+Deep Charcoal, soft stone, Manrope, thin rules, the asymmetric editorial corner) without
+sharing one section template. All four use the sticky homepage header and a shared
+`components/layout/editorial-page.module.css` frame whose top offset mirrors that header's
+breakpoint heights.
+
+- **Locations** is a light location-discovery page: a centred hero over an original
+  architectural line drawing of a two-storey residence, a photographic mosaic of four
+  curated destinations (Angeles City dominant; Mabalacat City, Magalang and Porac
+  supporting) with place imagery and no visible heading, a typography-led "Refine the search
+  around your priorities" strip (location, property type, budget and bedrooms, handed to
+  the real `/properties` query), a "Homes worth exploring" showcase (one lead plus up to
+  three supporting published properties, with an intentional no-photograph composition),
+  and the shared closing CTA. The curated four are permanent; counts and homes come from
+  the published `locationCounts` and property search. A confirmed `0 properties` is
+  distinct from `Inventory unavailable`, and sample content is never substituted. See
+  [`docs/features/locations.md`](../features/locations.md).
+- **Sell** leads with presentation and process before the form: hero, proposition, a
+  five-stage journey, a real published listing shown as the presentation example (omitted
+  when none is available), what to prepare with the sensitive-documents rule, the
+  unchanged seller `InquiryForm`, and explicit not-a-valuation / not-a-listing-agreement
+  disclosures.
+- **About** keeps the motion-aware brand film and tells the brand story through a
+  statement of focus, three alternating principle bands, the Pampanga boundary map (with a
+  live location count only when the facets return one), a Discover → Understand → Visit →
+  Converse sequence, a manifesto image, how RC Premier works, and four large navigation
+  rows. It makes no claims about history, team size, awards or transaction volume.
+- **Book a Viewing** is an inline scheduler (see `docs/features/inquiries.md`). It never
+  presents dates or times as availability.

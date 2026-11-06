@@ -4,10 +4,8 @@ import Image from "next/image";
 import { useState } from "react";
 import type { PublicPropertyMedia } from "@rc/shared";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
-import {
-  DEVELOPMENT_SAMPLE_MEDIA_ENABLED,
-  isApprovedProductionMediaUrl,
-} from "@/lib/env";
+import { isApprovedProductionMediaUrl } from "@/lib/env";
+import { isDevelopmentSampleUrl } from "./property-media-support";
 
 interface PropertyMediaProps {
   media?: PublicPropertyMedia;
@@ -16,25 +14,6 @@ interface PropertyMediaProps {
   className?: string;
   sizes?: string;
   fit?: "cover" | "contain";
-}
-
-function isDevelopmentSampleUrl(media: PublicPropertyMedia | undefined): boolean {
-  if (
-    !DEVELOPMENT_SAMPLE_MEDIA_ENABLED ||
-    media?.source !== "development-sample" ||
-    !media.url
-  )
-    return false;
-  try {
-    const url = new URL(media.url);
-    return (
-      url.protocol === "https:" &&
-      url.hostname === "images.unsplash.com" &&
-      /^\/photo-[a-zA-Z0-9-]+$/.test(url.pathname)
-    );
-  } catch {
-    return false;
-  }
 }
 
 export function PropertyMedia({

@@ -8,17 +8,56 @@ and staff workflow still require the existing live Auth0/MongoDB acceptance pass
 
 One connected form supports the public entry points currently exposed by the UI:
 
-| Route or action                   | Default type                                       | Source         |
-| --------------------------------- | -------------------------------------------------- | -------------- |
-| `/contact`                        | general, or property when a Property ID is present | `contact-page` |
-| property-detail “Send an inquiry” | links to `/contact` with its Property ID           | `contact-page` |
-| Request a Tour dialog             | viewing with property context when available       | `viewing-page` |
-| `/book-viewing`                   | opens the shared Request a Tour dialog             | `viewing-page` |
-| `/sell`                           | selling                                            | `sell-page`    |
+| Route or action                   | Default type                                    | Source         |
+| --------------------------------- | ----------------------------------------------- | -------------- |
+| `/contact`                        | general, or property when a listing is resolved | `contact-page` |
+| property-detail “Send an inquiry” | links to `/contact` with its Property ID        | `contact-page` |
+| Request a Tour dialog             | viewing with property context when available    | `viewing-page` |
+| `/book-viewing`                   | inline viewing scheduler                        | `viewing-page` |
+| `/sell`                           | selling                                         | `sell-page`    |
 
-`/contact` accepts `propertyId` in the URL and prefills the form. `/book-viewing` remains
-a direct entry point and opens the same Request a Tour dialog used by the header,
-homepage and eligible property detail pages.
+`/contact` accepts `propertyId` in the URL. The server resolves it through the public
+property search and shows the listing's title, Premier Property number, location and type
+in a context card; the internal ID is submitted with the form and the visitor is never
+asked to type it. “Not about this property” drops the reference and sends a general
+inquiry. An unknown ID shows a short notice and a general inquiry; a failed lookup keeps the
+reference and says details could not be loaded. If the backend rejects a page-supplied
+listing on submit, the reference is dropped and the visitor is asked to send again. A
+general inquiry never shows an ID field and sends no property reference. Contact uses `InquiryForm variant="contact"`; Sell keeps the default layout. After a
+successful submission the form is replaced by a confirmation with the opaque reference and
+follow-up actions. `/book-viewing` is an
+inline scheduler rather than a dialog launcher; the Request a Tour dialog remains the entry
+from the classic header and property detail pages. Both surfaces use one shared module,
+`features/inquiries/tour-request.ts`, for the requestable Philippine-time options, client
+validation, payload shape, idempotency key and API error handling, so their business rules
+cannot drift apart. Each surface keeps its own presentation.
+
+## Book a Viewing scheduler
+
+`/book-viewing?propertyId=` resolves the ID through the public property search on the
+server. A match shows the listing's title, Premier Property number, cover image, location
+and type with a link back to the listing; availability is only called out when the listing
+is reserved. Without a resolved property the visitor chooses from current listings: photo
+cards with type filters when there are enough to narrow. A property number is never typed
+in. If the ID is unknown or its details could not be loaded, the same cards are offered
+with a short notice; if no listings can be offered (none open, or the list failed to load)
+the page points to the property catalogue instead of showing the scheduler. A sold listing
+closes the scheduler instead of accepting a request, matching the dialog's sold-property
+protection.
+
+The flow is Schedule → Details → Requested. The preferred date is a month calendar of
+native radio inputs (keyboard arrow navigation, one accessible date name per day) from
+tomorrow in Philippine time through 90 days ahead; other dates are not selectable.
+Preferred times are native radios grouped into morning and afternoon. A rejection caused
+only by the page-supplied property (sold or unpublished since the page loaded) is shown
+as "This property is no longer accepting viewing requests." with a link to current
+properties. Copy
+states throughout that the selection is a request and that staff confirmation is required.
+Details collect full name, phone, email, optional notes and consent, with the chosen
+schedule summarised and editable. Field and summary errors use the same API issue
+mapping as the dialog. Success shows the property, requested date and time, the opaque
+reference, and that the visit is not yet a confirmed appointment; no calendar event is
+offered.
 
 Approved public contact details are `rcpremierph@gmail.com` and
 `+63 918 429 1873`. The approved Facebook, Instagram, YouTube and TikTok profiles appear
@@ -28,9 +67,12 @@ or business hours, so neither is displayed.
 ## Form behavior
 
 The general form collects name, email, required phone, inquiry type, optional Property ID,
-optional subject, message and explicit privacy consent. The Sell page instead fixes the
-type to `selling`, removes the visible type and Property ID controls, and asks for the
-seller's property area and relevant details. The viewing dialog fixes the type to
+optional subject, message and explicit privacy consent. The Sell page (`variant="seller"`)
+fixes the type to `selling` and asks for full name, email, phone, a required property
+location or area, an optional property type (House & Lot, Townhouse, Lot/Land, Other) and
+the property details. The contract has no structured property fields, so location and type
+are sent together in the existing `subject` (for example `Townhouse · Angeles City`);
+the message stays the owner's own text. No backend change was needed. The viewing dialog fixes the type to
 `viewing`, requires full name, phone, email, property context and structured requested
 date and time, and keeps optional notes without a Subject field. A known property is
 displayed rather than requested again; the generic tour entry asks for a Property ID.
@@ -45,8 +87,24 @@ documents. The submission is not a valuation, listing agreement, offer, approval
 promise that the property will be published.
 
 The viewing route remains a **request only**. Times are interpreted in Philippine time.
-The backend verifies that the referenced sale property is published and not sold, but it does
-not expose or invent calendar availability. Submission creates `requested` state and the
+The backend verifies that the referenced sale property is published, of an allowed sale
+type and not sold (reserved listings remain requestable), but it does not expose or invent
+calendar availability.
+
+Public viewing schedule rules are shared constants in `@rc/shared`
+(`VIEWING_REQUEST_TIMES`, `VIEWING_REQUEST_MIN_DAYS_AHEAD`,
+`VIEWING_REQUEST_MAX_DAYS_AHEAD`, `viewingRequestDateWindow`) and are enforced by backend
+validation:
+
+- dates run from tomorrow through 90 days ahead on the Philippine calendar; same-day
+  requests are rejected;
+- preferred times run from 9:00 AM to 4:00 PM in 30-minute steps;
+- weekends are allowed.
+
+These describe what a visitor may ask for, not availability. Staff confirmation and
+rescheduling are bound only by the existing future-time rule, so staff can arrange any
+agreed time. The staff notification text includes the subject and the requested date and
+time when present; delivery remains disabled until a provider is selected. Submission creates `requested` state and the
 success copy explicitly says staff confirmation is still required.
 
 ## Viewing lifecycle and inquiry relationship

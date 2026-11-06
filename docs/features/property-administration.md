@@ -77,6 +77,9 @@ exact stored value, so merely opening and saving a record never silently rewrite
 detail/edit responses. Admin list summaries omit them. `publicPoint` is a separate
 GeoJSON `[longitude, latitude]` pair; it is never populated or derived from the private
 pair. Staff must intentionally supply a reviewed point and select its public precision.
+Public responses publish the point only for exact, approximate or subdivision precision;
+a point stored on a barangay-area or city-only listing is withheld. A point identical to
+the private coordinates is rejected unless precision is exact.
 
 Both coordinate pairs are optional, but either pair must be complete. Server validation
 accepts only finite JSON numbers in valid latitude/longitude ranges. Invalid, malformed,

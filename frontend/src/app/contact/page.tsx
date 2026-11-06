@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import Link from "next/link";
 import contactImage from "@/assets/site/contact.png";
-import { Container } from "@/components/ui/Container";
-import { SocialMediaIcon } from "@/features/contact/SocialMediaIcon";
+import { RollLabel } from "@/components/ui/RollLabel";
+import frame from "@/components/layout/editorial-page.module.css";
+import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
 import { InquiryForm } from "@/features/inquiries/InquiryForm";
+import { resolveViewingProperty } from "@/features/inquiries/viewing-property";
 import {
   OFFICIAL_EMAIL,
   OFFICIAL_PHONE,
   OFFICIAL_PHONE_HREF,
-  OFFICIAL_SOCIAL_LINKS,
 } from "@/lib/public-contact";
 import { buildPageMetadata } from "@/lib/seo";
 import styles from "./contact.module.css";
@@ -21,106 +22,130 @@ export const metadata: Metadata = buildPageMetadata({
   imagePath: contactImage.src,
 });
 
+const HELPS = [
+  "The property or area you have in mind",
+  "Whether you are buying, selling or still exploring",
+  "The best number to reach you on",
+] as const;
+
+function Arrow() {
+  return (
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+const firstValue = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
 export default async function ContactPage({ searchParams }: PageProps<"/contact">) {
   const query = await searchParams;
-  const rawPropertyId = query.propertyId;
-  const propertyId = Array.isArray(rawPropertyId) ? rawPropertyId[0] : rawPropertyId;
+  // Resolved through the public property search, so only details the API returned are
+  // shown. `contactPropertyFixture` is a development-only preview; production ignores it.
+  const context = await resolveViewingProperty(
+    firstValue(query.propertyId),
+    firstValue(query.contactPropertyFixture),
+  );
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page}>
-      <section className={styles.hero} aria-labelledby="guidance-heading">
-        <Image
-          src={contactImage}
-          alt="Dining area with warm wood finishes and sculptural lighting"
-          fill
-          priority
-          sizes="100vw"
-        />
-        <Container className={styles.heroInner}>
-          <article className={styles.guidanceCard}>
-            <p className={styles.eyebrow}>Property guidance</p>
-            <h1 id="guidance-heading">Looking for the right next step?</h1>
-            <p>
-              Ask about a published property, share what you are looking for, or begin a
-              private seller conversation. The team will follow up directly.
-            </p>
-            <a href="#start-a-conversation">Start a conversation</a>
-          </article>
-        </Container>
+    <main id="main-content" tabIndex={-1} className={`${frame.page} ${styles.page}`}>
+      <section className={styles.intro} aria-labelledby="contact-heading">
+        <div className={styles.introMain}>
+          <p className={styles.eyebrow}>Get in touch</p>
+          <h1 id="contact-heading" className={styles.headline}>
+            Let’s talk about your next move.
+          </h1>
+        </div>
+        <div className={styles.introAside}>
+          <p className={styles.lede}>
+            Ask about a property, tell us what you are looking for, or reach the team
+            directly.
+          </p>
+          <ul className={styles.channels} aria-label="Contact RC Premier directly">
+            <li>
+              <a href={OFFICIAL_PHONE_HREF} className="cta cta--wrap">
+                <span className={styles.channelLabel}>Call</span>
+                <span className={styles.channelValue}>
+                  <RollLabel>{OFFICIAL_PHONE}</RollLabel>
+                </span>
+                <Arrow />
+              </a>
+            </li>
+            <li>
+              <a href={`mailto:${OFFICIAL_EMAIL}`} className="cta cta--wrap">
+                <span className={styles.channelLabel}>Email</span>
+                <span className={styles.channelValue}>
+                  <RollLabel>{OFFICIAL_EMAIL}</RollLabel>
+                </span>
+                <Arrow />
+              </a>
+            </li>
+          </ul>
+        </div>
       </section>
 
-      <section
-        id="start-a-conversation"
-        className={styles.conversation}
-        aria-labelledby="conversation-heading"
-      >
-        <Container className={styles.conversationInner}>
-          <div className={styles.conversationIntro}>
-            <p className={styles.eyebrow}>Tell us what brings you here</p>
-            <h2 id="conversation-heading">Start a Conversation.</h2>
-            <p>
-              Send a general question or include a Premier Property number. The team
-              will review your inquiry and can follow up using the contact details you
-              provide.
+      <section className={styles.conversation} aria-labelledby="contact-form-heading">
+        <div className={styles.card}>
+          <div className={styles.rail}>
+            <p className={styles.railEyebrow}>Send an inquiry</p>
+            <h2 id="contact-form-heading" className={styles.railTitle}>
+              How can we help?
+            </h2>
+            <p className={styles.railCopy}>
+              Share as much or as little as you like. The team will follow up using the
+              details you provide, so a few specifics help.
             </p>
-            <div className={styles.directLinks}>
-              <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>
-              <a href={OFFICIAL_PHONE_HREF}>{OFFICIAL_PHONE}</a>
-            </div>
+            <p className={styles.helpsLabel}>It helps to mention</p>
+            <ul className={styles.helps}>
+              {HELPS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           </div>
-          <div
-            className={styles.formPanel}
-            role="region"
-            aria-label="Start a conversation form"
-          >
+
+          <div className={styles.formArea}>
             <InquiryForm
-              defaultInquiryType={propertyId ? "property" : "general"}
+              variant="contact"
+              defaultInquiryType={
+                context.status === "resolved" || context.status === "unavailable"
+                  ? "property"
+                  : "general"
+              }
               source="contact-page"
-              propertyId={propertyId}
               submitLabel="Send inquiry"
+              {...(context.status === "resolved" ? { property: context.property } : {})}
+              {...(context.status === "unavailable"
+                ? {
+                    propertyId: context.propertyId,
+                    propertyIssue: "lookup-failed" as const,
+                  }
+                : {})}
+              {...(context.status === "not-found"
+                ? { propertyIssue: "not-found" as const }
+                : {})}
             />
           </div>
-        </Container>
-      </section>
 
-      <section className={styles.direct} aria-labelledby="direct-heading">
-        <Container className={styles.directInner}>
-          <h2 id="direct-heading">Need a direct line?</h2>
-          <div className={styles.directGrid}>
-            <article>
-              <h3>General questions</h3>
-              <p>Send a message by email whenever that is more convenient.</p>
-              <a href={`mailto:${OFFICIAL_EMAIL}`}>{OFFICIAL_EMAIL}</a>
-            </article>
-            <article>
-              <h3>Call RC Premier</h3>
-              <p>Speak with the team about a property or an existing inquiry.</p>
-              <a href={OFFICIAL_PHONE_HREF}>{OFFICIAL_PHONE}</a>
-            </article>
-            <article>
-              <h3>Follow along</h3>
-              <p>See current RC Premier Properties updates on our official channels.</p>
-              <ul className={styles.socialLinks}>
-                {OFFICIAL_SOCIAL_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${link.label} — RC Premier Properties (opens in a new tab)`}
-                    >
-                      <span aria-hidden="true">
-                        <SocialMediaIcon platform={link.label} />
-                      </span>
-                      <span>{link.label}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          </div>
-        </Container>
+          <nav className={styles.more} aria-label="Other ways to get started">
+            <Link href="/book-viewing" className="cta cta--wrap">
+              <span>Prefer to see it in person?</span>
+              <strong>
+                <RollLabel>Book a viewing</RollLabel>
+                <Arrow />
+              </strong>
+            </Link>
+            <Link href="/sell" className="cta cta--wrap">
+              <span>Thinking of selling?</span>
+              <strong>
+                <RollLabel>Sell a property</RollLabel>
+                <Arrow />
+              </strong>
+            </Link>
+          </nav>
+        </div>
       </section>
+      <DevHomepagePreview />
     </main>
   );
 }

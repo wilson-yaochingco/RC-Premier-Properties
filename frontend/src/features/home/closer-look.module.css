@@ -9,9 +9,8 @@
   font-family: var(--font-manrope), sans-serif;
 }
 
-/* Same container as the neighbouring sections (Sections 2–4): 1440px, shared gutters. */
+/* Same container as the neighbouring sections: shared gutters, no outer cap (matches About). */
 .container {
-  max-width: 1440px;
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
@@ -25,14 +24,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-brand-deep);
-}
-
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  background: var(--color-brand-deep);
-  transform: rotate(45deg);
 }
 
 /* Headline left, Book a viewing right; no paragraph between them. */

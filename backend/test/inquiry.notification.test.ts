@@ -6,6 +6,7 @@ const RECEIVED_AT = new Date("2026-09-13T00:00:00.000Z");
 const REQUEST: Omit<CreateInquiryRequest, "website"> = {
   name: "Beta Test",
   email: "customer@example.test",
+  phone: "+63 917 555 0110",
   inquiryType: "general",
   source: "contact-page",
   privacyConsent: true,
@@ -73,6 +74,64 @@ describe("configured inquiry notification destination", () => {
     expect(send).toHaveBeenCalledWith(initial, {
       idempotencyKey: "stable-notification-key",
     });
+  });
+
+  it("includes subject and requested schedule only when the inquiry carries them", async () => {
+    const { buildInquiryNotification } =
+      await import("../src/modules/inquiries/inquiry.notification.js");
+    const seller = buildInquiryNotification(
+      "seller-inquiry",
+      {
+        ...REQUEST,
+        inquiryType: "selling",
+        source: "sell-page",
+        subject: "Angeles City",
+      },
+      RECEIVED_AT,
+    );
+    expect(seller.text).toContain("Subject: Angeles City");
+    expect(seller.text).not.toContain("Requested date");
+
+    const viewing = buildInquiryNotification(
+      "viewing-inquiry",
+      {
+        ...REQUEST,
+        inquiryType: "viewing",
+        source: "viewing-page",
+        propertyId: "RCPP-001",
+        requestedDate: "2026-09-14",
+        requestedTime: "10:30",
+      },
+      RECEIVED_AT,
+    );
+    for (const line of [
+      "Inquiry: viewing-inquiry",
+      "Type: viewing",
+      "Property: PREMIER PROPERTY #RCPP-001",
+      "Name: Beta Test",
+      "Email: customer@example.test",
+      "Phone: +63 917 555 0110",
+      "Requested date: 2026-09-14 (Philippine time)",
+      "Requested time: 10:30 (Philippine time)",
+      `Received: ${RECEIVED_AT.toISOString()}`,
+      "Admin: http://localhost:3000/admin/inquiries/viewing-inquiry",
+    ]) {
+      expect(viewing.text).toContain(line);
+    }
+    expect(viewing.text).not.toContain("Subject:");
+  });
+
+  it("keeps the production notifier disabled until a provider is selected", async () => {
+    const { inquiryNotifier, DisabledInquiryNotifier } =
+      await import("../src/modules/inquiries/inquiry.notification.js");
+    expect(inquiryNotifier).toBeInstanceOf(DisabledInquiryNotifier);
+    expect(inquiryNotifier.configured).toBe(false);
+    await expect(
+      inquiryNotifier.send(
+        { to: "x@example.test", subject: "s", text: "t" },
+        { idempotencyKey: "k" },
+      ),
+    ).rejects.toMatchObject({ code: "provider_not_configured" });
   });
 
   it("rejects an invalid configured recipient at startup", async () => {

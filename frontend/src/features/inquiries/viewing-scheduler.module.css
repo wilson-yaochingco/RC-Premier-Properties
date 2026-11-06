@@ -1,0 +1,1147 @@
+/*
+ * Book a Viewing: one card. The chosen property sits as a quiet strip across the top; the
+ * calendar and preferred times beneath it are the centrepiece.
+ */
+.card {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel: #202630;
+  --ink: var(--color-brand-deep);
+  --rule: rgb(32 38 48 / 12%);
+  --rule-strong: rgb(32 38 48 / 26%);
+  --pad: clamp(1.5rem, 3.6vw, 3rem);
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 22px 0 22px 0;
+  background: var(--color-surface);
+  box-shadow:
+    0 1px 0 rgb(32 38 48 / 4%),
+    0 28px 60px -36px rgb(32 38 48 / 28%);
+  color: var(--ink);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Property ---- */
+.property {
+  padding: clamp(1.25rem, 2.4vw, 1.75rem) var(--pad);
+  border-bottom: 1px solid var(--rule);
+  background: #fbfaf7;
+  scroll-margin-top: 8rem;
+}
+
+.eyebrowSmall,
+.stepEyebrow,
+.summaryLabel,
+.fieldsetLabel,
+.timeGroupLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.eyebrowSmall {
+  display: block;
+  color: var(--color-text-muted);
+}
+
+.summaryStrip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem clamp(1rem, 2vw, 1.5rem);
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 4.5rem;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px 0 12px 0;
+  background: var(--color-surface-muted);
+}
+
+.thumb :global(.property-media),
+.thumb :global(.media-placeholder) {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.thumb img {
+  object-fit: cover;
+}
+
+/* A thumbnail is too small for the placeholder caption; the strip names the listing. */
+.thumb :global(.media-placeholder) > * {
+  display: none;
+}
+
+.stripCopy {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.stripTitle {
+  display: block;
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.stripMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.stripActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* In the chosen-property strip the actions read as small outlined buttons, not links. */
+.stripActions > .quietAction {
+  justify-content: center;
+  padding: 0 1.1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px 0 8px 0;
+  background: var(--color-surface);
+  text-decoration: none;
+  transition:
+    border-color 200ms var(--ease),
+    background-color 200ms var(--ease);
+}
+
+.stripActions > .quietAction:is(:hover, :focus-visible) {
+  border-color: var(--ink);
+  background: var(--color-background);
+}
+
+.reservedNote {
+  max-width: 34rem;
+  margin-top: 0.35rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.reservedTag {
+  color: var(--brand-secondary-text);
+  font-weight: 600;
+}
+
+.quietAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+  transition: text-decoration-color 200ms var(--ease);
+}
+
+.quietAction:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.quietAction:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.notice {
+  max-width: 40rem;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+/* Picker: current listings as photo cards; choosing one never requires a number. */
+.picker {
+  display: grid;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.pickerHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem 2rem;
+}
+
+.pickerTitle {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.pickerTitle h2:focus {
+  outline: none;
+}
+
+.pickerTitle h2:focus-visible,
+.stripTitle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.stripTitle:focus {
+  outline: none;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    color 200ms var(--ease);
+}
+
+.chip:hover {
+  border-color: var(--rule-strong);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--panel);
+  background: var(--panel);
+  color: var(--color-background);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.chipCount {
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pickerGrid > li {
+  display: flex;
+}
+
+.pickerCard {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 16px 0 16px 0;
+  background: var(--color-surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 220ms var(--ease),
+    box-shadow 220ms var(--ease),
+    transform 220ms var(--ease);
+}
+
+.cardMedia {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+}
+
+.cardMedia :global(.property-media),
+.cardMedia :global(.media-placeholder) {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.cardMedia img {
+  object-fit: cover;
+  transition: transform 600ms var(--ease);
+}
+
+.cardMedia :global(.media-placeholder) > * {
+  display: none;
+}
+
+.cardBody {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  padding: 0.95rem 1rem 0.5rem;
+}
+
+.cardType {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.cardMeta {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.cardPrice {
+  margin-top: 0.2rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardChoose {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.4rem 1rem 0;
+  padding: 0.7rem 0 0.85rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cardChoose svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 220ms var(--ease);
+}
+
+.pickerCard:hover,
+.pickerCard:focus-visible {
+  border-color: var(--panel);
+  box-shadow: 0 18px 36px -28px rgb(32 38 48 / 45%);
+}
+
+.pickerCard:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.pickerCard:is(:hover, :focus-visible) .cardChoose svg {
+  transform: translateX(3px);
+}
+
+@media (hover: hover) {
+  .pickerCard:hover {
+    transform: translateY(-2px);
+  }
+
+  .pickerCard:hover .cardMedia img {
+    transform: scale(1.03);
+  }
+}
+
+.pickerFoot {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Outlined catalogue link, top-right of the picker heading. */
+.browseAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding-inline: 1.1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-cta);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    border-color 200ms var(--ease),
+    background-color 200ms var(--ease);
+}
+
+.browseAction:is(:hover, :focus-visible) {
+  border-color: var(--ink);
+  background: var(--color-surface);
+}
+
+.browseAction:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* No listing can be offered: a centred pointer to the catalogue. */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding-block: 0.75rem;
+  text-align: center;
+}
+
+.empty .notice {
+  margin-bottom: 0.6rem;
+}
+
+.empty .primaryAction {
+  width: fit-content;
+}
+
+.field > span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+  min-height: 44px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.45em;
+  transition: text-decoration-color 220ms var(--ease);
+}
+
+.textLink svg,
+.primaryAction svg,
+.monthButton svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transition: transform 260ms var(--ease);
+}
+
+.textLink:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.textLink:is(:hover, :focus-visible) svg {
+  transform: translateX(3px);
+}
+
+.arrowLeft {
+  transform: rotate(180deg);
+}
+
+/* ---- Scheduler ---- */
+.scheduler {
+  container-type: inline-size;
+  min-width: 0;
+  padding: clamp(1.75rem, 3.6vw, 3rem) var(--pad) var(--pad);
+}
+
+.progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 clamp(2rem, 3.5vw, 2.75rem);
+  padding: 0;
+  list-style: none;
+}
+
+.progress li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--rule);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    border-color 300ms var(--ease),
+    color 300ms var(--ease);
+}
+
+.progress li[data-state="current"],
+.progress li[data-state="complete"] {
+  border-top: 2px solid var(--ink);
+  padding-top: calc(0.85rem - 1px);
+  color: var(--ink);
+}
+
+.progressNumber {
+  font-variant-numeric: tabular-nums;
+}
+
+.step {
+  display: grid;
+  gap: clamp(1.5rem, 2.5vw, 2rem);
+}
+
+.stepHeading {
+  font-size: clamp(1.625rem, 2.4vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.stepHeading:focus {
+  outline: none;
+}
+
+.stepHeading:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 6px;
+}
+
+.stepEyebrow {
+  color: var(--color-text-muted);
+}
+
+/* Date and time sit side by side whenever the surface itself is wide enough. */
+.scheduleGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+
+@container (min-width: 40rem) {
+  .scheduleGrid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4cqi, 2.75rem);
+  }
+}
+
+.dateFieldset,
+.timeFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldsetLabel {
+  float: left;
+  width: 100%;
+  margin-bottom: 1rem;
+  color: var(--ink);
+}
+
+.fieldsetLabel + * {
+  clear: both;
+}
+
+.monthBar {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.monthName {
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.monthButton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    color 200ms var(--ease);
+}
+
+.monthButton:not(:disabled):is(:hover, :focus-visible) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--color-background);
+}
+
+.monthButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.monthButton:focus-visible,
+.primaryAction:focus-visible,
+.editAction:focus-visible,
+.textLink:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.weekdays,
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.weekdays {
+  padding-block: 0.5rem;
+  border-top: 1px solid var(--rule);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  height: clamp(44px, 7.5cqi, 52px);
+  border-radius: 10px 0 10px 0;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 180ms var(--ease),
+    color 180ms var(--ease);
+}
+
+.day[data-disabled] {
+  color: rgb(32 38 48 / 28%);
+  cursor: default;
+}
+
+.day[data-today] {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+/* Native radios keep arrow-key navigation and form semantics; the cell is the visual. */
+.day input,
+.timeSlot input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.day:not([data-disabled]):hover {
+  background: var(--color-surface-muted);
+}
+
+.day:has(input:checked) {
+  background: var(--panel);
+  color: var(--color-background);
+}
+
+.day:has(input:focus-visible),
+.timeSlot:has(input:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.scheduleNote {
+  margin-top: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.timeGroup + .timeGroup {
+  margin-top: 1.25rem;
+}
+
+.timeGroupLabel {
+  margin-bottom: 0.6rem;
+  color: var(--color-text-muted);
+}
+
+.timeSlots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.25rem, 1fr));
+  gap: 0.5rem;
+}
+
+.timeSlot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 46px;
+  border: 1px solid var(--rule);
+  border-radius: 10px 0 10px 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    color 180ms var(--ease);
+}
+
+.timeSlot:hover {
+  border-color: var(--rule-strong);
+  background: var(--color-background);
+}
+
+.timeSlot:has(input:checked) {
+  border-color: var(--panel);
+  background: var(--panel);
+  color: var(--color-background);
+}
+
+.inlineError,
+.fieldError {
+  color: #9b2c2c;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.inlineError:focus {
+  outline: none;
+}
+
+.stepActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.selection {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.primaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding-inline: 1.5rem;
+  border: 0;
+  border-radius: var(--radius-cta);
+  background: var(--panel);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.primaryAction:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.primaryAction:not(:disabled):is(:hover, :focus-visible) svg {
+  transform: translateX(3px);
+}
+
+/* ---- Details ---- */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px 0 10px 0;
+  background: var(--color-background);
+}
+
+.summaryLabel {
+  color: var(--color-text-muted);
+}
+
+.summaryDate {
+  margin-top: 0.4rem;
+  font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.summaryTime {
+  margin-top: 0.15rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.editAction {
+  min-height: 44px;
+  padding-inline: 1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-cta);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.editAction:hover {
+  border-color: var(--ink);
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.field {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.field small {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px 0 8px 0;
+  background: var(--color-surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 180ms var(--ease);
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+  border-color: var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.field [aria-invalid="true"] {
+  border-color: #9b2c2c;
+}
+
+.counter {
+  justify-self: end;
+  font-size: 0.75rem;
+}
+
+.honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.consent {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.consent input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+  accent-color: var(--panel);
+}
+
+.errorMessage {
+  padding: 1rem 1.25rem;
+  border-left: 2px solid #9b2c2c;
+  background: #fbf3f1;
+  color: #6f1f1f;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.errorMessage:focus {
+  outline: 2px solid #9b2c2c;
+  outline-offset: 2px;
+}
+
+.errorMessage ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+
+/* ---- Success and closed states ---- */
+.receipt {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.receipt > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.receipt dt {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.receipt dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.reference {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.confirmation {
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--color-accent);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+.apiMessage {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.successActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+}
+
+.closed {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  padding-block: clamp(1rem, 3vw, 2.25rem);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.closed > p {
+  max-width: 34rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.closed .primaryAction {
+  width: fit-content;
+}
+
+/* ---- Recomposition ---- */
+@media (max-width: 47.99rem) {
+  .pickerGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .card {
+    --pad: 1.1rem;
+    margin-inline: calc(var(--gutter) * -0.35);
+    border-radius: 18px 0 18px 0;
+  }
+
+  .summaryStrip {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .thumb {
+    width: 3.75rem;
+  }
+
+  /* Phones: compact horizontal cards, photo left, so the list stays scannable. */
+  .pickerGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .pickerCard {
+    grid-template-columns: 6.25rem minmax(0, 1fr);
+    grid-template-rows: auto;
+    border-radius: 14px 0 14px 0;
+  }
+
+  .cardMedia {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 6.25rem;
+  }
+
+  .cardBody {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .cardChoose {
+    display: none;
+  }
+
+  .summaryStrip > .stripActions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .days {
+    gap: 2px;
+  }
+
+  .progress li {
+    gap: 0.35rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+  }
+
+  .fieldGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stepActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .primaryAction {
+    width: 100%;
+  }
+
+  .receipt > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+
+  .day {
+    font-size: 0.875rem;
+  }
+
+  .timeSlots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card *,
+  .card *::before,
+  .card *::after {
+    transition: none !important;
+  }
+}

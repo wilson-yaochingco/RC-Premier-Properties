@@ -3,6 +3,7 @@ import {
   MAX_PROPERTY_IMAGES,
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
+  PUBLIC_POINT_PRECISIONS,
   SALE_PROPERTY_TYPES,
   type AdminPropertyContentField,
   type AdminPropertyDetail,
@@ -307,6 +308,11 @@ function validPublicPrecision(
   return Boolean(value && PUBLIC_LOCATION_PRECISIONS.includes(value));
 }
 
+/** Area-level precisions never publish a point, whatever staff stored. */
+function publishesPublicPoint(precision: PublicLocationPrecision): boolean {
+  return (PUBLIC_POINT_PRECISIONS as readonly string[]).includes(precision);
+}
+
 function validPublicPoint(point: PublicMapPoint | undefined): point is PublicMapPoint {
   if (
     !point ||
@@ -352,7 +358,9 @@ function publicLocation(record: PublicPropertyRecord): PublicPropertyLocation {
     publicPrecision === "approximate" ||
     publicPrecision === "subdivision";
   const publicPoint =
-    hasExplicitPrecision && validPublicPoint(configuredPoint)
+    hasExplicitPrecision &&
+    publishesPublicPoint(publicPrecision) &&
+    validPublicPoint(configuredPoint)
       ? {
           type: "Point" as const,
           coordinates: [
@@ -578,7 +586,7 @@ export class MongoosePropertyService implements PropertyService {
       $and: [
         publishedFilter,
         {
-          "location.publicPrecision": { $in: PUBLIC_LOCATION_PRECISIONS },
+          "location.publicPrecision": { $in: PUBLIC_POINT_PRECISIONS },
           "location.publicPoint.type": "Point",
           "location.publicPoint.coordinates": { $exists: true },
         },

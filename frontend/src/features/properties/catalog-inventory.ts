@@ -1,4 +1,5 @@
 import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared";
+import { ApiClientError } from "../../services/api-client";
 import { getProperties } from "./property.service";
 import type { RawSearchParams } from "./property-query";
 
@@ -23,6 +24,8 @@ export type CatalogFixtureScenario = (typeof CATALOG_FIXTURE_SCENARIOS)[number];
 export type CatalogInventory =
   | { source: "live"; status: "ready"; response: PropertySearchResponse }
   | { source: "live"; status: "unavailable" }
+  /** The API rejected the URL's filters (400); the catalog itself is reachable. */
+  | { source: "live"; status: "invalid" }
   | {
       source: "fixture";
       status: "ready";
@@ -83,7 +86,11 @@ export async function loadCatalogInventory(
       status: "ready",
       response: await getProperties(searchParams),
     };
-  } catch {
+  } catch (error) {
+    // A malformed or contradictory filter is the visitor's URL, not an outage.
+    if (error instanceof ApiClientError && error.statusCode === 400) {
+      return { source: "live", status: "invalid" };
+    }
     return { source: "live", status: "unavailable" };
   }
 }

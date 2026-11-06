@@ -2,73 +2,100 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --panel: #202630;
   --gutter: clamp(1.25rem, 3vw, 3rem);
-  /* Top spacing comes from the preceding section, as in A Closer Look. */
-  padding-block: 0 clamp(4.5rem, 6vw, 7rem);
+  /* Added to the neighbours' own padding (A Closer Look below-padding, Sell statement top). */
+  padding-block: clamp(2rem, 6vw, 7rem) clamp(3rem, 8vw, 9rem);
   background: var(--color-background);
   color: var(--color-text);
   font-family: var(--font-manrope), sans-serif;
 }
 
 .container {
-  max-width: 1440px;
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
 
-.eyebrow {
+/* ---- Split: copy and locations left, map panel right ---- */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  gap: clamp(2rem, 4vw, 5rem);
+}
+
+.content {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-brand-deep);
-}
-
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  background: var(--color-brand-deep);
-  transform: rotate(45deg);
-}
-
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem 3rem;
-  margin-top: 1.5rem;
-}
-
-.headerCopy {
-  flex: 1 1 20rem;
+  flex-direction: column;
   min-width: 0;
 }
 
-/* With supporting copy the action lines up with the headline, not the copy's last line. */
-[data-explore-state] .header {
-  align-items: flex-start;
-}
-
 .heading {
-  font-size: clamp(3rem, 4.2vw, 4rem);
+  font-size: clamp(2.5rem, 4.4vw, 4.5rem);
   font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.045em;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
 }
 
 .heading span {
   display: block;
 }
 
-/* Reserved so the button arriving with the data never moves the map. */
-.viewAllSlot {
-  min-height: 2.75rem;
+/* ---- Locations ---- */
+.list {
+  max-width: 34rem;
+  margin: clamp(2.5rem, 4vw, 4rem) 0 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid rgb(32 38 48 / 16%);
+}
+
+.row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: clamp(1.1rem, 1.6vw, 1.5rem);
+  border-top: 1px solid rgb(32 38 48 / 16%);
+  color: var(--panel);
+  font-size: clamp(1.25rem, 1.6vw, 1.5rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.row svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.row:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--panel);
+  outline-offset: 4px;
+}
+
+/* ---- Supporting copy and the quiet action ---- */
+.outro {
+  margin-top: auto;
+  padding-top: clamp(2.5rem, 5vw, 5rem);
+}
+
+.copy {
+  max-width: 30rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
 }
 
 .button {
@@ -77,6 +104,7 @@
   align-items: center;
   gap: 0.6rem;
   min-height: 2.75rem;
+  margin-top: 1.75rem;
   padding-inline: 1.25rem;
   border-radius: var(--radius-cta);
   background: var(--panel);
@@ -105,36 +133,19 @@
   }
 }
 
-.button:focus-visible,
-.row:focus-visible {
+.button:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 3px;
 }
 
-/* ---- Empty and unavailable: same header, a calmer headline, then the muted map ---- */
-[data-explore-state] .heading {
-  font-size: clamp(1.875rem, 3.4vw, 3.25rem);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-}
-
-.stateBody {
-  max-width: 34rem;
-  margin-top: 1rem;
-  font-size: 1.0625rem;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
-/* ---- Map ---- */
-.stage {
-  margin-top: clamp(2.25rem, 4vw, 3.5rem);
-}
-
-.mapWrap {
-  position: relative;
-  max-width: 44rem;
-  margin-inline: auto;
+/* ---- Map panel ---- */
+.panel {
+  display: grid;
+  place-items: center;
+  min-height: clamp(28rem, 46vw, 46rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border-radius: var(--radius-editorial);
+  background: #efebe3;
 }
 
 .map {
@@ -144,23 +155,20 @@
 }
 
 .area {
-  fill: rgb(32 38 48 / 4.5%);
-  stroke: rgb(32 38 48 / 30%);
+  fill: rgb(32 38 48 / 4%);
+  stroke: rgb(32 38 48 / 26%);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
   transition: fill 250ms var(--ease);
 }
 
-.area[data-active="true"] {
-  fill: rgb(32 38 48 / 22%);
+.area[data-featured="true"] {
+  fill: rgb(32 38 48 / 20%);
   cursor: pointer;
 }
 
-/* Selection is a hover/focus affordance; touch screens read the numbered markers instead. */
-@media (hover: hover) and (min-width: 40rem) {
-  .area[data-active="true"][data-selected="true"] {
-    fill: var(--panel);
-  }
+.area[data-featured="true"][data-active="true"] {
+  fill: var(--panel);
 }
 
 .outline {
@@ -172,230 +180,53 @@
   pointer-events: none;
 }
 
-/* HTML overlays keep a constant, legible size however small the map renders. */
-.marker,
-.rowNumber {
-  display: grid;
-  place-items: center;
-  flex: none;
-  aspect-ratio: 1 / 1;
-  border: 1px solid var(--panel);
-  border-radius: 50%;
-  background: var(--color-background);
-  color: var(--panel);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: 0;
-  transition:
-    background-color 200ms var(--ease),
-    color 200ms var(--ease),
-    border-color 200ms var(--ease);
-}
-
-.marker {
-  position: absolute;
-  width: 2rem;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-/* The selected fill and inverted marker are for hover-capable screens wide enough to show them. */
-@media (hover: hover) and (min-width: 40rem) {
-  .marker[data-selected="true"],
-  .row[data-selected="true"] .rowNumber {
-    background: var(--panel);
-    color: #f8f6f1;
-  }
-}
-
-/* On the dark selected polygon the marker needs a light edge to stay a visible circle. */
-@media (hover: hover) and (min-width: 40rem) {
-  .marker[data-selected="true"] {
-    border-color: #f8f6f1;
-  }
-}
-
-/* ---- Location ledger: circular index, name and count together, circular action ---- */
-.ledger {
-  margin: clamp(2rem, 3vw, 2.75rem) 0 0;
-  padding: 0;
-  list-style: none;
-  border-bottom: 1px solid rgb(32 38 48 / 14%);
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) 2.5rem;
-  align-items: center;
-  column-gap: 1.25rem;
-  min-height: 4.75rem;
-  padding-block: 0.75rem;
-  border-top: 1px solid rgb(32 38 48 / 14%);
-  color: var(--panel);
-  text-decoration: none;
-}
-
-.rowNumber {
-  width: 2rem;
-}
-
-.rowText {
-  display: grid;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.rowName {
-  font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-}
-
-.rowCount {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-.rowAction {
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid rgb(32 38 48 / 25%);
-  border-radius: 50%;
-  color: var(--panel);
-  transition:
-    background-color 200ms var(--ease),
-    border-color 200ms var(--ease),
-    color 200ms var(--ease);
-}
-
-.rowAction svg {
-  width: 14px;
-  height: 14px;
-  transform: rotate(-45deg);
-  transition: transform var(--cta-duration) var(--cta-ease);
-}
-
-.row:is(:hover, :focus-visible) .rowAction {
-  border-color: var(--panel);
-  background: var(--panel);
-  color: #f8f6f1;
-}
-
-.row:is(:hover, :focus-visible) .rowNumber {
-  background: var(--panel);
-  color: #f8f6f1;
-}
-
-.row:is(:hover, :focus-visible) .rowAction svg {
-  transform: rotate(0deg);
-}
-
-/* Mobile: map first, then a numbered vertical list; the list is the touch navigation. */
-@media (max-width: 39.99rem) {
-  .section {
-    padding-block: 0 4rem;
-  }
-
-  .header {
-    gap: 1.5rem;
-    margin-top: 1.25rem;
-  }
-
+/* ---- Tablet: keep the split, scale the type ---- */
+@media (max-width: 63.99rem) {
   .heading {
-    font-size: 2.25rem;
-    line-height: 1.02;
+    font-size: clamp(2.25rem, 5.6vw, 3.25rem);
   }
-
-  [data-explore-state] .heading {
-    font-size: 1.875rem;
-  }
-
-  .stage {
-    margin-top: 2rem;
-  }
-
-  .marker {
-    width: 1.75rem;
-    font-size: 0.625rem;
-  }
-
-  .row {
-    grid-template-columns: 1.75rem minmax(0, 1fr) 2.25rem;
-    column-gap: 1rem;
-    min-height: 4.25rem;
-  }
-
-  .rowNumber {
-    width: 1.75rem;
-    font-size: 0.625rem;
-  }
-
-  .rowName {
-    font-size: 1rem;
-  }
-
-  .rowAction {
-    width: 2.25rem;
-    height: 2.25rem;
+  .panel {
+    min-height: 0;
+    align-self: start;
+    aspect-ratio: 4 / 5;
   }
 }
 
-/* Centred intro on mobile; the map, ledger and counts keep their own alignment. */
-@media (max-width: 48rem) {
-  .eyebrow {
-    justify-content: center;
+/* ---- Mobile: one column, centred intro like the other Homepage sections ---- */
+@media (max-width: 47.99rem) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem;
   }
-
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1.25rem;
+  .heading {
+    font-size: clamp(2.25rem, 9.5vw, 3rem);
     text-align: center;
   }
-
-  [data-explore-state] .header {
-    align-items: center;
+  .list {
+    max-width: none;
+    margin-top: 2rem;
   }
-
-  .headerCopy {
-    flex: 0 1 auto;
-    width: 100%;
-    max-width: 100%;
+  .outro {
+    margin-top: 0;
+    padding-top: 2rem;
+    text-align: center;
   }
-
-  .stateBody {
+  .copy {
     margin-inline: auto;
   }
-
-  .viewAllSlot {
-    justify-content: center;
-    max-width: 100%;
-  }
-
-  .heading {
-    max-width: 100%;
-    overflow-wrap: anywhere;
-  }
-
   .button {
-    max-width: 100%;
+    display: flex;
+    width: fit-content;
+    margin-inline: auto;
+  }
+  .panel {
+    aspect-ratio: auto;
+    padding: 1.25rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .area,
-  .marker,
-  .rowNumber,
-  .rowAction,
-  .rowAction svg,
-  .button svg {
-    transition: none;
+  .section * {
+    transition: none !important;
   }
 }

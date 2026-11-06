@@ -563,6 +563,20 @@ function parseLocation(
   );
   const coordinates = parseCoordinateObject(value.coordinates, issues);
   const publicPoint = parsePublicPoint(value.publicPoint, issues);
+  // A copied private coordinate would publish the exact home under a general-area label.
+  if (
+    publicPoint &&
+    coordinates &&
+    publicPrecision !== "exact" &&
+    publicPoint.coordinates[0] === coordinates.longitude &&
+    publicPoint.coordinates[1] === coordinates.latitude
+  ) {
+    issues.push({
+      field: "location.publicPoint.coordinates.1",
+      message:
+        "The public map point matches the private coordinates. Use a generalized point or choose exact precision.",
+    });
+  }
   if (!province || !city || !publicPrecision) return undefined;
   return {
     province,

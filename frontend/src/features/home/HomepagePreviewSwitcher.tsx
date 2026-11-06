@@ -57,6 +57,56 @@ const ROWS: Row[] = [
       { label: "Error", value: "unavailable" },
     ],
   },
+  {
+    path: "/book-viewing",
+    label: "Listings",
+    param: "viewingFixture",
+    options: [
+      { label: "Real", value: null },
+      ...["0", "1", "2", "4", "6"].map((count) => ({ label: count, value: count })),
+      { label: "Error", value: "unavailable" },
+    ],
+  },
+  {
+    path: "/book-viewing",
+    label: "Property",
+    param: "viewingPropertyFixture",
+    options: [
+      { label: "None", value: null },
+      { label: "Available", value: "available" },
+      { label: "Reserved", value: "reserved" },
+      { label: "Sold", value: "sold" },
+      { label: "Not found", value: "not-found" },
+      { label: "Lookup error", value: "lookup-failed" },
+    ],
+  },
+  {
+    path: "/locations",
+    label: "Locations",
+    param: "locationsFixture",
+    options: [
+      { label: "Real", value: null },
+      { label: "0", value: "0" },
+      { label: "1", value: "1" },
+      { label: "2", value: "2" },
+      { label: "4", value: "4" },
+      { label: "Many", value: "many" },
+      { label: "Error", value: "unavailable" },
+    ],
+  },
+  {
+    path: "/contact",
+    label: "Property",
+    param: "contactPropertyFixture",
+    options: [
+      { label: "None", value: null },
+      { label: "Available", value: "available" },
+      { label: "Reserved", value: "reserved" },
+      { label: "Sold", value: "sold" },
+      { label: "Not found", value: "not-found" },
+      { label: "Lookup error", value: "lookup-failed" },
+    ],
+  },
 ];
 
 export function HomepagePreviewSwitcher() {

@@ -61,14 +61,6 @@
   text-transform: uppercase;
 }
 
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  background: currentcolor;
-  transform: rotate(45deg);
-}
-
 .center h2 {
   margin-top: 1.25rem;
   font-size: clamp(2rem, 3.6vw, 3.25rem);
@@ -122,6 +114,17 @@
   transform: rotate(0deg);
 }
 
+.wide .container {
+  max-width: none;
+}
+
+@media (min-width: 64rem) {
+  .wide .center {
+    max-width: 43rem;
+    margin-inline: auto;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .cta:hover svg {
     transform: rotate(0deg);
@@ -141,6 +144,30 @@
 
   .center {
     padding-inline: 10.5rem;
+  }
+}
+
+/*
+ * About banner: below desktop the drawings keep a substantial size and crop off the card edge
+ * instead of shrinking; the centre reserves exactly the visible part.
+ */
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .wide .house {
+    bottom: -12%;
+    width: clamp(15rem, 31vw, 19rem);
+    height: auto;
+  }
+
+  .wide .left {
+    left: calc(11.4vw - 9.9rem);
+  }
+
+  .wide .right {
+    right: calc(11.4vw - 9.9rem);
+  }
+
+  .wide .center {
+    padding-inline: calc(37.25vw - 6.6rem);
   }
 }
 

@@ -7,6 +7,7 @@ import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared"
 import locationImage from "@/assets/site/location.png";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { resolveLocationFacet } from "@/features/locations/featured-locations";
 import { LocationInventoryMap } from "@/features/locations/LocationInventoryMap";
 import { getLocationEditorialContent } from "@/features/locations/location-content";
 import {
@@ -31,11 +32,7 @@ import {
   getPropertyFacets,
 } from "@/features/properties/property.service";
 import propertyStyles from "@/features/properties/properties.module.css";
-import {
-  findPublicLocationBySlug,
-  publicLocationPath,
-  shortPublicLocation,
-} from "@/lib/public-location";
+import { publicLocationPath, shortPublicLocation } from "@/lib/public-location";
 import { serializeJsonLd } from "@/lib/seo";
 import { ApiClientError } from "@/services/api-client";
 
@@ -93,7 +90,9 @@ export async function generateMetadata({
     searchParams as Promise<RawSearchParams>,
     loadFacets(),
   ]);
-  const match = findPublicLocationBySlug(slug, facets?.locationCounts ?? []);
+  const match = facets
+    ? resolveLocationFacet(slug, facets.locationCounts ?? [])
+    : undefined;
   if (!match) return nonpublicLocationMetadata();
   const editorial = getLocationEditorialContent(match.location);
 
@@ -101,7 +100,8 @@ export async function generateMetadata({
     location: match.location,
     count: match.count,
     imagePath: editorial?.scenery.imagePath ?? locationImage.src,
-    noIndex: !isStableLocationState(rawSearchParams),
+    // A curated location with nothing published yet stays reachable but is not indexed.
+    noIndex: !isStableLocationState(rawSearchParams) || match.count === 0,
   });
 }
 
@@ -132,7 +132,7 @@ export default async function LocationDetailPage({
     );
   }
 
-  const locationFacet = findPublicLocationBySlug(slug, facets.locationCounts ?? []);
+  const locationFacet = resolveLocationFacet(slug, facets.locationCounts ?? []);
   if (!locationFacet) notFound();
 
   const locationName = shortPublicLocation(locationFacet.location);
@@ -333,6 +333,14 @@ export default async function LocationDetailPage({
                     omitLocation
                   />
                 </>
+              ) : locationFacet.count === 0 ? (
+                <EmptyState
+                  eyebrow="No published properties yet"
+                  title={`No homes are published in ${locationName} right now.`}
+                  description="New listings appear here as soon as they are published. You can browse every current property, or ask RC Premier about this area."
+                  actionLabel="Browse all properties"
+                  actionHref="/properties"
+                />
               ) : (
                 <EmptyState
                   eyebrow="No matching inventory"

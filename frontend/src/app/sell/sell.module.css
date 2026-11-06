@@ -1,301 +1,371 @@
+/* /sell — a typographic opening, one split inquiry card, a dark process and an open close. */
 .page {
-  background: var(--brand-white);
-  color: var(--brand-primary);
+  --ink: var(--color-brand-deep);
+  --rule: rgb(32 38 48 / 12%);
+  --rule-strong: rgb(32 38 48 / 26%);
+  --rail: clamp(21.5rem, 26vw, 25rem);
+  overflow-x: clip;
 }
 
-.hero {
-  min-height: min(44rem, calc(100svh - var(--header-height)));
-  min-height: min(44rem, calc(100dvh - var(--header-height)));
-  position: relative;
-  display: grid;
-  isolation: isolate;
-  overflow: hidden;
-  color: var(--brand-white);
-}
-
-.hero > img {
-  z-index: -2;
-  object-fit: cover;
-  object-position: center 42%;
-}
-
-.heroShade {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background: linear-gradient(90deg, rgb(26 31 39 / 78%), rgb(26 31 39 / 12%) 72%);
-}
-
-.heroInner {
-  display: flex;
-  align-items: end;
-  padding-block: clamp(3rem, 8vw, 7rem);
-}
-
-.heroInner > div {
-  width: 100%;
-  min-width: 0;
-  max-width: 48rem;
+/* Every section uses EditorialCta's container: the page gutter, no outer cap. */
+:is(.hero, .inquiry, .process, .reassurance) {
+  margin-inline: auto;
+  padding-inline: var(--gutter);
 }
 
 .eyebrow,
-.eyebrowLight {
-  color: var(--brand-secondary-text);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+.railEyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.eyebrowLight {
-  color: var(--brand-secondary-light);
+.eyebrow {
+  color: var(--ink);
 }
 
-.hero h1 {
-  max-width: 10ch;
-  margin-top: 1rem;
-  font-family: var(--font-editorial);
-  font-size: clamp(3.2rem, 7vw, 7rem);
-  font-weight: 400;
-  letter-spacing: -0.055em;
-  line-height: 0.9;
+.railEyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
 }
 
-.heroInner > div > p:not(.eyebrowLight) {
-  max-width: 34rem;
-  margin-top: 1.25rem;
-  color: rgb(255 255 255 / 84%);
-}
-
-.hero :global(.button) {
-  margin-top: 1.75rem;
-}
-
-.conversation,
-.process,
-.privacy {
-  padding-block: clamp(4.5rem, 8vw, 8rem);
-}
-
-.conversationInner {
-  display: grid;
-  grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
-  gap: clamp(2.5rem, 7vw, 8rem);
-  align-items: start;
-}
-
-.conversationCopy {
-  position: sticky;
-  top: calc(var(--header-height) + 2rem);
-}
-
-.conversationCopy h2,
-.centerHeading h2,
-.privacy h2 {
-  margin-top: 0.85rem;
-  font-family: var(--font-editorial);
-  font-size: clamp(2.45rem, 4.6vw, 5rem);
-  font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
-}
-
-.conversationCopy > p:not(.eyebrow),
-.centerHeading > p:not(.eyebrow),
-.privacyInner > div > p:not(.eyebrow) {
-  margin-top: 1.35rem;
-  color: var(--text-muted);
-  line-height: 1.75;
-}
-
-.conversationCopy .disclaimer {
-  padding: 1rem;
-  border-left: 3px solid var(--brand-secondary);
-  background: var(--surface-soft);
-  color: var(--brand-primary);
-}
-
-.formPanel {
-  min-width: 0;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
-}
-
-.process {
-  border-block: 1px solid var(--line);
-  background: #f8f7f4;
-}
-
-.narrow {
-  width: min(calc(100% - (2 * var(--container-gutter))), 78rem);
-}
-
-.centerHeading {
-  max-width: 48rem;
-  margin-inline: auto;
-  text-align: center;
-}
-
-.stepGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: clamp(2.5rem, 5vw, 4.5rem);
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
-}
-
-.stepGrid li {
-  min-width: 0;
-  min-height: 20rem;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: var(--brand-white);
-}
-
-.stepGrid li > span {
-  color: var(--brand-secondary-text);
-  font-family: var(--font-editorial);
-  font-size: 2.3rem;
-}
-
-.stepGrid h3 {
-  margin-top: 3.5rem;
-  font-family: var(--font-editorial);
-  font-size: 1.65rem;
-  font-weight: 400;
+.sectionTitle {
+  color: var(--ink);
+  font-size: clamp(1.875rem, 3.4vw, 3rem);
+  font-weight: 600;
   line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
-.stepGrid p {
-  margin-top: 1rem;
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-
-.privacy {
-  background: var(--brand-primary);
-  color: var(--brand-white);
-}
-
-.privacyInner {
+/* ---- 1. Hero ---- */
+.hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(20rem, 0.95fr);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: end;
+  padding-top: clamp(2.5rem, 5vw, 4.5rem);
+  padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
 }
 
-.privacy figure {
-  min-height: clamp(28rem, 48vw, 42rem);
+.heroCopy {
   position: relative;
-  margin: 0;
-  overflow: hidden;
-}
-
-.privacy figure img {
-  object-fit: cover;
-}
-
-.privacyInner > div {
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: clamp(2rem, 5vw, 5rem);
-  border: 1px solid rgb(255 255 255 / 20%);
+  align-self: stretch;
 }
 
-.privacyInner > div > p:not(.eyebrow) {
-  color: rgb(255 255 255 / 72%);
+.headline {
+  max-width: 7.5em;
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
+  color: var(--ink);
+  font-size: clamp(2.6rem, 5.6vw, 5.25rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
 }
 
-.privacy :global(.button) {
-  align-self: flex-start;
-  margin-top: 2rem;
-  border-color: var(--brand-secondary-light);
-  color: var(--brand-white);
+/* The drawing fades in from its own left edge, so it can tuck in beside the headline. */
+.heroArt {
+  width: 108%;
+  max-width: none;
+  height: auto;
+  margin-left: -8%;
+  pointer-events: none;
 }
 
-@media (max-width: 56rem) {
-  .conversationInner,
-  .privacyInner {
+.channels svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  /* Starts pointing up-right and straightens to a plain right arrow on hover or focus. */
+  transform: rotate(-45deg);
+  transition: transform 220ms var(--ease);
+}
+
+.channels a:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+.channels a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .channels a:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+/* ---- 2. Inquiry card ---- */
+.inquiry {
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+  scroll-margin-top: calc(var(--header-offset) * 0.5);
+}
+
+.card {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 22px 0 22px 0;
+  /* The stone rail is painted by the card so it spans the full height. */
+  background: linear-gradient(
+    90deg,
+    #fbfaf7 var(--rail),
+    var(--color-surface) var(--rail)
+  );
+  box-shadow:
+    0 1px 0 rgb(32 38 48 / 4%),
+    0 28px 60px -36px rgb(32 38 48 / 28%);
+  color: var(--ink);
+}
+
+.rail {
+  display: grid;
+  align-content: start;
+  gap: 1.1rem;
+  padding: clamp(1.75rem, 3vw, 2.75rem);
+}
+
+.railTitle {
+  font-size: clamp(1.75rem, 2.6vw, 2.375rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.railCopy {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.channels {
+  display: grid;
+  margin-top: 0.75rem;
+  border-block: 1px solid var(--rule);
+}
+
+.channels li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.channels a {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  color: var(--ink);
+}
+
+.channelLabel {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.channelValue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.formArea {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  min-width: 0;
+  padding: clamp(1.75rem, 3.6vw, 3.25rem);
+  border-left: 1px solid var(--rule);
+}
+
+/* ---- 3. Process: one dark panel, the same surface as the closing CTA ---- */
+.process {
+  padding-bottom: clamp(3.5rem, 7vw, 6rem);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: var(--radius-editorial);
+  background: var(--color-brand-deep);
+  color: var(--color-background);
+}
+
+.steps li {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: clamp(1.75rem, 3.4vw, 3rem);
+}
+
+.steps li + li {
+  border-left: 1px solid rgb(248 246 241 / 14%);
+}
+
+.stepNumber {
+  font-size: clamp(2.25rem, 3.8vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(248 246 241 / 48%);
+}
+
+.steps h3 {
+  margin-top: 1.25rem;
+  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.steps p {
+  max-width: 20rem;
+  color: rgb(248 246 241 / 68%);
+  line-height: 1.6;
+}
+
+/* ---- 4. Reassurance: open, on the page ground ---- */
+.reassurance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: start;
+  padding-bottom: clamp(3.5rem, 7vw, 6rem);
+}
+
+.copy {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.copy p {
+  max-width: 26rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.points {
+  border-top: 1px solid var(--rule-strong);
+}
+
+.points li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: baseline;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--rule-strong);
+  line-height: 1.55;
+}
+
+.points li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--ink);
+  transform: translateY(-1px) rotate(45deg);
+}
+
+/* ---- Recomposition ---- */
+@media (max-width: 63.99rem) {
+  .card {
     grid-template-columns: minmax(0, 1fr);
+    background: var(--color-surface);
   }
 
-  .conversationCopy {
-    position: static;
+  .rail {
+    border-bottom: 1px solid var(--rule);
+    background: #fbfaf7;
   }
 
-  .stepGrid {
+  .formArea {
+    border-left: 0;
+  }
+
+  .channels {
+    max-width: 34rem;
+  }
+
+  .reassurance {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .stepGrid li {
-    min-height: 0;
-  }
-
-  .stepGrid h3 {
-    margin-top: 1.75rem;
-  }
-
-  .privacy figure {
-    min-height: clamp(22rem, 68vw, 34rem);
+    gap: 1.75rem;
   }
 }
 
-@media (max-width: 37.5rem) {
-  .page :is(h1, h2, h3, p, a, span, button, label) {
-    overflow-wrap: anywhere;
-  }
-
-  .heroInner,
-  .heroInner > div,
-  .conversationInner,
-  .conversationCopy,
-  .formPanel,
-  .narrow,
-  .centerHeading,
-  .stepGrid,
-  .stepGrid li,
-  .privacyInner,
-  .privacyInner > div {
-    min-width: 0;
-  }
-
+@media (max-width: 47.99rem) {
+  /* Mobile: copy first, the drawing as a quiet lower visual. */
   .hero {
-    min-height: 36rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 1.75rem;
   }
 
-  .heroShade {
-    background: linear-gradient(0deg, rgb(26 31 39 / 88%), rgb(26 31 39 / 10%) 78%);
+  .headline {
+    max-width: 9em;
+    margin-top: 1.25rem;
   }
 
-  .heroInner {
-    align-items: end;
-    padding-bottom: 3rem;
-  }
-
-  .hero h1 {
-    font-size: clamp(3rem, 16vw, 4.25rem);
-  }
-
-  .hero :global(.button),
-  .privacy :global(.button) {
+  .heroArt {
     width: 100%;
-    white-space: normal;
+    margin-left: 0;
+    margin-top: 0.5rem;
   }
 
-  .formPanel {
-    padding: min(1rem, 16px);
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .stepGrid li,
-  .privacyInner > div {
-    padding-inline: min(1.25rem, 20px);
+  .steps li {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .steps li + li {
+    border-left: 0;
+    border-top: 1px solid rgb(248 246 241 / 14%);
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .card {
+    margin-inline: calc(var(--gutter) * -0.35);
+    border-radius: 18px 0 18px 0;
+  }
+
+  .rail {
+    padding: 1.35rem 1.1rem;
+    gap: 0.75rem;
+  }
+
+  .formArea {
+    padding: 1.5rem 1.1rem;
+  }
+}
+
+/* Very narrow screens: keep the email address on one line. */
+@media (max-width: 24rem) {
+  .channels a {
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+    gap: 0.5rem;
+  }
+
+  .channelValue {
+    font-size: 0.875rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .conversationCopy {
-    position: static;
+  .channels svg {
+    transition: none;
   }
 }

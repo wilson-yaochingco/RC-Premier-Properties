@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { CreateInquiryRequest } from "@rc/shared";
 import type { Model } from "mongoose";
 import { errorIdentity, operationalLogger } from "../../lib/operational-logger.js";
 import { InquiryModel } from "./inquiry.model.js";
@@ -10,6 +9,7 @@ import {
   inquiryNotifier,
   nextInquiryNotificationAttempt,
   type InquiryNotifier,
+  type NotifiableInquiry,
 } from "./inquiry.notification.js";
 import type { InquiryEntity, InquiryNotificationEntity } from "./inquiry.types.js";
 
@@ -18,7 +18,7 @@ const DEFAULT_LEASE_MS = 5 * 60_000;
 export interface InquiryNotificationJob {
   inquiryId: string;
   createdAt: Date;
-  request: Omit<CreateInquiryRequest, "website">;
+  request: NotifiableInquiry;
   notification: InquiryNotificationEntity;
   leaseId: string;
 }

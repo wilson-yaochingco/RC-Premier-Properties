@@ -32,6 +32,56 @@ describe("loadCatalogInventory", () => {
     expect(result.status).toBe("ready");
   });
 
+  it("returns invalid when the API rejects the URL's filters", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            status: "error",
+            statusCode: 400,
+            message: "Invalid property search parameters.",
+            issues: [
+              {
+                field: "maxPrice",
+                message: "Must be greater than or equal to minimum price.",
+              },
+            ],
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+    const { loadCatalogInventory } = await loader();
+
+    expect(await loadCatalogInventory({ minPrice: "5", maxPrice: "1" })).toEqual({
+      source: "live",
+      status: "invalid",
+    });
+  });
+
+  it("keeps a server failure as unavailable rather than invalid", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            status: "error",
+            statusCode: 503,
+            message: "Unavailable.",
+          }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+    const { loadCatalogInventory } = await loader();
+
+    expect(await loadCatalogInventory({})).toEqual({
+      source: "live",
+      status: "unavailable",
+    });
+  });
+
   it("returns unavailable when the request fails and never falls back to fixtures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
     const { loadCatalogInventory } = await loader();
