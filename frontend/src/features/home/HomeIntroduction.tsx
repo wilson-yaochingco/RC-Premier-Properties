@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import exterior from "@/assets/site/home-hero-1.png";
+import exterior from "@/assets/site/footer.png";
+import interior from "@/assets/site/properties.png";
+import courtyard from "@/assets/site/home-hero-2.png";
 import styles from "./introduction.module.css";
 import { ScrollFillText } from "./ScrollFillText";
 import { useScrollFill } from "./use-scroll-fill";
@@ -13,6 +15,29 @@ const LINES = [
   "and move forward with confidence.",
 ];
 const HEADING = LINES.join(" ");
+const PHOTOGRAPHS = [
+  {
+    src: exterior,
+    alt: "Contemporary residence with timber cladding and a white boundary wall",
+    position: "50% 35%",
+    title: "Architecture that stands out",
+    text: "Explore homes with distinctive architecture and thoughtful details that make each property worth discovering.",
+  },
+  {
+    src: interior,
+    alt: "Living area with warm timber flooring and a sculptural staircase",
+    position: "50% 50%",
+    title: "Spaces made for living",
+    text: "Look beyond the floor plan and discover interiors, layouts, and finishes suited to everyday living.",
+  },
+  {
+    src: courtyard,
+    alt: "Courtyard pool beside a residence with a glass balcony",
+    position: "50% 60%",
+    title: "More than four walls",
+    text: "From outdoor spaces to the surrounding environment, discover the details that shape the experience of home.",
+  },
+] as const;
 
 export function HomeIntroduction() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -63,17 +88,26 @@ export function HomeIntroduction() {
             decide with confidence.
           </p>
         </div>
-        <figure className={styles.figure}>
-          <div className={styles.frame}>
-            <Image
-              src={exterior}
-              alt="Contemporary residential exterior with a charcoal roof, timber entrance and landscaped frontage"
-              fill
-              sizes="(max-width: 1440px) 94vw, 1360px"
-              className={styles.image}
-            />
-          </div>
-        </figure>
+        <div className={styles.figure}>
+          {PHOTOGRAPHS.map((photo) => (
+            <figure key={photo.title} className={styles.item}>
+              <div className={styles.frame}>
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  sizes="(max-width: 767px) 94vw, (max-width: 1920px) 31vw, 600px"
+                  className={styles.image}
+                  style={{ objectPosition: photo.position }}
+                />
+              </div>
+              <figcaption className={styles.caption}>
+                <h3>{photo.title}</h3>
+                <p>{photo.text}</p>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </div>
     </section>
   );

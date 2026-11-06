@@ -30,16 +30,6 @@
   text-transform: uppercase;
 }
 
-/* The same diamond marker as the homepage and other editorial eyebrows. */
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: currentColor;
-  transform: rotate(45deg);
-}
-
 .headline {
   color: var(--ink);
   font-size: clamp(2.5rem, 5.6vw, 5rem);

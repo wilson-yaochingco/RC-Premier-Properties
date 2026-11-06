@@ -9,29 +9,79 @@ async function openPropertyTour(page: Page, navigate = true) {
     .click();
 }
 
-test("About uses a subdued motion-aware video and the real Pampanga boundary", async ({
+test("About uses a static hero photograph and an editorial gallery", async ({
   page,
 }) => {
+  const mediaRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/\.(mp4|webm)(\?|$)/.test(request.url())) mediaRequests.push(request.url());
+  });
   await page.goto("/about");
 
-  const video = page.locator("video");
-  await expect(video).toHaveAttribute("data-start-time", "4");
-  await expect(video).toHaveAttribute("autoplay", "");
-  await expect(video).toHaveAttribute("loop", "");
-  await expect(video).toHaveAttribute("playsinline", "");
-  await expect(video).toHaveJSProperty("muted", true);
-  await expect(video).toHaveAttribute("src", "/media/about_video.mp4");
-  await expect
-    .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState))
-    .toBeGreaterThanOrEqual(2);
-  await expect(video).toHaveJSProperty("error", null);
-  await expect(
-    page.getByRole("img", { name: /Still two-dimensional map of Pampanga/ }),
-  ).toBeVisible();
-  await expect(page.locator("figure svg path")).toHaveCount(22);
+  await expect(page.locator("video")).toHaveCount(0);
+  await expect(page.locator("section[data-about-hero] img").first()).toBeVisible();
+  expect(mediaRequests).toEqual([]);
+  await expect(page.locator("main > section")).toHaveCount(5);
+  await expect(page.locator("#about-gallery a")).toHaveCount(5);
+  await expect(page.getByRole("link", { name: "Talk to RC Premier" })).toHaveAttribute(
+    "href",
+    "/contact",
+  );
+});
 
+test("About gallery supports mouse dragging without activating a destination", async ({
+  page,
+}) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(video).toHaveCSS("display", "none");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/about");
+  const rail = page.locator("#about-gallery");
+  await rail.scrollIntoViewIfNeeded();
+  await expect(rail.locator("a")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: /destinations/ })).toHaveCount(0);
+  await expect(rail).toHaveCSS("scrollbar-width", "none");
+  await rail.focus();
+  for (let index = 0; index < 5; index++) await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(() =>
+      rail.evaluate((element) =>
+        Math.abs(element.scrollWidth - element.clientWidth - element.scrollLeft),
+      ),
+    )
+    .toBeLessThanOrEqual(2);
+  await rail.evaluate((element) => element.scrollTo({ left: 0, behavior: "instant" }));
+  const box = (await rail.boundingBox())!;
+  const x = box.x + 350;
+  const y = Math.max(110, box.y + 180);
+  await page.mouse.move(x, y);
+  const tip = page.locator('[class*="dragTip"]');
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveCSS("pointer-events", "none");
+  expect(
+    await tip.evaluate(
+      (element, point) => {
+        const box = element.getBoundingClientRect();
+        return (
+          point.x >= box.left &&
+          point.x <= box.right &&
+          point.y >= box.top &&
+          point.y <= box.bottom
+        );
+      },
+      { x, y },
+    ),
+  ).toBe(true);
+  await page.mouse.down();
+  await page.mouse.move(x - 140, y, { steps: 10 });
+  await page.mouse.up();
+  await expect
+    .poll(() => rail.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(30);
+  await expect(page).toHaveURL(/\/about$/);
+  await page.mouse.move(5, 100);
+  await expect(tip).not.toBeVisible();
+  await rail.locator("a").nth(1).click();
+  await expect(page).toHaveURL(/\/locations$/);
 });
 
 test("public header hides deliberately and remains available during interaction", async ({
@@ -117,12 +167,20 @@ test("home hero fills the viewport with its brand and browse action", async ({
   await page.goto("/");
 
   const hero = page.locator("[data-home-hero]");
-  const image = hero.getByRole("img", { name: /Modern luxury home at twilight/ });
+  const video = hero.locator("video");
   await expect(
     hero.getByRole("heading", { level: 1, name: "Find a home worth coming home to." }),
   ).toBeVisible();
   await expect(hero.getByRole("img", { name: "RC Premier Properties" })).toBeVisible();
-  await expect(image).toHaveCSS("object-fit", "cover");
+  await expect(video.locator("source")).toHaveAttribute(
+    "src",
+    "/media/homepage-hero.mp4",
+  );
+  await expect(video).toHaveAttribute("data-ready", "true");
+  await expect(video).toHaveJSProperty("muted", true);
+  await expect(video).toHaveJSProperty("loop", true);
+  await expect(video).toHaveJSProperty("playsInline", true);
+  await expect(video).toHaveCSS("object-fit", "cover");
   await expect(hero.getByRole("link", { name: "Browse properties" })).toHaveAttribute(
     "href",
     "/properties",
@@ -134,7 +192,7 @@ test("home hero fills the viewport with its brand and browse action", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(hero.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(hero.getByRole("link", { name: "Browse properties" })).toBeVisible();
-  await expect(image).toBeVisible();
+  await expect(video).toBeVisible();
   expect(
     await hero.evaluate((element) => element.getBoundingClientRect().height),
   ).toBeGreaterThanOrEqual(844);
@@ -365,58 +423,11 @@ test("tour steps fit normal viewports and remain reachable at 200 percent text",
   await expect(submit).toBeVisible();
 });
 
-test("About video requests playback once and the hero fills the desktop composition", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const state = { playCalls: 0 };
-    Object.defineProperty(window, "__aboutVideoState", { value: state });
-    Object.defineProperty(HTMLMediaElement.prototype, "play", {
-      configurable: true,
-      value() {
-        state.playCalls += 1;
-        return Promise.resolve();
-      },
-    });
-  });
-  // Keep real metadata from completing the one-time seek before the controlled
-  // loadedmetadata fixture below.
-  await page.route("**/media/about_video.mp4", (route) => route.abort());
+test("About hero fills the desktop composition", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/about");
 
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        return (window as Window & { __aboutVideoState: { playCalls: number } })
-          .__aboutVideoState.playCalls;
-      }),
-    )
-    .toBe(1);
-  const video = page.locator("video");
-  await expect(video).toHaveJSProperty("currentTime", 0);
-  await video.evaluate((element) => {
-    Object.defineProperties(element, {
-      currentTime: { configurable: true, value: 0, writable: true },
-      duration: { configurable: true, get: () => 30 },
-      readyState: {
-        configurable: true,
-        get: () => HTMLMediaElement.HAVE_METADATA,
-      },
-    });
-    element.dispatchEvent(new Event("loadedmetadata"));
-  });
-  expect(await video.evaluate((element) => element.currentTime)).toBe(4);
-  await video.dispatchEvent("canplay");
-  await video.dispatchEvent("canplay");
-  expect(
-    await page.evaluate(() => {
-      return (window as Window & { __aboutVideoState: { playCalls: number } })
-        .__aboutVideoState.playCalls;
-    }),
-  ).toBe(1);
-
-  // The fixed header sits above the hero; together they fill the first viewport.
+  // About overlays the header on the photograph, which fills the entire viewport.
   const composition = await page.evaluate(() => {
     const header = document.querySelector<HTMLElement>("header[data-sticky]")!;
     const hero = document.querySelector<HTMLElement>("main section")!;
@@ -426,37 +437,16 @@ test("About video requests playback once and the hero fills the desktop composit
       heroBottom: hero.getBoundingClientRect().bottom,
     };
   });
-  expect(Math.abs(composition.heroTop - composition.headerBottom)).toBeLessThanOrEqual(
-    1,
+  expect(composition.heroTop).toBe(0);
+  await expect(page.locator("header[data-sticky]")).toHaveAttribute(
+    "data-sticky",
+    "false",
   );
-  expect(Math.abs(composition.heroBottom - 900)).toBeLessThanOrEqual(1);
-});
-
-test("About reduced-motion entry remains on the static poster", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addInitScript(() => {
-    const state = { playCalls: 0 };
-    Object.defineProperty(window, "__aboutReducedMotionState", { value: state });
-    Object.defineProperty(HTMLMediaElement.prototype, "play", {
-      configurable: true,
-      value() {
-        state.playCalls += 1;
-        return Promise.resolve();
-      },
-    });
-  });
-  await page.goto("/about");
-
-  const video = page.locator("video");
-  await expect(video).toHaveAttribute("data-reduced-motion", "true");
-  await expect(video).not.toHaveAttribute("autoplay", "");
-  await expect(video).toHaveCSS("display", "none");
-  expect(
-    await page.evaluate(() => {
-      return (window as Window & { __aboutReducedMotionState: { playCalls: number } })
-        .__aboutReducedMotionState.playCalls;
-    }),
-  ).toBe(0);
+  await page.evaluate(() => window.scrollTo({ top: 180, behavior: "instant" }));
+  await expect(page.locator("header[data-sticky]")).toHaveAttribute(
+    "data-sticky",
+    "false",
+  );
 });
 
 test("homepage route actions and footer remain usable across viewports", async ({

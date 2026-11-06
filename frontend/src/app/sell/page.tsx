@@ -165,6 +165,7 @@ export default function SellPage() {
         body="A few details are enough to begin the conversation."
         label="Start your inquiry"
         href="#seller-inquiry"
+        wide
       />
     </main>
   );

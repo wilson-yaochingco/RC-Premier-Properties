@@ -166,6 +166,7 @@ export default async function PropertiesPage({
         body="Tell us what matters most and RC Premier can help narrow the search around your location, budget, and property needs."
         label="Talk to RC Premier"
         href="/contact"
+        wide
       />
       <DevHomepagePreview />
     </main>

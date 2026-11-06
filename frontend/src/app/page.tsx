@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/brand/rc-premier-logo.png";
 import { RcPremierMark } from "@/components/layout/RcPremierMark";
-import heroExterior from "@/assets/site/home_hero.jpg";
 import homeHeroTwo from "@/assets/site/home-hero-2.png";
 import { CloserLook } from "@/features/home/CloserLook";
 import { CLOSER_LOOK_SLIDES } from "@/features/home/closer-look-slides";
@@ -15,6 +14,7 @@ import { HomeIntroduction } from "@/features/home/HomeIntroduction";
 import { WhyRcPremier } from "@/features/home/WhyRcPremier";
 import { SellStatement } from "@/features/home/SellStatement";
 import { RouteCards } from "@/features/home/RouteCards";
+import { HomeHeroVideo } from "@/features/home/HomeHeroVideo";
 import heroStyles from "@/features/home/hero.module.css";
 import { buildSiteStructuredData, serializeJsonLd } from "@/lib/seo";
 
@@ -47,14 +47,7 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         data-home-hero
       >
         <div className={heroStyles.backdrop}>
-          <Image
-            src={heroExterior}
-            alt="Modern luxury home at twilight with warm interior lighting and landscaped frontage"
-            fill
-            priority
-            sizes="(max-width: 768px) 180vh, 100vw"
-            className={heroStyles.image}
-          />
+          <HomeHeroVideo className={heroStyles.image} />
           <div className={heroStyles.shade} aria-hidden="true" />
         </div>
 
@@ -106,7 +99,7 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
 
       <FeaturedPropertiesSection searchParams={searchParams} />
       <CloserLook slides={CLOSER_LOOK_SLIDES} />
-      <ExplorePampangaSection searchParams={searchParams} />
+      <ExplorePampangaSection />
       <DevHomepagePreview />
 
       {/* 6. SELL STATEMENT */}
@@ -122,6 +115,7 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         body="Tell us what matters most and RC Premier can help you narrow the search and plan the next step."
         label="Talk to RC Premier"
         href="/contact"
+        wide
       />
     </main>
   );

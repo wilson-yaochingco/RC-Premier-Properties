@@ -7,9 +7,8 @@
   overflow-x: clip;
 }
 
-/* Every section uses EditorialCta's container: 1440px with the page gutter. */
+/* Every section uses EditorialCta's container: the page gutter, no outer cap. */
 :is(.hero, .inquiry, .process, .reassurance) {
-  max-width: 1440px;
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
@@ -33,16 +32,6 @@
   color: var(--color-text-muted);
   font-size: 0.6875rem;
   letter-spacing: 0.12em;
-}
-
-.eyebrow::before,
-.railEyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: currentColor;
-  transform: rotate(45deg);
 }
 
 .sectionTitle {

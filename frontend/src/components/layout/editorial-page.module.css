@@ -13,6 +13,12 @@
   font-family: var(--font-manrope), sans-serif;
 }
 
+/* Full-bleed hero pages: the hero runs behind the transparent header, so no offset. The
+   compound selector wins on specificity, not on which stylesheet the client injects last. */
+.page.flush {
+  padding-top: 0;
+}
+
 @media (max-width: 70rem) {
   .page {
     --header-offset: 84px;

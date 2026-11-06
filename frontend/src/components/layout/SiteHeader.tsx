@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -25,7 +25,6 @@ const HEROLESS_PATHS = new Set([
   "/properties",
   "/locations",
   "/sell",
-  "/about",
   "/contact",
   "/book-viewing",
 ]);
@@ -49,15 +48,19 @@ export function SiteHeader() {
   const [menuExpanded, setMenuExpanded] = useState(false);
   const heroGoneRef = useRef(false);
   const isHome = pathname === "/";
+  const isAbout = pathname === "/about";
   // Pages without a hero use the homepage header in its sticky state from the first paint.
+  const cinematic = isHome || isAbout;
   const heroless = HEROLESS_PATHS.has(pathname);
-  const usesHomeHeader = isHome || heroless;
-  const eligible = heroless || heroGone;
+  const usesHomeHeader = cinematic || heroless;
+  const eligible = isAbout || heroless || heroGone;
   const sticky = heroless || stickyMounted;
 
   useEffect(() => {
-    if (!isHome) return;
-    const hero = document.querySelector("[data-home-hero]");
+    if (!cinematic) return;
+    const hero = document.querySelector(
+      isAbout ? "section[data-about-hero]" : "[data-home-hero]",
+    );
     if (!hero) return;
     let exitTimeout: number | undefined;
     const observer = new IntersectionObserver(
@@ -90,16 +93,24 @@ export function SiteHeader() {
     return () => {
       observer.disconnect();
       window.clearTimeout(exitTimeout);
+      // The header outlives the page. Cancelling a pending sticky exit would strand the
+      // next route in the sticky state, so reset and let its own hero decide.
+      heroGoneRef.current = false;
+      hiddenRef.current = false;
+      setHeroGone(false);
+      setStickyMounted(false);
+      setStickyMotion(false);
+      setIsHidden(false);
     };
-  }, [isHome]);
+  }, [cinematic, isAbout]);
 
   const showHeader = useCallback(() => {
-    if (isHome && !heroGoneRef.current) return;
+    if (cinematic && !heroGoneRef.current) return;
     if (!hiddenRef.current) return;
     hiddenRef.current = false;
     setStickyMotion(true);
     setIsHidden(false);
-  }, [isHome]);
+  }, [cinematic]);
 
   const handleMenuOpenChange = useCallback(
     (isActive: boolean, isExpanded: boolean) => {
@@ -135,7 +146,7 @@ export function SiteHeader() {
       lastScrollY = scrollY;
 
       if (document.body.style.position === "fixed") return;
-      if (isHome && !heroGoneRef.current) return;
+      if (cinematic && !heroGoneRef.current) return;
 
       if (scrollY > NEAR_TOP_PX !== scrolled) {
         scrolled = scrollY > NEAR_TOP_PX;
@@ -199,7 +210,7 @@ export function SiteHeader() {
       window.removeEventListener("pointerup", endPointerInteraction);
       window.removeEventListener("pointercancel", endPointerInteraction);
     };
-  }, [pathname, isHome, showHeader]);
+  }, [pathname, cinematic, showHeader]);
 
   function isCurrentPage(href: string) {
     if (href.includes("#")) return false;
@@ -213,6 +224,7 @@ export function SiteHeader() {
       <header
         ref={headerRef}
         className={heroStyles.header}
+        data-about-hero={isAbout || undefined}
         data-sticky={sticky}
         data-eligible={eligible}
         data-motion={stickyMotion}

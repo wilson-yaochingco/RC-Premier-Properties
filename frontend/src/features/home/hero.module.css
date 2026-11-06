@@ -18,13 +18,29 @@
 }
 
 .image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   object-position: center 45%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.image[data-ready="true"] {
+  opacity: 1;
+  transition: opacity 180ms ease-out;
 }
 
 .shade {
   z-index: 0;
-  background: rgb(15 19 25 / 56%);
+  background: linear-gradient(
+    to top,
+    rgb(15 19 25 / 58%) 0%,
+    rgb(15 19 25 / 40%) 45%,
+    rgb(15 19 25 / 30%) 100%
+  );
 }
 
 .content {
@@ -1298,5 +1314,29 @@
 
   .menuSocials {
     align-self: center;
+  }
+}
+
+/* About uses the Home controls with its mark over the film. */
+.header[data-about-hero="true"][data-sticky="false"] {
+  left: clamp(2rem, 2.5vw, 3rem);
+  justify-content: space-between;
+}
+.header[data-about-hero="true"][data-sticky="false"] .stickyLogo {
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+.header[data-about-hero="true"][data-sticky="false"]
+  .stickyLogo
+  :global(.brand-logo svg) {
+  color: white;
+}
+.header[data-about-hero="true"][data-sticky="false"] .menuLogo {
+  visibility: hidden;
+}
+@media (max-width: 48rem) {
+  .header[data-about-hero="true"][data-sticky="false"] {
+    left: 1rem;
   }
 }

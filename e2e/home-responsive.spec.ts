@@ -129,9 +129,14 @@ test("homepage editorial intros are centered at 768px and below, left-aligned ab
     await page.goto("/");
     for (const id of INTRO_HEADINGS) {
       await expect(page.locator(`#${id}`), `${id} streamed in once`).toHaveCount(1);
+      // Explore Pampanga keeps its two-column split, and so its left alignment, at 768px.
+      const alignment =
+        id === "explore-pampanga-heading" && width === 768
+          ? /^(left|start)$/
+          : expected;
       await expect(page.locator(`#${id}`), `${id} at ${width}px`).toHaveCSS(
         "text-align",
-        expected,
+        alignment,
       );
     }
   }
@@ -216,6 +221,41 @@ test("intentional rails still scroll inside their own container", async ({ page 
     .locator("#route-rail")
     .evaluate((rail) => rail.scrollWidth > rail.clientWidth);
   expect(overflows).toBe(true);
+});
+
+test("route rail keeps the pointer inside its Drag label while dragging", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const rail = page.locator("#route-rail");
+  await rail.scrollIntoViewIfNeeded();
+  const bounds = (await rail.boundingBox())!;
+  const x = bounds.x + bounds.width / 2;
+  const y = bounds.y + bounds.height / 2;
+  await page.mouse.move(x, y);
+  const tip = page.locator('[class*="dragTip"]');
+  await expect(tip).toBeVisible();
+  expect(
+    await tip.evaluate(
+      (element, point) => {
+        const box = element.getBoundingClientRect();
+        return (
+          point.x >= box.left &&
+          point.x <= box.right &&
+          point.y >= box.top &&
+          point.y <= box.bottom
+        );
+      },
+      { x, y },
+    ),
+  ).toBe(true);
+  await page.mouse.down();
+  await page.mouse.move(x - 120, y, { steps: 8 });
+  await page.mouse.up();
+  await expect
+    .poll(() => rail.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(30);
 });
 
 test("the Sell statement is about 10% smaller on small phones only", async ({

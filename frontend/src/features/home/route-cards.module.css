@@ -9,7 +9,6 @@
 }
 
 .container {
-  max-width: 1440px;
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
@@ -244,6 +243,11 @@
   .grid::-webkit-scrollbar {
     display: none;
   }
+  .grid[data-dragging="true"] {
+    cursor: grabbing;
+    scroll-snap-type: none;
+    user-select: none;
+  }
   .grid > li {
     flex: 0 0 82vw;
     scroll-snap-align: start;
@@ -271,5 +275,34 @@
   .copyWrap,
   .copy {
     transition: none;
+  }
+}
+
+/* The pointer tip from the About gallery, shown only where the cards form a draggable rail. */
+.dragTip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgb(32 38 48 / 16%);
+  border-radius: 10px 0 10px 0;
+  background: #f8f6f1;
+  color: #252c36;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* A mouse drag should stay where it was released instead of snapping back. */
+  .grid {
+    scroll-snap-type: none;
+  }
+  .dragTip[data-visible="true"] {
+    visibility: visible;
+    opacity: 1;
   }
 }

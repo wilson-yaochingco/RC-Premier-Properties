@@ -126,7 +126,7 @@ test("homepage sections keep their routes and guided actions", async ({ page }) 
   await closer.getByRole("button", { name: "Next step" }).click();
   await expect(closer.getByRole("group", { name: "2 of 4" })).toBeVisible();
 
-  const explore = page.getByRole("region", { name: "Find the area that feels right." });
+  const explore = page.locator('section[aria-labelledby="explore-pampanga-heading"]');
   await expect(explore.getByRole("link", { name: /Angeles City/i })).toBeVisible();
   await expect(
     explore.getByRole("link", { name: "Explore all locations" }),
@@ -816,10 +816,12 @@ test("Part 3 editorial pages keep factual RC Premier content and current channel
 }) => {
   await page.goto("/about");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Property, considered differently." }),
+    page.getByRole("heading", { level: 1, name: /Rooted in Pampanga/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /helps people discover residential properties/ }),
+    page.getByRole("heading", {
+      name: "Thoughtfully presented homes, clearer property decisions, and a more personal way forward in Pampanga.",
+    }),
   ).toBeVisible();
 
   await page.goto("/sell");

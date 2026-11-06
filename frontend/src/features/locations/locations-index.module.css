@@ -6,7 +6,6 @@
   --rule: rgb(32 38 48 / 12%);
   --rule-strong: rgb(32 38 48 / 26%);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --stage: 80rem;
   overflow-x: clip;
 }
 
@@ -22,15 +21,6 @@
 
 .eyebrow {
   color: var(--ink);
-}
-
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: currentColor;
-  transform: rotate(45deg);
 }
 
 .sectionTitle {
@@ -188,7 +178,6 @@
 }
 
 .featuredInner {
-  max-width: var(--stage);
   margin-inline: auto;
 }
 
@@ -323,7 +312,6 @@
 }
 
 .collectionInner {
-  max-width: var(--stage);
   margin-inline: auto;
 }
 

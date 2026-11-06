@@ -96,6 +96,7 @@ export default async function LocationsPage({ searchParams }: PageProps<"/locati
         body="RC Premier can help narrow the search around preferred locations and property needs."
         label="Talk to RC Premier"
         href="/contact"
+        wide
       />
       <DevHomepagePreview />
     </main>

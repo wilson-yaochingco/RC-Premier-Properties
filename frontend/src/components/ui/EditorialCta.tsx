@@ -11,6 +11,8 @@ interface EditorialCtaProps {
   label: string;
   href: string;
   id: string;
+  /** Banner spanning the page gutters with a capped centre column. */
+  wide?: boolean;
 }
 
 /** Decorative approved drawing with a transparent ground, printed on the card surface. */
@@ -36,9 +38,13 @@ export function EditorialCta({
   label,
   href,
   id,
+  wide,
 }: EditorialCtaProps) {
   return (
-    <section className={styles.section} aria-labelledby={id}>
+    <section
+      className={`${styles.section} ${wide ? styles.wide : ""}`}
+      aria-labelledby={id}
+    >
       <div className={styles.container}>
         <div className={styles.card}>
           <House side="left" />

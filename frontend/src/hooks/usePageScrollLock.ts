@@ -17,6 +17,7 @@ export function usePageScrollLock(active: boolean) {
       const body = document.body;
       const root = document.documentElement;
       const scrollY = window.scrollY;
+      const lockedPath = window.location.pathname;
       const previous = {
         position: body.style.position,
         top: body.style.top,
@@ -35,9 +36,11 @@ export function usePageScrollLock(active: boolean) {
         body.style.top = previous.top;
         body.style.width = previous.width;
         root.style.overflowY = previous.overflowY;
-        window.scrollTo({ top: scrollY, behavior: "instant" });
+        // Navigating from the open menu lands on the new route at its top, not at the old offset.
+        const top = window.location.pathname === lockedPath ? scrollY : 0;
+        window.scrollTo({ top, behavior: "instant" });
         root.style.scrollBehavior = previous.scrollBehavior;
-        return scrollY;
+        return top;
       };
     }
     locks += 1;
