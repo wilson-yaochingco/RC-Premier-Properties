@@ -1,11 +1,11 @@
 # Property photography review
 
 Reviewed 2026-11-08 against the 66 original photographs for the six official RC Premier listings.
-The final local publishable preview contains **62 watermark-free photographs**: 17 clean originals,
-30 non-destructive crops and 15 accepted localized retouches. **Four redundant views remain excluded**
+The final local publishable preview contains **61 watermark-free photographs**: 16 clean originals,
+30 non-destructive crops and 15 accepted localized retouches. **Five redundant views remain excluded**
 by business instruction. No important views remain held.
 All 66 source entries and original assets remain retained. No production data, Cloudinary original,
-legacy property, commit, push or deployment was changed.
+legacy property or deployment was changed by the photography work.
 
 The owner subsequently approved all four remaining experimental retouches after personal visual
 review. Their technical warnings remain documented below; this acceptance is a manual visual
@@ -90,7 +90,7 @@ retouches use their original lossless PNG files, under
 `propertyPhotoDeliveryUrl` selects a derivative only for its reviewed public ID and upload version
 (or its unversioned preview alias). A different upload version falls through to its original URL.
 The same resolver supplies cards, gallery, fullscreen and absolute SEO image URLs. Existing gallery
-relative ordering is retained. Only the 62 accepted images enter the preview; excluded
+relative ordering is retained. Only the 61 accepted images enter the preview; excluded
 entries remain in the original import source and review manifest.
 
 Repairs use built-in imagegen candidates only inside a small top-left mask, followed by OpenCV
@@ -101,6 +101,10 @@ remains 1536 × 1688 with its original proportions. Lossless storage avoids a se
 the existing Next image optimizer still provides responsive delivery. No generated whole photograph
 was adopted wholesale. For the four owner-approved experiments, uncertainty about obscured structural details
 remains as noted above.
+
+The additional owner-requested exclusion is `639192476`, property 3's clean kitchen-cooktop
+view. It duplicates the island kitchen angle; the original source and Cloudinary asset remain
+retained. This editorial decision was added after the 22 watermark reassessments.
 
 ## Per-image decisions for the 22 reassessed photographs
 
@@ -133,7 +137,8 @@ recorded in [`property-photography/decisions.json`](property-photography/decisio
 | 11       | `641462442 second-floor-common-area` | **ACCEPTED RETOUCH**. Accept localized plain-ceiling repair; entire fan, recessed lights, wall feature and railings remain unchanged.                                                                                                                                                                      |
 | 11       | `641399967 staircase`                | **ACCEPTED RETOUCH**. Accept localized plain-wall repair; all pendant lights, slat ceiling, stairs and window remain unchanged.                                                                                                                                                                            |
 
-The four approved exclusions are `641476195`, `641448645`, `641298954` and `640389791`. They do
+The five approved exclusions are `639192476`, `641476195`, `641448645`, `641298954` and
+`640389791`. They do
 not appear in preview cover media, cards, galleries, similar-property cards or fullscreen counts.
 Their source files and Cloudinary references remain unchanged.
 
@@ -226,20 +231,20 @@ unrelated test suite was rerun for this visual-only artifact.
 
 | Property              | Retained original source count | Publishable preview | Excluded | Held for clean source |
 | --------------------- | -----------------------------: | ------------------: | -------: | --------------------: |
-| `PREMIER_PROPERTY_3`  |                             17 |                  17 |        0 |                     0 |
+| `PREMIER_PROPERTY_3`  |                             17 |                  16 |        1 |                     0 |
 | `PREMIER_PROPERTY_7`  |                             10 |                   8 |        2 |                     0 |
 | `PREMIER_PROPERTY_8`  |                             10 |                  10 |        0 |                     0 |
 | `PREMIER_PROPERTY_9`  |                             10 |                   9 |        1 |                     0 |
 | `PREMIER_PROPERTY_10` |                              9 |                   9 |        0 |                     0 |
 | `PREMIER_PROPERTY_11` |                             10 |                   9 |        1 |                     0 |
-| **Total**             |                         **66** |              **62** |    **4** |                 **0** |
+| **Total**             |                         **66** |              **61** |    **5** |                 **0** |
 
 The preview API filters held/excluded tokens from the review manifest before assigning its cover.
 Each property retains at least eight accepted photographs. Remaining relative order, reviewed mosaic
 priority, native mobile track and fullscreen behavior are unchanged. The original 66-image import
 source remains available for staff review; this local filter does not change production publication.
 
-## Final local validation — 2026-11-08
+## Prior local validation - before the fifth exclusion
 
 - All 62 gallery IDs match the original listing order and property assignment after removing only
   the four approved exclusions; the six local gallery counts are 17, 8, 10, 9, 9 and 9.
@@ -251,6 +256,15 @@ source remains available for staff review; this local filter does not change pro
 - The four copied experimental PNGs match their retained SHA-256 hashes and original dimensions;
   their source JPEG hashes match the pinned manifest. The previously accepted bedroom patch is
   unchanged. All 23 targeted photography/SEO tests passed.
+
+## Checkpoint count verification — after the fifth exclusion
+
+The owner later excluded property 3's near-duplicate `639192476 kitchen-cooktop`. The local preview
+manifest now has 23 decisions: 15 retouches, three smaller crops, five exclusions and no held images.
+Filtering the six original galleries by that manifest yields **16, 8, 10, 9, 9 and 9 images**, or
+**61 accepted images**. The excluded source remains retained. The earlier fullscreen and responsive
+checks above were performed before this last exclusion; the gallery component and image delivery
+mappings were not changed by it.
 
 ## Reproduce the review and local derivatives
 
