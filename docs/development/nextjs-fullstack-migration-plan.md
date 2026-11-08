@@ -1,6 +1,6 @@
 # Next.js full-stack migration plan
 
-Status: **Phases 0–1 complete; Phase 2 pending.** Implementer: Codex, Phases 0–4.
+Status: **Phases 0-1 complete; Phase 2 implemented with automated gate evidence; owner Auth0 verification pending.** Implementer: Codex, Phases 0–4.
 Phases 5–7 are later deployment activities handled with Wilson. This document is self-contained for
 Claude Code and Codex. Read `AGENTS.md` first; its rules apply, especially: ESM `.js` import suffixes in
 the backend, API shapes only from `@rc/shared`, no `process.env` reads outside the env modules, and
@@ -165,12 +165,18 @@ Depends on: Phase 1.
     api: { bodyParser: false, externalResolver: true, responseLimit: false },
   };
   export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { handleApiRequest } = await import("rc-premier-backend/serverless");
+    const { handleApiRequest } = await import(
+      /* webpackIgnore: true */ /* turbopackIgnore: true */
+      "rc-premier-backend/serverless"
+    );
     await handleApiRequest(req, res);
   }
   ```
   The **dynamic import** keeps backend env validation (`backend/src/config/env.ts`, evaluated at import)
-  out of `next build`.
+  out of `next build`. The ignore comments also prevent Turbopack from treating the workspace
+  symlink's resolved `backend/dist` path as frontend source. Explicit API-only file tracing includes
+  compiled backend/shared files and the backend's locked runtime dependency closure; see the
+  [Phase 2 gate report](nextjs-adapter-gate.md).
 - **Adapter contract** (verified in `next/dist/server/api-utils/node/api-resolver.js`): before Express runs,
   Next defines **own, configurable** properties that would shadow Express 5's prototype methods
   (`express/lib/application.js` sets the prototypes at lines 169–170).
@@ -207,8 +213,13 @@ Depends on: Phase 1.
      that is unreachable, dummy Auth0 values). Verify:
      - `next build` succeeds and the traced output contains `backend/dist`;
      - `/api/v1/health` returns 200; `/api/v1/health/ready` returns 503;
-     - unknown `/api/v1/x` returns the 404 envelope;
-     - `/api/v1/admin/properties` returns 401 without a cookie.
+     - all other paths, including `/api/v1/x` and `/api/v1/admin/properties`, return the existing
+       production 503 envelope while MongoDB is unreachable (fail-fast takes precedence).
+  3. Reachable production-mode proof: use a TLS-enabled, ephemeral `mongodb-memory-server` instance,
+     bound only to this machine's non-loopback address, with runtime-generated test certificates and
+     explicit CA trust. Prove listings, detail, inquiry persistence, admin 401 and unknown-route 404
+     through `next start`. Never use a real Atlas cluster for these proofs. MFA login, session,
+     CSRF-protected write and logout require owner manual verification.
 - Tests:
   - an adapter unit test feeding a real `NextApiRequest`-shaped object (with the shadowing properties) and
     asserting the Express semantics: no `path` key in `req.query`, `res.json` and error envelopes
@@ -394,6 +405,18 @@ into the one project.
 ## 9. Blockers
 
 ### Implementation record (2026-11-08)
+
+- Phase 2: added the Pages API adapter with body parsing disabled, opaque runtime backend import,
+  API-only workspace/runtime dependency tracing, and a request-contract/cookie unit test. Production
+  and isolated dev same-origin proofs passed against TLS in-memory MongoDB; unreachable-placeholder
+  production responses preserve fail-fast 503 behavior. Security-header snapshots match Express,
+  so the page header rule is retained. See the [gate report](nextjs-adapter-gate.md) for captures,
+  trace evidence, coordinator-approved plan adjustments, commands and owner-manual items.
+- Phase 2 milestone: formatting, lint, workspace typecheck, 535 unit tests and production build
+  passed. Full browser suite: 237 passed, 2 skipped, 4 failed. The header and location scroll-fill
+  failures passed together on an isolated one-worker rerun (2 passed); the two known admin-radius
+  failures remain unchanged. Production audit: zero vulnerabilities. Auth0 MFA login, real session,
+  successful CSRF-protected write and logout require owner verification; Phases 3-4 have not started.
 
 - Phase 1: added the backend serverless export with a reused Express app, shared/retryable MongoDB connection and Vercel pool attachment. Health bypasses connection startup; other requests fail with the existing 503 envelope while MongoDB is unavailable. Next API helpers are removed before Express runs. The Render entry is unchanged; the Next adapter is not implemented yet.
 - Phase 1 checks: 372 backend tests across 24 files passed (including 4 new serverless tests); backend build emitted `dist/serverless.js`; workspace typecheck, lint and targeted formatting passed. Production dependency audit reports zero vulnerabilities. Full browser/milestone checks remain for the Phase 2 gate; the two known admin-radius failures are untouched.
