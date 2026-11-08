@@ -2,6 +2,13 @@
   "name": "rc-premier-backend",
   "version": "0.1.0",
   "main": "dist/server.js",
+  "exports": {
+    ".": "./dist/server.js",
+    "./serverless": {
+      "types": "./serverless.d.ts",
+      "default": "./dist/serverless.js"
+    }
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
@@ -20,6 +27,7 @@
   "description": "RC Premier Properties API server",
   "dependencies": {
     "@rc/shared": "*",
+    "@vercel/functions": "^3.11.0",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

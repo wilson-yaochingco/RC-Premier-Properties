@@ -1,6 +1,6 @@
 # Next.js full-stack migration plan
 
-Status: **Phase 0 complete; Phase 1 pending.** Implementer: Codex, Phases 0–4.
+Status: **Phases 0–1 complete; Phase 2 pending.** Implementer: Codex, Phases 0–4.
 Phases 5–7 are later deployment activities handled with Wilson. This document is self-contained for
 Claude Code and Codex. Read `AGENTS.md` first; its rules apply, especially: ESM `.js` import suffixes in
 the backend, API shapes only from `@rc/shared`, no `process.env` reads outside the env modules, and
@@ -395,6 +395,8 @@ into the one project.
 
 ### Implementation record (2026-11-08)
 
+- Phase 1: added the backend serverless export with a reused Express app, shared/retryable MongoDB connection and Vercel pool attachment. Health bypasses connection startup; other requests fail with the existing 503 envelope while MongoDB is unavailable. Next API helpers are removed before Express runs. The Render entry is unchanged; the Next adapter is not implemented yet.
+- Phase 1 checks: 372 backend tests across 24 files passed (including 4 new serverless tests); backend build emitted `dist/serverless.js`; workspace typecheck, lint and targeted formatting passed. Production dependency audit reports zero vulnerabilities. Full browser/milestone checks remain for the Phase 2 gate; the two known admin-radius failures are untouched.
 - Phase 0: pinned `next` and `eslint-config-next` to 16.4.5; ran root `npm install` and in-range `npm audit fix`. Production dependency audit at high severity reports zero vulnerabilities. Next 16.4.5 still documents Pages API `bodyParser: false`, `externalResolver`, and `responseLimit: false`.
 - Phase 0 checks: format, lint, typecheck, 530 unit tests, and build passed. Full e2e: 236 passed, 2 skipped, 5 failed. Two failures are the known admin-radius assertions. The other three (`admin-operations` responsive matrix, `client-polish` public header, and `home-hero` interaction) passed together on an isolated rerun with one worker. Their full-run timing remains an unresolved flaky-test observation; no product or assertion change was made.
 
