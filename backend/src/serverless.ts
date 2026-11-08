@@ -1,3 +1,4 @@
+import { once } from "node:events";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Express } from "express";
 import mongoose from "mongoose";
@@ -54,9 +55,13 @@ export async function handleApiRequest(
         applicationRateLimit: (_req, _res, next) =>
           next(new HttpError(503, "Database service is unavailable.")),
       });
+      const closed = once(res, "close");
       unavailableApp(req, res);
+      await closed;
       return;
     }
   }
+  const closed = once(res, "close");
   app(req, res);
+  await closed;
 }

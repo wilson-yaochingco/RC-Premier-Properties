@@ -1,3 +1,4 @@
+import express from "express";
 import { createServer, type Server } from "node:http";
 import { API_PREFIX } from "@rc/shared";
 import mongoose from "mongoose";
@@ -160,8 +161,40 @@ describe("serverless API entry", () => {
     expect((await pending).status).toBe(200);
   });
 
+  it("keeps the handler pending until an asynchronous response closes", async () => {
+    let send!: () => void;
+    vi.mocked(createApp).mockImplementation(() => {
+      const app = express();
+      app.get("/delayed", (_req, res) => {
+        send = () => res.status(204).end();
+      });
+      return app;
+    });
+    const { handleApiRequest } = await import("../src/serverless.js");
+    let completed = false;
+    const api = createServer((req, res) => {
+      void handleApiRequest(req, res).then(() => {
+        completed = true;
+      });
+    });
+    servers.push(api);
+    const pending = request(api)
+      .get("/delayed")
+      .then((response) => response);
+    await vi.waitFor(() => expect(send).toBeTypeOf("function"));
+    expect(completed).toBe(false);
+    send();
+    expect((await pending).status).toBe(204);
+    await vi.waitFor(() => expect(completed).toBe(true));
+  });
+
   it("removes Next own helpers so Express parses queries, bodies and error envelopes", async () => {
     const { handleApiRequest } = await import("../src/serverless.js");
+    const completed: Promise<void>[] = [];
+    const observations: {
+      req: import("node:http").IncomingMessage;
+      res: import("node:http").ServerResponse;
+    }[] = [];
     const api = createServer((req, res) => {
       for (const key of ["query", "cookies", "previewData", "preview", "draftMode"]) {
         Object.defineProperty(req, key, {
@@ -186,23 +219,8 @@ describe("serverless API entry", () => {
           },
         });
       }
-      void handleApiRequest(req, res).then(() => {
-        for (const key of ["query", "cookies", "previewData", "preview", "draftMode"]) {
-          expect(Object.hasOwn(req, key)).toBe(false);
-        }
-        for (const key of [
-          "status",
-          "send",
-          "json",
-          "redirect",
-          "setDraftMode",
-          "setPreviewData",
-          "clearPreviewData",
-          "revalidate",
-        ]) {
-          expect(Object.hasOwn(res, key)).toBe(false);
-        }
-      });
+      completed.push(handleApiRequest(req, res));
+      observations.push({ req, res });
     });
     servers.push(api);
     const response = await request(api).get(`${API_PREFIX}/properties?page=2&limit=6`);
@@ -220,5 +238,22 @@ describe("serverless API entry", () => {
     const missing = await request(api).get(`${API_PREFIX}/missing`);
     expect(missing.status).toBe(404);
     expect(missing.body).toMatchObject({ status: "error", statusCode: 404 });
+    await Promise.all(completed);
+    for (const { req, res } of observations) {
+      expect(res.writableFinished).toBe(true);
+      for (const key of ["query", "cookies", "previewData", "preview", "draftMode"])
+        expect(Object.hasOwn(req, key)).toBe(false);
+      for (const key of [
+        "status",
+        "send",
+        "json",
+        "redirect",
+        "setDraftMode",
+        "setPreviewData",
+        "clearPreviewData",
+        "revalidate",
+      ])
+        expect(Object.hasOwn(res, key)).toBe(false);
+    }
   });
 });

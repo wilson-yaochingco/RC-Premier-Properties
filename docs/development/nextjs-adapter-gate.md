@@ -256,3 +256,12 @@ Next adds `X-Forwarded-For` on adapter requests; with the explicit local proof s
 `TRUST_PROXY_HOPS=0`, express-rate-limit logs `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` while continuing
 to enforce its existing limits. This is reported for the already-planned Phase 3/proxy-trust and
 staging measurement work; no trust setting or security protection was changed to hide it.
+
+## Gate review follow-ups
+
+Page header rules exclude the API namespace (derived from `API_PREFIX`), including staging's
+indexing header; Helmet owns API security headers. Page, admin and geo header policies remain intact.
+The serverless handler now awaits response closure so its promise covers the request lifetime.
+
+- Accepted: while the database is down, malformed JSON returns 400 before 503, and the unavailable path skips the application rate limiter.
+- Deployment prerequisite: measure and explicitly set `TRUST_PROXY_HOPS` before deployment; on Vercel the socket peer is the platform, so an unmeasured zero-hop setting puts clients in one bucket.

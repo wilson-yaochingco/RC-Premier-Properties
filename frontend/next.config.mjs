@@ -171,7 +171,7 @@ export default function createNextConfig(phase) {
     async headers() {
       return [
         {
-          source: "/:path*",
+          source: `/((?!${API_PREFIX.split("/")[1]}(?:/|$)).*)`,
           headers: securityHeaders,
         },
         {
