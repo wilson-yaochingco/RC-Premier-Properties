@@ -28,6 +28,7 @@ import {
 } from "@rc/shared";
 import { API_BASE_URL } from "@/lib/env";
 import { ApiClientError, apiRequest } from "@/services/api-client";
+import { preparePropertyImage } from "./prepare-property-image";
 
 const authenticatedRequest = (signal?: AbortSignal): RequestInit => ({
   credentials: "include",
@@ -303,7 +304,7 @@ export function updatePropertyMedia(
   );
 }
 
-export function uploadPropertyImage(
+export async function uploadPropertyImage(
   id: string,
   expectedVersion: number,
   file: File,
@@ -312,6 +313,7 @@ export function uploadPropertyImage(
   csrfToken: string,
   onProgress: (percent: number) => void,
 ): Promise<AdminPropertyDetail> {
+  const prepared = await preparePropertyImage(file);
   const query = new URLSearchParams({ expectedVersion: String(expectedVersion), alt });
   if (caption.trim()) query.set("caption", caption.trim());
   const url = `${API_BASE_URL}${API_PREFIX}/admin/properties/${encodeURIComponent(id)}/media/uploads?${query.toString()}`;
@@ -322,7 +324,7 @@ export function uploadPropertyImage(
     request.timeout = 30_000;
     request.withCredentials = true;
     request.setRequestHeader("Accept", "application/json");
-    request.setRequestHeader("Content-Type", file.type);
+    request.setRequestHeader("Content-Type", prepared.type);
     request.setRequestHeader("X-CSRF-Token", csrfToken);
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -367,7 +369,7 @@ export function uploadPropertyImage(
         }),
       );
     };
-    request.send(file);
+    request.send(prepared);
   });
 }
 

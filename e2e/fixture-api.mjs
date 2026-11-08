@@ -430,19 +430,21 @@ const passThrough = (_request, _response, next) => next();
 /**
  * Playwright uses the default synthetic dataset. The local preview (`e2e/preview-api.mts`)
  * passes the RC Premier development dataset and its own port instead.
- * @param {{properties?: import("@rc/shared").PublicPropertyDetail[], host?: string, port?: number, label?: string}} [options]
+ * @param {{properties?: import("@rc/shared").PublicPropertyDetail[], host?: string, port?: number, label?: string, dependencies?: import("../backend/src/app.js").AppDependencies}} [options]
  */
 export function startFixtureApi({
   properties = TEST_PROPERTIES,
   host = FIXTURE_HOST,
   port = FIXTURE_PORT,
   label = "playwright fixture only",
+  dependencies = {},
 } = {}) {
   const app = createApp({
     propertyService: createPropertyService(properties),
     inquiryService,
     applicationRateLimit: passThrough,
     inquiryRateLimit: passThrough,
+    ...dependencies,
   });
   return new Promise((resolve, reject) => {
     const server = app.listen(port, host);

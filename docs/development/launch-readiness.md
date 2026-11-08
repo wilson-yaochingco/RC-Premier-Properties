@@ -1,9 +1,10 @@
 # Launch readiness — six official listings
 
-Status: **BLOCKED**. Engineering is ready for a pull request, but launch needs the items in
-[Remaining launch blockers](#remaining-launch-blockers): a dependency security update, missing
-production configuration, the staff identity, and owner confirmations. No commit, push, pull
-request, deployment, or production write has been made by this preparation.
+Status: **BLOCKED for launch**. Phases 0-4 of the
+[Next.js full-stack migration](nextjs-fullstack-migration-plan.md) are implemented on
+`feat/nextjs-fullstack-migration`; validation is recorded in that plan. Hosted acceptance,
+owner Auth0 verification, production configuration, staff provisioning and owner confirmations
+remain gates. Nothing is pushed or deployed by this branch.
 
 ## Location audit
 
@@ -70,154 +71,85 @@ tracked). Secret-pattern hits in tests and docs are placeholders. Two new files 
 About page and are still untracked, so they must be added to the PR:
 `frontend/src/assets/site/bungalow-exterior.jpg` and `bungalow-street.jpg`.
 
-## Environment variables
+## Single-app Vercel environment
+
+The [migration plan section 7](nextjs-fullstack-migration-plan.md#7-vercel-project-configuration-for-wilson-at-phase-56)
+supersedes the former Vercel frontend to Render API environment instructions. One Vercel
+project will serve pages and the Express API at the same origin. This is branch readiness;
+Wilson performs staging and production configuration in Phases 5-6. Render remains the
+rollback target until Phase 7; do not remove its configuration or existing Auth0 callback yet.
 
 Source of truth: `backend/src/config/env.ts`, `frontend/src/lib/env.ts` and
-`frontend/src/lib/next-config-env.cjs`. Names only; never paste values into docs or logs.
+`frontend/src/lib/next-config-env.cjs`. The sanitized
+[`vercel-production.env.example`](vercel-production.env.example) contains placeholders only.
+Never commit populated environment files or print secrets.
 
-### Vercel (frontend), Production scope, build time
+### Project settings
 
-All are public `NEXT_PUBLIC_*` values embedded in browser bundles. There are **no** frontend secrets.
-Backend secrets must never be added to Vercel.
+Use Next.js, Root Directory `frontend`, **include files outside Root Directory** (backend,
+shared and root lockfile), install `cd .. && npm ci`, build `cd .. && npm run build:deployment`,
+Node 22.x and Fluid Compute. Place the function beside Atlas. Confirm Vercel Pro for the
+commercial site. Do not supply a custom start command.
 
-| Variable                           | Production value                                  | Status                              |
-| ---------------------------------- | ------------------------------------------------- | ----------------------------------- |
-| `NEXT_PUBLIC_DEPLOYMENT_ENV`       | `production` (hosted builds reject anything else) | Ready                               |
-| `NEXT_PUBLIC_MEDIA_ORIGIN`         | `https://res.cloudinary.com`                      | Ready; equals `MEDIA_PUBLIC_ORIGIN` |
-| `NEXT_PUBLIC_SITE_URL`             | Final HTTPS frontend origin                       | **Missing**; equals `CORS_ORIGIN`   |
-| `NEXT_PUBLIC_API_URL`              | Final HTTPS API origin, same registrable site     | **Missing**; build fails without it |
-| `NEXT_PUBLIC_MAP_TILE_URL`         | Approved tile template with `{z}`, `{x}`, `{y}`   | **Missing**; build fails without it |
-| `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT` | Plain-text attribution                            | **Missing**                         |
-| `NEXT_PUBLIC_MAP_ATTRIBUTION_URL`  | HTTPS attribution link                            | **Missing**                         |
+### Production scope
 
-Vercel supplies `VERCEL` and `VERCEL_ENV` itself. The local-only file
-`frontend/.env.vercel-production.local` carries the two ready values and the missing ones as
-comments; it is labelled INCOMPLETE and is git-ignored. A sanitized template is tracked at
-[`vercel-production.env.example`](vercel-production.env.example). Preview deployments need their
-own scope with `NEXT_PUBLIC_DEPLOYMENT_ENV=staging` (this also blocks indexing).
+| Variables                                                                                         | Configuration                                                                         |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_DEPLOYMENT_ENV`                                                                      | `production`                                                                          |
+| `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_API_URL`                                                     | Both the final HTTPS site origin (`https://rcpremierph.com` at cutover)               |
+| `NEXT_PUBLIC_MEDIA_ORIGIN`                                                                        | `https://res.cloudinary.com`                                                          |
+| `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT`, `NEXT_PUBLIC_MAP_ATTRIBUTION_URL` | Owner-approved provider/template and attribution; still missing                       |
+| `CORS_ORIGIN`, `API_PUBLIC_ORIGIN`                                                                | Both the same HTTPS site origin                                                       |
+| `TRUST_PROXY_HOPS`                                                                                | **Measure in Phase 5 and explicitly set before any deployment**; never guess          |
+| `AUTH0_ISSUER_URL`, `AUTH0_CLIENT_ID`                                                             | Production confidential Auth0 application                                             |
+| `AUTH0_CALLBACK_URL`                                                                              | Site origin + `/api/v1/auth/callback`; add alongside the Render callback              |
+| `AUTH_ALLOWED_RETURN_URLS`                                                                        | Site origin + `/` and `/admin`, comma-separated                                       |
+| `BUSINESS_NOTIFICATION_EMAIL`, `LOG_LEVEL`                                                        | Confirm inquiry recipient; `info` logging                                             |
+| `MEDIA_PUBLIC_ORIGIN`                                                                             | Optional; defaults to `https://res.cloudinary.com` with Cloudinary configured         |
+| `MONGODB_URI`                                                                                     | **Sensitive**; TLS URI explicitly naming `rc_premier_prod` and a least-privilege user |
+| `AUTH0_CLIENT_SECRET`, `AUTH_SESSION_HASH_SECRET`                                                 | **Sensitive**; production values only, hash secret at least 32 random bytes           |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`                            | **Sensitive**, server-only; needed for uploads                                        |
 
-### Render (persistent Express API), runtime
+Public values are baked into browser bundles and require a rebuild. All backend values
+now belong in the same Vercel project, with secrets marked Sensitive and **never** prefixed
+`NEXT_PUBLIC_`. Do not set `NODE_ENV`, `PORT` or `SHUTDOWN_GRACE_SECONDS`; Vercel supplies
+`NODE_ENV`, and the listener/shutdown variables do not apply to Functions. Existing auth/MFA
+policy defaults remain unchanged.
 
-| Variable                                                                                                                                    | Kind                 | Notes                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------- |
-| `NODE_ENV`                                                                                                                                  | config               | `production`                                                                  |
-| `CORS_ORIGIN`                                                                                                                               | config               | Exactly the final frontend origin                                             |
-| `API_PUBLIC_ORIGIN`                                                                                                                         | config               | Exactly the final API origin (HTTPS)                                          |
-| `TRUST_PROXY_HOPS`                                                                                                                          | config               | Explicit, verified hop count; never inferred                                  |
-| `MONGODB_URI`                                                                                                                               | **secret**           | TLS Atlas URI that **names `rc_premier_prod`** explicitly                     |
-| `AUTH0_ISSUER_URL`, `AUTH0_CLIENT_ID`, `AUTH0_CALLBACK_URL`, `AUTH_ALLOWED_RETURN_URLS`                                                     | config               | Production Auth0 application; callback = API origin + `/api/v1/auth/callback` |
-| `AUTH0_CLIENT_SECRET`, `AUTH_SESSION_HASH_SECRET`                                                                                           | **secret**           | Separate from development; hash secret at least 32 random bytes               |
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`                                                                      | secret (key, secret) | All three or none; needed for admin photo upload                              |
-| `MEDIA_PUBLIC_ORIGIN`                                                                                                                       | config, optional     | Defaults to Cloudinary when configured; must match the frontend value         |
-| `BUSINESS_NOTIFICATION_EMAIL`                                                                                                               | config               | Recipient only (default `rcpremierph@gmail.com`)                              |
-| `AUTH_REQUIRED_AMR`, `AUTH_SESSION_IDLE_MINUTES`, `AUTH_SESSION_ABSOLUTE_HOURS`, `AUTH_MAX_CONCURRENT_SESSIONS`, `AUTH_TRANSACTION_MINUTES` | policy, optional     | Defaults are the production limits                                            |
-| `PORT`, `LOG_LEVEL`, `APP_BUILD_ID`, `SHUTDOWN_GRACE_SECONDS`                                                                               | optional             | `LOG_LEVEL` must not be `debug`                                               |
+### Preview scope and release gate
 
-Development-only and never to be copied to production: `MONGODB_URI` pointing at `rc_premier` or the
-`rc_premier_dev` user, any `localhost` origin, the development Auth0 tenant/application, and
-`e2e/preview-api.mts` (a database-free fixture server). A production-shaped build
-(`NEXT_PUBLIC_DEPLOYMENT_ENV=production`, HTTPS placeholder origins) was verified: it succeeds, bakes in
-only the configured API origin, and its output contains no preview-API port, no toolbar code, and no
-reachable localhost reference (the remaining strings are unreachable development fallbacks).
+Use the same keys with **staging** values: `NEXT_PUBLIC_DEPLOYMENT_ENV=staging` (noindex),
+a fixed staging site/API alias, `rc_premier_staging` and its own user, staging Auth0 callback
+and staging Cloudinary configuration. Preview runs with `NODE_ENV=production`, so it needs
+the complete server environment. Never point Preview at production providers or data.
 
-Two warnings found while auditing:
+Wilson measures `TRUST_PROXY_HOPS` and configures the Vercel Firewall rules for login-start
+and inquiry submission described in [deployment guidance](deployment-and-release.md#shared-api-rate-limits-and-vercel-edge-protection).
+The MongoDB limiter and the edge rules complement one another. The Atlas network decision,
+manual MFA/session/CSRF/logout checks, hosted uploads, timings and rollback rehearsal remain
+Phase 5 gates; follow the migration plan before cutover.
 
-- The preserved production URI (`rc_premier_prod_app`) names the default database `rc_premier`.
-  The production data lives in `rc_premier_prod`, so the URI must be edited to name it, and the user's
-  privileges on that database confirmed before use.
-- `vercel-beta.md` still says the public contact is `rcpremierph@gmail.com`; the site uses
-  `rcpropertiesss@gmail.com` (`public-contact.ts`). Decide whether inquiries should be delivered to the
-  new address (`BUSINESS_NOTIFICATION_EMAIL`).
+### Upload behavior and rollback
 
-## Vercel environment checklist
+The server still accepts and validates up to 12 MiB. The admin client sends files at or below
+4 MiB unchanged; larger photos are decoded with orientation, resized to at most 2560 pixels
+on the longest edge and encoded as WebP with decreasing quality until they fit. Failure
+shows an error and sends nothing. Production storage is Cloudinary only, with no Vercel
+filesystem writes. Direct signed browser-to-Cloudinary uploads remain deferred. The 61
+approved photos, 15 derivatives, crops and gallery order are unchanged.
 
-The RC Premier Vercel project was not visible to the audit account, so its current variables are
-unknown. Export the project's variable names and scopes from the dashboard first and apply the rules
-below to each. **Never blind-reset**: add and update first, remove last, and keep the previous
-deployment available for rollback. The frontend reads exactly seven variables (verified against
-`frontend/src/lib/env.ts`, `next-config-env.cjs` and every `process.env` read in `frontend/src` and
-`scripts`); `VERCEL`, `VERCEL_ENV` and `NODE_ENV` are supplied by the platform and are not set by hand.
-
-### Before changing anything
-
-1. Record the current production deployment URL (the rollback target).
-2. Export the existing variable names and scopes (keep any download in a password manager, not the repo).
-3. Confirm project settings still match [vercel-beta.md](vercel-beta.md#vercel-project-settings): Root
-   Directory `frontend` with files outside it included, install `cd .. && npm ci`, build
-   `cd .. && npm run build:deployment`, Node 22. `build:deployment` fails unless
-   `NEXT_PUBLIC_DEPLOYMENT_ENV` is `staging` or `production`.
-
-### Production scope: variables to set
-
-Rule for every row: **absent: add. Present with a different value: update. Present and equal: retain.**
-
-| Variable                           | Value to set                                  | Source / status                           |
-| ---------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `NEXT_PUBLIC_DEPLOYMENT_ENV`       | `production`                                  | Code-defined; in the local file           |
-| `NEXT_PUBLIC_MEDIA_ORIGIN`         | `https://res.cloudinary.com`                  | Active local config; in the local file    |
-| `NEXT_PUBLIC_SITE_URL`             | Final HTTPS frontend origin                   | **MISSING** (no domain recorded anywhere) |
-| `NEXT_PUBLIC_API_URL`              | Final HTTPS API origin, same registrable site | **MISSING**                               |
-| `NEXT_PUBLIC_MAP_TILE_URL`         | Approved template with `{z}`, `{x}`, `{y}`    | **MISSING** (no approved provider)        |
-| `NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT` | Provider's plain-text attribution             | **MISSING**                               |
-| `NEXT_PUBLIC_MAP_ATTRIBUTION_URL`  | Provider's HTTPS attribution link             | **MISSING**                               |
-
-Constraints enforced by the build: every origin is HTTPS with no path, query, credentials or localhost;
-the tile URL must contain all three placeholders. Setting `NEXT_PUBLIC_DEPLOYMENT_ENV=staging` on
-Production is accepted but adds `noindex`, so use `production`. `NEXT_PUBLIC_SITE_URL` is not enforced by
-the build; omit it and canonicals and the sitemap are silently dropped.
-
-### Preview scope
-
-The same seven keys, with `NEXT_PUBLIC_DEPLOYMENT_ENV=staging` (required for Preview, and it blocks
-indexing) and non-production origins. Do not point Preview at the production API.
-
-### Remove, eventually
-
-Only **after** the new production deployment is verified. These are backend values and have no place on
-Vercel: `MONGODB_URI`, `AUTH0_*`, `AUTH_*`, `CLOUDINARY_*`, `CORS_ORIGIN`, `API_PUBLIC_ORIGIN`,
-`TRUST_PROXY_HOPS`, `MEDIA_PUBLIC_ORIGIN`, `BUSINESS_NOTIFICATION_EMAIL`, `PORT`, `LOG_LEVEL`,
-`APP_BUILD_ID`, `SHUTDOWN_GRACE_SECONDS`, plus any `NEXT_PUBLIC_*` name not in the table above. If any
-backend secret was ever on Vercel, rotate it after removal.
-
-### Order of operations
-
-1. Prepare Render first (same values, see the Render table above) so the API accepts the new frontend
-   origin; its `CORS_ORIGIN` must equal `NEXT_PUBLIC_SITE_URL` and its `API_PUBLIC_ORIGIN` must equal
-   `NEXT_PUBLIC_API_URL`.
-2. Set the Vercel Production variables. They take effect only for a **new** build.
-3. Merge the PR (or redeploy) and let Vercel build; a missing origin or map URL fails the build with a
-   named error, which leaves the live deployment untouched.
-4. Update the Auth0 callback, allowed return URLs and logout URLs to the final origins.
-5. Verify, then run the read-only smoke check from your shell (not Vercel):
-   `SMOKE_FRONTEND_ORIGIN=<frontend origin> SMOKE_API_ORIGIN=<api origin> npm run smoke:deployment`.
-   Also confirm `/properties` lists exactly six, images load from Cloudinary, `sitemap.xml` and
-   canonicals use the final origin, and an inquiry reaches `/admin`.
-6. Remove the obsolete variables above.
-
-### Rollback
-
-Vercel Instant Rollback to the recorded deployment restores that deployment's build-time values. If the
-new variables were wrong, restore the exported set and redeploy. The previous deployment is never
-deleted.
+Record the current Vercel deployment and environment names/scopes before configuration.
+Keep Render and its callback serving while the migration is verified. Phase 6 cutover changes
+both public origins to the site origin; run `npm run smoke:deployment` with both smoke origins
+set to it. Instant Rollback restores the previous bundle targeting Render; no data migration
+or data rollback is needed. Staff sign in again because host-only cookies change host.
 
 ## Pull request preparation
 
-- Fork `origin` (`iyawnnn/RC-Premier-Properties`) to `upstream` (`wilson-yaochingco/RC-Premier-Properties`).
-  The branch `feat/public-pages-editorial-redesign` is 0 commits behind `upstream/main` and a trial merge
-  reports no conflicts. The work is still uncommitted; follow [git workflow](git-workflow.md).
-- The PR adds the dependencies `cloudinary` (backend) and `gsap`, `@gsap/react`, `lenis` (frontend).
-- CI (`.github/workflows/ci.yml`) will currently **fail** on two things: the `npm audit` step and two
-  admin-radius browser tests (see blockers). Fix or consciously waive them before requesting review.
-
-## Test acceptance status
-
-- Passing: format, lint, typecheck, build, 530 unit tests, and a production-shaped deployment build.
-- Browser suite: 236 passed, 2 skipped, 5 failed. The skip is the opt-in soak test
-  (`CLOSER_LOOK_SOAK`). Three failures (`admin-operations:448`, `client-polish:86`, `home-hero:111`) are load
-  flakes that pass when run alone (CI runs one worker with retries). Two are real:
-  `admin-inquiries:127` and `admin-operations:287` expect admin `--radius-card` to be `0`, but the shared token
-  has been `0.75rem` since commit 2ea7d03. Either restore square admin corners or update the assertions; that is
-  a design decision, not a defect in the public site. Acceptance is therefore **not** complete.
+Migration work remains on `feat/nextjs-fullstack-migration` in the fork
+`iyawnnn/RC-Premier-Properties`. No push, PR, merge or deployment is authorized by
+this readiness document. The migration plan records checks and known failures;
+admin corner-radius assertions remain an owner design decision.
 
 ## Release sequence
 
@@ -225,13 +157,13 @@ deleted.
 2. Fresh read-only export of `rc_premier_prod`
    (`npm run ops:export-properties --workspace backend -- --target development --database rc_premier_prod`).
 3. Provision the admin staff identity (`auth:provision-admin`) so audit rows are attributed.
-4. In the admin UI, update each draft's specifications/location, remove the four excluded
+4. In the admin UI, update each draft's specifications/location, remove the five excluded
    photos, then publish all six.
 5. Verify `GET /properties` returns exactly six published; every gallery image loads.
 6. Retire `21` and `60` with `ops:retire-obsolete-listings` (dry run, then `--apply` with the
    fresh backup). It archives, never deletes; the inquiry on `21` stays intact.
 7. Confirm `/properties`, detail pages, `sitemap.xml`, canonical URLs and the inquiry in admin.
-8. Production Vercel/Render settings to confirm: `NEXT_PUBLIC_MEDIA_ORIGIN` and backend
+8. Production single-app Vercel settings to confirm: `NEXT_PUBLIC_MEDIA_ORIGIN` and backend
    `MEDIA_PUBLIC_ORIGIN` both `https://res.cloudinary.com`; the photography derivatives ship in
    `frontend/public/media/properties/photography-v1/` with the frontend build.
 
@@ -244,13 +176,8 @@ deleted.
 
 ## Remaining launch blockers
 
-1. **Dependency security (blocks CI and production).** `npm audit --omit=dev --audit-level=high`
-   reports 7 vulnerabilities (2 critical, 3 high, 2 moderate). The critical `next@16.3.3` advisories
-   (image-optimization RCE/SSRF, cache poisoning) affect the Vercel frontend; the fix needs `next` 16.4.5,
-   because the version is pinned exactly in `frontend/package.json`. Verified not yet applied: every local
-   and remote branch still pins `next` 16.3.3. `express` transitives (`body-parser`,
-   `proxy-addr`, `qs`), `ip-address`, `sharp` and `source-map-js` have in-range fixes through
-   `npm audit fix`. Apply, rebuild and re-run the suites, preferably as its own reviewed change.
+1. Hosted migration acceptance: Phase 5 staging, manual Auth0 MFA/session/CSRF/logout,
+   measured proxy depth, Vercel Pro, Atlas network access and Wilson's Firewall configuration.
 2. Missing production configuration: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_API_URL`, the three map variables,
    the production Auth0 application and secrets, and the production `MONGODB_URI` naming `rc_premier_prod`.
 3. Staff identity not provisioned (needs the Auth0 subject), so changes are unattributed.

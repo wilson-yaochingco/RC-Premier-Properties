@@ -242,6 +242,7 @@ export type PropertyMediaSource = (typeof PROPERTY_MEDIA_SOURCES)[number];
 /** Deliberately bounded so a property document and admin form stay practical. */
 export const MAX_PROPERTY_IMAGES = 24;
 export const MAX_PROPERTY_IMAGE_BYTES = 12 * 1024 * 1024;
+export const UPLOAD_REQUEST_TARGET_BYTES = 4 * 1024 * 1024;
 
 export interface UploadPropertyImageRequest {
   expectedVersion: number;

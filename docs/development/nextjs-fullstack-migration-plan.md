@@ -1,6 +1,6 @@
 # Next.js full-stack migration plan
 
-Status: **Phases 0-3 implemented; Phase 2 automated gate passed; owner Auth0 verification pending. Phase 4 not started.** Implementer: Codex, Phases 0–4.
+Status: **Phases 0-4 implemented; automated milestone recorded with known radius failures and isolated flake reruns; both production adapter proofs passed; owner Auth0 and image-quality acceptance pending.** Implementer: Codex, Phases 0–4.
 Phases 5–7 are later deployment activities handled with Wilson. This document is self-contained for
 Claude Code and Codex. Read `AGENTS.md` first; its rules apply, especially: ESM `.js` import suffixes in
 the backend, API shapes only from `@rc/shared`, no `process.env` reads outside the env modules, and
@@ -404,6 +404,66 @@ into the one project.
 
 ## 9. Blockers
 
+### Phase 4 implementation record (2026-11-09)
+
+- Added shared `UPLOAD_REQUEST_TARGET_BYTES` (4 MiB); the server contract remains 12 MiB.
+  The admin service prepares only larger files using oriented `createImageBitmap`, a
+  2560-pixel longest edge and WebP quality 0.9 down to 0.5. Files at or below the target
+  retain their original File object and bytes. Failure is displayed by the existing UI
+  before any upload request is created; the bitmap is always released after encoding.
+- The upload route, `inspectPropertyImage`, Cloudinary storage and approved photography
+  are unchanged. No dependency, filesystem storage or direct signed upload was added.
+  Verified Vercel's 4.5 MB body limit on 2026-11-09 against
+  [Function limits](https://vercel.com/docs/functions/limitations#request-body-size).
+- Unit coverage checks passthrough, orientation/resize, quality stepping and failures.
+  The new browser test uses a large EXIF-rotated JPEG and the fixture API's real Express
+  upload route and unchanged image inspection, with isolated auth/service doubles.
+  Output validated as oriented 1920 x 2560 WebP under 4 MiB; an impossible encode
+  displayed its error without issuing another request.
+- Updated launch readiness, the placeholder-only environment template and beta topology
+  note for one Vercel app. Wilson measures and sets proxy trust before any deployment
+  and configures Firewall rules in Phase 5. Phases 5-7 have not started; owner image
+  quality acceptance, real Auth0 checks and hosted Cloudinary remain manual gates.
+- Validation commands (all from the repository root):
+  - `npm run build --workspace shared`: passed.
+  - `npx vitest run frontend/test/prepare-property-image.test.ts backend/test/property-media-upload.test.ts`:
+    12 passed across 2 files, 0 failed (4 new helper tests; existing validation/storage tests unchanged).
+  - `npm run typecheck` and `npm run lint`: passed after implementation.
+  - `npm run test:e2e -- e2e/admin-image-upload.spec.ts --workers=1`: 1 passed, 0 failed;
+    `npx playwright test e2e/admin-image-upload.spec.ts --workers=1`: final expanded test
+    (including impossible encoding/no request) also 1 passed, 0 failed.
+  - `npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e`:
+    format, lint, typecheck, all 553 unit/API tests (56 files) and build passed;
+    the chain exited 1 at the browser suite: 237 passed, 2 skipped, 5 failed (244 total).
+    The two known admin-radius failures remain untouched at `admin-inquiries.spec.ts:127`
+    and `admin-operations.spec.ts:287`.
+  - `npx playwright test e2e/client-polish.spec.ts:86 e2e/home-hero.spec.ts:111 e2e/properties-catalog.spec.ts:511 --workers=1`:
+    all 3 passed, 0 failed (16.3s). Header and hero failures are previously recorded flakes.
+    Newly observed catalog flake: the second `.fill()` appended to the prior formatted budget
+    (`875000021000000` instead of `21,000,000`) in the four-worker run; it passed unchanged
+    in the isolated rerun. This remains a flaky-test observation, not a repaired defect.
+  - `npm audit --omit=dev --audit-level=high`: exit 0, zero vulnerabilities.
+  - `npm run test:adapter -- unreachable` and `npm run test:adapter -- reachable`: both exit 0.
+    Unreachable: health 200, ready 503, other routes retain the fail-fast production 503 envelope.
+    Reachable TLS in-memory MongoDB: health/ready 200, public reads/inquiry persistence,
+    admin 401, unknown-route 404, malformed JSON 400, CSRF/origin 403 and matching
+    Express/adapter security headers. No production services or credentials were used.
+  - Final `npm run format:check` and `git diff --check`: passed after the documentation record.
+- Changed files: `shared/src/api.ts`; admin `prepare-property-image.ts`, `admin.service.ts`,
+  `AdminPropertyMediaManager.tsx`; `frontend/test/prepare-property-image.test.ts`;
+  `e2e/admin-image-upload.spec.ts`, `e2e/fixture-api.mjs`; and the four development docs
+  `nextjs-fullstack-migration-plan.md`, `launch-readiness.md`, `vercel-production.env.example`,
+  `vercel-beta.md`. The fixture API gains optional dependency injection so this browser
+  test reaches the real route/inspection with in-memory doubles; its defaults are unchanged.
+- Plan deviations: none in Phase 4 implementation. The browser run's new catalog flake and
+  isolated rerun are disclosed above; the existing Phase 2 unreachable-DB behavior is retained.
+  All proof-owned listeners and temporary MongoDB/TLS resources were cleaned up; the owner's
+  3000/5000 listeners remain running. The six pre-existing CRLF-only modifications are not staged.
+  No push, PR, merge, deployment, production write or Phase 5-7 implementation occurred.
+- Local raw logs (Git-ignored): `node_modules/.cache/phase4-milestone.log`,
+  `phase4-upload-e2e.log`, `phase4-upload-e2e-final.log`, `phase4-e2e-rerun.log`,
+  `phase4-audit.log`, `phase4-adapter-unreachable.log`, `phase4-adapter-reachable.log`.
+
 ### Implementation record (2026-11-08)
 
 - Phase 3: production API, login-start and inquiry limiters now share the MongoDB
@@ -429,7 +489,7 @@ into the one project.
   passed. Full browser suite: 237 passed, 2 skipped, 4 failed. The header and location scroll-fill
   failures passed together on an isolated one-worker rerun (2 passed); the two known admin-radius
   failures remain unchanged. Production audit: zero vulnerabilities. Auth0 MFA login, real session,
-  successful CSRF-protected write and logout require owner verification; Phase 3 is recorded above and Phase 4 has not started.
+  successful CSRF-protected write and logout require owner verification; Phase 3 is recorded above and Phase 4 validation is recorded separately.
 
 - Phase 1: added the backend serverless export with a reused Express app, shared/retryable MongoDB connection and Vercel pool attachment. Health bypasses connection startup; other requests fail with the existing 503 envelope while MongoDB is unavailable. Next API helpers are removed before Express runs. The Render entry is unchanged; the Next adapter is not implemented yet.
 - Phase 1 checks: 372 backend tests across 24 files passed (including 4 new serverless tests); backend build emitted `dist/serverless.js`; workspace typecheck, lint and targeted formatting passed. Production dependency audit reports zero vulnerabilities. Full browser/milestone checks remain for the Phase 2 gate; the two known admin-radius failures are untouched.
