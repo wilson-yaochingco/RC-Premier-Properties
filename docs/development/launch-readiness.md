@@ -63,7 +63,7 @@ Kept, deliberately:
 - `.impeccable/` and `frontend/.impeccable/`: ignored design-tool caches; harmless, not in the PR.
 - Preview fixtures (`e2e/preview-api.mts`, `e2e/fixture-api.mjs`), the import, export and retirement
   scripts, and the photography utilities (`scripts/review-property-photography.mts`,
-  `scripts/prepare-property-photo-trials.py`): needed for the six-listing catalog and 62-photo pipeline.
+  `scripts/prepare-property-photo-trials.py`): needed for the six-listing catalog and 61-photo pipeline.
 
 Findings: no credentials are tracked or present in Git history (only `.env.example` templates are
 tracked). Secret-pattern hits in tests and docs are placeholders. Two new files are required by the

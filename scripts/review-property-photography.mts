@@ -52,8 +52,10 @@ interface Decision {
 const decisions: Decision[] = JSON.parse(
   await readFile(`${reviewDirectory}/decisions.json`, "utf8"),
 );
-assert.equal(decisions.length, 22);
-assert.equal(new Set(decisions.map((item) => item.token)).size, 22);
+assert.equal(decisions.length, 23);
+assert.equal(new Set(decisions.map((item) => item.token)).size, 23);
+const reassessedDecisions = decisions.filter((item) => item.sourceSha256);
+assert.equal(reassessedDecisions.length, 22);
 const heldTokens = new Set(
   decisions
     .filter((item) => item.decision === "review" || item.decision === "exclude")
@@ -79,7 +81,7 @@ async function download(url: string) {
 }
 
 const rows: Array<Decision & { before: Buffer; after: Buffer; delivery: string }> = [];
-for (const item of decisions) {
+for (const item of reassessedDecisions) {
   const listing = RC_PREMIER_LISTINGS.find(
     (listing) => listing.content?.propertyId === item.propertyId,
   );
