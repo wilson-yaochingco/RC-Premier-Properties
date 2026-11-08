@@ -386,7 +386,7 @@ test("all inquiry filters, pagination and current-page export retain their reque
   );
 });
 
-test("staff can operate the inquiry queue without exposing session data", async ({
+test("staff can operate the inquiry queue without exposing session data @smoke", async ({
   page,
 }) => {
   await mockSession(page);

@@ -1,0 +1,26 @@
+name: Full browser regression
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Full Playwright suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Tests that record video need Playwright's ffmpeg; the browser itself is system Chrome.
+      - run: npx playwright install ffmpeg
+
+      - name: Browser acceptance tests
+        run: npm run test:e2e

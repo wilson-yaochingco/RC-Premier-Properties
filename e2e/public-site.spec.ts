@@ -12,7 +12,7 @@ function trackBrowserErrors(page: Page): string[] {
   return errors;
 }
 
-test("home renders fixture inventory and primary navigation works", async ({
+test("home renders fixture inventory and primary navigation works @smoke", async ({
   page,
 }) => {
   const browserErrors = trackBrowserErrors(page);
@@ -142,7 +142,7 @@ test("homepage sections keep their routes and guided actions", async ({ page }) 
   ).toBeVisible();
 });
 
-test("property filters stay in the URL, affect results, and expose an empty state", async ({
+test("property filters stay in the URL, affect results, and expose an empty state @smoke", async ({
   page,
 }) => {
   const browserErrors = trackBrowserErrors(page);
@@ -305,7 +305,7 @@ test("location discovery and detail use only inventory-backed facets", async ({
   expect(browserErrors).toEqual([]);
 });
 
-test("property detail renders public data and carries its ID into inquiry links", async ({
+test("property detail renders public data and carries its ID into inquiry links @smoke", async ({
   page,
   context,
 }) => {
@@ -601,7 +601,7 @@ test("property tours use a native mobile scroll-snap row", async ({ page }) => {
   await expect(page.getByRole("button", { name: /property tours$/ })).toHaveCount(0);
 });
 
-test("malformed, rental, and missing property slugs render the public not-found state", async ({
+test("malformed, rental, and missing property slugs render the public not-found state @smoke", async ({
   page,
 }) => {
   for (const path of [
@@ -619,7 +619,7 @@ test("malformed, rental, and missing property slugs render the public not-found 
   }
 });
 
-test("contact form sends its typed payload and displays API success feedback", async ({
+test("contact form sends its typed payload and displays API success feedback @smoke", async ({
   page,
 }) => {
   const browserErrors = trackBrowserErrors(page);
@@ -859,7 +859,7 @@ test("Part 3 editorial pages keep factual RC Premier content and current channel
   }
 });
 
-test("server validation is focused, linked, and preserved beside each inquiry field", async ({
+test("server validation is focused, linked, and preserved beside each inquiry field @smoke", async ({
   page,
 }) => {
   await page.route(`**${API_PREFIX}/inquiries`, (route) => {
@@ -926,7 +926,7 @@ test("an unrelated admin-prefixed 404 retains the public chrome", async ({ page 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("Book a Viewing schedules one structured unconfirmed request inline", async ({
+test("Book a Viewing schedules one structured unconfirmed request inline @smoke", async ({
   page,
 }) => {
   await page.goto("/book-viewing?propertyId=RCPP-E2E-001");

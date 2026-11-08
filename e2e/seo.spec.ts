@@ -4,7 +4,9 @@ const SITE_ORIGIN = "http://127.0.0.1:3100";
 const FACEBOOK_URL =
   "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/";
 
-test("optimized frontend sends the reviewed provider-aware CSP", async ({ page }) => {
+test("optimized frontend sends the reviewed provider-aware CSP @smoke", async ({
+  page,
+}) => {
   const response = await page.goto("/");
   const policy = response?.headers()["content-security-policy"] ?? "";
 
@@ -131,7 +133,7 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
   expect(propertyJsonLd).not.toContain("privateAddress");
 });
 
-test("robots, noindex headers, sitemap, and property 404s preserve public boundaries", async ({
+test("robots, noindex headers, sitemap, and property 404s preserve public boundaries @smoke", async ({
   page,
   request,
 }) => {

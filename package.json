@@ -25,6 +25,7 @@
     "test:watch": "vitest",
     "pretest:e2e": "node e2e/build.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "npm run test:e2e -- --grep @smoke --retries=0",
     "smoke:deployment": "node scripts/deployment-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

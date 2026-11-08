@@ -119,7 +119,7 @@ for (const width of [320, 375, 768, 1024, 1440]) {
   });
 }
 
-test("phone and consent remain required in the browser and submission handler", async ({
+test("phone and consent remain required in the browser and submission handler @smoke", async ({
   page,
 }) => {
   await page.goto("/contact");
