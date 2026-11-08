@@ -28,13 +28,15 @@
     "smoke:deployment": "node scripts/deployment-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview:api": "npm run build --workspace shared && npm run build --workspace backend && tsx e2e/preview-api.mts"
+    "preview:api": "npm run build --workspace shared && npm run build --workspace backend && tsx e2e/preview-api.mts",
+    "test:adapter": "node e2e/adapter-proof.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@types/supertest": "^7.2.1",
     "prettier": "^3.4.2",
     "supertest": "^7.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "mongodb-memory-server": "^10.4.1"
   }
 }
