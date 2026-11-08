@@ -18,17 +18,17 @@ vi.mock("../src/app.js", async (importOriginal) => ({
   createApp: vi.fn(),
 }));
 
-const { createApp: realCreateApp } =
-  await vi.importActual<typeof import("../src/app.js")>("../src/app.js");
-
 describe("serverless API entry", () => {
+  let realCreateApp: typeof createApp;
   const servers: Server[] = [];
   const search = vi.fn<PropertyService["search"]>();
   const client = {} as ReturnType<typeof mongoose.connection.getClient>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    ({ createApp: realCreateApp } =
+      await vi.importActual<typeof import("../src/app.js")>("../src/app.js"));
     vi.mocked(connectDatabase).mockResolvedValue();
     vi.spyOn(mongoose.connection, "getClient").mockReturnValue(client);
     search.mockImplementation(async (filters) => ({
@@ -37,7 +37,7 @@ describe("serverless API entry", () => {
       appliedFilters: filters,
       sort: filters.sort,
     }));
-    vi.mocked(createApp).mockImplementation(() =>
+    vi.mocked(createApp).mockImplementation((dependencies = {}) =>
       realCreateApp({
         health: { databaseStatus: () => ({ status: "disconnected", readyState: 0 }) },
         propertyService: {
@@ -48,6 +48,7 @@ describe("serverless API entry", () => {
           getFacets: vi.fn(),
         },
         applicationRateLimit: (_req, _res, next) => next(),
+        ...dependencies,
       }),
     );
   });
@@ -113,8 +114,22 @@ describe("serverless API entry", () => {
       .options(`${API_PREFIX}/properties`)
       .set("Origin", "http://localhost:3000")
       .set("Access-Control-Request-Method", "GET");
-    expect(preflight.status).toBe(503);
-    expect(preflight.body).toEqual(response.body);
+    const normalPreflight = await request(realCreateApp())
+      .options(`${API_PREFIX}/properties`)
+      .set("Origin", "http://localhost:3000")
+      .set("Access-Control-Request-Method", "GET");
+    expect(preflight.status).toBe(204);
+    expect(preflight.status).toBe(normalPreflight.status);
+    expect(preflight.text).toBe(normalPreflight.text);
+    for (const header of [
+      "access-control-allow-origin",
+      "access-control-allow-credentials",
+      "access-control-allow-methods",
+      "vary",
+      "x-content-type-options",
+    ]) {
+      expect(preflight.headers[header]).toBe(normalPreflight.headers[header]);
+    }
     expect((await request(api).get(`${API_PREFIX}/properties`)).status).toBe(200);
     expect(connectDatabase).toHaveBeenCalledTimes(3);
     expect(attachDatabasePool).toHaveBeenCalledOnce();

@@ -1,16 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import express, { type Express } from "express";
-import cors from "cors";
+import type { Express } from "express";
 import mongoose from "mongoose";
 import { attachDatabasePool } from "@vercel/functions";
 import { API_PREFIX } from "@rc/shared";
 import { createApp } from "./app.js";
 import { connectDatabase } from "./config/database.js";
-import { env } from "./config/env.js";
-import { errorHandler, HttpError } from "./middleware/errorHandler.js";
-import { requestContext } from "./middleware/requestContext.js";
-import { requestLogging } from "./middleware/requestLogging.js";
-import { createSecurityHeaders } from "./middleware/securityHeaders.js";
+import { HttpError } from "./middleware/errorHandler.js";
 
 let app: Express | undefined;
 let unavailableApp: Express | undefined;
@@ -55,26 +50,10 @@ export async function handleApiRequest(
     try {
       await ensureDatabase();
     } catch {
-      // Keep dependency failures on the normal security, logging and error stack.
-      if (!unavailableApp) {
-        unavailableApp = express();
-        unavailableApp.use(...createSecurityHeaders(env.IS_PRODUCTION));
-        unavailableApp.use(requestContext);
-        unavailableApp.use(requestLogging);
-        unavailableApp.use(
-          cors({
-            origin: (origin, callback) => {
-              callback(null, !origin || origin === env.CORS_ORIGIN);
-            },
-            credentials: true,
-            preflightContinue: true,
-          }),
-        );
-        unavailableApp.use(() => {
-          throw new HttpError(503, "Database service is unavailable.");
-        });
-        unavailableApp.use(errorHandler);
-      }
+      unavailableApp ??= createApp({
+        applicationRateLimit: (_req, _res, next) =>
+          next(new HttpError(503, "Database service is unavailable.")),
+      });
       unavailableApp(req, res);
       return;
     }
