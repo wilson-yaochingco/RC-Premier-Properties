@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import viewingImage from "@/assets/site/book-viewing.png";
 import frame from "@/components/layout/editorial-page.module.css";
-import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
 import { ViewingScheduler } from "@/features/inquiries/ViewingScheduler";
 import {
   loadViewingOptions,
@@ -13,9 +12,9 @@ import styles from "./book-viewing.module.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Request a Property Tour",
+  title: "Book a Property Viewing in Pampanga",
   description:
-    "Request a property tour with RC Premier Properties in Pampanga. Requested schedules require staff confirmation.",
+    "Choose a published property in Pampanga and request a viewing date and time. RC Premier Properties staff confirm every request before the visit.",
   canonicalPath: "/book-viewing",
   imagePath: viewingImage.src,
 });
@@ -44,21 +43,27 @@ export default async function BookViewingPage({
     <main id="main-content" tabIndex={-1} className={`${frame.page} ${styles.page}`}>
       <section className={styles.booking} aria-labelledby="book-viewing-heading">
         <header className={styles.intro}>
-          <p className={styles.eyebrow}>Plan your visit</p>
-          <h1 id="book-viewing-heading" className={styles.headline}>
-            See the property in person.
+          <p className={styles.eyebrow} data-enter>
+            Plan your visit
+          </p>
+          <h1
+            id="book-viewing-heading"
+            className={styles.headline}
+            data-enter="heading"
+            data-enter-delay="1"
+          >
+            See the property <em>in person</em>
           </h1>
-          <p className={styles.lede}>
-            Choose a preferred date and time. RC Premier will follow up to confirm the
-            schedule.
+          <p className={styles.lede} data-enter data-enter-delay="2">
+            Choose a property, date and preferred time. Our team will confirm your
+            request.
           </p>
         </header>
 
-        <div className={styles.stage}>
+        <div className={styles.stage} data-enter data-enter-delay="3">
           <ViewingScheduler context={context} {...(options ? { options } : {})} />
         </div>
       </section>
-      <DevHomepagePreview />
     </main>
   );
 }

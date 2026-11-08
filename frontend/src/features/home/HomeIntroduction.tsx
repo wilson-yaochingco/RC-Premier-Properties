@@ -5,16 +5,17 @@ import { useEffect, useRef, useState } from "react";
 import exterior from "@/assets/site/footer.png";
 import interior from "@/assets/site/properties.png";
 import courtyard from "@/assets/site/home-hero-2.png";
+import { plain } from "@/lib/accent";
 import styles from "./introduction.module.css";
 import { ScrollFillText } from "./ScrollFillText";
 import { useScrollFill } from "./use-scroll-fill";
 
 const LINES = [
-  "We help buyers and sellers across Pampanga",
-  "find the right property, understand its value,",
-  "and move forward with confidence.",
+  "We help buyers and sellers across *Pampanga*",
+  "find the right *property*, understand its value,",
+  "and move forward with *confidence*.",
 ];
-const HEADING = LINES.join(" ");
+const HEADING = plain(LINES.join(" "));
 const PHOTOGRAPHS = [
   {
     src: exterior,
@@ -88,10 +89,10 @@ export function HomeIntroduction() {
             decide with confidence.
           </p>
         </div>
-        <div className={styles.figure}>
+        <div className={styles.figure} data-motion="photos">
           {PHOTOGRAPHS.map((photo) => (
             <figure key={photo.title} className={styles.item}>
-              <div className={styles.frame}>
+              <div className={styles.frame} data-motion-frame>
                 <Image
                   src={photo.src}
                   alt={photo.alt}

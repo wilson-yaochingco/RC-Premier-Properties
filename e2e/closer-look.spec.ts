@@ -41,6 +41,8 @@ async function hideTab(page: Page, hidden: boolean): Promise<void> {
 
 async function openPanel(page: Page, width = 1440): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
+  // The first-visit brand intro holds the page; these tests are about the panel timer.
+  await page.addInitScript(() => sessionStorage.setItem("rc-intro-seen", "1"));
   await page.goto("/");
   await panel(page).scrollIntoViewIfNeeded();
   await page.mouse.move(2, 2);
@@ -311,6 +313,7 @@ test.describe("touch devices", () => {
         isMobile: true,
       });
       const page = await context.newPage();
+      await page.addInitScript(() => sessionStorage.setItem("rc-intro-seen", "1"));
       await page.goto("/");
       await panel(page).scrollIntoViewIfNeeded();
       await playedAtLeast(page, 800);

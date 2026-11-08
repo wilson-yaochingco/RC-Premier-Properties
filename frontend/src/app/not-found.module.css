@@ -1,0 +1,98 @@
+.page {
+  --ink: var(--color-brand-deep);
+  font-family: var(--font-general-sans), sans-serif;
+  width: min(100% - (2 * var(--container-gutter)), var(--container-max));
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.8fr);
+  align-items: center;
+  gap: clamp(2rem, 7vw, 7rem);
+  margin-inline: auto;
+  padding-block: calc(var(--header-height) + clamp(1.5rem, 3vw, 3rem))
+    clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.content {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.headline {
+  max-width: 9em;
+  margin-top: 1.5rem;
+  color: var(--ink);
+  font-size: clamp(2.75rem, 6vw, 5.75rem);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 26rem;
+  margin-top: clamp(1.5rem, 2.5vw, 2.25rem);
+  color: var(--text-muted);
+  font-size: clamp(1rem, 1.25vw, 1.125rem);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: clamp(1.75rem, 3vw, 2.75rem);
+}
+
+.figure {
+  position: relative;
+  width: 100%;
+  max-height: calc(100dvh - var(--header-height) - 7rem);
+  aspect-ratio: 4 / 5;
+  justify-self: end;
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+}
+
+.figure img {
+  object-fit: cover;
+  object-position: 50% 30%;
+}
+
+/* A quiet numeral set into the photograph, not a banner. */
+.numeral {
+  position: absolute;
+  right: clamp(1rem, 2vw, 1.75rem);
+  bottom: clamp(0.5rem, 1.5vw, 1.25rem);
+  color: rgb(255 255 255 / 92%);
+  font-size: clamp(3.5rem, 7vw, 6.5rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+@media (max-width: 899px) {
+  .page {
+    align-content: center;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.25rem;
+    padding-block: calc(var(--header-height) + 2rem) clamp(3rem, 10vw, 4.5rem);
+  }
+
+  .figure {
+    max-height: none;
+    aspect-ratio: 4 / 3;
+    justify-self: stretch;
+  }
+
+  .figure img {
+    object-position: 50% 45%;
+  }
+}

@@ -143,3 +143,10 @@ describe("property query URLs", () => {
     expect(() => propertyApiSearchParams({}, 49)).toThrow();
   });
 });
+
+it("retains exact bedroom matching across API and pagination URLs", () => {
+  const values = { bedrooms: "2", bedroomsMatch: "exact" };
+  expect(propertyApiSearchParams(values).get("bedroomsMatch")).toBe("exact");
+  expect(paginationHref(values, 2)).toContain("bedroomsMatch=exact");
+  expect(propertyApiSearchParams({ bedrooms: "2" }).has("bedroomsMatch")).toBe(false);
+});

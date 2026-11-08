@@ -19,18 +19,30 @@ export function ExplorePampangaSection() {
           locations={LOCATIONS}
           intro={
             <>
-              <h2 id="explore-pampanga-heading" className={styles.heading}>
-                <span>Explore our</span> <span>communities.</span>
+              <h2
+                id="explore-pampanga-heading"
+                className={styles.heading}
+                data-motion-step="heading"
+              >
+                <span>Explore our</span>{" "}
+                <span>
+                  <em>communities</em>.
+                </span>
               </h2>
             </>
           }
           outro={
             <>
-              <p className={styles.copy}>
+              <p className={styles.copy} data-motion-step="fade" data-motion-at="0.95">
                 From familiar city streets to quieter residential communities, explore
                 locations across Pampanga and find a place that suits your next move.
               </p>
-              <Link href="/locations" className={`${styles.button} cta cta--wrap`}>
+              <Link
+                href="/locations"
+                className={`${styles.button} cta cta--wrap`}
+                data-motion-step="fade"
+                data-motion-at="1.1"
+              >
                 <RollLabel>Explore all locations</RollLabel>
                 <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
                   <path

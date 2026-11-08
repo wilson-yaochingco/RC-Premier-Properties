@@ -34,7 +34,7 @@
   font-family: var(--font-editorial);
   font-size: clamp(1.75rem, 2.15vw, 2.5rem);
   font-weight: 400;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.034em;
   line-height: 0.98;
 }
 
@@ -321,7 +321,7 @@
   font-family: var(--font-editorial);
   font-size: clamp(2rem, 3.25vw, 3.5rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 

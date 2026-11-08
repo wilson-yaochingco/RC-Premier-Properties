@@ -33,9 +33,9 @@
   margin-top: 1.5rem;
   color: var(--ink);
   font-size: clamp(2.6rem, 5.6vw, 5.25rem);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 0.98;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.022em;
   text-wrap: balance;
 }
 
@@ -129,16 +129,13 @@
   grid-template-rows: auto 1fr;
   overflow: hidden;
   border: 1px solid var(--rule);
-  border-radius: 22px 0 22px 0;
+  border-radius: var(--radius-editorial);
   /* The stone rail is painted by the card so it spans both left-hand rows. */
   background: linear-gradient(
     90deg,
     #fbfaf7 var(--rail),
     var(--color-surface) var(--rail)
   );
-  box-shadow:
-    0 1px 0 rgb(32 38 48 / 4%),
-    0 28px 60px -36px rgb(32 38 48 / 28%);
   color: var(--ink);
 }
 
@@ -147,7 +144,8 @@
   display: grid;
   align-content: start;
   gap: 1.1rem;
-  padding: clamp(1.75rem, 3vw, 2.75rem);
+  padding: clamp(1.75rem, 3.6vw, 3.25rem) clamp(1.75rem, 3vw, 2.75rem)
+    clamp(1.75rem, 3vw, 2.75rem);
 }
 
 .railEyebrow {
@@ -162,10 +160,12 @@
 }
 
 .railTitle {
-  font-size: clamp(1.75rem, 2.6vw, 2.375rem);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.035em;
+  margin-top: 0.15rem;
+  font-size: clamp(1.875rem, 2.5vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.026em;
+  text-wrap: balance;
 }
 
 .railCopy {
@@ -175,7 +175,7 @@
 }
 
 .helpsLabel {
-  margin-top: 0.75rem;
+  margin-top: 1.25rem;
   color: var(--color-text-muted);
   font-size: 0.6875rem;
   font-weight: 600;
@@ -185,12 +185,12 @@
 
 .helps {
   display: grid;
-  margin-top: -0.25rem;
+  margin-top: -0.4rem;
   border-top: 1px solid var(--rule);
 }
 
 .helps li {
-  padding-block: 1rem;
+  padding-block: 0.95rem;
   border-bottom: 1px solid var(--rule);
   font-size: 1rem;
   line-height: 1.45;
@@ -299,7 +299,7 @@
 
   .card {
     margin-inline: calc(var(--gutter) * -0.35);
-    border-radius: 18px 0 18px 0;
+    border-radius: 12px 0 12px 0;
   }
 
   .rail {

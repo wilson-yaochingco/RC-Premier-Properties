@@ -39,8 +39,19 @@ metadata.
 
 React request memoization shares the published-property read between metadata and page
 rendering. Invalid/nonpublic detail requests render the existing framework not-found
-surface with `noindex` and no stale canonical or property metadata; the public API lookup
-itself returns 404.
+surface with `noindex` and no stale canonical or property metadata, and answer with a real
+HTTP 404; the public API lookup itself also returns 404.
+
+A streamed response commits its 200 status as soon as a Suspense fallback is sent, after
+which `notFound()` can only add `noindex`. Property and location detail routes therefore
+have no `loading.tsx`, and nothing above them suspends: `/properties` keeps its catalog
+skeleton inside the `(catalog)` route group so it does not wrap `/properties/[slug]`, and
+`/locations` has no route-level skeleton because only its featured-properties section
+waits on data, behind its own Suspense boundary. The record lookup then runs before the
+response starts, without an extra request (rejected alternatives: a `proxy` existence check
+duplicates every lookup, and a checking layout would fetch on every viewport prefetch).
+Click feedback on links into detail routes comes from `RoutePending` (`useLinkStatus`)
+instead of a skeleton.
 
 ## Search and location policy
 
@@ -53,10 +64,11 @@ details.
 Location discovery is the only filter exception. A location state is indexable only when
 the public sales-only facets contain exactly one matching city/location with a positive
 published count and the URL has no substantive filter beyond location. Default
-`purpose=sale`, `sort=newest`, and `page=1` values may be normalized away. The canonical
-query uses the API's inventory-derived `City, Province` label. Its title, description,
-heading, and count are derived from that facet; unsupported or ambiguous locations are
-`noindex` and canonicalize to `/properties`.
+`purpose=sale`, `sort=newest`, and `page=1` values may be normalized away. Because
+`/locations/[location]` lists the same inventory with more context, a valid location state
+canonicalizes to that guide rather than competing with it, and is not listed in the
+sitemap. Its title and description are derived from the facet; unsupported or ambiguous
+locations are `noindex` and canonicalize to `/properties`.
 
 The location guide exposes a stable lowercase slug only after resolving it against the
 same bounded, positive-count facets. Its canonical path is `/locations/[location]`;
@@ -88,9 +100,13 @@ the approved name, email, telephone, Pampanga service area, official logo, canon
 origin, and exact supplied Facebook Page. It intentionally omits address, coordinates,
 hours, founder, awards, ratings, reviews, and `SearchAction`.
 
-Published property details emit `Product` with the public title, Property ID, property
-type, short description, public URL, price/currency, supported availability, optional
-safe production images, selected public specifications, and city/province service area.
+Published property details emit a `RealEstateListing` page (posted/modified dates,
+primary image) whose `about` is the property itself, typed `SingleFamilyResidence` (house
+and lot), `House` (townhouse), `Apartment` (condominium) or `Place` (lots and other
+types), with its Property ID, city/province/country address, safe production images,
+bedrooms, bathrooms and floor size where published, and lot area. The asking price is an
+`Offer` (sell) on the listing, offered by the site `Organization`. `Product` was replaced
+because a house is not a shippable product; no Google rich result is claimed for either.
 Availability maps to `InStock`, `LimitedAvailability`, or `SoldOut` for Available,
 Reserved, or Sold. Unknown fields are omitted. A matching `BreadcrumbList` represents
 the real Home -> Properties -> property hierarchy. Exact/private addresses, barangays,
@@ -101,6 +117,19 @@ The three supplied YouTube Shorts retain crawlable external links, useful player
 semantic section context, and the Level 7 click-to-load privacy facade. `VideoObject` is
 intentionally omitted because verified names, thumbnails, upload dates, and durations
 were not supplied in repository-owned metadata; those values are not fabricated.
+
+Property titles and descriptions are composed from published fields only: title, type,
+sale status, city, province, bedrooms, bathrooms, areas and price, followed by the short
+description, clipped at a word boundary to 160 characters.
+
+## AI assistants and llms.txt
+
+`/llms.txt` (llmstxt.org format) summarises the business, the request-only nature of
+viewings, the main pages, inventory-backed location guides and the policy pages. It reuses
+`SITE_DESCRIPTION`, the approved contact details and the public facets, revalidates hourly,
+and returns 404 when there is no public origin or on staging. It is guidance for AI tools,
+not a ranking signal for Google, and robots.txt is unchanged: AI search crawlers fall under
+the same `User-agent: *` rules as everyone else.
 
 ## Robots, noindex, and sitemap
 
@@ -118,7 +147,7 @@ slugs cannot render indexable property content.
 `sitemap.xml` is a bounded sitemap index. One 48-record discovery read determines stable
 `/sitemaps/{number}.xml` URLs. Each shard reads at most 20 API pages (960 summaries) in
 batches of four; only shard zero includes canonical static routes, positive-count
-location query URLs, canonical location-guide routes, and the `/locations` index. A
+canonical location-guide routes, the `/locations` index and the three legal pages. A
 failed later shard returns a retryable 503 for that shard without
 invalidating other shard responses. Property `publishedAt` is the only listing timestamp
 used for `lastModified`; invalid timestamps are omitted. Slugs are validated and

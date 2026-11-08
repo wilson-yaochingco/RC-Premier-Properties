@@ -520,6 +520,8 @@ export interface PropertySearchFilters {
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;
+  /** Defaults to minimum-count matching for existing API consumers. */
+  bedroomsMatch?: "exact";
   bathrooms?: number;
   minLotArea?: number;
   minFloorArea?: number;

@@ -12,22 +12,16 @@ import { MobileNavigation } from "./MobileNavigation";
 import heroStyles from "@/features/home/hero.module.css";
 
 const navigation = [
+  { href: "/about", label: "About" },
   { href: "/properties", label: "Properties" },
   { href: "/locations", label: "Locations" },
   { href: "/sell", label: "Sell" },
-  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
 const NEAR_TOP_PX = 40;
-/** Editorial routes that share the redesigned header; detail routes keep the classic bar. */
-const HEROLESS_PATHS = new Set([
-  "/properties",
-  "/locations",
-  "/sell",
-  "/contact",
-  "/book-viewing",
-]);
+/** Only location guides keep the classic bar; every other route, including property detail pages and unknown URLs that land on the 404, uses the redesigned header. */
+const CLASSIC_HEADER_PATH = /^\/locations\/[^/]+/;
 const DOWNWARD_HIDE_DISTANCE_PX = 48;
 const UPWARD_SHOW_DISTANCE_PX = 24;
 
@@ -49,22 +43,30 @@ export function SiteHeader() {
   const heroGoneRef = useRef(false);
   const isHome = pathname === "/";
   const isAbout = pathname === "/about";
+  const isProperties = pathname === "/properties";
+  const isLocations = pathname === "/locations";
+  const isSell = pathname === "/sell";
   // Pages without a hero use the homepage header in its sticky state from the first paint.
-  const cinematic = isHome || isAbout;
-  const heroless = HEROLESS_PATHS.has(pathname);
+  const cinematic = isHome || isAbout || isProperties || isLocations || isSell;
+  const heroless = !cinematic && !CLASSIC_HEADER_PATH.test(pathname);
   const usesHomeHeader = cinematic || heroless;
-  const eligible = isAbout || heroless || heroGone;
+  const eligible = isAbout || isSell || heroless || heroGone;
   const sticky = heroless || stickyMounted;
 
   useEffect(() => {
     if (!cinematic) return;
-    const hero = document.querySelector(
-      isAbout ? "section[data-about-hero]" : "[data-home-hero]",
-    );
-    if (!hero) return;
+    // Home, About and Locations layer the next section over a sticky hero; the sentinel
+    // after it marks the moment the hero is fully covered.
+    const rebinds = isProperties || isLocations;
+    const selector = isProperties
+      ? "section[data-properties-hero]"
+      : "[data-home-hero-end]";
+    let hero = document.querySelector(selector);
+    if (!hero && !rebinds) return;
     let exitTimeout: number | undefined;
     const observer = new IntersectionObserver(
       ([entry]) => {
+        if (rebinds && (entry.target !== hero || !entry.target.isConnected)) return;
         if (document.body.style.position === "fixed") return;
         const gone = !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
         if (gone === heroGoneRef.current) return;
@@ -89,8 +91,28 @@ export function SiteHeader() {
       },
       { threshold: 0 },
     );
-    observer.observe(hero);
+    if (hero) observer.observe(hero);
+    // Streamed pages (Locations, Properties) can replace their hero after the persistent
+    // header mounts; keep observing the live one, not a skeleton that has since been removed.
+    const bindHero = () => {
+      const current = [...document.querySelectorAll(selector)].find(
+        (element) => element.getClientRects().length,
+      );
+      if (!current || current === hero) return;
+      observer.disconnect();
+      hero = current;
+      observer.observe(hero);
+    };
+    const mounts = rebinds ? new MutationObserver(bindHero) : undefined;
+    mounts?.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["hidden"],
+    });
+    if (rebinds) bindHero();
     return () => {
+      mounts?.disconnect();
       observer.disconnect();
       window.clearTimeout(exitTimeout);
       // The header outlives the page. Cancelling a pending sticky exit would strand the
@@ -102,7 +124,7 @@ export function SiteHeader() {
       setStickyMotion(false);
       setIsHidden(false);
     };
-  }, [cinematic, isAbout]);
+  }, [cinematic, isAbout, isProperties, isLocations, isSell]);
 
   const showHeader = useCallback(() => {
     if (cinematic && !heroGoneRef.current) return;
@@ -225,6 +247,9 @@ export function SiteHeader() {
         ref={headerRef}
         className={heroStyles.header}
         data-about-hero={isAbout || undefined}
+        data-sell-hero={isSell || undefined}
+        data-properties-hero={isProperties || undefined}
+        data-locations-hero={isLocations || undefined}
         data-sticky={sticky}
         data-eligible={eligible}
         data-motion={stickyMotion}
@@ -240,8 +265,8 @@ export function SiteHeader() {
       >
         <div
           className={heroStyles.stickyLogo}
-          aria-hidden={!eligible}
-          inert={!eligible || menuOpen}
+          aria-hidden={!(eligible || isProperties || isLocations)}
+          inert={!(eligible || isProperties || isLocations) || menuOpen}
         >
           <BrandLogo />
         </div>

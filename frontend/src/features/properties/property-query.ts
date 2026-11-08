@@ -38,6 +38,7 @@ export interface PropertyFormValues {
   minPrice: string;
   maxPrice: string;
   bedrooms: string;
+  bedroomsMatch?: "exact";
   bathrooms: string;
   minLotArea: string;
   minFloorArea: string;
@@ -80,6 +81,9 @@ export function propertyFormValues(searchParams: RawSearchParams): PropertyFormV
     minPrice: firstValue(searchParams.minPrice),
     maxPrice: firstValue(searchParams.maxPrice),
     bedrooms: firstValue(searchParams.bedrooms),
+    ...(firstValue(searchParams.bedroomsMatch) === "exact"
+      ? { bedroomsMatch: "exact" as const }
+      : {}),
     bathrooms: firstValue(searchParams.bathrooms),
     minLotArea: firstValue(searchParams.minLotArea),
     minFloorArea: firstValue(searchParams.minFloorArea),
@@ -111,6 +115,8 @@ export function propertyApiSearchParams(
     if (values[key]) output.set(key, values[key]);
   }
 
+  if (values.bedrooms && values.bedroomsMatch)
+    output.set("bedroomsMatch", values.bedroomsMatch);
   output.set("sort", values.sort);
   output.set("page", values.page);
   output.set("limit", String(pageSize));
@@ -154,6 +160,7 @@ export function removePropertyFilterHref(
   if (omitLocation) query.delete("location");
   if (key === "sort") query.set("sort", "newest");
   else query.delete(key);
+  if (key === "bedrooms") query.delete("bedroomsMatch");
   return `${basePath}${query.size ? `?${query.toString()}` : ""}`;
 }
 
@@ -188,6 +195,8 @@ export function activePropertyFilters(
     if (values[key] && Number.isFinite(parsed)) filters[key] = parsed;
   }
 
+  if (values.bedrooms && values.bedroomsMatch)
+    filters.bedroomsMatch = values.bedroomsMatch;
   return filters;
 }
 

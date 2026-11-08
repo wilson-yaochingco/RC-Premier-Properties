@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function HomeHeroVideo({ className }: { className: string }) {
+export function HomeHeroVideo({
+  className,
+  src = "/media/homepage-hero.mp4",
+}: {
+  className: string;
+  src?: string;
+}) {
   const [reducedMotion, setReducedMotion] = useState(true);
   const [ready, setReady] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
@@ -47,7 +53,7 @@ export function HomeHeroVideo({ className }: { className: string }) {
       tabIndex={-1}
       onLoadedData={() => setReady(true)}
     >
-      <source src="/media/homepage-hero.mp4" type="video/mp4" />
+      <source src={src} type="video/mp4" />
     </video>
   );
 }

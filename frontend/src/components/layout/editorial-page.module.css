@@ -10,7 +10,7 @@
   padding-top: var(--header-offset);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 /* Full-bleed hero pages: the hero runs behind the transparent header, so no offset. The

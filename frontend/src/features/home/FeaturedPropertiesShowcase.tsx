@@ -20,6 +20,7 @@ export function FeaturedPropertiesShowcase({
       <ul
         id="featured-rail"
         className={styles.grid}
+        data-motion="group"
         data-count={properties.length}
         role="list"
         aria-label="Featured properties"

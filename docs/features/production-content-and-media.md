@@ -9,7 +9,7 @@ the roadmap's post-launch Phase 7 and does not authorize any later roadmap funct
 ## Approved public information
 
 - Business name: RC Premier Properties
-- Email: `rcpremierph@gmail.com`
+- Email: `rcpropertiesss@gmail.com`
 - Phone: `+63 918 429 1873` (`tel:+639184291873`)
 - Facebook Page:
   `https://www.facebook.com/people/RC-Premier-Properties/61588365958516/`

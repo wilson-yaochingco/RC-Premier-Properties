@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type RefObject,
+} from "react";
+import gsap from "gsap";
 import {
   viewingRequestDateWindow,
   type PropertyAvailability,
@@ -50,11 +59,19 @@ export type ViewingPropertyState =
 
 type Step = "schedule" | "details" | "success";
 
-const STEPS: Array<{ id: Step; label: string }> = [
-  { id: "schedule", label: "Schedule" },
-  { id: "details", label: "Details" },
-  { id: "success", label: "Requested" },
-];
+const STAGES = ["Property", "Schedule", "Your details", "Request sent"] as const;
+
+/** Details typed so far, kept so Back never empties the form. */
+interface SavedDetails {
+  name?: string;
+  phone?: string;
+  email?: string;
+  message?: string;
+  consent?: boolean;
+}
+
+const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
@@ -100,13 +117,12 @@ function FieldError({ issue, id }: { issue?: ValidationIssue; id: string }) {
   ) : null;
 }
 
-function Progress({ step }: { step: Step }) {
-  const current = STEPS.findIndex((candidate) => candidate.id === step);
+function Progress({ current }: { current: number }) {
   return (
     <ol className={styles.progress} aria-label="Viewing request progress">
-      {STEPS.map((candidate, index) => (
+      {STAGES.map((label, index) => (
         <li
-          key={candidate.id}
+          key={label}
           data-state={
             index < current ? "complete" : index === current ? "current" : "upcoming"
           }
@@ -115,7 +131,7 @@ function Progress({ step }: { step: Step }) {
           <span className={styles.progressNumber}>
             {String(index + 1).padStart(2, "0")}
           </span>
-          <span>{candidate.label}</span>
+          <span>{label}</span>
         </li>
       ))}
     </ol>
@@ -161,6 +177,7 @@ function PropertySummary({
           <span>#{property.propertyId}</span>
           <span>{property.locationLabel}</span>
           <span>{property.typeLabel}</span>
+          {property.priceLabel ? <span>{property.priceLabel}</span> : null}
         </p>
         {property.availability === "reserved" ? (
           <p className={styles.reservedNote}>
@@ -172,7 +189,7 @@ function PropertySummary({
       <div className={styles.stripActions}>
         {onChange ? (
           <button type="button" className={styles.quietAction} onClick={onChange}>
-            Change
+            Change property
           </button>
         ) : null}
         <Link href={`/properties/${property.slug}`} className={styles.quietAction}>
@@ -248,8 +265,11 @@ function PropertyPicker({
       ) : null}
       {notice ? <p className={styles.notice}>{notice}</p> : null}
       <ul className={styles.pickerGrid} aria-label="Current listings">
-        {visible.map((property) => (
-          <li key={property.propertyId}>
+        {visible.map((property, index) => (
+          <li
+            key={property.propertyId}
+            style={{ "--i": Math.min(index, 8) } as CSSProperties}
+          >
             <button
               type="button"
               className={styles.pickerCard}
@@ -346,6 +366,8 @@ export function ViewingScheduler({
   const [selectedTime, setSelectedTime] = useState("");
   const [scheduleError, setScheduleError] = useState<string>();
   const [messageLength, setMessageLength] = useState(0);
+  const [saved, setSaved] = useState<SavedDetails>({});
+  const [leaving, setLeaving] = useState(false);
   const listings = options.status === "ready" ? options.items : [];
   // A property is either supplied by the page or picked from current listings; the
   // backend still validates it on submit.
@@ -360,6 +382,8 @@ export function ViewingScheduler({
   const propertyHeadingRef = useRef<HTMLHeadingElement>(null);
   const propertyMovedRef = useRef(false);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const scheduleErrorRef = useRef<HTMLParagraphElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const movedRef = useRef(false);
@@ -369,10 +393,34 @@ export function ViewingScheduler({
   const fixedProperty = context.status === "resolved";
   const { leading, days } = inputMonthDays(month);
 
-  useEffect(() => {
+  // A step change fades the old step out (see goTo) and the new one in, then moves focus.
+  useLayoutEffect(() => {
     if (!movedRef.current) return;
-    stepHeadingRef.current?.focus();
+    setLeaving(false);
+    const panel = panelRef.current;
+    if (!panel || prefersReducedMotion()) return;
+    const tween = gsap.fromTo(
+      panel,
+      { opacity: 0, y: 16 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.45,
+        ease: "power3.out",
+        clearProps: "opacity,transform",
+      },
+    );
+    return () => {
+      tween.kill();
+      gsap.set(panel, { clearProps: "opacity,transform" });
+    };
   }, [step]);
+
+  // Focus waits until the step is no longer inert, or the browser would drop it.
+  useEffect(() => {
+    if (!movedRef.current || leaving) return;
+    stepHeadingRef.current?.focus({ preventScroll: true });
+  }, [step, leaving]);
 
   // Choosing or changing a listing swaps this block, so keep focus inside it.
   useEffect(() => {
@@ -391,7 +439,34 @@ export function ViewingScheduler({
 
   function goTo(next: Step) {
     movedRef.current = true;
-    setStep(next);
+    const panel = panelRef.current;
+    if (!panel || prefersReducedMotion()) {
+      setStep(next);
+      return;
+    }
+    setLeaving(true);
+    gsap.to(panel, {
+      opacity: 0,
+      y: -12,
+      duration: 0.25,
+      ease: "power2.in",
+      onComplete: () => setStep(next),
+    });
+  }
+
+  function backToSchedule() {
+    if (formRef.current) {
+      const data = new FormData(formRef.current);
+      setSaved({
+        name: String(data.get("name") ?? ""),
+        phone: String(data.get("phone") ?? ""),
+        email: String(data.get("email") ?? ""),
+        message: String(data.get("message") ?? ""),
+        consent: data.get("privacyConsent") === "on",
+      });
+    }
+    reset();
+    goTo("schedule");
   }
 
   function continueToDetails() {
@@ -475,8 +550,12 @@ export function ViewingScheduler({
         )}
       </section>
 
-      {!property && listings.length === 0 ? null : (
-        <section className={styles.scheduler} aria-labelledby="viewing-step-heading">
+      {!property ? null : (
+        <section
+          className={styles.scheduler}
+          aria-labelledby="viewing-step-heading"
+          data-enter
+        >
           {sold ? (
             <div className={styles.closed}>
               <p className={styles.stepEyebrow}>Viewing requests closed</p>
@@ -494,427 +573,454 @@ export function ViewingScheduler({
             </div>
           ) : (
             <>
-              <Progress step={step} />
+              <Progress
+                current={step === "schedule" ? 1 : step === "details" ? 2 : 3}
+              />
 
-              {step === "schedule" ? (
-                <div className={styles.step}>
-                  <h2
-                    id="viewing-step-heading"
-                    ref={stepHeadingRef}
-                    tabIndex={-1}
-                    className={styles.stepHeading}
-                  >
-                    Choose a preferred date and time.
-                  </h2>
+              <div ref={panelRef} inert={leaving}>
+                {step === "schedule" ? (
+                  <div className={styles.step}>
+                    <h2
+                      id="viewing-step-heading"
+                      ref={stepHeadingRef}
+                      tabIndex={-1}
+                      className={styles.stepHeading}
+                    >
+                      Choose a preferred date and time.
+                    </h2>
 
-                  <div className={styles.scheduleGrid}>
-                    <fieldset className={styles.dateFieldset}>
-                      <legend className={styles.fieldsetLabel}>Preferred date</legend>
-                      <div className={styles.monthBar}>
-                        <button
-                          type="button"
-                          className={styles.monthButton}
-                          aria-label="Previous month"
-                          disabled={month <= firstMonth}
-                          onClick={() => setMonth(shiftInputMonth(month, -1))}
-                        >
-                          <Arrow direction="left" />
-                        </button>
-                        <p className={styles.monthName} aria-live="polite">
-                          {monthLabel(month)}
-                        </p>
-                        <button
-                          type="button"
-                          className={styles.monthButton}
-                          aria-label="Next month"
-                          disabled={month >= lastMonth}
-                          onClick={() => setMonth(shiftInputMonth(month, 1))}
-                        >
-                          <Arrow />
-                        </button>
-                      </div>
-                      <div className={styles.weekdays} aria-hidden="true">
-                        {WEEKDAYS.map((weekday) => (
-                          <span key={weekday}>{weekday.slice(0, 1)}</span>
-                        ))}
-                      </div>
-                      <div className={styles.days}>
-                        {Array.from({ length: leading }, (_, index) => (
-                          <span key={`blank-${index}`} aria-hidden="true" />
-                        ))}
-                        {days.map((date) => {
-                          const day = Number(date.slice(8));
-                          const requestable = date >= firstDate && date <= lastDate;
-                          if (!requestable) {
-                            return (
-                              <span
-                                key={date}
-                                className={styles.day}
-                                data-disabled="true"
-                                data-today={date === today || undefined}
-                                aria-hidden="true"
-                              >
-                                {day}
-                              </span>
-                            );
-                          }
-                          return (
-                            <label key={date} className={styles.day}>
-                              <input
-                                type="radio"
-                                name="requestedDate"
-                                value={date}
-                                checked={selectedDate === date}
-                                onChange={() => {
-                                  setSelectedDate(date);
-                                  setScheduleError(undefined);
-                                }}
-                              />
-                              <span aria-hidden="true">{day}</span>
-                              <span className={styles.srOnly}>
-                                {tourDateLabel(date, "long")}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                      <p className={styles.scheduleNote}>
-                        Your selection is a request. RC Premier will confirm the
-                        schedule.
-                      </p>
-                    </fieldset>
-
-                    <fieldset className={styles.timeFieldset}>
-                      <legend className={styles.fieldsetLabel}>Preferred time</legend>
-                      {TIME_GROUPS.map((group) => (
-                        <div
-                          key={group.id}
-                          className={styles.timeGroup}
-                          role="group"
-                          aria-labelledby={`viewing-time-${group.id}`}
-                        >
-                          <p
-                            id={`viewing-time-${group.id}`}
-                            className={styles.timeGroupLabel}
+                    <div className={styles.scheduleGrid}>
+                      <fieldset className={styles.dateFieldset}>
+                        <legend className={styles.fieldsetLabel}>Preferred date</legend>
+                        <div className={styles.monthBar}>
+                          <button
+                            type="button"
+                            className={styles.monthButton}
+                            aria-label="Previous month"
+                            disabled={month <= firstMonth}
+                            onClick={() => setMonth(shiftInputMonth(month, -1))}
                           >
-                            {group.label}
+                            <Arrow direction="left" />
+                          </button>
+                          <p className={styles.monthName} aria-live="polite">
+                            {monthLabel(month)}
                           </p>
-                          <div className={styles.timeSlots}>
-                            {group.options.map(([value, label]) => (
-                              <label key={value} className={styles.timeSlot}>
+                          <button
+                            type="button"
+                            className={styles.monthButton}
+                            aria-label="Next month"
+                            disabled={month >= lastMonth}
+                            onClick={() => setMonth(shiftInputMonth(month, 1))}
+                          >
+                            <Arrow />
+                          </button>
+                        </div>
+                        <div className={styles.weekdays} aria-hidden="true">
+                          {WEEKDAYS.map((weekday) => (
+                            <span key={weekday}>{weekday.slice(0, 1)}</span>
+                          ))}
+                        </div>
+                        <div className={styles.days}>
+                          {Array.from({ length: leading }, (_, index) => (
+                            <span key={`blank-${index}`} aria-hidden="true" />
+                          ))}
+                          {days.map((date) => {
+                            const day = Number(date.slice(8));
+                            const requestable = date >= firstDate && date <= lastDate;
+                            if (!requestable) {
+                              return (
+                                <span
+                                  key={date}
+                                  className={styles.day}
+                                  data-disabled="true"
+                                  data-today={date === today || undefined}
+                                  aria-hidden="true"
+                                >
+                                  {day}
+                                </span>
+                              );
+                            }
+                            return (
+                              <label key={date} className={styles.day}>
                                 <input
                                   type="radio"
-                                  name="requestedTime"
-                                  value={value}
-                                  checked={selectedTime === value}
+                                  name="requestedDate"
+                                  value={date}
+                                  checked={selectedDate === date}
                                   onChange={() => {
-                                    setSelectedTime(value);
+                                    setSelectedDate(date);
                                     setScheduleError(undefined);
                                   }}
                                 />
-                                <span>{label}</span>
+                                <span aria-hidden="true">{day}</span>
+                                <span className={styles.srOnly}>
+                                  {tourDateLabel(date, "long")}
+                                </span>
                               </label>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                      <p className={styles.scheduleNote}>
-                        Requested times require staff confirmation.
+                      </fieldset>
+
+                      <fieldset className={styles.timeFieldset}>
+                        <legend className={styles.fieldsetLabel}>Preferred time</legend>
+                        {TIME_GROUPS.map((group) => (
+                          <div
+                            key={group.id}
+                            className={styles.timeGroup}
+                            role="group"
+                            aria-labelledby={`viewing-time-${group.id}`}
+                          >
+                            <p
+                              id={`viewing-time-${group.id}`}
+                              className={styles.timeGroupLabel}
+                            >
+                              {group.label}
+                            </p>
+                            <div className={styles.timeSlots}>
+                              {group.options.map(([value, label]) => (
+                                <label key={value} className={styles.timeSlot}>
+                                  <input
+                                    type="radio"
+                                    name="requestedTime"
+                                    value={value}
+                                    checked={selectedTime === value}
+                                    onChange={() => {
+                                      setSelectedTime(value);
+                                      setScheduleError(undefined);
+                                    }}
+                                  />
+                                  <span>{label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        <p className={styles.scheduleNote}>
+                          Requested times are subject to confirmation by our team.
+                        </p>
+                      </fieldset>
+                    </div>
+
+                    {scheduleError ? (
+                      <p
+                        ref={scheduleErrorRef}
+                        className={styles.inlineError}
+                        role="alert"
+                        tabIndex={-1}
+                      >
+                        {scheduleError}
                       </p>
-                    </fieldset>
+                    ) : null}
+
+                    <div className={styles.stepActions}>
+                      <p className={styles.selection} aria-live="polite">
+                        {selectedDate
+                          ? tourDateLabel(selectedDate, "long")
+                          : "No date chosen"}
+                        <span aria-hidden="true"> · </span>
+                        {selectedTime ? tourTimeLabel(selectedTime) : "No time chosen"}
+                      </p>
+                      <button
+                        type="button"
+                        className={`${styles.primaryAction} cta`}
+                        onClick={continueToDetails}
+                      >
+                        <RollLabel>Continue to your details</RollLabel>
+                        <Arrow />
+                      </button>
+                    </div>
                   </div>
+                ) : null}
 
-                  {scheduleError ? (
-                    <p
-                      ref={scheduleErrorRef}
-                      className={styles.inlineError}
-                      role="alert"
-                      tabIndex={-1}
-                    >
-                      {scheduleError}
-                    </p>
-                  ) : null}
-
-                  <div className={styles.stepActions}>
-                    <p className={styles.selection} aria-live="polite">
-                      {selectedDate
-                        ? tourDateLabel(selectedDate, "long")
-                        : "No date chosen"}
-                      <span aria-hidden="true"> · </span>
-                      {selectedTime ? tourTimeLabel(selectedTime) : "No time chosen"}
-                    </p>
-                    <button
-                      type="button"
-                      className={`${styles.primaryAction} cta`}
-                      onClick={continueToDetails}
-                    >
-                      <RollLabel>Continue to your details</RollLabel>
-                      <Arrow />
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "details" ? (
-                <form
-                  className={styles.step}
-                  onSubmit={handleSubmit}
-                  aria-busy={state.kind === "pending"}
-                >
-                  <h2
-                    id="viewing-step-heading"
-                    ref={stepHeadingRef}
-                    tabIndex={-1}
-                    className={styles.stepHeading}
+                {step === "details" ? (
+                  <form
+                    ref={formRef}
+                    className={styles.step}
+                    onSubmit={handleSubmit}
+                    aria-busy={state.kind === "pending"}
                   >
-                    Where should we follow up?
-                  </h2>
-
-                  <div className={styles.summary}>
-                    <div>
-                      <p className={styles.summaryLabel}>Your request</p>
-                      <p className={styles.summaryDate}>
-                        {tourDateLabel(selectedDate, "long")}
-                      </p>
-                      <p className={styles.summaryTime}>
-                        {tourTimeLabel(selectedTime)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.editAction}
-                      onClick={() => {
-                        reset();
-                        goTo("schedule");
-                      }}
-                    >
-                      Edit schedule
-                    </button>
-                  </div>
-
-                  <div className={styles.fieldGrid}>
-                    <label className={styles.field} htmlFor="viewing-name">
-                      <span>Full name</span>
-                      <input
-                        id="viewing-name"
-                        name="name"
-                        placeholder="Enter your full name"
-                        autoComplete="name"
-                        minLength={2}
-                        maxLength={100}
-                        required
-                        aria-invalid={invalid("name")}
-                        aria-describedby={describedBy("name")}
-                      />
-                      <FieldError issue={issueFor("name")} id={errorId("name")} />
-                    </label>
-
-                    <label className={styles.field} htmlFor="viewing-phone">
-                      <span>Phone number</span>
-                      <input
-                        id="viewing-phone"
-                        name="phone"
-                        placeholder="e.g. 0917 123 4567"
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel"
-                        maxLength={30}
-                        required
-                        aria-invalid={invalid("phone")}
-                        aria-describedby={describedBy("phone")}
-                      />
-                      <FieldError issue={issueFor("phone")} id={errorId("phone")} />
-                    </label>
-
-                    <label
-                      className={`${styles.field} ${styles.wide}`}
-                      htmlFor="viewing-email"
-                    >
-                      <span>Email</span>
-                      <input
-                        id="viewing-email"
-                        name="email"
-                        placeholder="you@example.com"
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        maxLength={254}
-                        required
-                        aria-invalid={invalid("email")}
-                        aria-describedby={describedBy("email")}
-                      />
-                      <FieldError issue={issueFor("email")} id={errorId("email")} />
-                    </label>
-
-                    <label
-                      className={`${styles.field} ${styles.wide}`}
-                      htmlFor="viewing-message"
-                    >
-                      <span>
-                        Notes for the team <small>(optional)</small>
-                      </span>
-                      <textarea
-                        id="viewing-message"
-                        name="message"
-                        placeholder="Anything you'd like us to know before your visit?"
-                        minLength={10}
-                        maxLength={2000}
-                        rows={4}
-                        onChange={(event) =>
-                          setMessageLength(event.target.value.length)
-                        }
-                        aria-invalid={invalid("message")}
-                        aria-describedby={describedBy(
-                          "message",
-                          "viewing-message-count",
-                        )}
-                      />
-                      <small id="viewing-message-count" className={styles.counter}>
-                        {messageLength} of 2000 characters
-                      </small>
-                      <FieldError issue={issueFor("message")} id={errorId("message")} />
-                    </label>
-                  </div>
-
-                  <div className={styles.honeypot} aria-hidden="true">
-                    <label htmlFor="viewing-website">Website</label>
-                    <input
-                      id="viewing-website"
-                      name="website"
+                    <h2
+                      id="viewing-step-heading"
+                      ref={stepHeadingRef}
                       tabIndex={-1}
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  <label className={styles.consent} htmlFor="viewing-privacy-consent">
-                    <input
-                      id="viewing-privacy-consent"
-                      type="checkbox"
-                      name="privacyConsent"
-                      required
-                      aria-invalid={invalid("privacyConsent")}
-                      aria-describedby={describedBy("privacyConsent")}
-                    />
-                    <span>
-                      I agree that RC Premier Properties may use these details to
-                      respond to this viewing request. No account is created.
-                    </span>
-                  </label>
-                  <FieldError
-                    issue={issueFor("privacyConsent")}
-                    id={errorId("privacyConsent")}
-                  />
-
-                  {state.kind === "error" ? (
-                    <div
-                      ref={errorRef}
-                      id="viewing-errors"
-                      className={styles.errorMessage}
-                      role="alert"
-                      tabIndex={-1}
+                      className={styles.stepHeading}
                     >
-                      {state.propertyUnavailable ? (
-                        <>
-                          <strong>{state.message}</strong>{" "}
-                          <Link href="/properties">Browse current properties</Link>
-                        </>
-                      ) : (
-                        <>
-                          <strong>We could not send the request.</strong>{" "}
-                          {state.message}
-                        </>
-                      )}
-                      {state.issues?.length ? (
-                        <ul>
-                          {state.issues.map((issue) => (
-                            <li key={`${issue.field}-${issue.message}`}>
-                              {TOUR_FIELD_LABELS[issue.field] ?? "Form"}:{" "}
-                              {issue.message}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ) : null}
+                      Where should we follow up?
+                    </h2>
 
-                  <div className={styles.stepActions}>
-                    <p className={styles.selection}>
-                      Staff confirm every requested time before it becomes an
-                      appointment.
-                    </p>
-                    <button
-                      type="submit"
-                      className={`${styles.primaryAction} cta`}
-                      disabled={state.kind === "pending"}
-                    >
-                      <RollLabel>
-                        {state.kind === "pending" ? "Sending…" : "Send viewing request"}
-                      </RollLabel>
-                      <Arrow />
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-
-              {step === "success" ? (
-                <div className={styles.step} role="status" aria-live="polite">
-                  <p className={styles.stepEyebrow}>Request received</p>
-                  <h2
-                    id="viewing-step-heading"
-                    ref={stepHeadingRef}
-                    tabIndex={-1}
-                    className={styles.stepHeading}
-                  >
-                    Your preferred viewing time has been sent.
-                  </h2>
-                  <dl className={styles.receipt}>
-                    <div>
-                      <dt>Property</dt>
-                      <dd>
-                        {property
-                          ? `${property.title} · #${property.propertyId}`
-                          : `Premier Property #${propertyId.trim()}`}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Requested date</dt>
-                      <dd>{tourDateLabel(selectedDate, "long")}</dd>
-                    </div>
-                    <div>
-                      <dt>Requested time</dt>
-                      <dd>{tourTimeLabel(selectedTime)}</dd>
-                    </div>
-                    {state.inquiryId ? (
+                    <div className={styles.summary}>
                       <div>
-                        <dt>Reference</dt>
-                        <dd className={styles.reference}>{state.inquiryId}</dd>
+                        <p className={styles.summaryLabel}>Your request</p>
+                        <p className={styles.summaryDate}>
+                          {tourDateLabel(selectedDate, "long")}
+                        </p>
+                        <p className={styles.summaryTime}>
+                          {tourTimeLabel(selectedTime)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.editAction}
+                        onClick={backToSchedule}
+                      >
+                        Edit schedule
+                      </button>
+                    </div>
+
+                    <div className={styles.fieldGrid}>
+                      <label className={styles.field} htmlFor="viewing-name">
+                        <span>Full name</span>
+                        <input
+                          id="viewing-name"
+                          name="name"
+                          defaultValue={saved.name}
+                          placeholder="Enter your full name"
+                          autoComplete="name"
+                          minLength={2}
+                          maxLength={100}
+                          required
+                          aria-invalid={invalid("name")}
+                          aria-describedby={describedBy("name")}
+                        />
+                        <FieldError issue={issueFor("name")} id={errorId("name")} />
+                      </label>
+
+                      <label className={styles.field} htmlFor="viewing-phone">
+                        <span>Phone number</span>
+                        <input
+                          id="viewing-phone"
+                          name="phone"
+                          defaultValue={saved.phone}
+                          placeholder="e.g. 0917 123 4567"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          maxLength={30}
+                          required
+                          aria-invalid={invalid("phone")}
+                          aria-describedby={describedBy("phone")}
+                        />
+                        <FieldError issue={issueFor("phone")} id={errorId("phone")} />
+                      </label>
+
+                      <label
+                        className={`${styles.field} ${styles.wide}`}
+                        htmlFor="viewing-email"
+                      >
+                        <span>Email</span>
+                        <input
+                          id="viewing-email"
+                          name="email"
+                          defaultValue={saved.email}
+                          placeholder="you@example.com"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          maxLength={254}
+                          required
+                          aria-invalid={invalid("email")}
+                          aria-describedby={describedBy("email")}
+                        />
+                        <FieldError issue={issueFor("email")} id={errorId("email")} />
+                      </label>
+
+                      <label
+                        className={`${styles.field} ${styles.wide}`}
+                        htmlFor="viewing-message"
+                      >
+                        <span>
+                          Notes for the team <small>(optional)</small>
+                        </span>
+                        <textarea
+                          id="viewing-message"
+                          name="message"
+                          defaultValue={saved.message}
+                          placeholder="Anything you'd like us to know before your visit?"
+                          minLength={10}
+                          maxLength={2000}
+                          rows={4}
+                          onChange={(event) =>
+                            setMessageLength(event.target.value.length)
+                          }
+                          aria-invalid={invalid("message")}
+                          aria-describedby={describedBy(
+                            "message",
+                            "viewing-message-count",
+                          )}
+                        />
+                        <small id="viewing-message-count" className={styles.counter}>
+                          {messageLength} of 2000 characters
+                        </small>
+                        <FieldError
+                          issue={issueFor("message")}
+                          id={errorId("message")}
+                        />
+                      </label>
+                    </div>
+
+                    <div className={styles.honeypot} aria-hidden="true">
+                      <label htmlFor="viewing-website">Website</label>
+                      <input
+                        id="viewing-website"
+                        name="website"
+                        tabIndex={-1}
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <label className={styles.consent} htmlFor="viewing-privacy-consent">
+                      <input
+                        id="viewing-privacy-consent"
+                        type="checkbox"
+                        name="privacyConsent"
+                        defaultChecked={saved.consent}
+                        required
+                        aria-invalid={invalid("privacyConsent")}
+                        aria-describedby={describedBy("privacyConsent")}
+                      />
+                      <span>
+                        I agree that RC Premier Properties may use these details to
+                        respond to this viewing request. No account is created. See our{" "}
+                        <Link
+                          href="/privacy"
+                          className="privacy-link"
+                          target="_blank"
+                          rel="noopener"
+                        >
+                          Privacy Policy
+                        </Link>
+                        .
+                      </span>
+                    </label>
+                    <FieldError
+                      issue={issueFor("privacyConsent")}
+                      id={errorId("privacyConsent")}
+                    />
+
+                    {state.kind === "error" ? (
+                      <div
+                        ref={errorRef}
+                        id="viewing-errors"
+                        className={styles.errorMessage}
+                        role="alert"
+                        tabIndex={-1}
+                      >
+                        {state.propertyUnavailable ? (
+                          <>
+                            <strong>{state.message}</strong>{" "}
+                            <Link href="/properties">Browse current properties</Link>
+                          </>
+                        ) : (
+                          <>
+                            <strong>We could not send the request.</strong>{" "}
+                            {state.message}
+                          </>
+                        )}
+                        {state.issues?.length ? (
+                          <ul>
+                            {state.issues.map((issue) => (
+                              <li key={`${issue.field}-${issue.message}`}>
+                                {TOUR_FIELD_LABELS[issue.field] ?? "Form"}:{" "}
+                                {issue.message}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
                       </div>
                     ) : null}
-                  </dl>
-                  <p className={styles.confirmation}>
-                    This is not yet a confirmed appointment. RC Premier Properties will
-                    contact you to confirm or discuss another schedule.
-                  </p>
-                  {state.message ? (
-                    <p className={styles.apiMessage}>{state.message}</p>
-                  ) : null}
-                  <div className={styles.successActions}>
-                    <Link href="/properties" className={`${styles.primaryAction} cta`}>
-                      <RollLabel>Browse properties</RollLabel>
-                      <Arrow />
-                    </Link>
-                    {property ? (
-                      <Link
-                        href={`/properties/${property.slug}`}
-                        className={styles.textLink}
+
+                    <div className={styles.stepActions}>
+                      <p className={styles.selection}>
+                        Staff confirm every requested time before it becomes an
+                        appointment.
+                      </p>
+                      <button
+                        type="button"
+                        className={styles.quietAction}
+                        onClick={backToSchedule}
                       >
-                        <span>Back to property</span>
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        className={`${styles.primaryAction} cta`}
+                        disabled={state.kind === "pending"}
+                      >
+                        <RollLabel>
+                          {state.kind === "pending"
+                            ? "Sending…"
+                            : "Send viewing request"}
+                        </RollLabel>
+                        <Arrow />
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+
+                {step === "success" ? (
+                  <div className={styles.step} role="status" aria-live="polite">
+                    <p className={styles.stepEyebrow}>Request received</p>
+                    <h2
+                      id="viewing-step-heading"
+                      ref={stepHeadingRef}
+                      tabIndex={-1}
+                      className={styles.stepHeading}
+                    >
+                      Your preferred viewing time has been sent.
+                    </h2>
+                    <dl className={styles.receipt}>
+                      <div>
+                        <dt>Property</dt>
+                        <dd>
+                          {property
+                            ? `${property.title} · #${property.propertyId}`
+                            : `Premier Property #${propertyId.trim()}`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Requested date</dt>
+                        <dd>{tourDateLabel(selectedDate, "long")}</dd>
+                      </div>
+                      <div>
+                        <dt>Requested time</dt>
+                        <dd>{tourTimeLabel(selectedTime)}</dd>
+                      </div>
+                      {state.inquiryId ? (
+                        <div>
+                          <dt>Reference</dt>
+                          <dd className={styles.reference}>{state.inquiryId}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    <p className={styles.confirmation}>
+                      This is not yet a confirmed appointment. RC Premier Properties
+                      will contact you to confirm or discuss another schedule.
+                    </p>
+                    {state.message ? (
+                      <p className={styles.apiMessage}>{state.message}</p>
+                    ) : null}
+                    <div className={styles.successActions}>
+                      <Link
+                        href="/properties"
+                        className={`${styles.primaryAction} cta`}
+                      >
+                        <RollLabel>Browse properties</RollLabel>
                         <Arrow />
                       </Link>
-                    ) : null}
+                      {property ? (
+                        <Link
+                          href={`/properties/${property.slug}`}
+                          className={styles.textLink}
+                        >
+                          <span>Back to property</span>
+                          <Arrow />
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </>
           )}
         </section>

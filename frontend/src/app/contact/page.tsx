@@ -3,7 +3,6 @@ import Link from "next/link";
 import contactImage from "@/assets/site/contact.png";
 import { RollLabel } from "@/components/ui/RollLabel";
 import frame from "@/components/layout/editorial-page.module.css";
-import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
 import { InquiryForm } from "@/features/inquiries/InquiryForm";
 import { resolveViewingProperty } from "@/features/inquiries/viewing-property";
 import {
@@ -13,11 +12,12 @@ import {
 } from "@/lib/public-contact";
 import { buildPageMetadata } from "@/lib/seo";
 import styles from "./contact.module.css";
+import { PageMotion } from "@/components/layout/PageMotion";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Contact",
+  title: "Contact Us: Pampanga Property Inquiries",
   description:
-    "Send a property or general inquiry to RC Premier Properties in Pampanga.",
+    "Ask RC Premier Properties about a listing or a property in Pampanga. Send an inquiry, call +63 918 429 1873 or email rcpropertiesss@gmail.com.",
   canonicalPath: "/contact",
   imagePath: contactImage.src,
 });
@@ -50,19 +50,32 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
 
   return (
     <main id="main-content" tabIndex={-1} className={`${frame.page} ${styles.page}`}>
+      <PageMotion />
       <section className={styles.intro} aria-labelledby="contact-heading">
         <div className={styles.introMain}>
-          <p className={styles.eyebrow}>Get in touch</p>
-          <h1 id="contact-heading" className={styles.headline}>
-            Let’s talk about your next move.
+          <p className={styles.eyebrow} data-enter>
+            Get in touch
+          </p>
+          <h1
+            id="contact-heading"
+            className={styles.headline}
+            data-enter="heading"
+            data-enter-delay="1"
+          >
+            Let’s talk about your next <em>move</em>.
           </h1>
         </div>
         <div className={styles.introAside}>
-          <p className={styles.lede}>
+          <p className={styles.lede} data-enter data-enter-delay="2">
             Ask about a property, tell us what you are looking for, or reach the team
             directly.
           </p>
-          <ul className={styles.channels} aria-label="Contact RC Premier directly">
+          <ul
+            className={styles.channels}
+            aria-label="Contact RC Premier directly"
+            data-enter
+            data-enter-delay="3"
+          >
             <li>
               <a href={OFFICIAL_PHONE_HREF} className="cta cta--wrap">
                 <span className={styles.channelLabel}>Call</span>
@@ -86,11 +99,11 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
       </section>
 
       <section className={styles.conversation} aria-labelledby="contact-form-heading">
-        <div className={styles.card}>
+        <div className={styles.card} data-enter data-enter-delay="4">
           <div className={styles.rail}>
             <p className={styles.railEyebrow}>Send an inquiry</p>
             <h2 id="contact-form-heading" className={styles.railTitle}>
-              How can we help?
+              How can we <em>help</em>?
             </h2>
             <p className={styles.railCopy}>
               Share as much or as little as you like. The team will follow up using the
@@ -145,7 +158,6 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
           </nav>
         </div>
       </section>
-      <DevHomepagePreview />
     </main>
   );
 }

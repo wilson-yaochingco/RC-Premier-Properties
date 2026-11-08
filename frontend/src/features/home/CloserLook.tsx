@@ -248,11 +248,23 @@ export function CloserLook({ slides }: { slides: CloserLookSlide[] }) {
     <section className={styles.section} aria-labelledby="closer-look-heading">
       <div className={styles.container}>
         <p className={styles.eyebrow}>A closer look</p>
-        <div className={styles.header}>
-          <h2 id="closer-look-heading" className={styles.heading}>
-            <span>What makes a home</span> <span>worth a closer look.</span>
+        <div className={styles.header} data-motion="sequence">
+          <h2
+            id="closer-look-heading"
+            className={styles.heading}
+            data-motion-step="heading"
+          >
+            <span>What makes a home</span>{" "}
+            <span>
+              worth a <em>closer look</em>.
+            </span>
           </h2>
-          <Link href="/book-viewing" className={`${styles.book} cta cta--wrap`}>
+          <Link
+            href="/book-viewing"
+            className={`${styles.book} cta cta--wrap`}
+            data-motion-step="fade"
+            data-motion-at="0.35"
+          >
             <RollLabel>Book a viewing</RollLabel>
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
@@ -263,6 +275,7 @@ export function CloserLook({ slides }: { slides: CloserLookSlide[] }) {
         <div
           ref={panel}
           className={styles.panel}
+          data-motion="panel"
           role="region"
           aria-roledescription="carousel"
           aria-label="What to look for in a home"

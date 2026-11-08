@@ -1,13 +1,11 @@
 .page {
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --panel: #202630;
-  --gutter: clamp(1.25rem, 3vw, 3rem);
-  --gap: clamp(1rem, 1.6vw, 1.5rem);
+  --gutter: clamp(1.25rem, 4vw, 5rem);
+  --gap: clamp(1.5rem, 3vw, 3.5rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
-  /* Clears the fixed homepage header; heights mirror its sticky breakpoints. */
-  padding-top: 96px;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -15,16 +13,223 @@
   padding-inline: var(--gutter);
 }
 
-/* ---- Intro ---- */
-.intro {
-  padding-block: clamp(3rem, 5vw, 4.5rem) clamp(2rem, 3.5vw, 3rem);
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  display: flex;
+  align-items: end;
+  min-height: min(960px, 100svh);
+  padding: 13rem var(--gutter) 2.5rem;
+  color: #f8f6f1;
+  background: var(--panel);
 }
 
-.introGrid {
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.heroBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgb(15 19 25 / 58%) 0%,
+    rgb(15 19 25 / 40%) 45%,
+    rgb(15 19 25 / 30%) 100%
+  );
+}
+
+.heroVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 48%;
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+
+.heroVideo[data-ready="true"] {
+  opacity: 1;
+}
+
+.heroContent {
+  width: 100%;
+}
+
+.heroHeadline {
+  max-width: 64rem;
+  margin-bottom: clamp(2.5rem, 5vw, 5rem);
+  font-size: clamp(3.25rem, 5.5vw, 6.5rem);
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 1.08;
+}
+
+.heroHeadline > span {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.heroHeadline > span > span {
+  display: block;
+}
+
+.heroSearch {
+  position: relative;
+  z-index: 2;
+}
+
+.cardFigure {
+  margin: 0;
+}
+
+.secondary {
+  padding-top: clamp(4rem, 7vw, 8rem);
+}
+
+.sectionHeading {
+  font-size: clamp(2.5rem, 4.3vw, 5rem);
+  line-height: 1.07;
+  font-weight: 450;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.secondaryGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem var(--gap);
+  padding: 0;
+  margin: clamp(2rem, 4vw, 4rem) 0 0;
+  list-style: none;
+}
+
+.secondaryGrid .cardMeta {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.secondaryGrid .title,
+.secondaryGrid .price {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+.secondaryGrid .title {
+  font-size: 1.25rem;
+}
+
+.secondaryGrid .price {
+  font-size: 1rem;
+}
+
+.secondaryGrid .cardCta {
+  font-size: 0.625rem;
+}
+
+.editorialSection {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(3rem, 7vw, 9rem);
+  margin-inline: var(--gutter);
+  padding-block: clamp(4rem, 8vw, 9rem);
+}
+
+.editorialSection h3 {
+  font-size: clamp(1.125rem, 1.5vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+
+.editorialSection p {
+  max-width: 44ch;
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.valueRows article {
+  padding-block: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.valueRows article:first-child {
+  padding-top: 0;
+}
+
+.journeyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.journeyGrid li {
+  display: flex;
+  min-width: 0;
+}
+
+.journeyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  width: 100%;
+  padding: clamp(1.25rem, 2.3vw, 2.5rem);
+  background: var(--color-surface-muted);
+  color: var(--color-brand-deep);
+  text-decoration: none;
+  transition: background-color 250ms var(--ease);
+}
+
+.stepNumber {
+  margin-bottom: 2.5rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.journeyArrow {
+  display: flex;
   align-items: end;
-  gap: 1.5rem clamp(2rem, 6vw, 8rem);
+  justify-content: end;
+  width: 100%;
+  min-height: 44px;
+  margin-top: auto;
+  padding-top: 1.5rem;
+}
+
+.journeyArrow svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 250ms var(--ease);
+}
+
+.journeyCard:hover {
+  background: #e6e2d9;
+}
+
+.journeyCard:is(:hover, :focus-visible) svg {
+  transform: translate(2px, -2px);
+}
+
+.journeyCard:focus-visible {
+  outline: 2px solid currentcolor;
+  outline-offset: 4px;
+}
+
+.resultsHeading h2 {
+  scroll-margin-top: 7rem;
 }
 
 .eyebrow {
@@ -38,40 +243,26 @@
   color: var(--color-brand-deep);
 }
 
-.headline {
-  margin-top: 1.25rem;
-  font-size: clamp(2.5rem, 5.4vw, 4.75rem);
-  font-weight: 600;
-  line-height: 1.02;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
-  color: var(--color-brand-deep);
-}
-
-.introCopy {
-  padding-bottom: 0.4rem;
-  font-size: 1.0625rem;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
 /* ---- Filter system: one stone surface family, shared control height ---- */
 .filters {
   --control: 3.5rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto;
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto auto;
+  gap: 0;
   align-items: stretch;
+  padding: 0.65rem;
+  background: var(--color-background);
+  color: var(--color-brand-deep);
 }
 
 .keyword {
-  grid-column: 1 / -1;
+  grid-column: 1;
   grid-row: 1;
   min-height: 4rem;
 }
 
 .keyword .value {
-  font-size: 1.0625rem;
+  font-size: 0.9375rem;
 }
 
 .field {
@@ -236,15 +427,15 @@ select.value {
 .pricePanel input:focus-visible,
 .textLink:focus-visible,
 .cta:focus-visible,
-.chips a:focus-visible {
+.clearAll:focus-visible {
   outline: 2px solid var(--color-brand-deep);
   outline-offset: 3px;
 }
 
 /* Secondary action: outlined, same height as every other control. */
 .filtersToggle {
-  grid-column: 4;
-  grid-row: 2;
+  grid-column: 5;
+  grid-row: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -280,8 +471,8 @@ select.value {
 }
 
 .submit {
-  grid-column: 5;
-  grid-row: 2;
+  grid-column: 6;
+  grid-row: 1;
   min-height: var(--control);
   justify-content: space-between;
 }
@@ -289,7 +480,7 @@ select.value {
 /* Advanced filters: one stone panel under the quick filters; only the row height animates. */
 .advanced {
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 2;
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
@@ -327,48 +518,25 @@ select.value {
   background: #fff;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1.25rem;
-  margin-top: 0.75rem;
-}
-
-.chips ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chips li a {
+.clearAll {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 2.25rem;
-  padding-inline: 0.75rem;
-  border-radius: 6px 0 6px 0;
-  background: var(--color-surface-muted);
-  color: var(--color-brand-deep);
-  font-size: 0.8125rem;
-}
-
-.clearAll {
+  min-height: 2.75rem;
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-decoration: underline;
-  text-underline-offset: 0.3em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  transition: color 200ms ease;
+}
+
+.clearAll:hover {
+  color: var(--color-brand-deep);
 }
 
 /* ---- Results ---- */
 .results {
-  padding-block: clamp(2rem, 3.5vw, 3rem) clamp(3rem, 5vw, 4.5rem);
+  padding-block: clamp(4rem, 7vw, 8rem) clamp(3rem, 5vw, 6rem);
 }
 
 .resultsBar {
@@ -377,26 +545,32 @@ select.value {
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.5rem 2rem;
-  margin-bottom: clamp(1.25rem, 2vw, 1.75rem);
+  margin-bottom: clamp(2.5rem, 4.5vw, 5rem);
 }
 
 .resultsHeading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 1rem;
+  display: grid;
+  gap: 1rem;
 }
 
 .resultsHeading h2 {
-  font-size: clamp(1.5rem, 2.4vw, 2rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.25rem, 4.2vw, 4.5rem);
+  line-height: 1.08;
+  font-weight: 450;
+  letter-spacing: -0.026em;
   color: var(--color-brand-deep);
 }
 
 .count {
   font-size: 0.875rem;
   color: var(--color-text-muted);
+}
+
+.resultsActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1.5rem;
 }
 
 .sort {
@@ -452,11 +626,11 @@ select.value {
   opacity: 0.55;
 }
 
-/* ---- Grid: the 3-column track fixes the card width; the count only places cards ---- */
+/* Large photographs lead; remaining page results follow in a compact grid. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2.5rem, 4vw, 4.5rem) var(--gap);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -466,17 +640,10 @@ select.value {
   min-width: 0;
 }
 
-/* Four properties read as a balanced 2 x 2 in the first two tracks. */
-.grid[data-count="4"] > li:nth-child(3) {
-  grid-column: 1;
-}
-
 /* ---- Card ---- */
 .card {
   position: relative;
   height: 100%;
-  overflow: hidden;
-  border-radius: var(--radius-editorial);
   isolation: isolate;
 }
 
@@ -484,13 +651,13 @@ select.value {
   display: flex;
   flex-direction: column;
   height: 100%;
-  color: #fff;
+  color: var(--color-brand-deep);
   text-decoration: none;
 }
 
 .cardLink:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: -6px;
+  outline: 2px solid var(--color-brand-deep);
+  outline-offset: 6px;
 }
 
 .cardMedia {
@@ -527,18 +694,20 @@ select.value {
 
 .cardPanel {
   flex: 1;
-  min-height: 12rem;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.125rem 1.25rem 1.25rem;
-  background: var(--panel);
+  padding: 1.25rem 0 0;
+  background: transparent;
 }
 
 .cardMeta {
   display: grid;
-  gap: 0.375rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
 }
 
 .type {
@@ -546,11 +715,14 @@ select.value {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgb(255 255 255 / 55%);
+  grid-column: 1 / -1;
+  color: var(--color-text-muted);
 }
 
 .price {
-  font-size: 1.375rem;
+  grid-column: 2;
+  grid-row: 2;
+  font-size: clamp(1rem, 1.5vw, 1.375rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -565,7 +737,9 @@ select.value {
 }
 
 .title {
-  font-size: 1.0625rem;
+  grid-column: 1;
+  grid-row: 2;
+  font-size: clamp(1.125rem, 1.6vw, 1.625rem);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -573,7 +747,8 @@ select.value {
 .location {
   font-size: 0.8125rem;
   line-height: 1.4;
-  color: rgb(255 255 255 / 62%);
+  grid-column: 1 / -1;
+  color: var(--color-text-muted);
 }
 
 .cardFooter {
@@ -583,7 +758,7 @@ select.value {
   justify-content: space-between;
   gap: 0.5rem 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgb(255 255 255 / 16%);
+  border-top: 1px solid var(--color-border);
 }
 
 .specs {
@@ -593,7 +768,7 @@ select.value {
   min-height: 1.25rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: rgb(255 255 255 / 62%);
+  color: var(--color-text-muted);
 }
 
 .specs span {
@@ -689,7 +864,7 @@ select.value {
   font-size: clamp(2rem, 4vw, 3.25rem);
   font-weight: 600;
   line-height: 1.06;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.034em;
   color: var(--color-brand-deep);
 }
 
@@ -758,44 +933,8 @@ select.value {
 
 /* ---- Responsive ---- */
 
-/* Four properties fill two even columns until the viewport is wide enough for a 3-track row. */
-@media (max-width: 79.99rem) {
-  .grid[data-count="4"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grid[data-count="4"] > li:nth-child(3) {
-    grid-column: auto;
-  }
-}
-
-/* Two columns until the viewport has real room for three. */
-@media (max-width: 63.99rem) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grid[data-count="4"] > li:nth-child(3) {
-    grid-column: auto;
-  }
-}
-
-@media (max-width: 70rem) {
-  .page {
-    padding-top: 84px;
-  }
-}
-
 /* Tablet: search, three quick filters, then two equal action columns on one 6-track grid. */
 @media (max-width: 63.99rem) {
-  .introGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .introCopy {
-    max-width: 28rem;
-  }
-
   .filters {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
@@ -865,23 +1004,11 @@ select.value {
   }
 }
 
-@media (max-width: 48rem) {
-  .page {
-    padding-top: calc(70px + env(safe-area-inset-top));
-  }
-}
-
-@media (min-width: 40rem) and (max-width: 48rem) {
-  .page {
-    padding-top: 84px;
-  }
-}
-
 @media (max-width: 39.99rem) {
   .grid,
   .grid[data-count="4"] {
     grid-template-columns: minmax(0, 1fr);
-    gap: 1rem;
+    gap: 2.5rem;
   }
 
   /* Compact cards: a wider, shorter image and a panel that sizes to its content. */
@@ -890,9 +1017,8 @@ select.value {
   }
 
   .cardPanel {
-    min-height: 0;
     gap: 0.75rem;
-    padding: 1rem 1.125rem 1.125rem;
+    padding: 1rem 0 0;
   }
 }
 
@@ -914,5 +1040,105 @@ select.value {
 
   .skeleton {
     animation: none;
+  }
+}
+
+@media (min-width: 64rem) and (max-width: 79.99rem) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto;
+  }
+
+  .keyword {
+    grid-column: 1 / -1;
+  }
+
+  .filtersToggle {
+    grid-column: 4;
+    grid-row: 2;
+  }
+
+  .submit {
+    grid-column: 5;
+    grid-row: 2;
+  }
+
+  .advanced {
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 63.99rem) {
+  .secondaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .editorialSection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero {
+    min-height: 900px;
+    padding-top: 11rem;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .hero {
+    min-height: 100svh;
+    padding: 10rem var(--gutter) 1.25rem;
+  }
+
+  .heroVideo {
+    object-position: 60% center;
+  }
+
+  .heroHeadline {
+    font-size: clamp(1.75rem, 8.7vw, 4.5rem);
+    line-height: 1.08;
+    margin-bottom: 2.5rem;
+  }
+
+  .heroHeadline > span > span {
+    text-wrap: balance;
+  }
+
+  .grid,
+  .grid[data-count="4"],
+  .secondaryGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cardMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .title,
+  .price {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .journeyGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .journeyCard {
+    padding: 1.5rem;
+  }
+
+  .stepNumber {
+    margin-bottom: 1.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journeyCard,
+  .journeyArrow svg,
+  .heroVideo {
+    transition: none;
+  }
+
+  .journeyCard:is(:hover, :focus-visible) svg {
+    transform: none;
   }
 }

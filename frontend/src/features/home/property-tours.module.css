@@ -7,7 +7,7 @@
   padding-block: clamp(1.5rem, 2vw, 2rem) clamp(5rem, 10vw, 11rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {

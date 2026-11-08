@@ -55,7 +55,7 @@
   font-family: var(--font-display, Georgia, serif);
   font-size: clamp(1.45rem, 2.5vw, 2.15rem);
   font-weight: 400;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
   margin: 0;
 }
 

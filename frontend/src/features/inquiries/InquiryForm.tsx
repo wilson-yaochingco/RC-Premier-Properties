@@ -391,7 +391,7 @@ export function InquiryForm({
   );
 
   const locationField = (
-    <div className={`${styles.field} ${styles.wide}`}>
+    <div className={styles.field}>
       <label htmlFor="inquiry-subject">Property location or area</label>
       <input
         id="inquiry-subject"
@@ -409,7 +409,7 @@ export function InquiryForm({
   );
 
   const propertyTypeField = (
-    <div className={`${styles.field} ${styles.wide}`}>
+    <div className={styles.field}>
       <label htmlFor="inquiry-property-type">
         Property type <span className={styles.optional}>(optional)</span>
       </label>
@@ -523,7 +523,7 @@ export function InquiryForm({
   return (
     <form
       ref={formRef}
-      className={`${styles.form} ${contact ? styles.contact : ""}`}
+      className={`${styles.form} ${contact ? styles.contact : ""} ${seller ? styles.seller : ""}`}
       onSubmit={handleSubmit}
       aria-busy={state.kind === "pending"}
     >
@@ -601,7 +601,11 @@ export function InquiryForm({
         />
         <span>
           I agree that RC Premier Properties may use these details to respond to this
-          inquiry. No account is created by submitting this form.
+          inquiry. No account is created by submitting this form. See our{" "}
+          <Link href="/privacy" className="privacy-link" target="_blank" rel="noopener">
+            Privacy Policy
+          </Link>
+          .
         </span>
       </label>
       <FieldError field="privacyConsent" issue={issueFor("privacyConsent")} />

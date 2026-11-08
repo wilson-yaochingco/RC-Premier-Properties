@@ -14,7 +14,9 @@ import { markCatalogUpdating } from "./catalog-updating";
 
 interface CatalogFilterFormProps {
   children: ReactNode;
+  id?: string;
   className?: string;
+  onSubmitCapture?: (event: FormEvent<HTMLFormElement>) => void;
 }
 
 /**
@@ -23,7 +25,12 @@ interface CatalogFilterFormProps {
  * Search button (`push`), never per keystroke. Without JavaScript the form still performs a
  * normal GET.
  */
-export function CatalogFilterForm({ children, className }: CatalogFilterFormProps) {
+export function CatalogFilterForm({
+  children,
+  id,
+  className,
+  onSubmitCapture,
+}: CatalogFilterFormProps) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const focusedId = useRef<string>(undefined);
@@ -67,6 +74,7 @@ export function CatalogFilterForm({ children, className }: CatalogFilterFormProp
   return (
     <form
       ref={form}
+      id={id}
       action="/properties"
       method="get"
       role="search"
@@ -74,6 +82,7 @@ export function CatalogFilterForm({ children, className }: CatalogFilterFormProp
       className={className}
       onChange={handleChange}
       onSubmit={handleSubmit}
+      onSubmitCapture={onSubmitCapture}
     >
       {children}
     </form>

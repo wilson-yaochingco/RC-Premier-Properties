@@ -5,7 +5,7 @@
   padding-block: 0 clamp(6.25rem, 8vw, 8.75rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -23,10 +23,11 @@
 }
 
 .heading {
+  overflow-wrap: anywhere;
   font-size: 3.5rem;
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.05;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.026em;
 }
 
 .lede {

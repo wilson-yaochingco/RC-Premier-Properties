@@ -4,7 +4,13 @@ import { cache } from "react";
 import type { PropertyFacetsResponse } from "@rc/shared";
 import propertiesImage from "@/assets/site/properties.png";
 import { EditorialCta } from "@/components/ui/EditorialCta";
-import { DevHomepagePreview } from "@/features/home/DevHomepagePreview";
+import { PageMotion } from "@/components/layout/PageMotion";
+import { ExplorePampangaSection } from "@/features/home/ExplorePampanga";
+import { PropertiesHero } from "@/features/properties/PropertiesHero";
+import {
+  PropertyJourney,
+  PropertyValues,
+} from "@/features/properties/PropertyEditorial";
 import {
   activeCatalogFixture,
   loadCatalogInventory,
@@ -13,9 +19,8 @@ import {
 import { PropertyCatalogCard } from "@/features/properties/PropertyCatalogCard";
 import { PropertyCatalogFilters } from "@/features/properties/PropertyCatalogFilters";
 import {
-  CatalogActiveFilters,
+  CatalogClearAll,
   CatalogHeading,
-  CatalogIntro,
   CatalogSort,
   CatalogInvalidFilters,
   CatalogUnavailable,
@@ -27,6 +32,7 @@ import {
   propertyFormValues,
   type RawSearchParams,
 } from "@/features/properties/property-query";
+import { wholePriceQuery } from "@/features/properties/property-price-filter";
 import { getPropertyFacets } from "@/features/properties/property.service";
 import {
   buildPropertiesMetadata,
@@ -60,16 +66,32 @@ export default async function PropertiesPage({
   searchParams,
 }: PageProps<"/properties">) {
   const rawSearchParams = (await searchParams) as RawSearchParams;
+  // These chips select exact counts; other API consumers retain minimum-count matching.
+  if (rawSearchParams.bedrooms) rawSearchParams.bedroomsMatch = "exact";
   const resultQuery = new URLSearchParams();
   Object.entries(rawSearchParams).forEach(([key, value]) => {
     const first = Array.isArray(value) ? value[0] : value;
     if (first && key !== "catalogFixture") resultQuery.set(key, first);
   });
+  let priceQueryChanged = false;
+  for (const key of ["minPrice", "maxPrice"] as const) {
+    const raw = resultQuery.get(key);
+    const whole = raw ? wholePriceQuery(raw) : undefined;
+    if (whole !== undefined && whole !== raw) {
+      resultQuery.set(key, whole);
+      priceQueryChanged = true;
+    }
+  }
+  if (priceQueryChanged)
+    redirect(
+      withCatalogFixture(
+        `/properties?${resultQuery}`,
+        activeCatalogFixture(rawSearchParams.catalogFixture),
+      ),
+    );
   const resultsHref = `/properties${resultQuery.size ? `?${resultQuery.toString()}` : ""}`;
   const values = propertyFormValues(rawSearchParams);
   const fixture = activeCatalogFixture(rawSearchParams.catalogFixture);
-  // A fixture supplies its own facets; the live endpoint is never mixed with fixture results.
-  const facetsPromise = fixture ? undefined : loadFacets();
   const inventory = await loadCatalogInventory(rawSearchParams, fixture);
   const response = inventory.status === "ready" ? inventory.response : undefined;
 
@@ -83,26 +105,12 @@ export default async function PropertiesPage({
     redirect(paginationHref(rawSearchParams, response.pagination.totalPages));
   }
 
-  const facets =
-    inventory.source === "fixture"
-      ? inventory.status === "ready"
-        ? inventory.facets
-        : undefined
-      : await facetsPromise;
-  const locationSeo = resolveLocationSeoState(rawSearchParams, facets);
-
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
-      <CatalogIntro location={locationSeo.location} count={locationSeo.count} />
-
-      <div className={styles.container}>
-        <PropertyCatalogFilters values={values} facets={facets} fixture={fixture} />
-        <CatalogActiveFilters
-          values={values}
-          searchParams={rawSearchParams}
-          fixture={fixture}
-        />
-      </div>
+      <PageMotion />
+      <PropertiesHero>
+        <PropertyCatalogFilters values={values} fixture={fixture} />
+      </PropertiesHero>
 
       <section className={styles.results} aria-labelledby="property-results-title">
         <div className={styles.container}>
@@ -110,11 +118,14 @@ export default async function PropertiesPage({
             <>
               <div className={styles.resultsBar}>
                 <CatalogHeading total={response.pagination.total} />
-                <CatalogSort
-                  current={values.sort}
-                  searchParams={rawSearchParams}
-                  fixture={fixture}
-                />
+                <div className={styles.resultsActions}>
+                  <CatalogClearAll values={values} fixture={fixture} />
+                  <CatalogSort
+                    current={values.sort}
+                    searchParams={rawSearchParams}
+                    fixture={fixture}
+                  />
+                </div>
               </div>
               {response.items.length > 0 ? (
                 <>
@@ -122,17 +133,55 @@ export default async function PropertiesPage({
                     className={styles.grid}
                     data-count={Math.min(response.items.length, 9)}
                     aria-label="Available properties"
+                    data-motion="sequence"
                   >
-                    {response.items.map((property, index) => (
-                      <li key={property.id}>
+                    {response.items.slice(0, 4).map((property, index) => (
+                      <li
+                        key={property.id}
+                        data-motion-step="photos"
+                        data-motion-at={index * 0.16}
+                      >
                         <PropertyCatalogCard
                           property={property}
                           resultsHref={resultsHref}
-                          priority={index < 3}
+                          priority={index < 2}
                         />
                       </li>
                     ))}
                   </ul>
+                  {response.items.length > 4 ? (
+                    <section
+                      className={styles.secondary}
+                      aria-labelledby="more-properties-heading"
+                    >
+                      <h2
+                        id="more-properties-heading"
+                        className={styles.sectionHeading}
+                        data-motion="heading"
+                      >
+                        More homes to <em>explore</em>
+                      </h2>
+                      <ul
+                        className={styles.secondaryGrid}
+                        aria-label="More available properties"
+                        data-motion="sequence"
+                      >
+                        {response.items.slice(4).map((property, index) => (
+                          <li
+                            key={property.id}
+                            data-motion-step="photos"
+                            data-motion-at={index * 0.12}
+                          >
+                            <PropertyCatalogCard
+                              property={property}
+                              resultsHref={resultsHref}
+                              compact
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
                   <PropertyPagination
                     pagination={response.pagination}
                     searchParams={rawSearchParams}
@@ -159,16 +208,25 @@ export default async function PropertiesPage({
         </div>
       </section>
 
+      <ExplorePampangaSection />
+      <PropertyValues />
+      <PropertyJourney
+        propertyHref={
+          response?.items[0]
+            ? `/properties/${response.items[0].slug}?from=${encodeURIComponent(resultsHref)}`
+            : undefined
+        }
+      />
+
       <EditorialCta
         id="properties-cta-heading"
         eyebrow="Still looking?"
-        headline={["Let’s find the right", "property for you."]}
+        headline={["Let’s find the right", "*property* for you"]}
         body="Tell us what matters most and RC Premier can help narrow the search around your location, budget, and property needs."
         label="Talk to RC Premier"
         href="/contact"
         wide
       />
-      <DevHomepagePreview />
     </main>
   );
 }

@@ -60,7 +60,7 @@ for (const viewport of viewports) {
     const dialog = page.getByRole("dialog", { name: "Primary navigation" });
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("link", { name: "Properties", exact: true }),
+      dialog.getByRole("link", { name: "About", exact: true }),
     ).toBeFocused();
     await expect(dialog.getByRole("link", { name: "Book a viewing" })).toHaveAttribute(
       "href",

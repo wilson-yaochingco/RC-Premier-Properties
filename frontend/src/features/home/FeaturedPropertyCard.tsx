@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RoutePending } from "@/components/ui/RoutePending";
 import type { PublicPropertySummary } from "@rc/shared";
 import { resolvePropertyMedia } from "../properties/development-sample-media";
 import { AreaIcon, BathIcon, BedIcon } from "../properties/PropertyCard";
@@ -32,6 +33,7 @@ export function FeaturedPropertyCard({
       aria-labelledby={titleId}
       aria-describedby={metaId}
     >
+      <RoutePending />
       <div className={styles.cardMedia}>
         <PropertyMedia
           media={media}

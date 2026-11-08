@@ -1,7 +1,7 @@
 .section {
   padding-block: clamp(1rem, 2vw, 2rem) clamp(3.5rem, 6vw, 5.5rem);
   background: var(--color-background);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -64,9 +64,9 @@
 .center h2 {
   margin-top: 1.25rem;
   font-size: clamp(2rem, 3.6vw, 3.25rem);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.06;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.026em;
 }
 
 .center h2 span {

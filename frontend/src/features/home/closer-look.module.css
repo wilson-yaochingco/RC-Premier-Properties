@@ -6,7 +6,7 @@
   padding-block: 0 clamp(4.5rem, 6vw, 7rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 /* Same container as the neighbouring sections: shared gutters, no outer cap (matches About). */
@@ -37,10 +37,11 @@
 }
 
 .heading {
+  overflow-wrap: anywhere;
   font-size: clamp(3rem, 4.2vw, 4rem);
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.026em;
 }
 
 .heading span {
@@ -239,7 +240,7 @@
   font-size: clamp(2.25rem, 3.3vw, 3.125rem);
   font-weight: 600;
   line-height: 1.08;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.026em;
   text-wrap: balance;
 }
 

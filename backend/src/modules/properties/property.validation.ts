@@ -40,6 +40,7 @@ const ALLOWED_QUERY_FIELDS = new Set([
   "minPrice",
   "maxPrice",
   "bedrooms",
+  "bedroomsMatch",
   "bathrooms",
   "minLotArea",
   "minFloorArea",
@@ -182,6 +183,7 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
     integer: true,
     maximum: MAX_ROOM_COUNT,
   });
+  const bedroomsMatch = enumValue(query, "bedroomsMatch", ["exact"] as const, issues);
   const bathrooms = nonNegativeNumber(query, "bathrooms", issues, {
     integer: true,
     maximum: MAX_ROOM_COUNT,
@@ -235,6 +237,7 @@ export function parsePropertySearchQuery(query: RawQuery): PropertySearchRequest
     ...(minPrice !== undefined ? { minPrice } : {}),
     ...(maxPrice !== undefined ? { maxPrice } : {}),
     ...(bedrooms !== undefined ? { bedrooms } : {}),
+    ...(bedrooms !== undefined && bedroomsMatch ? { bedroomsMatch } : {}),
     ...(bathrooms !== undefined ? { bathrooms } : {}),
     ...(minLotArea !== undefined ? { minLotArea } : {}),
     ...(minFloorArea !== undefined ? { minFloorArea } : {}),

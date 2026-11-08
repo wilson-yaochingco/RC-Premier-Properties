@@ -341,6 +341,47 @@ describe("admin property service", () => {
     expect(JSON.stringify(audits)).not.toContain(stored.url);
   });
 
+  it("tells the storage adapter where the upload belongs and records its provider identifier", async () => {
+    const stored = {
+      id: "media-kitchen",
+      url: "https://res.cloudinary.com/demo/image/upload/v1/rc-premier-properties/listings/home/home-kitchen.jpg",
+      publicId: "rc-premier-properties/listings/home/home-kitchen",
+    };
+    const store = vi.fn(async () => stored);
+    const mediaStorage: PropertyMediaStorage = {
+      store,
+      remove: async () => undefined,
+      publicIdFor: (url) => (url === stored.url ? stored.publicId : undefined),
+    };
+    const { service, repository } = makeService(mediaStorage);
+    const bytes = await sharp({
+      create: { width: 640, height: 800, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+
+    await service.uploadImage?.(
+      PROPERTY_ID,
+      { expectedVersion: 0, alt: "Kitchen with an island" },
+      bytes,
+      "image/png",
+      {
+        actorStaffIdentityId: "staff-safe-id",
+        requestId: "upload-request",
+        occurredAt: NOW,
+      },
+      { fileName: "home-kitchen" },
+    );
+
+    expect(store).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      folder: repository.record.slug,
+      label: "home-kitchen",
+      exactName: true,
+    });
+    expect(repository.record.gallery[0]?.publicId).toBe(stored.publicId);
+    expect(repository.record.coverMedia?.publicId).toBe(stored.publicId);
+  });
+
   it("never deletes a referenced upload when its post-commit audit write fails", async () => {
     const stored = {
       id: "media-audit-boundary",

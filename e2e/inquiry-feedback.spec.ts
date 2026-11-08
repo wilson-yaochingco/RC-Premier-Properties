@@ -111,7 +111,7 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     await expect(heading).toHaveText(/Find a home\s*worth coming\s*home to\./);
     await expectNoOverflow(page, heading);
     await expect(
-      page.getByRole("img", { name: /Modern luxury home at twilight/ }),
+      page.getByRole("img", { name: "Contemporary RC Premier residential exterior" }),
     ).toBeVisible();
     const hero = page.locator('section[aria-labelledby="home-heading"]');
     await hero.getByRole("link", { name: "Browse properties" }).click();
