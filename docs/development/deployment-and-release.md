@@ -163,6 +163,35 @@ Object-storage and email variables do not exist yet because no real adapter/prov
 selected. Add provider-specific server-only variables with the adapter, never speculative
 generic keys and never `NEXT_PUBLIC_*` secrets.
 
+## Shared API rate limits and Vercel edge protection
+
+In production (`NODE_ENV=production`), the baseline API, login-start and inquiry limiters
+share MongoDB's `ratelimits` collection across application instances. Their budgets and
+responses remain 300 API requests, 10 login starts and 5 inquiry submissions per client
+per 15-minute window. Development and tests default to memory stores. The MongoDB store
+atomically increments and resets expired windows in one update pipeline; its `$add` is
+the pipeline equivalent of `$inc`. A TTL index on `resetAt` removes expired records;
+correctness does not depend on TTL deletion timing. Keys are SHA-256 hashes of the limiter
+namespace plus the client key, never raw IP addresses. The first store operation creates
+the index after connection, and store/index failures fail closed through error handling.
+
+**Before any Vercel deployment, measure and explicitly set `TRUST_PROXY_HOPS`.** Wilson
+must inspect the staging forwarded-header chain in Phase 5, then verify distinct clients
+get distinct budgets and forged forwarding headers cannot create new ones. No Vercel hop
+count has been assumed. The platform is the socket peer; trusting zero hops there puts
+all clients in one bucket. The default limiter key still comes from Express `req.ip`.
+
+Wilson configures these Vercel Firewall rules later, as an additional edge layer:
+
+| Match                    | Per-client budget          | Purpose                                        |
+| ------------------------ | -------------------------- | ---------------------------------------------- |
+| `/api/v1/auth/login`     | 10 requests per 15 minutes | Bound authorization starts before the function |
+| `POST /api/v1/inquiries` | 5 requests per 15 minutes  | Bound public form abuse before the function    |
+
+Validate the edge client-IP identification, available window settings and legitimate
+traffic in staging before enabling enforcement. These rules do not replace the MongoDB
+application limits. No Firewall rules or deployment settings were changed in Phase 3.
+
 ## Secret handling and artifact hygiene
 
 Put secrets in the hosting platform's encrypted environment/secret store, separated by

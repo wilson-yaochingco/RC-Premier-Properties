@@ -18,6 +18,9 @@ import { API_PREFIX, AUTH_PERMISSIONS } from "@rc/shared";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { rateLimitStores } from "./helpers/rate-limit-stores.js";
+import { createLoginRateLimit } from "../src/middleware/loginRateLimit.js";
+import { createApiRateLimit } from "../src/middleware/rateLimit.js";
 import { errorHandler, HttpError } from "../src/middleware/errorHandler.js";
 import { requestContext } from "../src/middleware/requestContext.js";
 import { createAuthCookieSettings } from "../src/modules/auth/auth.cookies.js";
@@ -873,25 +876,33 @@ describe("Phase 3A authentication HTTP boundary", () => {
     expect(cookie).not.toContain("Domain=");
   });
 
-  it("rate limits repeated login starts with the shared error envelope", async () => {
-    const app = createApp({
-      auth: { service: auth.service, cookies: auth.cookies },
-      propertyService: makePropertyService(),
-      inquiryRateLimit: passThrough,
-    });
+  it.each(rateLimitStores())(
+    "rate limits repeated login starts with the shared error envelope ($name)",
+    async ({ create }) => {
+      const app = createApp({
+        applicationRateLimit: createApiRateLimit(create("login-api")),
+        auth: {
+          service: auth.service,
+          cookies: auth.cookies,
+          loginRateLimit: createLoginRateLimit(create("login-starts")),
+        },
+        propertyService: makePropertyService(),
+        inquiryRateLimit: passThrough,
+      });
 
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      expect((await request(app).get(`${API_PREFIX}/auth/login`)).status).toBe(302);
-    }
-    const limited = await request(app).get(`${API_PREFIX}/auth/login`);
-    expect(limited.status).toBe(429);
-    expect(limited.body).toEqual({
-      status: "error",
-      statusCode: 429,
-      message: "Too many login attempts, please try again later.",
-    });
-    expect(limited.headers["cache-control"]).toBe("no-store");
-  });
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        expect((await request(app).get(`${API_PREFIX}/auth/login`)).status).toBe(302);
+      }
+      const limited = await request(app).get(`${API_PREFIX}/auth/login`);
+      expect(limited.status).toBe(429);
+      expect(limited.body).toEqual({
+        status: "error",
+        statusCode: 429,
+        message: "Too many login attempts, please try again later.",
+      });
+      expect(limited.headers["cache-control"]).toBe("no-store");
+    },
+  );
 
   it("rate limits callback failures separately with one generic response", async () => {
     const app = createApp({

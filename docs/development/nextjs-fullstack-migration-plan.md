@@ -1,6 +1,6 @@
 # Next.js full-stack migration plan
 
-Status: **Phases 0-1 complete; Phase 2 implemented with automated gate evidence; owner Auth0 verification pending.** Implementer: Codex, Phases 0–4.
+Status: **Phases 0-3 implemented; Phase 2 automated gate passed; owner Auth0 verification pending. Phase 4 not started.** Implementer: Codex, Phases 0–4.
 Phases 5–7 are later deployment activities handled with Wilson. This document is self-contained for
 Claude Code and Codex. Read `AGENTS.md` first; its rules apply, especially: ESM `.js` import suffixes in
 the backend, API shapes only from `@rc/shared`, no `process.env` reads outside the env modules, and
@@ -406,6 +406,19 @@ into the one project.
 
 ### Implementation record (2026-11-08)
 
+- Phase 3: production API, login-start and inquiry limiters now share the MongoDB
+  `ratelimits` collection with namespaced SHA-256 keys, a TTL index and a single atomic
+  window-reset/increment pipeline (`$add`, the pipeline equivalent of `$inc`). Development
+  and tests retain memory defaults. Limits, responses and explicit proxy trust are unchanged.
+  Two application instances enforce one inquiry budget; limiter assertions run against both stores.
+  Vercel Firewall login/inquiry rules are documented in
+  [deployment guidance](deployment-and-release.md#shared-api-rate-limits-and-vercel-edge-protection)
+  for Wilson to configure later. Measure `TRUST_PROXY_HOPS` before any deployment: the
+  Vercel socket peer is the platform, so a zero-hop setting shares one bucket across clients.
+  Validation: 106 affected tests and all 549 unit/API tests (55 files) passed; workspace
+  typecheck, lint and targeted formatting passed. Full build/e2e remain the Phase 4 milestone;
+  the two known admin-radius browser failures are untouched.
+
 - Phase 2: added the Pages API adapter with body parsing disabled, opaque runtime backend import,
   API-only workspace/runtime dependency tracing, and a request-contract/cookie unit test. Production
   and isolated dev same-origin proofs passed against TLS in-memory MongoDB; unreachable-placeholder
@@ -416,7 +429,7 @@ into the one project.
   passed. Full browser suite: 237 passed, 2 skipped, 4 failed. The header and location scroll-fill
   failures passed together on an isolated one-worker rerun (2 passed); the two known admin-radius
   failures remain unchanged. Production audit: zero vulnerabilities. Auth0 MFA login, real session,
-  successful CSRF-protected write and logout require owner verification; Phases 3-4 have not started.
+  successful CSRF-protected write and logout require owner verification; Phase 3 is recorded above and Phase 4 has not started.
 
 - Phase 1: added the backend serverless export with a reused Express app, shared/retryable MongoDB connection and Vercel pool attachment. Health bypasses connection startup; other requests fail with the existing 503 envelope while MongoDB is unavailable. Next API helpers are removed before Express runs. The Render entry is unchanged; the Next adapter is not implemented yet.
 - Phase 1 checks: 372 backend tests across 24 files passed (including 4 new serverless tests); backend build emitted `dist/serverless.js`; workspace typecheck, lint and targeted formatting passed. Production dependency audit reports zero vulnerabilities. Full browser/milestone checks remain for the Phase 2 gate; the two known admin-radius failures are untouched.
