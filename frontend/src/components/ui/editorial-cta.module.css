@@ -1,0 +1,199 @@
+.section {
+  padding-block: clamp(1rem, 2vw, 2rem) clamp(3.5rem, 6vw, 5.5rem);
+  background: var(--color-background);
+  font-family: var(--font-general-sans), sans-serif;
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 3vw, 3rem);
+}
+
+/* One continuous surface; the line art is printed on it and clipped by the card shape. */
+.card {
+  position: relative;
+  display: flex;
+  min-height: clamp(23.75rem, 30vw, 28.75rem);
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+  background: var(--color-brand-deep);
+  color: var(--color-background);
+}
+
+/* The drawings are portrait, anchored low, and run past the bottom edge on purpose. */
+.house {
+  position: absolute;
+  bottom: -11%;
+  width: auto;
+  height: 128%;
+  max-width: none;
+  pointer-events: none;
+}
+
+.left {
+  left: 0;
+}
+
+.right {
+  right: 0;
+}
+
+.center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2.5rem, 4vw, 3.75rem) clamp(1.5rem, 4vw, 4rem);
+  text-align: center;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.center h2 {
+  margin-top: 1.25rem;
+  font-size: clamp(2rem, 3.6vw, 3.25rem);
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: -0.026em;
+}
+
+.center h2 span {
+  display: block;
+}
+
+.body {
+  max-width: 30rem;
+  margin-top: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: rgb(248 246 241 / 70%);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  margin-top: 1.75rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-cta);
+  background: var(--color-background);
+  color: var(--color-brand-deep);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--color-background);
+  outline-offset: 3px;
+}
+
+.cta svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.cta:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+.wide .container {
+  max-width: none;
+}
+
+@media (min-width: 64rem) {
+  .wide .center {
+    max-width: 43rem;
+    margin-inline: auto;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cta:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+/*
+ * Tablet: smaller drawings cropped harder toward the outer lower corners, at full clarity.
+ * They are sized and cropped, never faded; the centre reserves matching side space.
+ */
+@media (max-width: 63.99rem) {
+  .house {
+    bottom: -12%;
+    width: 9.5rem;
+    height: auto;
+  }
+
+  .center {
+    padding-inline: 10.5rem;
+  }
+}
+
+/*
+ * About banner: below desktop the drawings keep a substantial size and crop off the card edge
+ * instead of shrinking; the centre reserves exactly the visible part.
+ */
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .wide .house {
+    bottom: -12%;
+    width: clamp(15rem, 31vw, 19rem);
+    height: auto;
+  }
+
+  .wide .left {
+    left: calc(11.4vw - 9.9rem);
+  }
+
+  .wide .right {
+    right: calc(11.4vw - 9.9rem);
+  }
+
+  .wide .center {
+    padding-inline: calc(37.25vw - 6.6rem);
+  }
+}
+
+/* Large mobile and below: no architecture; a clean, compact dark card. */
+@media (max-width: 47.99rem) {
+  .card {
+    min-height: 0;
+  }
+
+  .house {
+    display: none;
+  }
+
+  .center {
+    padding: 2.25rem 2rem;
+  }
+}
+
+@media (max-width: 37.49rem) {
+  .center {
+    padding: 1.875rem 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta svg {
+    transition: none;
+  }
+}

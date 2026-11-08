@@ -44,10 +44,40 @@ describe("controlled beta configuration", () => {
     const fetch = vi.spyOn(globalThis, "fetch");
     try {
       const rules = await createNextConfig("phase-production-build").headers();
-      expect(rules.find((rule) => rule.source === "/:path*")?.headers).toContainEqual({
+      expect(rules[0].headers).toContainEqual({
         key: "X-Robots-Tag",
         value: "noindex, nofollow, noarchive",
       });
+      const pageRule = rules[0];
+      const matcher = new RegExp(`^${pageRule.source}$`);
+      for (const page of [
+        "/",
+        "/properties",
+        "/admin",
+        "/admin/properties",
+        "/geo",
+        "/geo/regions",
+      ])
+        expect(matcher.test(page)).toBe(true);
+      for (const api of ["/api", "/api/v1/health", "/api/v1/auth/login"])
+        expect(matcher.test(api)).toBe(false);
+      expect(pageRule.headers.map(({ key }) => key)).toEqual(
+        expect.arrayContaining([
+          "X-Robots-Tag",
+          "X-Content-Type-Options",
+          "X-Frame-Options",
+          "Referrer-Policy",
+          "Permissions-Policy",
+          "Content-Security-Policy",
+          "Strict-Transport-Security",
+        ]),
+      );
+      expect(
+        rules.find(({ source }) => source === "/admin/:path*")?.headers,
+      ).toContainEqual({ key: "Cache-Control", value: "private, no-store, max-age=0" });
+      expect(
+        rules.find(({ source }) => source === "/geo/:path*")?.headers,
+      ).toContainEqual(expect.objectContaining({ key: "Cache-Control" }));
       expect(robots()).toEqual({ rules: { userAgent: "*", disallow: "/" } });
       expect(
         buildPageMetadata({ title: "Beta", description: "Beta", canonicalPath: "/" })

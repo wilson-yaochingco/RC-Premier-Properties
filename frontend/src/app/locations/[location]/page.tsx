@@ -7,6 +7,7 @@ import type { PropertyFacetsResponse, PropertySearchResponse } from "@rc/shared"
 import locationImage from "@/assets/site/location.png";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { resolveLocationFacet } from "@/features/locations/featured-locations";
 import { LocationInventoryMap } from "@/features/locations/LocationInventoryMap";
 import { getLocationEditorialContent } from "@/features/locations/location-content";
 import {
@@ -31,13 +32,10 @@ import {
   getPropertyFacets,
 } from "@/features/properties/property.service";
 import propertyStyles from "@/features/properties/properties.module.css";
-import {
-  findPublicLocationBySlug,
-  publicLocationPath,
-  shortPublicLocation,
-} from "@/lib/public-location";
+import { publicLocationPath, shortPublicLocation } from "@/lib/public-location";
 import { serializeJsonLd } from "@/lib/seo";
 import { ApiClientError } from "@/services/api-client";
+import { PageMotion } from "@/components/layout/PageMotion";
 
 export const dynamic = "force-dynamic";
 
@@ -93,15 +91,18 @@ export async function generateMetadata({
     searchParams as Promise<RawSearchParams>,
     loadFacets(),
   ]);
-  const match = findPublicLocationBySlug(slug, facets?.locationCounts ?? []);
-  if (!match) return nonpublicLocationMetadata();
+  // An unreachable index is not proof the location is missing; only a loaded index is.
+  if (!facets) return nonpublicLocationMetadata();
+  const match = resolveLocationFacet(slug, facets.locationCounts ?? []);
+  if (!match) notFound();
   const editorial = getLocationEditorialContent(match.location);
 
   return buildLocationMetadata({
     location: match.location,
     count: match.count,
     imagePath: editorial?.scenery.imagePath ?? locationImage.src,
-    noIndex: !isStableLocationState(rawSearchParams),
+    // A curated location with nothing published yet stays reachable but is not indexed.
+    noIndex: !isStableLocationState(rawSearchParams) || match.count === 0,
   });
 }
 
@@ -132,7 +133,7 @@ export default async function LocationDetailPage({
     );
   }
 
-  const locationFacet = findPublicLocationBySlug(slug, facets.locationCounts ?? []);
+  const locationFacet = resolveLocationFacet(slug, facets.locationCounts ?? []);
   if (!locationFacet) notFound();
 
   const locationName = shortPublicLocation(locationFacet.location);
@@ -179,6 +180,7 @@ export default async function LocationDetailPage({
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
+      <PageMotion />
       {structuredData ? (
         <script
           type="application/ld+json"
@@ -196,7 +198,7 @@ export default async function LocationDetailPage({
             <span aria-current="page">{locationName}</span>
           </nav>
           <div className={styles.detailHeroGrid}>
-            <figure className={styles.detailMedia}>
+            <figure className={styles.detailMedia} data-enter="image">
               <Image
                 src={heroScenery?.imagePath ?? locationImage}
                 alt={
@@ -227,7 +229,7 @@ export default async function LocationDetailPage({
                 </figcaption>
               ) : null}
             </figure>
-            <div className={styles.detailTitle}>
+            <div className={styles.detailTitle} data-enter data-enter-delay="2">
               <p>Pampanga location guide</p>
               <h1 id="location-title">{locationName}</h1>
               <p>
@@ -236,7 +238,7 @@ export default async function LocationDetailPage({
               </p>
             </div>
           </div>
-          <dl className={styles.facts}>
+          <dl className={styles.facts} data-enter data-enter-delay="4">
             <div>
               <dt>Published inventory</dt>
               <dd>
@@ -260,7 +262,9 @@ export default async function LocationDetailPage({
         <Container className={`${styles.guideContainer} ${styles.detailIntroGrid}`}>
           <p>Location overview</p>
           <div>
-            <h2 id="location-overview-title">Find a property in {locationName}.</h2>
+            <h2 id="location-overview-title" data-motion="heading">
+              Find a property in {locationName}.
+            </h2>
             <p>
               The listings below reflect current published properties. Map locations use
               only the level of detail approved for each home.
@@ -272,7 +276,9 @@ export default async function LocationDetailPage({
       <section className={styles.inventory} aria-labelledby="location-inventory-title">
         <Container className={styles.guideContainer}>
           <div className={styles.inventoryHeader}>
-            <h2 id="location-inventory-title">Properties in {locationName}</h2>
+            <h2 id="location-inventory-title">
+              Properties in <em>{locationName}</em>
+            </h2>
             <p aria-live="polite">
               {response
                 ? `${response.pagination.total.toLocaleString("en-PH")} matching ${response.pagination.total === 1 ? "property" : "properties"}`
@@ -333,6 +339,14 @@ export default async function LocationDetailPage({
                     omitLocation
                   />
                 </>
+              ) : locationFacet.count === 0 ? (
+                <EmptyState
+                  eyebrow="No published properties yet"
+                  title={`No homes are published in ${locationName} right now.`}
+                  description="New listings appear here as soon as they are published. You can browse every current property, or ask RC Premier about this area."
+                  actionLabel="Browse all properties"
+                  actionHref="/properties"
+                />
               ) : (
                 <EmptyState
                   eyebrow="No matching inventory"

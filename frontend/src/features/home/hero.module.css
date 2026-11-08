@@ -1,0 +1,1494 @@
+.hero {
+  --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-sans: var(--font-general-sans), sans-serif;
+  /* Stays put while the next section slides over it (see the layered-hero rule in globals). */
+  position: sticky;
+  top: 0;
+  isolation: isolate;
+  height: 100vh;
+  min-height: 100vh;
+  color: var(--color-surface);
+  background: var(--color-brand-deep);
+  font-family: var(--font-sans);
+}
+
+.backdrop,
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 45%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.image[data-ready="true"] {
+  opacity: 1;
+  transition: opacity 180ms ease-out;
+}
+
+.shade {
+  z-index: 0;
+  background: linear-gradient(
+    to top,
+    rgb(15 19 25 / 58%) 0%,
+    rgb(15 19 25 / 40%) 45%,
+    rgb(15 19 25 / 30%) 100%
+  );
+}
+
+.content {
+  position: absolute;
+  left: clamp(2rem, 2.5vw, 3rem);
+  bottom: 3.5rem;
+  max-width: 42rem;
+}
+
+.logo {
+  width: clamp(5.5rem, 9vw, 8rem);
+  height: auto;
+  margin-bottom: 1.75rem;
+  color: #fff;
+}
+
+.title {
+  font-family: var(--font-sans);
+  font-size: clamp(4rem, 4.8vw, 5.25rem);
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 0.96;
+}
+
+.intro {
+  max-width: 28rem;
+  margin-top: 1.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 90%);
+}
+
+.textLink {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.textLink > span:not([aria-hidden]) {
+  text-decoration: underline;
+  text-underline-offset: 0.3rem;
+  text-decoration-color: rgb(255 255 255 / 55%);
+  transform-origin: left center;
+  transition:
+    transform 300ms var(--hero-ease),
+    text-decoration-color 220ms var(--hero-ease);
+}
+
+.textLink svg,
+.viewing svg {
+  flex-shrink: 0;
+  transform: rotate(-45deg);
+  transform-box: border-box;
+  transform-origin: center;
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.textLink:is(:hover, :focus-visible) svg {
+  transform: rotate(0deg);
+}
+
+.viewing:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .viewing:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+.textLink:is(:hover, :focus-visible) > span:not([aria-hidden]) {
+  transform: scale(1.015);
+}
+
+.textLink:is(:hover, :focus-visible) > span:not([aria-hidden]) {
+  text-decoration-color: currentColor;
+}
+
+.card {
+  position: absolute;
+  right: clamp(2rem, 2.5vw, 3rem);
+  bottom: 2rem;
+  width: clamp(17.5rem, 18vw, 20rem);
+  padding: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: var(--radius-editorial);
+  background: rgb(37 44 54 / 60%);
+  transition:
+    transform 350ms var(--hero-ease),
+    border-color 350ms var(--hero-ease),
+    background-color 350ms var(--hero-ease);
+}
+
+.cardImage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 10px 0 10px 0;
+}
+
+.cardImage img {
+  object-fit: cover;
+  transition: transform 350ms var(--hero-ease);
+}
+
+.card p {
+  padding: 1rem 0.5rem 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.card .textLink {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-inline: 0.5rem;
+}
+
+.scroll {
+  --scroll-height: 40px;
+  --scroll-padding: 6px;
+  --scroll-dot: 5px;
+  --scroll-border: 1px;
+  position: absolute;
+  bottom: 2rem;
+  left: calc(50% - 10px);
+  width: 20px;
+  height: var(--scroll-height);
+  padding-top: var(--scroll-padding);
+  border: var(--scroll-border) solid rgb(255 255 255 / 80%);
+  border-radius: 12px;
+}
+
+.scroll span {
+  display: block;
+  width: var(--scroll-dot);
+  height: var(--scroll-dot);
+  margin-inline: auto;
+  border-radius: 50%;
+  background: var(--color-surface);
+  animation: scroll-guidance 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes scroll-guidance {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(
+      calc(
+        var(--scroll-height) - 2 * var(--scroll-border) - 2 * var(--scroll-padding) -
+          var(--scroll-dot)
+      )
+    );
+  }
+}
+
+.header {
+  --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-sans: var(--font-general-sans), sans-serif;
+  position: absolute;
+  z-index: 40;
+  top: 1.75rem;
+  right: clamp(2rem, 2.5vw, 3rem);
+  display: flex;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+}
+
+.menuControls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.menuLabel {
+  display: grid;
+}
+
+.menuLabel > span {
+  grid-area: 1 / 1;
+  transition: opacity 280ms var(--hero-ease);
+}
+
+.menuLabel > span[aria-hidden="true"] {
+  opacity: 0;
+}
+
+.viewing,
+.header :global(.mobile-navigation__trigger) {
+  min-height: 2.75rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  transition:
+    transform 220ms var(--hero-ease),
+    color 300ms var(--hero-ease),
+    background-color 300ms var(--hero-ease),
+    border-color 300ms var(--hero-ease);
+}
+
+.viewing {
+  border-radius: var(--radius-cta);
+}
+
+.viewing:is(:hover, :focus-visible) {
+  background: var(--color-background);
+}
+
+.header :global(.mobile-navigation__trigger):is(:hover, :focus-visible) {
+  border-color: rgb(255 255 255 / 65%);
+  background: var(--color-brand);
+}
+
+.header :global(.mobile-navigation__trigger):active {
+  transform: translateY(1px);
+}
+
+.card:focus-within {
+  border-color: rgb(255 255 255 / 45%);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: rgb(255 255 255 / 45%);
+    background: rgb(37 44 54 / 72%);
+  }
+
+  .card:hover .cardImage img {
+    transform: scale(1.025);
+  }
+
+  .card:hover .textLink svg {
+    transform: rotate(0deg);
+  }
+
+  .card:hover .textLink > span {
+    transform: scale(1.015);
+    text-decoration-color: currentColor;
+  }
+}
+
+.viewing {
+  background: var(--color-surface);
+  color: var(--color-brand-deep);
+}
+
+.header :global(.mobile-navigation) {
+  display: block;
+}
+
+.header :global(.mobile-navigation__trigger) {
+  position: relative;
+  z-index: 2;
+  flex-direction: row-reverse;
+  color: var(--color-surface);
+  background: var(--color-brand-deep);
+}
+
+.header :global(.mobile-navigation__panel) {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.75rem clamp(2rem, 2.5vw, 3rem) 2rem;
+  isolation: isolate;
+  z-index: 1;
+  overflow-y: auto;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  background: #202630;
+  color: var(--color-surface);
+  transform: none;
+  transition:
+    opacity 350ms var(--hero-ease),
+    visibility 0s linear 350ms;
+}
+
+.header :global(.mobile-navigation__panel[data-open="true"]) {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity 350ms var(--hero-ease),
+    visibility 0s;
+}
+
+.menuLogoLink {
+  display: block;
+  width: fit-content;
+  line-height: 0;
+}
+
+.menuLogo {
+  width: 79px;
+  height: auto;
+  color: #fff;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 280ms var(--hero-ease),
+    transform 280ms var(--hero-ease);
+}
+
+@media (max-width: 70rem) {
+  .menuLogo {
+    width: 68px;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .menuLogo {
+    width: 57px;
+  }
+}
+
+@media (max-width: 48rem) {
+  .hero {
+    height: 100svh;
+    min-height: 100svh;
+  }
+
+  .header {
+    top: max(1rem, env(safe-area-inset-top));
+    right: 1.25rem;
+  }
+
+  .viewing,
+  .viewing > span,
+  .header :global(.mobile-navigation__trigger) {
+    padding-inline: 0.75rem;
+    font-size: 0.6875rem;
+  }
+
+  .content {
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: 4rem;
+  }
+
+  .title {
+    font-size: clamp(2.75rem, 10.5vw, 4rem);
+  }
+
+  .logo {
+    width: 7.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .intro {
+    max-width: 23rem;
+    margin-top: 1.25rem;
+    font-size: 1rem;
+  }
+
+  .card {
+    display: none;
+  }
+
+  .scroll {
+    bottom: 1rem;
+    --scroll-height: 32px;
+  }
+}
+
+@media (max-height: 650px) and (min-width: 49rem) {
+  .title {
+    font-size: 3.5rem;
+  }
+
+  .logo {
+    width: 6rem;
+    margin-bottom: 1rem;
+  }
+
+  .content {
+    bottom: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header :global(.mobile-navigation__panel *) {
+    transition: none !important;
+  }
+
+  .header :global(.mobile-navigation__panel),
+  .header :global(.mobile-navigation__panel[data-open="true"]),
+  .header :global(.mobile-navigation__panel li),
+  .header :global(.mobile-navigation__panel li a),
+  .header :global(.mobile-navigation__footer),
+  .menuLabel > span,
+  .menuLogo {
+    transform: none;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+
+  .header :global(.mobile-navigation__panel li),
+  .header :global(.mobile-navigation__panel li a:is(:hover, :focus-visible)),
+  .menuLink,
+  .menuArrow,
+  .menuSocials a:is(:hover, :focus-visible) {
+    transform: none;
+  }
+  .scroll span {
+    animation: none;
+  }
+
+  .textLink svg,
+  .textLink > span,
+  .viewing,
+  .viewing svg,
+  .card,
+  .cardImage img,
+  .header :global(.mobile-navigation__trigger),
+  .header :global(.mobile-navigation__panel) {
+    transition: none;
+  }
+
+  .textLink:is(:hover, :focus-visible) > span:not([aria-hidden]),
+  .viewing:is(:hover, :focus-visible) > span,
+  .header :global(.mobile-navigation__trigger):active,
+  .card:hover,
+  .card:hover .cardImage img,
+  .card:hover .textLink > span {
+    transform: none;
+  }
+}
+
+/* Only the toolbar moves; the shared fixed menu keeps the viewport as its container. */
+.stickyLogo {
+  display: none;
+}
+
+/* Properties keeps the shared toolbar over its photograph before it becomes sticky. */
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"] {
+  left: clamp(1.25rem, 4vw, 5rem);
+  right: clamp(1.25rem, 4vw, 5rem);
+  align-items: center;
+  justify-content: space-between;
+  color: #f8f6f1;
+}
+
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"]
+  .stickyLogo {
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"]
+  .stickyLogo
+  :global(.brand-logo svg) {
+  color: #f8f6f1;
+}
+
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"]
+  .menuLogo {
+  visibility: hidden;
+}
+
+@media (max-width: 39.99rem) {
+  .header:is(
+      [data-properties-hero="true"],
+      [data-locations-hero="true"]
+    )[data-sticky="false"]:not([data-menu-open="true"])
+    .viewing {
+    display: none;
+  }
+}
+
+.header[data-sticky="true"] {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 96px;
+  padding-inline: clamp(3rem, 4vw, 4rem);
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-brand-deep);
+}
+
+.header[data-sticky="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header[data-sticky="true"] .stickyLogo {
+  position: relative;
+  display: block;
+}
+
+.stickyLogo :global(.brand-logo),
+.stickyLogo :global(.brand-logo svg) {
+  width: 112px;
+  height: auto;
+}
+
+.header[data-motion="true"]::before,
+.header[data-motion="true"] .stickyLogo,
+.header[data-motion="true"] .menuControls {
+  transition: transform 330ms var(--hero-ease);
+}
+
+.header[data-sticky="true"] .viewing,
+.header[data-sticky="true"] :global(.mobile-navigation__trigger) {
+  min-height: 3rem;
+  padding-inline: 1.25rem;
+}
+
+.header[data-hidden="true"] {
+  pointer-events: none;
+}
+
+.header[data-hidden="true"]::before {
+  transform: translateY(-100%);
+}
+
+.header[data-hidden="true"] :is(.stickyLogo, .menuControls) {
+  transform: translateY(calc(-100% - 36px));
+}
+
+.header[data-sticky="true"]:not([data-menu-expanded="true"])
+  :global(.mobile-navigation__trigger) {
+  color: var(--color-brand-deep);
+  background: transparent;
+  border-color: rgb(37 44 54 / 35%);
+}
+
+.header[data-sticky="true"]:not([data-menu-expanded="true"]) .viewing {
+  background: var(--color-brand-deep);
+  color: var(--color-surface);
+  border-color: var(--color-brand-deep);
+}
+
+/* The controls stay where they were clicked; only their state changes. */
+.header[data-menu-open="true"] :is(.menuControls, .stickyLogo) {
+  transform: none;
+  transition: none;
+}
+
+@media (min-width: 48.01rem) and (max-width: 70rem) {
+  .hero {
+    height: 100svh;
+    min-height: 100svh;
+  }
+
+  .image {
+    object-position: 58% 45%;
+  }
+
+  .content {
+    left: 2rem;
+    bottom: 5rem;
+    max-width: 32rem;
+  }
+
+  .title {
+    font-size: clamp(3.125rem, 5.8vw, 4rem);
+  }
+
+  .logo {
+    width: 8rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .intro {
+    max-width: 23rem;
+    font-size: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .card {
+    width: 15rem;
+    right: 2rem;
+    bottom: 2rem;
+  }
+
+  .header[data-sticky="true"] {
+    height: 84px;
+    padding-inline: 2.25rem;
+  }
+
+  .stickyLogo :global(.brand-logo),
+  .stickyLogo :global(.brand-logo svg) {
+    width: 112px;
+  }
+}
+
+@media (max-width: 48rem) {
+  .image {
+    object-position: 60% 45%;
+  }
+
+  .header {
+    top: calc(1rem + env(safe-area-inset-top));
+    right: 1rem;
+  }
+
+  .viewing > span {
+    padding: 0;
+  }
+
+  .content {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  .title {
+    font-size: clamp(2.375rem, 11.8vw, 3rem);
+    line-height: 0.97;
+  }
+
+  .logo {
+    width: 112px;
+    margin-bottom: 1.375rem;
+  }
+
+  .intro {
+    max-width: 20rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    margin-top: 1.125rem;
+  }
+
+  .textLink {
+    margin-top: 0.75rem;
+  }
+
+  .scroll {
+    bottom: calc(1.125rem + env(safe-area-inset-bottom));
+  }
+
+  .header[data-sticky="true"] {
+    height: calc(70px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 1.25rem 0;
+  }
+
+  .header[data-sticky="true"] .viewing,
+  .header[data-sticky="true"] :global(.mobile-navigation__trigger) {
+    min-height: 2.75rem;
+    padding-inline: 1rem;
+  }
+
+  .stickyLogo :global(.brand-logo),
+  .stickyLogo :global(.brand-logo svg) {
+    width: 98px;
+  }
+
+  .header[data-sticky="true"]:not([data-menu-open="true"]) .viewing {
+    display: none;
+  }
+}
+
+@media (min-width: 40rem) and (max-width: 48rem) {
+  .image {
+    object-position: 56% 45%;
+  }
+
+  .content {
+    left: 2rem;
+    right: 2rem;
+    bottom: 5rem;
+  }
+
+  .title {
+    font-size: clamp(3.125rem, 7.5vw, 3.75rem);
+  }
+
+  .logo {
+    width: 120px;
+  }
+
+  .intro {
+    max-width: 22rem;
+    font-size: 1rem;
+  }
+
+  .header[data-sticky="true"]:not([data-menu-open="true"]) .viewing {
+    display: inline-flex;
+  }
+
+  .header[data-sticky="true"] {
+    height: 84px;
+    padding: env(safe-area-inset-top) 2.25rem 0;
+  }
+
+  .header[data-sticky="true"] .viewing,
+  .header[data-sticky="true"] :global(.mobile-navigation__trigger) {
+    min-height: 3rem;
+    padding-inline: 1.25rem;
+  }
+
+  .stickyLogo :global(.brand-logo),
+  .stickyLogo :global(.brand-logo svg) {
+    width: 112px;
+  }
+}
+
+@media (max-width: 48rem) and (min-height: 780px) {
+  .card {
+    display: grid;
+    grid-template-columns: clamp(5.25rem, 27vw, 6.25rem) minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    column-gap: 0.75rem;
+    left: 1.5rem;
+    right: auto;
+    bottom: calc(1.75rem + env(safe-area-inset-bottom));
+    width: min(22rem, calc(100% - 3rem));
+    padding: 0.75rem;
+    border-color: rgb(255 255 255 / 18%);
+    background: rgb(32 38 48 / 92%);
+  }
+
+  .cardImage {
+    grid-row: 1 / 3;
+    aspect-ratio: auto;
+    height: 5.125rem;
+    align-self: start;
+  }
+
+  .card p {
+    padding: 0;
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  .card .textLink {
+    grid-column: 2;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    min-height: 1.75rem;
+    margin-top: 0.5rem;
+    padding-inline: 0;
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 22.49rem) {
+  .header:not([data-menu-open="true"]) .viewing {
+    display: none;
+  }
+}
+
+@media (max-width: 70rem) and (max-height: 500px) {
+  .content {
+    bottom: 1rem;
+  }
+
+  .logo {
+    width: 90px;
+    margin-bottom: 0.75rem;
+  }
+
+  .title {
+    font-size: 2.375rem;
+  }
+
+  .intro {
+    margin-top: 0.75rem;
+    max-width: 20rem;
+    font-size: 0.875rem;
+  }
+
+  .textLink {
+    margin-top: 0.375rem;
+  }
+
+  .card {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header[data-motion="true"]::before,
+  .header[data-motion="true"] .stickyLogo,
+  .header[data-motion="true"] .menuControls {
+    transition: none;
+  }
+}
+
+.menuViewingTop {
+  display: contents;
+}
+
+.menuViewingInline {
+  display: none;
+}
+
+.header .stickyLogo :global(.brand-logo) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 58px;
+}
+
+.header .stickyLogo :global(.brand-logo svg) {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+  color: var(--color-brand-deep);
+  transition: color 300ms var(--hero-ease);
+}
+
+/* One persistent mark: it sits above the menu and only changes colour. */
+.header[data-sticky="true"] .stickyLogo {
+  z-index: 2;
+}
+
+.header[data-sticky="true"][data-menu-expanded="true"]
+  .stickyLogo
+  :global(.brand-logo svg) {
+  color: var(--color-surface);
+}
+
+.header[data-sticky="true"] .menuLogo {
+  visibility: hidden;
+}
+
+@media (min-width: 40rem) and (max-width: 70rem) {
+  .header .stickyLogo :global(.brand-logo) {
+    width: 104px;
+    height: 50px;
+  }
+}
+
+@media (max-width: 48rem) {
+  .scroll {
+    display: none;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .scroll,
+  .menuViewingTop {
+    display: none;
+  }
+
+  .header {
+    right: 1.25rem;
+  }
+
+  .content {
+    left: 1.5rem;
+    right: 1.5rem;
+    bottom: calc(2.5rem + env(safe-area-inset-bottom));
+  }
+
+  .image {
+    object-position: 58% 45%;
+  }
+
+  .logo {
+    margin-bottom: 1.5rem;
+  }
+
+  .intro {
+    margin-top: 1.25rem;
+  }
+
+  .content > .textLink {
+    margin-top: 1.5rem;
+  }
+
+  .header[data-sticky="true"] {
+    padding-inline: 1.25rem;
+  }
+
+  .header .stickyLogo :global(.brand-logo) {
+    width: 94px;
+    height: 42px;
+  }
+
+  .header :global(.mobile-navigation__trigger > span:first-child) {
+    display: grid;
+    position: relative;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .header :global(.mobile-navigation__trigger) {
+    width: auto;
+  }
+}
+
+@media (max-width: 48rem) and (min-height: 780px) {
+  .content {
+    bottom: calc(9.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 40rem) and (max-width: 48rem) and (min-height: 780px) {
+  .content {
+    bottom: calc(12.25rem + env(safe-area-inset-bottom));
+  }
+
+  .card {
+    left: 2rem;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    width: min(24rem, calc(100% - 4rem));
+  }
+}
+
+/* ---- Full-screen menu: monochrome, typographic ---- */
+.menuContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.header :global(.mobile-navigation__panel[data-open="true"]) .menuLogo {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 350ms var(--hero-ease) 180ms,
+    transform 350ms var(--hero-ease) 180ms;
+}
+
+.menuBody {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3rem;
+  padding-block: 3rem clamp(2rem, 7dvh, 4.5rem);
+}
+
+.menuList {
+  display: flex;
+  flex-direction: column;
+}
+
+.header :global(.mobile-navigation__panel) .menuItem {
+  border: 0;
+}
+
+.menuItem {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 140ms var(--hero-ease),
+    transform 140ms var(--hero-ease);
+}
+
+.header :global(.mobile-navigation__panel[data-open="true"]) .menuItem {
+  opacity: 1;
+  transform: none;
+  transition-duration: 350ms;
+  transition-delay: 150ms;
+}
+
+.header :global(.mobile-navigation__panel[data-open="true"]) .menuItem:nth-child(2) {
+  transition-delay: 180ms;
+}
+.header :global(.mobile-navigation__panel[data-open="true"]) .menuItem:nth-child(3) {
+  transition-delay: 210ms;
+}
+.header :global(.mobile-navigation__panel[data-open="true"]) .menuItem:nth-child(4) {
+  transition-delay: 240ms;
+}
+.header :global(.mobile-navigation__panel[data-open="true"]) .menuItem:nth-child(5) {
+  transition-delay: 270ms;
+}
+
+.menuLink {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  width: fit-content;
+  padding-block: 0.12em;
+  color: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: clamp(3.5rem, 4.2vw, 4rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  text-transform: uppercase;
+  transition:
+    opacity 300ms var(--hero-ease),
+    transform 300ms var(--hero-ease);
+}
+
+.menuArrow {
+  width: 0.5em;
+  height: 0.5em;
+  flex: none;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity 280ms var(--hero-ease),
+    transform 280ms var(--hero-ease);
+}
+
+.menuLink:focus-visible {
+  outline: 1px solid rgb(255 255 255 / 55%);
+  outline-offset: 6px;
+}
+
+.menuLink:is(:hover, :focus-visible) {
+  transform: translateX(4px);
+}
+
+.menuLink:is(:hover, :focus-visible) .menuArrow {
+  opacity: 1;
+  transform: none;
+}
+
+.menuList:has(.menuLink:focus-visible) .menuLink:not(:focus-visible) {
+  opacity: 0.3;
+}
+
+@media (hover: hover) {
+  /* A hovered link wins over a focused one, so only one link is ever active. */
+  .menuList:has(.menuLink:hover) .menuLink:not(:hover) {
+    opacity: 0.3;
+    transform: none;
+  }
+
+  .menuList:has(.menuLink:hover) .menuLink:not(:hover) .menuArrow {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+
+.menuSocials {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.menuSocials a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2rem;
+  color: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  transition:
+    opacity 220ms var(--hero-ease),
+    transform 220ms var(--hero-ease);
+}
+
+.menuSocials a:is(:hover, :focus-visible) {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.menuSocials a:focus-visible {
+  outline: 1px solid rgb(255 255 255 / 55%);
+  outline-offset: 4px;
+}
+
+.menuSocials svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.menuSocials a[aria-label="Instagram"] :is(rect, circle) {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.menuViewingInline,
+.menuSocials {
+  opacity: 0;
+  transition: opacity 140ms var(--hero-ease);
+}
+
+.header
+  :global(.mobile-navigation__panel[data-open="true"])
+  :is(.menuViewingInline, .menuSocials) {
+  opacity: 1;
+  transition: opacity 350ms var(--hero-ease) 280ms;
+}
+
+.header :global(.mobile-navigation__footer) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(255 255 255 / 18%);
+  font-size: 0.75rem;
+  color: rgb(255 255 255 / 62%);
+  opacity: 0;
+  transition: opacity 140ms var(--hero-ease);
+}
+
+.header
+  :global(.mobile-navigation__panel[data-open="true"] .mobile-navigation__footer) {
+  opacity: 1;
+  transition: opacity 350ms var(--hero-ease) 300ms;
+}
+
+.header :global(.mobile-navigation__footer a) {
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 500;
+  transition: color 220ms var(--hero-ease);
+}
+
+.header :global(.mobile-navigation__footer a:is(:hover, :focus-visible)) {
+  color: var(--color-surface);
+}
+
+@media (max-width: 70rem) {
+  .menuLink {
+    font-size: clamp(2.75rem, 5.4vw, 3.25rem);
+  }
+}
+
+@media (max-width: 48rem) {
+  .header :global(.mobile-navigation__panel) {
+    padding: max(1rem, env(safe-area-inset-top)) 1.25rem 1rem;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .header :global(.mobile-navigation__panel) {
+    padding: calc(1.25rem + env(safe-area-inset-top)) 1.5rem
+      calc(1.25rem + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+
+  .menuLogo {
+    flex-shrink: 0;
+  }
+
+  /* Brand row, flexible space, then a compact nav + CTA + socials block. */
+  .menuBody {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    padding-block: 2.5rem 1.5rem;
+  }
+
+  .header :global(.mobile-navigation__panel) .menuLink {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 44px;
+    padding: 0;
+    font-size: clamp(2.25rem, 9vw, 2.5rem);
+    font-weight: 600;
+    line-height: 1.06;
+  }
+
+  .menuList {
+    gap: 0.5rem;
+  }
+
+  .menuArrow,
+  .menuLink:is(:hover, :focus-visible) .menuArrow {
+    width: 1.25rem;
+    height: 1.25rem;
+    opacity: 0.8;
+    transform: rotate(-45deg);
+  }
+
+  .menuLink:focus-visible .menuArrow {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+
+  .menuLink:is(:hover, :focus-visible) {
+    transform: none;
+  }
+
+  .menuViewingInline {
+    display: block;
+    margin-block: 1.5rem;
+  }
+
+  .menuViewingInline .viewing {
+    display: inline-flex;
+    width: fit-content;
+    min-height: 44px;
+    padding-inline: 1.125rem;
+    border-radius: var(--radius-cta);
+    background: var(--color-surface);
+    color: var(--color-brand-deep);
+    font-size: 0.75rem;
+  }
+
+  .menuSocials {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5625rem;
+  }
+
+  .menuSocials a {
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    border: 1px solid rgb(255 255 255 / 22%);
+    border-radius: 50%;
+    opacity: 1;
+    color: rgb(255 255 255 / 65%);
+    transition:
+      color 220ms var(--hero-ease),
+      border-color 220ms var(--hero-ease);
+  }
+
+  .menuSocials a:is(:hover, :focus-visible) {
+    color: var(--color-surface);
+    border-color: var(--color-surface);
+    transform: none;
+  }
+
+  .menuSocials svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .menuSocialLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .header :global(.mobile-navigation__footer) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+    padding-top: 1rem;
+    font-size: 0.6875rem;
+  }
+
+  .header :global(.mobile-navigation__footer a) {
+    min-height: 28px;
+  }
+}
+
+@media (max-width: 39.99rem) and (max-height: 700px) {
+  .menuBody {
+    padding-block: 0.75rem;
+  }
+
+  .header :global(.mobile-navigation__panel) .menuLink {
+    min-height: 40px;
+    font-size: 2.25rem;
+  }
+
+  .menuList {
+    gap: 0.375rem;
+  }
+
+  .menuViewingInline {
+    margin-block: 1.25rem;
+  }
+}
+
+/*
+ * Tablet menu (640-1088px): header / middle / footer zones. The nav and the socials share
+ * one middle region that is centred in the space between the header and footer, with a
+ * small fixed bias upwards. No viewport-height spacer decides where the nav sits, and the
+ * link rows use a fixed padding so the nav height no longer follows the viewport height.
+ * The upper bound matches the global 68rem rules that these overrides counter.
+ */
+@media (min-width: 40rem) and (max-width: 68rem) {
+  .menuBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 2rem;
+    padding-block: 1rem 4.5rem;
+  }
+
+  /* The global block-level link rule would wrap the arrow onto a second line. */
+  .header :global(.mobile-navigation__panel) .menuLink {
+    display: flex;
+    padding-block: 0.625rem;
+  }
+
+  .menuSocials {
+    align-self: center;
+  }
+}
+
+/* About uses the Home controls with its mark over the film. */
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"] {
+  left: clamp(2rem, 2.5vw, 3rem);
+  justify-content: space-between;
+}
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"]
+  .stickyLogo {
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"]
+  .stickyLogo
+  :global(.brand-logo svg) {
+  color: white;
+}
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"]
+  .menuLogo {
+  visibility: hidden;
+}
+@media (max-width: 48rem) {
+  .header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"] {
+    left: 1rem;
+  }
+}
+
+/* ---- Intro entrance: the hero is revealed as the intro surface lifts (see HomeIntro) ---- */
+/* Each headline line sits in a mask; the padding keeps descenders from being clipped. */
+.titleLine {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.05em 0.14em;
+  margin-block: -0.05em -0.14em;
+}
+
+:global(html[data-intro="play"]) .titleLine > span {
+  display: block;
+  animation: introLine 950ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+:global(html[data-intro="play"]) .titleLine:nth-child(1) > span {
+  animation-delay: 2100ms;
+}
+:global(html[data-intro="play"]) .titleLine:nth-child(2) > span {
+  animation-delay: 2250ms;
+}
+:global(html[data-intro="play"]) .titleLine:nth-child(3) > span {
+  animation-delay: 2400ms;
+}
+
+:global(html[data-intro="play"]) :is(.content > :not(.title), .card) {
+  animation: introRise 850ms var(--hero-ease) var(--intro-delay, 0ms) backwards;
+}
+:global(html[data-intro="play"]) .content > :nth-child(1) {
+  --intro-delay: 2000ms;
+}
+:global(html[data-intro="play"]) .content > :nth-child(3) {
+  --intro-delay: 2500ms;
+}
+:global(html[data-intro="play"]) .content > :nth-child(4) {
+  --intro-delay: 2650ms;
+}
+:global(html[data-intro="play"]) .card {
+  --intro-delay: 2800ms;
+}
+
+/* Opacity only: the header's fixed menu must keep the viewport as its containing block. */
+:global(html[data-intro="play"]) .header {
+  animation: introFade 900ms var(--hero-ease) 2050ms backwards;
+}
+
+@keyframes introLine {
+  from {
+    opacity: 0;
+    transform: translateY(105%);
+  }
+}
+
+@keyframes introRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes introFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html[data-intro="play"])
+    :is(.titleLine > span, .content > *, .card, .header) {
+    animation: none;
+  }
+}
+
+/* ---- Layered hero: dimming as the next section covers it, and plain scrolling when reduced ---- */
+.cover {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--color-brand-deep);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    position: relative;
+  }
+}
+
+/* Locations uses its editorial page gutter over the solid navy hero. */
+.header[data-locations-hero="true"][data-sticky="false"] {
+  left: clamp(1.25rem, 3vw, 3rem);
+  right: clamp(1.25rem, 3vw, 3rem);
+}

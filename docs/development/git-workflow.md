@@ -238,7 +238,11 @@ On GitHub, open a PR from your branch into `main`. A good PR includes:
 - **Screenshots** for meaningful UI changes
 - **Known limitations** or follow-up work
 
-CI runs `format:check`, `lint`, `typecheck`, unit/API tests and `build` on every PR. Run
+CI runs dependency and audit checks, `format:check`, `lint`, `typecheck`, unit/API tests, the
+strict deployment build, and `test:e2e:smoke` (the full production build plus the `@smoke`
+browser tests) on every PR. The complete browser suite (`npm run test:e2e`) runs on demand
+through the **Full browser regression** workflow; run it before releases and for UI-wide
+changes. Tag a test `@smoke` only when it covers a critical flow and is deterministic. Run
 those locally first — passing locally is a strong pre-check, but CI remains the
 authoritative result:
 

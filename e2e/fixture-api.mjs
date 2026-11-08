@@ -176,79 +176,92 @@ function includes(value, query) {
   return value?.toLocaleLowerCase().includes(query.toLocaleLowerCase()) ?? false;
 }
 
-function searchFixtureProperties(request) {
-  const filtered = TEST_PROPERTIES.filter((property) => {
-    if (
-      property.purpose !== "sale" ||
-      !RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType)
-    ) {
-      return false;
-    }
-    if (request.propertyId && property.propertyId !== request.propertyId) return false;
-    if (request.propertyType && property.propertyType !== request.propertyType) {
-      return false;
-    }
-    if (request.purpose && property.purpose !== request.purpose) return false;
-    if (request.availability && property.availability !== request.availability) {
-      return false;
-    }
-    if (request.featured !== undefined && property.featured !== request.featured) {
-      return false;
-    }
-    if (request.minPrice !== undefined && property.price.amount < request.minPrice) {
-      return false;
-    }
-    if (request.maxPrice !== undefined && property.price.amount > request.maxPrice) {
-      return false;
-    }
-    if (
-      request.bedrooms !== undefined &&
-      (property.specifications.bedrooms ?? -1) < request.bedrooms
-    ) {
-      return false;
-    }
-    if (
-      request.bathrooms !== undefined &&
-      (property.specifications.bathrooms ?? -1) < request.bathrooms
-    ) {
-      return false;
-    }
-    if (
-      request.minLotArea !== undefined &&
-      (property.specifications.lotAreaSqm ?? -1) < request.minLotArea
-    ) {
-      return false;
-    }
-    if (
-      request.minFloorArea !== undefined &&
-      (property.specifications.floorAreaSqm ?? -1) < request.minFloorArea
-    ) {
-      return false;
-    }
-    if (request.location) {
-      const matchesLocation = [
-        property.location.province,
-        property.location.city,
-        property.location.barangay,
-        property.location.development,
-      ].some((part) => includes(part, request.location));
-      if (!matchesLocation) return false;
-    }
-    if (request.keyword) {
-      const matchesKeyword = [
-        property.title,
-        property.shortDescription,
-        property.propertyId,
-        property.location.development,
-      ].some((part) => includes(part, request.keyword));
-      if (!matchesKeyword) return false;
-    }
-    return true;
-  }).sort((left, right) => {
-    if (request.sort === "price-asc") return left.price.amount - right.price.amount;
-    if (request.sort === "price-desc") return right.price.amount - left.price.amount;
-    return Date.parse(right.publishedAt) - Date.parse(left.publishedAt);
-  });
+function searchFixtureProperties(properties, request) {
+  const filtered = properties
+    .filter((property) => {
+      if (
+        property.purpose !== "sale" ||
+        !RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType)
+      ) {
+        return false;
+      }
+      if (request.propertyId && property.propertyId !== request.propertyId)
+        return false;
+      if (request.propertyType && property.propertyType !== request.propertyType) {
+        return false;
+      }
+      if (request.purpose && property.purpose !== request.purpose) return false;
+      if (request.availability && property.availability !== request.availability) {
+        return false;
+      }
+      if (request.featured !== undefined && property.featured !== request.featured) {
+        return false;
+      }
+      if (request.minPrice !== undefined && property.price.amount < request.minPrice) {
+        return false;
+      }
+      if (request.maxPrice !== undefined && property.price.amount > request.maxPrice) {
+        return false;
+      }
+      if (
+        request.bedrooms !== undefined &&
+        (request.bedroomsMatch === "exact"
+          ? property.specifications.bedrooms !== request.bedrooms
+          : (property.specifications.bedrooms ?? -1) < request.bedrooms)
+      ) {
+        return false;
+      }
+      if (
+        request.bathrooms !== undefined &&
+        (property.specifications.bathrooms ?? -1) < request.bathrooms
+      ) {
+        return false;
+      }
+      if (
+        request.minLotArea !== undefined &&
+        (property.specifications.lotAreaSqm ?? -1) < request.minLotArea
+      ) {
+        return false;
+      }
+      if (
+        request.minFloorArea !== undefined &&
+        (property.specifications.floorAreaSqm ?? -1) < request.minFloorArea
+      ) {
+        return false;
+      }
+      if (request.location) {
+        // Like the real API: an exact "City, Province" facet label, else a partial match.
+        const [city, province, ...rest] = request.location
+          .split(",")
+          .map((part) => part.trim());
+        const facetLabel = city && province && rest.length === 0;
+        const matchesLocation = facetLabel
+          ? property.location.city.toLowerCase() === city.toLowerCase() &&
+            property.location.province.toLowerCase() === province.toLowerCase()
+          : [
+              property.location.province,
+              property.location.city,
+              property.location.barangay,
+              property.location.development,
+            ].some((part) => includes(part, request.location));
+        if (!matchesLocation) return false;
+      }
+      if (request.keyword) {
+        const matchesKeyword = [
+          property.title,
+          property.shortDescription,
+          property.propertyId,
+          property.location.development,
+        ].some((part) => includes(part, request.keyword));
+        if (!matchesKeyword) return false;
+      }
+      return true;
+    })
+    .sort((left, right) => {
+      if (request.sort === "price-asc") return left.price.amount - right.price.amount;
+      if (request.sort === "price-desc") return right.price.amount - left.price.amount;
+      return Date.parse(right.publishedAt) - Date.parse(left.publishedAt);
+    });
 
   const start = (request.page - 1) * request.limit;
   const { sort, page, limit, ...appliedFilters } = request;
@@ -265,12 +278,12 @@ function searchFixtureProperties(request) {
   };
 }
 
-function mapFixtureProperties(request) {
-  const search = searchFixtureProperties({
+function mapFixtureProperties(properties, request) {
+  const search = searchFixtureProperties(properties, {
     ...request,
     sort: "newest",
     page: 1,
-    limit: TEST_PROPERTIES.length,
+    limit: properties.length,
   });
   const mappable = search.items.filter((property) => property.location.publicPoint);
   const counts = new Map();
@@ -313,76 +326,90 @@ function mapFixtureProperties(request) {
   };
 }
 
-const propertyService = {
-  async search(request) {
-    return searchFixtureProperties(request);
-  },
-  async map(request) {
-    return mapFixtureProperties(request);
-  },
-  async findPublishedBySlug(slug) {
-    if (slug === "streaming-regression-fixture") {
-      return { ...TEST_PROPERTIES[0], id: "streaming-regression-fixture", slug };
-    }
-    return (
-      TEST_PROPERTIES.find(
+function createPropertyService(properties) {
+  return {
+    async search(request) {
+      return searchFixtureProperties(properties, request);
+    },
+    async map(request) {
+      return mapFixtureProperties(properties, request);
+    },
+    async findPublishedBySlug(slug) {
+      if (slug === "streaming-regression-fixture") {
+        return { ...properties[0], id: "streaming-regression-fixture", slug };
+      }
+      return (
+        properties.find(
+          (property) =>
+            property.slug === slug &&
+            property.purpose === "sale" &&
+            RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+        ) ?? null
+      );
+    },
+    async related(slug) {
+      if (slug === "streaming-regression-fixture") {
+        await new Promise((resolve) => setTimeout(resolve, 8_000));
+        return { items: [] };
+      }
+      const current = properties.find(
         (property) =>
           property.slug === slug &&
           property.purpose === "sale" &&
           RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
-      ) ?? null
-    );
-  },
-  async related(slug) {
-    if (slug === "streaming-regression-fixture") {
-      await new Promise((resolve) => setTimeout(resolve, 8_000));
-      return { items: [] };
-    }
-    const current = TEST_PROPERTIES.find(
-      (property) =>
-        property.slug === slug &&
-        property.purpose === "sale" &&
-        RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
-    );
-    if (!current) return null;
-    return {
-      items: TEST_PROPERTIES.filter(
+      );
+      if (!current) return null;
+      return {
+        items: properties
+          .filter(
+            (property) =>
+              property.id !== current.id &&
+              property.purpose === "sale" &&
+              RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
+          )
+          .slice(0, 3),
+      };
+    },
+    async getFacets() {
+      const saleProperties = properties.filter(
         (property) =>
-          property.id !== current.id &&
           property.purpose === "sale" &&
           RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
-      ).slice(0, 3),
-    };
-  },
-  async getFacets() {
-    const saleProperties = TEST_PROPERTIES.filter(
-      (property) =>
-        property.purpose === "sale" &&
-        RESIDENTIAL_SALE_PROPERTY_TYPES.includes(property.propertyType),
-    );
-    const locationCounts = Object.entries(
-      saleProperties.reduce((counts, property) => {
-        const location = `${property.location.city}, ${property.location.province}`;
-        counts[location] = (counts[location] ?? 0) + 1;
-        return counts;
-      }, {}),
-    )
-      .map(([location, count]) => ({ location, count }))
-      .sort((left, right) => left.location.localeCompare(right.location));
-    return {
-      locations: locationCounts.map(({ location }) => location),
-      locationCounts,
-      propertyTypes: RESIDENTIAL_SALE_PROPERTY_TYPES.filter((type) =>
-        saleProperties.some((property) => property.propertyType === type),
-      ),
-      priceRange: {
-        min: Math.min(...saleProperties.map((property) => property.price.amount)),
-        max: Math.max(...saleProperties.map((property) => property.price.amount)),
-        currency: "PHP",
-      },
-    };
-  },
-};
+      );
+      const locationCounts = Object.entries(
+        saleProperties.reduce((counts, property) => {
+          const location = `${property.location.city}, ${property.location.province}`;
+          counts[location] = (counts[location] ?? 0) + 1;
+          return counts;
+        }, {}),
+      )
+        .map(([location, count]) => ({ location, count }))
+        .sort((left, right) => left.location.localeCompare(right.location));
+      const activeLocationCounts = Object.entries(
+        saleProperties
+          .filter((property) => property.availability !== "sold")
+          .reduce((counts, property) => {
+            const location = `${property.location.city}, ${property.location.province}`;
+            counts[location] = (counts[location] ?? 0) + 1;
+            return counts;
+          }, {}),
+      ).map(([location, count]) => ({ location, count }));
+      return {
+        locations: locationCounts.map(({ location }) => location),
+        locationCounts,
+        activeLocationCounts,
+        propertyTypes: RESIDENTIAL_SALE_PROPERTY_TYPES.filter((type) =>
+          saleProperties.some((property) => property.propertyType === type),
+        ),
+        priceRange: {
+          min: Math.min(...saleProperties.map((property) => property.price.amount)),
+          max: Math.max(...saleProperties.map((property) => property.price.amount)),
+          currency: "PHP",
+        },
+      };
+    },
+  };
+}
 
 const inquiryService = {
   async create(request) {
@@ -399,23 +426,33 @@ const inquiryService = {
 };
 
 const passThrough = (_request, _response, next) => next();
-const app = createApp({
-  propertyService,
-  inquiryService,
-  applicationRateLimit: passThrough,
-  inquiryRateLimit: passThrough,
-});
 
-export function startFixtureApi() {
+/**
+ * Playwright uses the default synthetic dataset. The local preview (`e2e/preview-api.mts`)
+ * passes the RC Premier development dataset and its own port instead.
+ * @param {{properties?: import("@rc/shared").PublicPropertyDetail[], host?: string, port?: number, label?: string, dependencies?: import("../backend/src/app.js").AppDependencies}} [options]
+ */
+export function startFixtureApi({
+  properties = TEST_PROPERTIES,
+  host = FIXTURE_HOST,
+  port = FIXTURE_PORT,
+  label = "playwright fixture only",
+  dependencies = {},
+} = {}) {
+  const app = createApp({
+    propertyService: createPropertyService(properties),
+    inquiryService,
+    applicationRateLimit: passThrough,
+    inquiryRateLimit: passThrough,
+    ...dependencies,
+  });
   return new Promise((resolve, reject) => {
-    const server = app.listen(FIXTURE_PORT, FIXTURE_HOST);
+    const server = app.listen(port, host);
 
     server.once("error", reject);
     server.once("listening", () => {
       server.off("error", reject);
-      console.log(
-        `[playwright fixture only] RC Express app listening on http://${FIXTURE_HOST}:${FIXTURE_PORT}`,
-      );
+      console.log(`[${label}] RC Express app listening on http://${host}:${port}`);
       resolve(server);
     });
   });

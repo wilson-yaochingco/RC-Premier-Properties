@@ -3,6 +3,7 @@ import {
   MAX_PROPERTY_IMAGES,
   PUBLIC_PROPERTY_AREAS,
   PUBLIC_LOCATION_PRECISIONS,
+  PUBLIC_POINT_PRECISIONS,
   SALE_PROPERTY_TYPES,
   type AdminPropertyContentField,
   type AdminPropertyDetail,
@@ -229,7 +230,8 @@ export function buildPublishedPropertyFilter(
     };
   }
   if (request.bedrooms !== undefined) {
-    filter["specifications.bedrooms"] = { $gte: request.bedrooms };
+    filter["specifications.bedrooms"] =
+      request.bedroomsMatch === "exact" ? request.bedrooms : { $gte: request.bedrooms };
   }
   if (request.bathrooms !== undefined) {
     filter["specifications.bathrooms"] = { $gte: request.bathrooms };
@@ -307,6 +309,11 @@ function validPublicPrecision(
   return Boolean(value && PUBLIC_LOCATION_PRECISIONS.includes(value));
 }
 
+/** Area-level precisions never publish a point, whatever staff stored. */
+function publishesPublicPoint(precision: PublicLocationPrecision): boolean {
+  return (PUBLIC_POINT_PRECISIONS as readonly string[]).includes(precision);
+}
+
 function validPublicPoint(point: PublicMapPoint | undefined): point is PublicMapPoint {
   if (
     !point ||
@@ -352,7 +359,9 @@ function publicLocation(record: PublicPropertyRecord): PublicPropertyLocation {
     publicPrecision === "approximate" ||
     publicPrecision === "subdivision";
   const publicPoint =
-    hasExplicitPrecision && validPublicPoint(configuredPoint)
+    hasExplicitPrecision &&
+    publishesPublicPoint(publicPrecision) &&
+    validPublicPoint(configuredPoint)
       ? {
           type: "Point" as const,
           coordinates: [
@@ -538,6 +547,7 @@ interface FacetAggregate {
 interface LocationCountAggregate {
   _id: string;
   count: number;
+  activeCount: number;
 }
 
 export class MongoosePropertyService implements PropertyService {
@@ -577,7 +587,7 @@ export class MongoosePropertyService implements PropertyService {
       $and: [
         publishedFilter,
         {
-          "location.publicPrecision": { $in: PUBLIC_LOCATION_PRECISIONS },
+          "location.publicPrecision": { $in: PUBLIC_POINT_PRECISIONS },
           "location.publicPoint.type": "Point",
           "location.publicPoint.coordinates": { $exists: true },
         },
@@ -731,6 +741,9 @@ export class MongoosePropertyService implements PropertyService {
           $group: {
             _id: { $concat: ["$location.city", ", ", "$location.province"] },
             count: { $sum: 1 },
+            activeCount: {
+              $sum: { $cond: [{ $eq: ["$availability", "sold"] }, 0, 1] },
+            },
           },
         },
         { $sort: { count: -1, _id: 1 } },
@@ -747,6 +760,10 @@ export class MongoosePropertyService implements PropertyService {
         location: item._id,
         count: item.count,
       })),
+      activeLocationCounts: locationCounts
+        .filter((item) => item.activeCount > 0)
+        .map((item) => ({ location: item._id, count: item.activeCount }))
+        .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location)),
       propertyTypes: result
         ? result.propertyTypes.sort((a, b) => a.localeCompare(b))
         : [],
@@ -1253,8 +1270,8 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     const record = await this.repository.updateMedia(
       id,
       input.expectedVersion,
-      input.media,
-      coverMedia,
+      this.withPublicIds(input.media),
+      coverMedia && this.withPublicIds([coverMedia])[0],
     );
     if (!record) throw this.concurrencyConflict();
     const retainedUrls = new Set(input.media.map((item) => item.url));
@@ -1306,12 +1323,24 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     return toAdminPropertyDetail(record);
   }
 
+  /**
+   * The server, not the client, records the provider's object identifier, so it survives
+   * reorders and cover changes that rebuild the media array from admin form data.
+   */
+  private withPublicIds(media: AdminPropertyMediaInput[]): AdminPropertyMediaInput[] {
+    return media.map((item) => {
+      const publicId = this.mediaStorage.publicIdFor?.(item.url);
+      return publicId ? { ...item, publicId } : item;
+    });
+  }
+
   async uploadImage(
     id: string,
     input: UploadPropertyImageRequest,
     bytes: Buffer,
     declaredMimeType: string | undefined,
     context: PropertyMutationContext,
+    options?: { fileName?: string },
   ): Promise<AdminPropertyDetail | null> {
     const current = await this.findExpectedRecord(id, input.expectedVersion);
     if (!current) return null;
@@ -1342,7 +1371,11 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     }
     let stored;
     try {
-      stored = await this.mediaStorage.store(bytes, image);
+      stored = await this.mediaStorage.store(bytes, image, {
+        folder: current.slug,
+        label: options?.fileName ?? input.alt,
+        exactName: Boolean(options?.fileName),
+      });
     } catch (error) {
       operationalLogger.error("property_media_upload_failed", {
         dependency: "media-storage",
@@ -1384,8 +1417,8 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       record = await this.repository.updateMedia(
         id,
         input.expectedVersion,
-        nextMedia,
-        cover,
+        this.withPublicIds(nextMedia),
+        this.withPublicIds([cover])[0],
       );
       if (!record) throw this.concurrencyConflict();
     } catch (error) {

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/brand/rc-premier-logo.png";
+import { RcPremierMark } from "./RcPremierMark";
 
 export function BrandLogo({ footer = false }: { footer?: boolean }) {
   return (
@@ -9,12 +10,11 @@ export function BrandLogo({ footer = false }: { footer?: boolean }) {
       className={`brand-logo${footer ? " brand-logo--footer" : ""}`}
       aria-label="RC Premier Properties home"
     >
-      <Image
-        src={logo}
-        alt="RC Premier Properties"
-        sizes={footer ? "144px" : "96px"}
-        loading="lazy"
-      />
+      {footer ? (
+        <Image src={logo} alt="" sizes="144px" />
+      ) : (
+        <RcPremierMark aria-hidden="true" />
+      )}
     </Link>
   );
 }

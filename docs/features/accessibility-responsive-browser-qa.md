@@ -167,14 +167,15 @@ The final public header direction threshold ignores tiny scroll changes. Focus c
 an open mobile menu, and an active pointer interaction force it visible; keyboard users
 can therefore enter the header even when it was previously translated out of view. The
 About background video remains decorative and unfocusable, is muted before playback, and
-is removed in favor of its poster under reduced motion. Contact social links combine
+is removed in favor of its poster under reduced motion. Footer and menu social links combine
 recognizable inline marks with visible platform names and explicit new-tab accessible
 names.
 
-The contact page begins with its existing local image as the page hero, keeps one H1,
-and removes the former introductory “Say hello” composition without leaving a spacer.
-Its named social links expose equivalent hover and keyboard-focus feedback, and their
-decorative transforms and transitions are disabled under reduced motion.
+The contact page opens with a typographic introduction (no image hero), keeps one H1, and
+uses the shared modern header. Direct call and email links appear once in the introduction;
+social links are provided by the footer and menu only. The inquiry card is a stone guidance
+rail beside the form on wide screens and a single column below 64rem, with the quiet
+Book a viewing and Sell a property links after the form so reading and focus order match.
 
 The targeted final matrix covers 320, 390, 768, 1024, 1280, 1440, and 1920 CSS pixels for
 the viewport-derived Home/About heroes, mobile Home crop, Locations illustration,

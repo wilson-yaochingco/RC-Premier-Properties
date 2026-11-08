@@ -4,9 +4,9 @@ import { publicLocationPath, shortPublicLocation } from "@/lib/public-location";
 
 export function buildLocationsMetadata(imagePath: string): Metadata {
   return buildPageMetadata({
-    title: "Locations",
+    title: "Pampanga Locations with Properties for Sale",
     description:
-      "Explore Pampanga locations represented by current published RC Premier Properties inventory.",
+      "Explore the Pampanga cities and municipalities where RC Premier Properties has published listings, and browse homes for sale in each area.",
     canonicalPath: "/locations",
     imagePath,
   });
@@ -26,7 +26,10 @@ export function buildLocationMetadata({
   const name = shortPublicLocation(location);
   return buildPageMetadata({
     title: `Properties for Sale in ${name}`,
-    description: `Browse ${count.toLocaleString("en-PH")} published residential ${count === 1 ? "property" : "properties"} for sale in ${location}.`,
+    description:
+      count > 0
+        ? `Browse ${count.toLocaleString("en-PH")} published residential ${count === 1 ? "property" : "properties"} for sale in ${location}.`
+        : `Explore ${name} in Pampanga with RC Premier Properties. No residential properties are published here right now.`,
     canonicalPath: publicLocationPath(location),
     imagePath,
     noIndex,

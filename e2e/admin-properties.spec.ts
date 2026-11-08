@@ -144,7 +144,7 @@ async function mockSession(page: Page, status = 200) {
   );
 }
 
-test("the protected admin property flow lists, creates, and edits a draft", async ({
+test("the protected admin property flow lists, creates, and edits a draft @smoke", async ({
   page,
 }) => {
   await page.route("**/_next/image?*", (route) =>
@@ -630,7 +630,7 @@ test("the admin shell collapses on desktop and traps focus in the mobile drawer"
   ).toBeVisible();
 });
 
-test("admin HTML is private, non-indexable, and protected by browser headers", async ({
+test("admin HTML is private, non-indexable, and protected by browser headers @smoke", async ({
   request,
 }) => {
   const response = await request.get("/admin");
@@ -646,7 +646,7 @@ test("admin HTML is private, non-indexable, and protected by browser headers", a
   expect(headers["strict-transport-security"]).toContain("max-age=31536000");
 });
 
-test("the admin shell exposes sign-in, forbidden, and expired-session states", async ({
+test("the admin shell exposes sign-in, forbidden, and expired-session states @smoke", async ({
   page,
 }) => {
   await mockSession(page, 401);

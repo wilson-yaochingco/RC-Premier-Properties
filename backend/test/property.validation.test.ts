@@ -342,14 +342,32 @@ describe("published property query construction", () => {
         updatedAt: new Date("2026-08-21T00:00:00.000Z"),
       } as unknown as PublicPropertyRecord;
 
-      expect(toPublicPropertySummary(record).location).toEqual({
+      const pointAllowed =
+        publicPrecision !== "city-only" && publicPrecision !== "barangay-area";
+      const expected = {
         province: "Pampanga",
         city: "Angeles City",
         ...expectedText,
         publicPrecision,
-        publicPoint: { type: "Point", coordinates: [120.61, 15.15] },
+        ...(pointAllowed
+          ? { publicPoint: { type: "Point", coordinates: [120.61, 15.15] } }
+          : {}),
         disclosure,
-      });
+      };
+      const publicShapes = [
+        toPublicPropertySummary(record),
+        toPublicPropertyDetail(record),
+      ];
+      for (const shape of publicShapes) expect(shape.location).toEqual(expected);
+      // Area-level precision never yields a map item, so no pin can be drawn.
+      if (pointAllowed)
+        expect(toPublicPropertyMapItem(record)?.location).toEqual(expected);
+      else expect(toPublicPropertyMapItem(record)).toBeUndefined();
+      for (const shape of [...publicShapes, toPublicPropertyMapItem(record)]) {
+        expect(JSON.stringify(shape ?? {})).not.toContain(
+          "Never expose this street address",
+        );
+      }
     },
   );
 
@@ -641,6 +659,38 @@ describe("admin property validation", () => {
         privateAddress: "Private test address",
       },
     });
+  });
+
+  it("rejects a public point copied from private coordinates unless precision is exact", () => {
+    const copied = {
+      ...DRAFT_REQUEST.location,
+      coordinates: { latitude: 15.145, longitude: 120.588 },
+      publicPoint: { type: "Point" as const, coordinates: [120.588, 15.145] },
+    };
+    for (const publicPrecision of [
+      "approximate",
+      "subdivision",
+      "city-only",
+    ] as const) {
+      try {
+        parseUpdateDraftPropertyBody({
+          expectedVersion: 1,
+          location: { ...copied, publicPrecision },
+        });
+        throw new Error(`expected ${publicPrecision} to be rejected`);
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).issues).toContainEqual(
+          expect.objectContaining({ field: "location.publicPoint.coordinates.1" }),
+        );
+      }
+    }
+    expect(
+      parseUpdateDraftPropertyBody({
+        expectedVersion: 1,
+        location: { ...copied, publicPrecision: "exact" },
+      }).location?.publicPoint,
+    ).toEqual({ type: "Point", coordinates: [120.588, 15.145] });
   });
 
   it.each([
@@ -991,4 +1041,16 @@ describe("property media validation", () => {
       );
     },
   );
+});
+
+it("opts into exact bedroom matching while preserving legacy minimum counts", () => {
+  const exact = parsePropertySearchQuery({ bedrooms: "2", bedroomsMatch: "exact" });
+  expect(buildPublishedPropertyFilter(exact)["specifications.bedrooms"]).toBe(2);
+  const legacy = parsePropertySearchQuery({ bedrooms: "2" });
+  expect(buildPublishedPropertyFilter(legacy)["specifications.bedrooms"]).toEqual({
+    $gte: 2,
+  });
+  expect(() =>
+    parsePropertySearchQuery({ bedrooms: "2", bedroomsMatch: "invalid" }),
+  ).toThrow();
 });

@@ -32,6 +32,8 @@ const mediaSchema = new Schema(
       default: "production",
     },
     sourceUrl: { type: String, trim: true, maxlength: 2_048 },
+    /** Storage provider object identifier (Cloudinary public ID), set by the server. */
+    publicId: { type: String, trim: true, maxlength: 300 },
     attribution: { type: String, trim: true, maxlength: 160 },
     focalPoint: {
       type: new Schema(

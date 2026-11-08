@@ -1,142 +1,43 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
 import logo from "@/assets/brand/rc-premier-logo.png";
-import heroExterior from "@/assets/site/home_hero.jpg";
-import locationImage from "@/assets/site/location.png";
-import propertiesImage from "@/assets/site/properties.png";
-import whyImage from "@/assets/site/why-rc-premier.png";
-import { Button } from "@/components/ui/Button";
-import { Container } from "@/components/ui/Container";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Section } from "@/components/ui/Section";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { FeaturedVideos } from "@/features/home/FeaturedVideos";
-import { HeroPropertySearch } from "@/features/home/HeroPropertySearch";
-import { getLocationEditorialContent } from "@/features/locations/location-content";
-import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
-import { PropertyCard } from "@/features/properties/PropertyCard";
-import {
-  getFeaturedProperties,
-  getPropertyFacets,
-} from "@/features/properties/property.service";
-import propertyStyles from "@/features/properties/properties.module.css";
+import { RcPremierMark } from "@/components/layout/RcPremierMark";
+import homeHeroTwo from "@/assets/site/home-hero-2.png";
+import { CloserLook } from "@/features/home/CloserLook";
+import { CLOSER_LOOK_SLIDES } from "@/features/home/closer-look-slides";
+import { ExplorePampangaSection } from "@/features/home/ExplorePampanga";
+import { FeaturedPropertiesSection } from "@/features/home/FeaturedProperties";
+import { EditorialCta } from "@/components/ui/EditorialCta";
+import { PropertyToursSection } from "@/features/home/PropertyToursSection";
+import { HomeIntroduction } from "@/features/home/HomeIntroduction";
+import { WhyRcPremier } from "@/features/home/WhyRcPremier";
+import { SellStatement } from "@/features/home/SellStatement";
+import { RouteCards } from "@/features/home/RouteCards";
+import { HomeHeroVideo } from "@/features/home/HomeHeroVideo";
+import { HomeIntro } from "@/features/home/HomeIntro";
+import { PageMotion } from "@/components/layout/PageMotion";
+import { HomeHeroCover } from "@/features/home/HomeHeroCover";
+import heroStyles from "@/features/home/hero.module.css";
 import { buildSiteStructuredData, serializeJsonLd } from "@/lib/seo";
-import { publicLocationPath } from "@/lib/public-location";
 
 export const dynamic = "force-dynamic";
 
-async function FeaturedProperties() {
-  let result;
-  try {
-    result = await getFeaturedProperties();
-  } catch {
-    result = undefined;
-  }
-
-  if (result?.items.length) {
-    return (
-      <div className={`${propertyStyles.grid} home-featured-grid`}>
-        {result.items.map((property) => (
-          <PropertyCard key={property.id} property={property} />
-        ))}
-      </div>
-    );
-  }
-
-  if (!result) {
-    return (
-      <EmptyState
-        title="Featured inventory is temporarily unavailable."
-        description="The property service could not be reached. No sample listings have been substituted."
-        actionLabel="Browse Properties"
-        actionHref="/properties"
-      />
-    );
-  }
-
+function HeroArrowIcon() {
   return (
-    <EmptyState
-      title="Featured properties will appear here."
-      description="There are no published featured properties to show yet. Browse all published properties for current availability."
-      actionLabel="Browse All Properties"
-      actionHref="/properties"
-    />
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
   );
 }
 
-async function ExploreLocations() {
-  let facets;
-  try {
-    facets = await getPropertyFacets();
-  } catch {
-    facets = undefined;
-  }
-
-  const locations = facets?.locationCounts ?? [];
-  if (locations.length > 0) {
-    return (
-      <>
-        <ul className="home-location-grid">
-          {locations.slice(0, 6).map(({ location, count }) => (
-            <li key={location}>
-              <Link href={publicLocationPath(location)}>
-                <Image
-                  src={
-                    getLocationEditorialContent(location)?.scenery.imagePath ??
-                    locationImage
-                  }
-                  alt=""
-                  fill
-                  sizes="(max-width: 600px) 100vw, (max-width: 1088px) 50vw, 33vw"
-                />
-                <span className="home-location-card__shade" aria-hidden="true" />
-                <span className="home-location-card__copy">
-                  <strong>{location}</strong>
-                  <span>
-                    {count} {count === 1 ? "Property" : "Properties"}
-                  </span>
-                </span>
-                <span className="home-location-card__arrow" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <Button href="/locations" className="home-locations__action">
-          View all locations
-        </Button>
-      </>
-    );
-  }
-
-  if (!facets) {
-    return (
-      <EmptyState
-        title="Location inventory is temporarily unavailable."
-        description="Published properties will appear here when they are available."
-        actionLabel="Browse Properties"
-        actionHref="/properties"
-      />
-    );
-  }
-
-  return (
-    <EmptyState
-      title="Published locations will appear here."
-      description="Location links and counts appear for areas with current published properties."
-      actionLabel="Browse All Properties"
-      actionHref="/properties"
-    />
-  );
-}
-
-export default function HomePage() {
+export default function HomePage({ searchParams }: PageProps<"/">) {
   const structuredData = buildSiteStructuredData(logo.src);
 
   return (
-    <main id="main-content" tabIndex={-1}>
+    <main id="main-content" tabIndex={-1} data-layered-hero>
+      <HomeIntro />
+      <PageMotion />
+      <HomeHeroCover />
       {structuredData ? (
         <script
           type="application/ld+json"
@@ -144,131 +45,95 @@ export default function HomePage() {
         />
       ) : null}
 
-      <section className="home-hero" aria-labelledby="home-heading">
-        <div className="home-hero__backdrop">
-          <Image
-            src={heroExterior}
-            alt="Modern two-storey home at dusk with mature trees and a landscaped frontage"
-            fill
-            preload
-            sizes="100vw"
-            className="home-hero__image"
-          />
+      {/* 1. HERO SECTION */}
+      <section
+        className={heroStyles.hero}
+        aria-labelledby="home-heading"
+        data-home-hero
+      >
+        <div className={heroStyles.backdrop}>
+          <HomeHeroVideo className={heroStyles.image} />
+          <div className={heroStyles.shade} aria-hidden="true" />
         </div>
-        <div className="home-hero__shade" aria-hidden="true" />
-        <Container className="home-hero__inner">
-          <div className="home-hero__content">
-            <h1 id="home-heading">Discover Your Next Home</h1>
-            <HeroPropertySearch />
+        <div className={heroStyles.cover} data-hero-cover aria-hidden="true" />
+
+        <div className={heroStyles.content} data-hero-layer>
+          <RcPremierMark
+            className={heroStyles.logo}
+            role="img"
+            aria-label="RC Premier Properties"
+          />
+          <h1 id="home-heading" className={heroStyles.title}>
+            <span className={heroStyles.titleLine}>
+              <span>
+                Find a <em>home</em>
+              </span>
+            </span>{" "}
+            <span className={heroStyles.titleLine}>
+              <span>worth coming</span>
+            </span>{" "}
+            <span className={heroStyles.titleLine}>
+              <span>home to.</span>
+            </span>
+          </h1>
+          <p className={heroStyles.intro}>
+            Explore homes and properties across Pampanga with straightforward guidance
+            from RC Premier.
+          </p>
+          <Link href="/properties" className={heroStyles.textLink}>
+            <HeroArrowIcon />
+            <span>Browse properties</span>
+          </Link>
+        </div>
+        <aside
+          className={heroStyles.card}
+          aria-label="Explore locations"
+          data-intro-last
+        >
+          <div className={heroStyles.cardImage}>
+            <Image
+              src={homeHeroTwo}
+              alt="Contemporary RC Premier residential exterior"
+              fill
+              sizes="320px"
+            />
           </div>
-        </Container>
+          <p>Explore available homes and properties across Pampanga.</p>
+          <Link href="/locations" className={heroStyles.textLink}>
+            <span>Explore locations</span>
+            <HeroArrowIcon />
+          </Link>
+        </aside>
+        <div className={heroStyles.scroll} aria-hidden="true">
+          <span />
+        </div>
       </section>
 
-      <Section className="home-featured" aria-labelledby="featured-heading">
-        <Container className="home-container">
-          <SectionHeading
-            className="home-heading"
-            eyebrow="Featured properties"
-            title={<span id="featured-heading">Explore homes on the market.</span>}
-            intro="A selection of current published RC Premier Properties listings."
-          />
-          <Suspense
-            fallback={
-              <EmptyState
-                title="Loading featured properties."
-                description="Current published inventory is being checked."
-              />
-            }
-          >
-            <FeaturedProperties />
-          </Suspense>
-        </Container>
-      </Section>
+      {/* The next section starts here; it slides over the hero, and the header keys off it. */}
+      <div data-home-hero-end aria-hidden="true" />
+      <HomeIntroduction />
+      <RouteCards />
+      <WhyRcPremier />
 
-      <aside className="home-viewing-callout" aria-label="Viewing requests">
-        <Container className="home-container home-viewing-callout__inner">
-          <p>Found a property you want to see?</p>
-          <RequestTourButton variant="secondary" />
-        </Container>
-      </aside>
+      <FeaturedPropertiesSection searchParams={searchParams} />
+      <CloserLook slides={CLOSER_LOOK_SLIDES} />
+      <ExplorePampangaSection />
 
-      <Section className="home-service" aria-labelledby="why-heading">
-        <Container className="home-container home-service__layout">
-          <div
-            className="home-service__media"
-            role="group"
-            aria-label="RC Premier property interiors"
-          >
-            <figure>
-              <Image
-                src={propertiesImage}
-                alt="Warm modern living room with a staircase"
-                fill
-                sizes="(max-width: 800px) 50vw, 25rem"
-              />
-              <figcaption>Thoughtful interiors</figcaption>
-            </figure>
-            <figure>
-              <Image
-                src={whyImage}
-                alt="Double-height home entrance with sculptural gold pendant lights"
-                fill
-                sizes="(max-width: 800px) 50vw, 25rem"
-              />
-              <figcaption>Distinctive details</figcaption>
-            </figure>
-          </div>
-          <div className="home-service__content">
-            <p className="eyebrow">Why RC Premier Properties</p>
-            <h2 id="why-heading">A clearer way to explore your next home.</h2>
-            <p>
-              Review available properties, compare the details that matter, and send
-              questions or request a viewing directly from the property you choose.
-            </p>
-            <Button href="/about" variant="outline">
-              Learn about us
-            </Button>
-          </div>
-        </Container>
-      </Section>
+      {/* 6. SELL STATEMENT */}
+      <SellStatement />
 
-      <Section
-        id="locations"
-        className="home-locations"
-        tone="soft"
-        aria-labelledby="locations-heading"
-      >
-        <Container className="home-container">
-          <SectionHeading
-            className="home-heading"
-            eyebrow="Explore by location"
-            title={<span id="locations-heading">Find the location for you.</span>}
-            intro="Explore areas represented by current published inventory."
-          />
-          <Suspense
-            fallback={
-              <EmptyState
-                title="Loading locations."
-                description="Published inventory is being checked."
-              />
-            }
-          >
-            <ExploreLocations />
-          </Suspense>
-        </Container>
-      </Section>
+      {/* 7. PROPERTY TOURS */}
+      <PropertyToursSection />
 
-      <Section className="home-videos" aria-labelledby="videos-heading">
-        <Container className="home-container">
-          <SectionHeading
-            className="home-heading"
-            eyebrow="Featured property videos"
-            title={<span id="videos-heading">Tour a little closer.</span>}
-            intro="Choose a short property tour when you are ready to watch."
-          />
-          <FeaturedVideos />
-        </Container>
-      </Section>
+      <EditorialCta
+        id="home-cta-heading"
+        eyebrow="Ready when you are"
+        headline={["Let’s find the right", "*property* for you."]}
+        body="Tell us what matters most and RC Premier can help you narrow the search and plan the next step."
+        label="Talk to RC Premier"
+        href="/contact"
+        wide
+      />
     </main>
   );
 }

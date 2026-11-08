@@ -1,3 +1,6 @@
+import path from "node:path";
+import { readFileSync } from "node:fs";
+import { API_PREFIX } from "@rc/shared";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 import readNextConfigEnvironment from "./src/lib/next-config-env.cjs";
 
@@ -8,6 +11,36 @@ const {
   publicDeployment,
   preventIndexing,
 } = readNextConfigEnvironment();
+
+// The opaque workspace import needs explicit traces, limited to this API function.
+const { packages } = JSON.parse(
+  readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"),
+);
+const backendPackages = new Set();
+function includeDependencies(packagePath) {
+  const manifest = packages[packagePath];
+  for (const name of Object.keys({
+    ...manifest.dependencies,
+    ...manifest.optionalDependencies,
+  })) {
+    let directory = packagePath;
+    let dependencyPath;
+    while (true) {
+      const candidate = `${directory ? `${directory}/` : ""}node_modules/${name}`;
+      if (packages[candidate]) {
+        dependencyPath = candidate;
+        break;
+      }
+      if (!directory) throw new Error(`Missing locked backend dependency: ${name}`);
+      directory = path.posix.dirname(directory);
+      if (directory === ".") directory = "";
+    }
+    if (backendPackages.has(dependencyPath)) continue;
+    backendPackages.add(dependencyPath);
+    if (!packages[dependencyPath].link) includeDependencies(dependencyPath);
+  }
+}
+includeDependencies("backend");
 
 function originOf(value) {
   return new URL(value).origin;
@@ -26,6 +59,8 @@ export function buildContentSecurityPolicy(config) {
     "data:",
     "blob:",
     config.mapTileOrigin,
+    // YouTube poster thumbnails for the homepage property tours.
+    "https://i.ytimg.com",
     ...(config.mediaOrigin ? [config.mediaOrigin] : []),
   ];
   const directives = [
@@ -98,6 +133,25 @@ export default function createNextConfig(phase) {
 
   return {
     poweredByHeader: false,
+    serverExternalPackages: [
+      "rc-premier-backend",
+      "mongoose",
+      "sharp",
+      "express",
+      "openid-client",
+      "cloudinary",
+    ],
+    outputFileTracingRoot: path.join(import.meta.dirname, ".."),
+    outputFileTracingIncludes: {
+      [`${API_PREFIX}/*`]: [
+        "../backend/dist/**/*",
+        "../backend/package.json",
+        "../shared/dist/**/*",
+        "../shared/package.json",
+        "../node_modules/rc-premier-backend/package.json",
+        ...[...backendPackages].map((directory) => `../${directory}/**/*`),
+      ],
+    },
     images: {
       formats: ["image/avif", "image/webp"],
       remotePatterns: [
@@ -117,7 +171,7 @@ export default function createNextConfig(phase) {
     async headers() {
       return [
         {
-          source: "/:path*",
+          source: `/((?!${API_PREFIX.split("/")[1]}(?:/|$)).*)`,
           headers: securityHeaders,
         },
         {

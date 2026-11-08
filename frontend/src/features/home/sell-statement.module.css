@@ -1,0 +1,110 @@
+.section {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --gutter: clamp(1.25rem, 3vw, 3rem);
+  padding-block: clamp(4.5rem, 8vw, 8rem) clamp(3.5rem, 5.5vw, 5.5rem);
+  background: var(--color-background);
+  color: var(--color-brand-deep);
+  font-family: var(--font-general-sans), sans-serif;
+}
+
+.container {
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.statement {
+  max-width: 1280px;
+  margin-inline: auto;
+  text-align: center;
+  margin-bottom: clamp(3rem, 5vw, 5rem);
+  font-size: clamp(3rem, 4vw, 4rem);
+  font-weight: 450;
+  line-height: 1.05;
+  letter-spacing: -0.026em;
+  color: var(--color-text);
+  text-wrap: balance;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Compact dark button, matching the other homepage sections. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-cta);
+  background: var(--color-brand-deep);
+  color: #f8f6f1;
+  font-family: var(--font-general-sans), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.button svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.button:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+.button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+@media (max-width: 63.99rem) {
+  .statement {
+    font-size: clamp(2.5rem, 5.6vw, 3.25rem);
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .section {
+    padding-block: 4rem 3.5rem;
+  }
+
+  .statement {
+    margin-bottom: 2.5rem;
+    font-size: clamp(2.125rem, 9.5vw, 2.625rem);
+    line-height: 1.08;
+    text-wrap: pretty;
+  }
+}
+
+/* Small phones: about 10% smaller, still large editorial type but fewer one-word lines. */
+@media (max-width: 30rem) {
+  .statement {
+    margin-bottom: 2.125rem;
+    font-size: clamp(1.9rem, 8.6vw, 2.35rem);
+  }
+}
+
+.button {
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button svg {
+    transition: none;
+  }
+}

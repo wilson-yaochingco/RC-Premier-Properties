@@ -99,3 +99,74 @@ describe("viewing request validation", () => {
     });
   });
 });
+
+describe("public viewing schedule rules", () => {
+  // 2026-09-07 09:00 in Manila (a Monday).
+  const accepts = (overrides: Record<string, unknown>, now = NOW) =>
+    expect(() => parseCreateInquiryBody(viewingBody(overrides), now)).not.toThrow();
+  const rejects = (
+    overrides: Record<string, unknown>,
+    field: string,
+    message: RegExp,
+    now = NOW,
+  ) =>
+    expect(() => parseCreateInquiryBody(viewingBody(overrides), now)).toThrowError(
+      expect.objectContaining({
+        status: 400,
+        issues: [
+          expect.objectContaining({ field, message: expect.stringMatching(message) }),
+        ],
+      }),
+    );
+
+  it("rejects same-day requests even for a later time today", () => {
+    rejects(
+      { requestedDate: "2026-09-07", requestedTime: "16:00" },
+      "requestedDate",
+      /tomorrow/,
+    );
+  });
+
+  it("accepts tomorrow and the 90-day boundary, and rejects day 91", () => {
+    accepts({ requestedDate: "2026-09-08" });
+    accepts({ requestedDate: "2026-12-06" });
+    rejects({ requestedDate: "2026-12-07" }, "requestedDate", /within 90 days/);
+  });
+
+  it("accepts only the preferred 9:00 AM to 4:00 PM half-hour times", () => {
+    for (const requestedTime of ["09:00", "12:00", "12:30", "16:00"])
+      accepts({ requestedTime });
+    for (const requestedTime of ["08:30", "09:15", "16:30", "23:45"]) {
+      rejects({ requestedTime }, "requestedTime", /9:00 AM to 4:00 PM/);
+    }
+  });
+
+  it("accepts weekends", () => {
+    accepts({ requestedDate: "2026-09-12" });
+    accepts({ requestedDate: "2026-09-13" });
+  });
+
+  it("counts days on the Philippine calendar across the UTC boundary", () => {
+    // 23:59 on 7 September in Manila: tomorrow is still 8 September.
+    const lateEvening = new Date("2026-09-07T15:59:00.000Z");
+    accepts({ requestedDate: "2026-09-08" }, lateEvening);
+    // 00:00 on 8 September in Manila, still 7 September in UTC.
+    const midnight = new Date("2026-09-07T16:00:00.000Z");
+    rejects({ requestedDate: "2026-09-08" }, "requestedDate", /tomorrow/, midnight);
+    accepts({ requestedDate: "2026-09-09" }, midnight);
+  });
+
+  it("keeps staff rescheduling outside the public preferred-time set", () => {
+    expect(
+      parseUpdateViewingRequestBody(
+        {
+          status: "confirmed",
+          requestedDate: "2026-09-07",
+          requestedTime: "17:15",
+          expectedVersion: 0,
+        },
+        NOW,
+      ),
+    ).toMatchObject({ requestedTime: "17:15" });
+  });
+});

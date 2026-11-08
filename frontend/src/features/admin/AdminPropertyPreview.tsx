@@ -102,6 +102,7 @@ export function AdminPropertyPreview({ propertyId }: { propertyId: string }) {
         coverMedia={property.coverMedia}
         gallery={property.gallery}
         propertyIdentifier={property.id}
+        title={property.title}
       />
 
       <article className={styles.preview}>

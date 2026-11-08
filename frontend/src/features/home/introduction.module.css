@@ -1,0 +1,158 @@
+.section {
+  --intro-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  padding-block: clamp(6.25rem, 8vw, 8.75rem) clamp(5rem, 12vw, 12rem);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-general-sans), sans-serif;
+}
+
+.container {
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 3vw, 3rem);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-deep);
+  transition: opacity 400ms var(--intro-ease);
+}
+
+.heading {
+  max-width: 21em;
+  margin-top: 1.75rem;
+  font-family: inherit;
+  font-size: clamp(2.25rem, 3.6vw, 4.25rem);
+  font-weight: 450;
+  line-height: 1.02;
+  letter-spacing: -0.026em;
+}
+
+@media (min-width: 64.0625rem) {
+  .heading {
+    max-width: none;
+  }
+  .line {
+    display: block;
+  }
+}
+
+.copy {
+  max-width: 40rem;
+  margin-top: clamp(1.5rem, 2.5vw, 2.25rem);
+  font-size: 1.125rem;
+  line-height: 1.5;
+  transition: opacity 650ms var(--intro-ease) 220ms;
+}
+
+.figure {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 1.4vw, 1.25rem);
+  margin: clamp(3rem, 4.5vw, 5rem) 0 0;
+}
+.item {
+  margin: 0;
+}
+.caption {
+  margin-top: clamp(1.25rem, 1.8vw, 1.75rem);
+}
+.caption h3 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-deep);
+}
+.caption p {
+  max-width: 26rem;
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.frame {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+}
+.image {
+  object-fit: cover;
+  transition: transform 650ms var(--intro-ease);
+}
+
+.section[data-reveal="pending"]:not(:focus-within) :is(.eyebrow, .copy) {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .section[data-reveal="visible"] .frame:hover .image {
+    transform: scale(1.01);
+    transition: transform 650ms var(--intro-ease);
+  }
+}
+
+@media (max-width: 48rem) {
+  .section {
+    padding-block: 4.5rem 5rem;
+  }
+  .heading {
+    font-size: clamp(1.875rem, 8vw, 2.5rem);
+  }
+}
+
+/* Three squares stay side by side down to tablet, then stack at a comfortable size. */
+@media (max-width: 47.99rem) {
+  .figure {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.25rem;
+    margin-top: 2.5rem;
+  }
+  .caption {
+    margin-top: 1rem;
+  }
+  .frame {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Centred editorial intro on mobile; the photographs below keep their own layout. */
+@media (max-width: 48rem) {
+  .eyebrow {
+    justify-content: center;
+  }
+
+  .heading,
+  .copy {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .heading {
+    max-width: 28rem;
+  }
+
+  .copy {
+    max-width: 28rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section * {
+    transition: none !important;
+  }
+  .section[data-reveal="pending"]:not(:focus-within) :is(.eyebrow, .copy) {
+    opacity: 1;
+    transform: none;
+  }
+  .section[data-reveal="visible"] .frame:hover .image {
+    transform: none;
+  }
+}

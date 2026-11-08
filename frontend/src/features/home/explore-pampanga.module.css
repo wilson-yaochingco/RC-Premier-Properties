@@ -1,0 +1,232 @@
+.section {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel: #202630;
+  --gutter: clamp(1.25rem, 3vw, 3rem);
+  /* Added to the neighbours' own padding (A Closer Look below-padding, Sell statement top). */
+  padding-block: clamp(2rem, 6vw, 7rem) clamp(3rem, 8vw, 9rem);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-general-sans), sans-serif;
+}
+
+.container {
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ---- Split: copy and locations left, map panel right ---- */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  gap: clamp(2rem, 4vw, 5rem);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.heading {
+  font-size: clamp(2.5rem, 4.4vw, 4.5rem);
+  font-weight: 450;
+  line-height: 0.98;
+  letter-spacing: -0.026em;
+}
+
+.heading span {
+  display: block;
+}
+
+/* ---- Locations ---- */
+.list {
+  max-width: 34rem;
+  margin: clamp(2.5rem, 4vw, 4rem) 0 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid rgb(32 38 48 / 16%);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: clamp(1.1rem, 1.6vw, 1.5rem);
+  border-top: 1px solid rgb(32 38 48 / 16%);
+  color: var(--panel);
+  font-size: clamp(1.25rem, 1.6vw, 1.5rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.row svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.row:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--panel);
+  outline-offset: 4px;
+}
+
+/* ---- Supporting copy and the quiet action ---- */
+.outro {
+  margin-top: auto;
+  padding-top: clamp(2.5rem, 5vw, 5rem);
+}
+
+.copy {
+  max-width: 30rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.button {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  margin-top: 1.75rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-cta);
+  background: var(--panel);
+  color: #f8f6f1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.button svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.button:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+.button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* ---- Map panel ---- */
+.panel {
+  display: grid;
+  place-items: center;
+  min-height: clamp(28rem, 46vw, 46rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border-radius: var(--radius-editorial);
+  background: #efebe3;
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.area {
+  fill: rgb(32 38 48 / 4%);
+  stroke: rgb(32 38 48 / 26%);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  transition: fill 250ms var(--ease);
+}
+
+.area[data-featured="true"] {
+  fill: rgb(32 38 48 / 20%);
+  cursor: pointer;
+}
+
+.area[data-featured="true"][data-active="true"] {
+  fill: var(--panel);
+}
+
+.outline {
+  fill: none;
+  stroke: rgb(32 38 48 / 70%);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+/* ---- Tablet: keep the split, scale the type ---- */
+@media (max-width: 63.99rem) {
+  .heading {
+    font-size: clamp(2.25rem, 5.6vw, 3.25rem);
+  }
+  .panel {
+    min-height: 0;
+    align-self: start;
+    aspect-ratio: 4 / 5;
+  }
+}
+
+/* ---- Mobile: one column, centred intro like the other Homepage sections ---- */
+@media (max-width: 47.99rem) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem;
+  }
+  .heading {
+    font-size: clamp(2.25rem, 9.5vw, 3rem);
+    text-align: center;
+  }
+  .list {
+    max-width: none;
+    margin-top: 2rem;
+  }
+  .outro {
+    margin-top: 0;
+    padding-top: 2rem;
+    text-align: center;
+  }
+  .copy {
+    margin-inline: auto;
+  }
+  .button {
+    display: flex;
+    width: fit-content;
+    margin-inline: auto;
+  }
+  .panel {
+    aspect-ratio: auto;
+    padding: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section * {
+    transition: none !important;
+  }
+}

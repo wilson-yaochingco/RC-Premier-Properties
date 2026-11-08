@@ -178,8 +178,7 @@ export function AdminPropertyMediaManager({
         }
         updateUpload(upload.id, {
           state: "error",
-          error:
-            error instanceof ApiClientError ? error.message : "Image upload failed.",
+          error: error instanceof Error ? error.message : "Image upload failed.",
           errorField: "file",
         });
       }
@@ -331,6 +330,7 @@ export function AdminPropertyMediaManager({
         <div>
           <strong>Upload Photos</strong>
           <p>Choose PNG, JPEG, or WebP images up to 12 MB each, or drop files here.</p>
+          <p>Photos over 4 MiB are resized and compressed before uploading.</p>
         </div>
         <label className={styles.uploadPicker}>
           Choose Photos

@@ -1,5 +1,14 @@
 # Controlled Vercel beta
 
+> **Superseded topology (Phases 0-4 migration branch):** the separate persistent API
+> architecture and environment placement below are historical. The
+> [Next.js full-stack migration plan](nextjs-fullstack-migration-plan.md#7-vercel-project-configuration-for-wilson-at-phase-56)
+> and [launch readiness](launch-readiness.md#single-app-vercel-environment) define one
+> Vercel app for pages and Express, server-only credentials in Vercel, a shared MongoDB
+> limiter and client-prepared uploads. Wilson must measure and set `TRUST_PROXY_HOPS`
+> before deployment and configure Vercel Firewall rules. Phases 5-7, provider acceptance
+> and the existing Render rollback target remain pending; this note authorizes no deployment.
+
 Level 22 prepares repository engineering for hosted acceptance. No deployment, provider
 provisioning, DNS change, production data mutation, or credential rotation is authorized
 by this runbook. Deployment requires a separate owner instruction. Use an isolated beta

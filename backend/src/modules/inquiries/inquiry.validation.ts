@@ -4,8 +4,11 @@ import {
   INQUIRY_STATUSES,
   INQUIRY_TYPES,
   INQUIRY_WORKFLOW_STATUSES,
+  VIEWING_REQUEST_MAX_DAYS_AHEAD,
   VIEWING_REQUEST_STATUSES,
   VIEWING_STAFF_TRANSITION_STATUSES,
+  isViewingRequestTime,
+  viewingRequestDateWindow,
   type AddInquiryNoteRequest,
   type AdminInquiryListRequest,
   type AdminInquirySearchRequest,
@@ -156,7 +159,7 @@ export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedI
     if (!propertyId) {
       issues.push({ field: "propertyId", message: "Select a property to view." });
     }
-    validateViewingSchedule(requestedDate, requestedTime, issues, now, true);
+    validateViewingSchedule(requestedDate, requestedTime, issues, now, true, true);
   } else {
     if (source === "viewing-page") {
       issues.push({
@@ -177,6 +180,7 @@ export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedI
     issues.length > 0 ||
     !name ||
     !email ||
+    !phone ||
     !inquiryType ||
     !source ||
     (inquiryType !== "viewing" && !message)
@@ -187,7 +191,7 @@ export function parseCreateInquiryBody(body: unknown, now = new Date()): ParsedI
   const data: Omit<CreateInquiryRequest, "website"> = {
     name,
     email: email.toLowerCase(),
-    ...(phone ? { phone } : {}),
+    phone,
     inquiryType,
     source,
     ...(propertyId ? { propertyId: propertyId.toUpperCase() } : {}),
@@ -459,6 +463,8 @@ function validateViewingSchedule(
   issues: ValidationIssue[],
   now: Date,
   requireFuture: boolean,
+  /** Public requests must also fit the shared request window and preferred times. */
+  publicRequest = false,
 ): void {
   if (!requestedDate) {
     issues.push({ field: "requestedDate", message: "Select a requested date." });
@@ -467,6 +473,7 @@ function validateViewingSchedule(
     issues.push({ field: "requestedTime", message: "Select a requested time." });
   }
   const dateMatch = requestedDate?.match(DATE_PATTERN);
+  let realDate = false;
   if (requestedDate && !dateMatch) {
     issues.push({
       field: "requestedDate",
@@ -484,6 +491,8 @@ function validateViewingSchedule(
       date.getUTCDate() !== day
     ) {
       issues.push({ field: "requestedDate", message: "Select a real calendar date." });
+    } else {
+      realDate = true;
     }
   }
   if (requestedTime && !TIME_PATTERN.test(requestedTime)) {
@@ -492,7 +501,37 @@ function validateViewingSchedule(
       message: "Use a valid 24-hour time in HH:mm format.",
     });
   }
-  if (requireFuture && dateMatch && requestedTime && TIME_PATTERN.test(requestedTime)) {
+  if (publicRequest && requestedTime && TIME_PATTERN.test(requestedTime)) {
+    if (!isViewingRequestTime(requestedTime)) {
+      issues.push({
+        field: "requestedTime",
+        message:
+          "Choose a preferred time from 9:00 AM to 4:00 PM, on the hour or half hour.",
+      });
+    }
+  }
+  if (publicRequest && requestedDate && realDate) {
+    const { earliest, latest } = viewingRequestDateWindow(now);
+    if (requestedDate < earliest) {
+      issues.push({
+        field: "requestedDate",
+        message: "Choose a date from tomorrow onward in Philippine time.",
+      });
+    } else if (requestedDate > latest) {
+      issues.push({
+        field: "requestedDate",
+        message: `Choose a date within ${VIEWING_REQUEST_MAX_DAYS_AHEAD} days.`,
+      });
+    }
+  }
+  // The public window starts tomorrow, so only staff updates need the instant check.
+  if (
+    requireFuture &&
+    !publicRequest &&
+    dateMatch &&
+    requestedTime &&
+    TIME_PATTERN.test(requestedTime)
+  ) {
     const requestedAt = new Date(`${requestedDate}T${requestedTime}:00+08:00`);
     if (requestedAt.getTime() <= now.getTime()) {
       issues.push({

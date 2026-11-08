@@ -1,0 +1,62 @@
+.page {
+  --ink: var(--color-brand-deep);
+}
+
+/* The introduction sits centred on the page's own warm white, directly above the card. */
+.booking {
+  padding-bottom: clamp(3.5rem, 7vw, 6rem);
+}
+
+.intro {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  padding: clamp(3rem, 7vw, 5.75rem) var(--gutter) clamp(2.5rem, 5vw, 4rem);
+  text-align: center;
+}
+
+.intro > * {
+  max-width: 46rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.headline {
+  color: var(--ink);
+  font-size: clamp(2.5rem, 5.6vw, 5rem);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 31rem;
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.stage {
+  position: relative;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+@media (max-width: 39.99rem) {
+  .intro {
+    gap: 1rem;
+    padding-top: 2.5rem;
+  }
+}

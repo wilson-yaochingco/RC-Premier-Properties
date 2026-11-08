@@ -34,7 +34,7 @@
   font-family: var(--font-editorial);
   font-size: clamp(1.75rem, 2.15vw, 2.5rem);
   font-weight: 400;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.034em;
   line-height: 0.98;
 }
 
@@ -321,7 +321,7 @@
   font-family: var(--font-editorial);
   font-size: clamp(2rem, 3.25vw, 3.5rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 
@@ -447,11 +447,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 14%, white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-editorial);
+  overflow: hidden;
   background: #fff;
   transition:
-    box-shadow 220ms ease,
-    transform 220ms ease;
+    box-shadow 240ms ease,
+    transform 240ms ease;
 }
 
 .cardMediaLink {
@@ -462,19 +464,26 @@
 }
 
 .cardMedia {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 10.5;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover .cardMedia {
+  transform: scale(1.025);
 }
 
 .cardPurpose {
   position: absolute;
-  top: 0.65rem;
-  left: 0.65rem;
-  padding: 0.4rem 0.55rem;
-  background: var(--brand-primary-deep);
+  bottom: 0.75rem;
+  right: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  background: rgba(25, 30, 38, 0.88);
+  backdrop-filter: blur(4px);
   color: #fff;
-  font-size: 0.69rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -483,96 +492,100 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding: 1.25rem 1.25rem 1.15rem;
 }
 
-.cardMeta,
-.cardFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 0.69rem;
+.cardPrice {
+  margin: 0 0 0.4rem;
+  color: var(--color-brand-deep, #252c36);
+  font-family: var(--font-sans);
+  font-size: clamp(1.35rem, 1.6vw, 1.65rem);
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.cardMeta > *,
-.cardFooter > * {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.cardFooter {
-  flex-wrap: wrap;
-}
-
-.cardMeta {
-  color: var(--text-muted);
-}
-
-.cardLocation {
-  margin: 0.75rem 0 0.25rem;
-  color: var(--text-muted);
-  font-size: 0.76rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .cardTitle {
-  font-family: var(--font-editorial);
-  font-size: clamp(1.35rem, 1.8vw, 1.8rem);
-  font-weight: 400;
-  letter-spacing: -0.025em;
-  line-height: 1.12;
+  margin: 0 0 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  color: var(--color-brand-deep, #252c36);
 }
 
 .cardTitle a {
   text-decoration: none;
+  color: inherit;
+  transition: color 180ms ease;
 }
 
-.cardPrice {
-  margin: 0.9rem 0;
-  font-size: 1rem;
-  font-weight: 700;
+.cardTitle a:hover {
+  color: var(--color-accent, #b49351);
 }
 
-.cardPrice small {
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  font-weight: 500;
+.cardLocation {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted, #68707c);
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
-.cardSpecs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem 1rem;
-  margin: 0 0 0.9rem;
-  padding-block: 0.75rem;
-  border-block: 1px solid color-mix(in srgb, var(--brand-primary) 10%, white);
-}
-
-.cardSpecs div {
-  min-width: 0;
-  display: flex;
-  gap: 0.3rem;
-  align-items: baseline;
-}
-
-.cardSpecs dt {
-  color: var(--text-muted);
-  font-size: 0.69rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.cardSpecs dd {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.cardFooter {
+.cardSpecsRow {
   margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--color-border, #dddcd7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cardSpecsList {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.specItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-text-muted, #68707c);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.specIcon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: var(--color-text-muted, #68707c);
+}
+
+.cardArrowLink {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--color-brand-deep, #252c36);
+  transition:
+    transform 200ms ease,
+    color 200ms ease;
+}
+
+.cardArrowLink:hover {
+  transform: translateX(3px);
+  color: var(--color-accent, #b49351);
+}
+
+.cardArrow {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .availability {

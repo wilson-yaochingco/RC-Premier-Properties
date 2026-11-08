@@ -8,10 +8,12 @@ import type {
   PropertySearchResponse,
   PublicPropertyDetail,
 } from "@rc/shared";
-import { API_PREFIX } from "@rc/shared";
+import { API_PREFIX, viewingRequestDateWindow } from "@rc/shared";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { rateLimitStores } from "./helpers/rate-limit-stores.js";
+import { createInquiryRateLimit } from "../src/middleware/inquiryRateLimit.js";
 import type { InquiryService } from "../src/modules/inquiries/inquiry.types.js";
 import type { PropertyService } from "../src/modules/properties/property.types.js";
 
@@ -341,6 +343,7 @@ describe("Phase 2A public API", () => {
   );
 
   it("accepts a structured future viewing request and rejects malformed schedules", async () => {
+    const requestedDate = viewingRequestDateWindow().earliest;
     const valid = await request(app()).post(`${API_PREFIX}/inquiries`).send({
       name: "Maria Santos",
       email: "maria@example.com",
@@ -348,7 +351,7 @@ describe("Phase 2A public API", () => {
       inquiryType: "viewing",
       source: "viewing-page",
       propertyId: "rc-100",
-      requestedDate: "2030-09-20",
+      requestedDate,
       requestedTime: "10:30",
       privacyConsent: true,
     });
@@ -357,7 +360,7 @@ describe("Phase 2A public API", () => {
       expect.objectContaining({
         inquiryType: "viewing",
         propertyId: "RC-100",
-        requestedDate: "2030-09-20",
+        requestedDate,
         requestedTime: "10:30",
       }),
     );
@@ -470,30 +473,34 @@ describe("Phase 2A public API", () => {
 });
 
 describe("inquiry spam throttling", () => {
-  it("limits repeated submissions independently of the general API budget", async () => {
-    const properties = makePropertyService();
-    const inquiries = makeInquiryService();
-    const app = createApp({
-      propertyService: properties.service,
-      inquiryService: inquiries.service,
-    });
-    const body = {
-      name: "Maria Santos",
-      email: "maria@example.com",
-      phone: "+63 917 555 0110",
-      inquiryType: "general",
-      source: "contact-page",
-      message: "Please contact me about your property services.",
-      privacyConsent: true,
-    };
+  it.each(rateLimitStores())(
+    "limits repeated submissions independently of the general API budget ($name)",
+    async ({ create }) => {
+      const properties = makePropertyService();
+      const inquiries = makeInquiryService();
+      const app = createApp({
+        propertyService: properties.service,
+        inquiryService: inquiries.service,
+        inquiryRateLimit: createInquiryRateLimit(create("inquiry-spam")),
+      });
+      const body = {
+        name: "Maria Santos",
+        email: "maria@example.com",
+        phone: "+63 917 555 0110",
+        inquiryType: "general",
+        source: "contact-page",
+        message: "Please contact me about your property services.",
+        privacyConsent: true,
+      };
 
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const response = await request(app).post(`${API_PREFIX}/inquiries`).send(body);
-      expect(response.status).toBe(201);
-    }
-    const limited = await request(app).post(`${API_PREFIX}/inquiries`).send(body);
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const response = await request(app).post(`${API_PREFIX}/inquiries`).send(body);
+        expect(response.status).toBe(201);
+      }
+      const limited = await request(app).post(`${API_PREFIX}/inquiries`).send(body);
 
-    expect(limited.status).toBe(429);
-    expect(limited.body).toMatchObject({ status: "error", statusCode: 429 });
-  });
+      expect(limited.status).toBe(429);
+      expect(limited.body).toMatchObject({ status: "error", statusCode: 429 });
+    },
+  );
 });

@@ -7,6 +7,7 @@ import { safeErrorMessage } from "../src/lib/safe-error.js";
 import { errorHandler } from "../src/middleware/errorHandler.js";
 import { notFound } from "../src/middleware/notFound.js";
 import { createSecurityHeaders } from "../src/middleware/securityHeaders.js";
+import { rateLimitStores } from "./helpers/rate-limit-stores.js";
 
 describe("security response headers", () => {
   it.each([
@@ -90,22 +91,26 @@ describe("sensitive error privacy", () => {
 });
 
 describe("rate-limit proxy boundary", () => {
-  it("does not let untrusted forwarding headers create new IP buckets", async () => {
-    const app = express();
-    app.use(
-      rateLimit({
-        windowMs: 60_000,
-        limit: 2,
-        standardHeaders: true,
-        legacyHeaders: false,
-        validate: { xForwardedForHeader: false },
-      }),
-    );
-    app.get("/", (_req, res) => res.status(204).end());
-    const responses = [];
-    for (const address of ["198.51.100.1", "198.51.100.2", "198.51.100.3"]) {
-      responses.push(await request(app).get("/").set("X-Forwarded-For", address));
-    }
-    expect(responses.map((response) => response.status)).toEqual([204, 204, 429]);
-  });
+  it.each(rateLimitStores())(
+    "does not let untrusted forwarding headers create new IP buckets ($name)",
+    async ({ create }) => {
+      const app = express();
+      app.use(
+        rateLimit({
+          store: create("proxy-boundary"),
+          windowMs: 60_000,
+          limit: 2,
+          standardHeaders: true,
+          legacyHeaders: false,
+          validate: { xForwardedForHeader: false },
+        }),
+      );
+      app.get("/", (_req, res) => res.status(204).end());
+      const responses = [];
+      for (const address of ["198.51.100.1", "198.51.100.2", "198.51.100.3"]) {
+        responses.push(await request(app).get("/").set("X-Forwarded-For", address));
+      }
+      expect(responses.map((response) => response.status)).toEqual([204, 204, 429]);
+    },
+  );
 });

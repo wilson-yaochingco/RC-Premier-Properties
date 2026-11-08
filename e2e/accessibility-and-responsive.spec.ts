@@ -28,27 +28,33 @@ const VIEWPORT_WIDTHS = [
 
 async function expectFixtureInventory(page: Page, path: string) {
   if (path === "/") {
+    await expect(page.locator("[data-featured-property-card]").first()).toBeVisible();
     await expect(
-      page.locator(".home-featured-grid [data-property-card]").first(),
+      page
+        .getByRole("region", { name: "Explore our communities." })
+        .getByRole("link", { name: /Angeles City/i }),
     ).toBeVisible();
-    await expect(page.locator(".home-location-grid li").first()).toBeVisible();
   } else if (path === "/properties") {
     await expect(page.locator("[data-property-card]").first()).toBeVisible();
   } else if (path.startsWith("/properties/")) {
+    await expect(page.locator("#property-title")).toHaveCount(1);
     await expect(page.locator("#property-title")).toBeVisible();
   }
 }
 
 async function expectSemanticShell(page: Page) {
+  await expect(page.locator("main#main-content")).toHaveCount(1);
   await expect(page.locator('main#main-content:not([aria-busy="true"])')).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("banner")).toHaveCount(1);
   await expect(page.locator("main#main-content")).toHaveCount(1);
   await expect(page.getByRole("contentinfo")).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Footer navigation" })).toHaveCount(
-    1,
-  );
+  for (const name of ["Discover", "Company", "Locations"]) {
+    await expect(
+      page.getByRole("contentinfo").getByRole("navigation", { name }),
+    ).toHaveCount(1);
+  }
   const structure = await page.evaluate(() => {
     const headingLevels = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map(
       (heading) => Number(heading.tagName.slice(1)),
@@ -90,7 +96,16 @@ async function expectSemanticShell(page: Page) {
   });
   expect(structure.headingLevels[0]).toBe(1);
   expect(structure.skippedHeading).toBe(false);
-  expect(structure.duplicateIds).toEqual([]);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const ids = [...document.querySelectorAll<HTMLElement>("[id]")].map(
+          (element) => element.id,
+        );
+        return ids.filter((id, index) => ids.indexOf(id) !== index);
+      }),
+    )
+    .toEqual([]);
   expect(structure.unlabeledControls).toEqual([]);
   expect(structure.unnamedButtons).toBe(0);
 }
@@ -126,14 +141,21 @@ test("form controls retain a visible keyboard focus indicator", async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  const propertyId = page.getByLabel("Property ID");
-  await expect(propertyId).toBeVisible();
+  const location = page.getByRole("button", { name: "Start Search", exact: true });
+  await expect(location).toBeVisible();
+  await expect(page.locator("main#main-content")).toHaveCount(1);
   await page.locator("main#main-content").focus();
   await page.keyboard.press("Tab");
-  await expect(propertyId).toBeFocused();
-  expect(
-    await propertyId.evaluate((control) => getComputedStyle(control).outlineStyle),
-  ).not.toBe("none");
+  await expect(location).toBeFocused();
+  // The ring is drawn on the field that wraps the control, so accept either.
+  const ring = await location.evaluate((control) => {
+    for (let node: Element | null = control; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (style.outlineStyle !== "none") return Number.parseFloat(style.outlineWidth);
+    }
+    return 0;
+  });
+  expect(ring).toBeGreaterThanOrEqual(2);
 });
 
 test("reduced motion and 200 percent text sizing preserve core content", async ({
@@ -145,7 +167,7 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
   expect(
     Number.parseFloat(
       await page
-        .locator(".home-hero__content h1")
+        .getByRole("heading", { level: 1, name: "Find a home worth coming home to." })
         .evaluate((heading) => getComputedStyle(heading).animationDuration),
     ),
   ).toBeLessThanOrEqual(0.001);
@@ -163,7 +185,7 @@ test("reduced motion and 200 percent text sizing preserve core content", async (
       `${route.path} overflow at 200% text: ${JSON.stringify(layout.offenders)}`,
     ).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(await inspectSiblingOverlaps(page, ".site-header__inner")).toEqual([]);
-    expect(await inspectSiblingOverlaps(page, ".site-footer__main")).toEqual([]);
+    expect(await inspectSiblingOverlaps(page, "[data-site-footer-main]")).toEqual([]);
   }
 
   for (const width of [320, 390]) {
@@ -224,12 +246,20 @@ test("location layouts adapt across Part 2 widths and 200 percent text", async (
   }
 });
 
+async function openPropertyTour(page: Page) {
+  await page.goto("/properties/clark-garden-residence");
+  await page
+    .getByRole("complementary", { name: "Property inquiry" })
+    .getByRole("button", { name: "Book a Viewing" })
+    .click();
+}
+
 test("Request a Tour remains contained and operable across Part 3 viewports and reflow", async ({
   page,
 }) => {
   for (const width of [320, 390, 768, 1024, 1280, 1440, 1920]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
-    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    await openPropertyTour(page);
     const dialog = page.getByRole("dialog", { name: "Request a Tour" });
     await expect(dialog).toBeVisible();
     await expect(
@@ -246,7 +276,7 @@ test("Request a Tour remains contained and operable across Part 3 viewports and 
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+  await openPropertyTour(page);
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
@@ -261,6 +291,37 @@ test("Request a Tour remains contained and operable across Part 3 viewports and 
   await expect(
     dialog.getByRole("button", { name: "Close Request a Tour" }),
   ).toBeVisible();
+});
+
+test("inline viewing scheduler stays contained with usable targets at every width", async ({
+  page,
+}) => {
+  for (const width of [320, 390, 640, 768, 1024, 1088, 1280, 1440]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    const layout = await inspectHorizontalOverflow(page);
+    expect(
+      layout.documentWidth,
+      `scheduler overflow at ${width}px: ${JSON.stringify(layout.offenders)}`,
+    ).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.offenders).toEqual([]);
+    const targets = await page
+      .locator(
+        'label:has(input[name="requestedDate"]), label:has(input[name="requestedTime"])',
+      )
+      .evaluateAll((labels) =>
+        labels.map((label) => {
+          const box = label.getBoundingClientRect();
+          return Math.min(box.width, box.height);
+        }),
+      );
+    // Seven day columns cannot reach 44px inside a 320px viewport; 32px stays well above
+    // the WCAG 2.2 minimum there, and every wider phone gets full-size targets.
+    expect(
+      Math.min(...targets),
+      `smallest scheduler target at ${width}px`,
+    ).toBeGreaterThanOrEqual(width < 390 ? 32 : 44);
+  }
 });
 
 test("admin skip link focuses the loading session-state main", async ({ page }) => {
@@ -361,6 +422,21 @@ async function inspectHorizontalOverflow(page: Page) {
         ) {
           return false;
         }
+        for (
+          let parent = element.parentElement;
+          parent;
+          parent = parent.parentElement
+        ) {
+          const overflow = getComputedStyle(parent).overflowX;
+          const bounds = parent.getBoundingClientRect();
+          if (
+            ["auto", "scroll", "hidden", "clip"].includes(overflow) &&
+            bounds.left >= -1 &&
+            bounds.right <= viewportWidth + 1
+          ) {
+            return false;
+          }
+        }
         const rect = element.getBoundingClientRect();
         return rect.left < -1 || rect.right > viewportWidth + 1;
       })
@@ -432,6 +508,7 @@ for (const width of VIEWPORT_WIDTHS) {
 
     for (const route of CORE_ROUTES) {
       await page.goto(route.path);
+      await expect(page.locator("main#main-content")).toHaveCount(1);
       await expect(
         page.locator('main#main-content:not([aria-busy="true"])'),
       ).toBeVisible();

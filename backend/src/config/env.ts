@@ -509,10 +509,43 @@ const publicApiOrigin = configuredPublicOrigin(
   optionalValue("API_PUBLIC_ORIGIN"),
   true,
 );
+const CLOUDINARY_DELIVERY_ORIGIN = "https://res.cloudinary.com";
+
+/**
+ * Cloudinary is either fully configured or absent; a partial set is a deployment mistake.
+ * Ignored under test so a developer's real credentials can never be reached by a test run.
+ */
+export function resolveCloudinaryConfiguration(
+  nodeEnv: Environment,
+  read: (name: string) => string | undefined,
+): { cloudName: string; apiKey: string; apiSecret: string } | undefined {
+  if (nodeEnv === "test") return undefined;
+  const names = [
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+  ];
+  const values = names.map((name) => read(name));
+  if (values.every((value) => value === undefined)) return undefined;
+  const missing = names.filter((_, index) => values[index] === undefined);
+  if (missing.length > 0) {
+    throw new Error(
+      `Cloudinary is partially configured. Missing: ${missing.join(", ")}.`,
+    );
+  }
+  const [cloudName, apiKey, apiSecret] = values as [string, string, string];
+  if (!/^[a-z0-9_-]+$/i.test(cloudName)) {
+    throw new Error("CLOUDINARY_CLOUD_NAME contains unsupported characters.");
+  }
+  return { cloudName, apiKey, apiSecret };
+}
+
+const cloudinary = resolveCloudinaryConfiguration(nodeEnv, optionalValue);
 const mediaPublicOrigin = configuredPublicOrigin(
   nodeEnv,
   "MEDIA_PUBLIC_ORIGIN",
-  optionalValue("MEDIA_PUBLIC_ORIGIN"),
+  optionalValue("MEDIA_PUBLIC_ORIGIN") ??
+    (cloudinary ? CLOUDINARY_DELIVERY_ORIGIN : undefined),
   false,
 );
 const mongodbUri = validateMongoDbUri(nodeEnv, required("MONGODB_URI"));
@@ -529,6 +562,7 @@ export const env = Object.freeze({
   CORS_ORIGIN: corsOrigin,
   API_PUBLIC_ORIGIN: publicApiOrigin,
   MEDIA_PUBLIC_ORIGIN: mediaPublicOrigin,
+  CLOUDINARY: cloudinary ? Object.freeze(cloudinary) : undefined,
   BUSINESS_NOTIFICATION_EMAIL: normalizeBusinessNotificationEmail(
     optional("BUSINESS_NOTIFICATION_EMAIL", "rcpremierph@gmail.com"),
   ),

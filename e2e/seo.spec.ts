@@ -4,7 +4,9 @@ const SITE_ORIGIN = "http://127.0.0.1:3100";
 const FACEBOOK_URL =
   "https://www.facebook.com/people/RC-Premier-Properties/61588365958516/";
 
-test("optimized frontend sends the reviewed provider-aware CSP", async ({ page }) => {
+test("optimized frontend sends the reviewed provider-aware CSP @smoke", async ({
+  page,
+}) => {
   const response = await page.goto("/");
   const policy = response?.headers()["content-security-policy"] ?? "";
 
@@ -44,9 +46,10 @@ test("public pages render canonical and social metadata", async ({ page }) => {
 
   for (const [path, title] of [
     ["/properties", "Properties for Sale in Pampanga | RC Premier Properties"],
-    ["/about", "About | RC Premier Properties"],
-    ["/contact", "Contact | RC Premier Properties"],
-    ["/book-viewing", "Request a Property Tour | RC Premier Properties"],
+    ["/about", "About Us: Real Estate in Pampanga | RC Premier Properties"],
+    ["/contact", "Contact Us: Pampanga Property Inquiries | RC Premier Properties"],
+    ["/book-viewing", "Book a Property Viewing in Pampanga | RC Premier Properties"],
+    ["/privacy", "Privacy Policy | RC Premier Properties"],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);
@@ -68,15 +71,11 @@ test("location discovery is indexable only for inventory-backed stable states", 
   await expect(page).toHaveTitle(
     "Properties for Sale in Angeles City, Pampanga | RC Premier Properties",
   );
-  await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: "Properties for sale in Angeles City, Pampanga",
-    }),
-  ).toBeVisible();
-  const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
-  expect(new URL(canonical ?? "").searchParams.get("location")).toBe(
-    "Angeles City, Pampanga",
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  // The filtered catalog defers to the location guide for the same inventory.
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    `${SITE_ORIGIN}/locations/angeles-city`,
   );
   await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 
@@ -84,10 +83,14 @@ test("location discovery is indexable only for inventory-backed stable states", 
     "/properties?location=Angeles+City&minPrice=1000000&sort=price-desc&page=2",
   );
   await expect.poll(() => new URL(page.url()).searchParams.get("page")).toBe("1");
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    "href",
-    `${SITE_ORIGIN}/properties`,
-  );
+  // Next briefly holds the old and new <head> tags during a client redirect; wait for one.
+  await expect
+    .poll(() =>
+      page
+        .locator('link[rel="canonical"]')
+        .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
+    )
+    .toEqual([`${SITE_ORIGIN}/properties`]);
   const filteredRobots = await page
     .locator('meta[name="robots"]')
     .evaluateAll((elements) =>
@@ -104,7 +107,7 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
     .textContent();
   expect(siteJsonLd).toContain('"@type":"Organization"');
   expect(siteJsonLd).toContain('"@type":"WebSite"');
-  expect(siteJsonLd).toContain("rcpremierph@gmail.com");
+  expect(siteJsonLd).toContain("rcpropertiesss@gmail.com");
   expect(siteJsonLd).toContain("+63 918 429 1873");
   expect(siteJsonLd).toContain(FACEBOOK_URL);
   expect(siteJsonLd).not.toContain("streetAddress");
@@ -112,7 +115,9 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
   expect(siteJsonLd).not.toContain("SearchAction");
 
   await page.goto("/properties/clark-garden-residence?from=%2Fproperties");
-  await expect(page).toHaveTitle("Clark Garden Residence | RC Premier Properties");
+  await expect(page).toHaveTitle(
+    "Clark Garden Residence, House and lot for sale in Angeles City | RC Premier Properties",
+  );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
     `${SITE_ORIGIN}/properties/clark-garden-residence`,
@@ -120,7 +125,7 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
   const propertyJsonLd = await page
     .locator('script[type="application/ld+json"]')
     .textContent();
-  expect(propertyJsonLd).toContain('"@type":"Product"');
+  expect(propertyJsonLd).toContain('"@type":"RealEstateListing"');
   expect(propertyJsonLd).toContain('"@type":"BreadcrumbList"');
   expect(propertyJsonLd).toContain('"availability":"https://schema.org/InStock"');
   expect(propertyJsonLd).toContain('"priceCurrency":"PHP"');
@@ -128,7 +133,7 @@ test("homepage and property JSON-LD are factual and privacy-safe", async ({ page
   expect(propertyJsonLd).not.toContain("privateAddress");
 });
 
-test("robots, noindex headers, sitemap, and property 404s preserve public boundaries", async ({
+test("robots, noindex headers, sitemap, and property 404s preserve public boundaries @smoke", async ({
   page,
   request,
 }) => {
@@ -138,6 +143,13 @@ test("robots, noindex headers, sitemap, and property 404s preserve public bounda
   expect(robotsText).toContain("Disallow: /admin");
   expect(robotsText).toContain("Disallow: /api");
   expect(robotsText).toContain(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`);
+
+  const llms = await request.get("/llms.txt");
+  expect(llms.ok()).toBe(true);
+  const llmsText = await llms.text();
+  expect(llmsText.startsWith("# RC Premier Properties")).toBe(true);
+  expect(llmsText).toContain(`${SITE_ORIGIN}/locations/angeles-city`);
+  expect(llmsText).not.toContain("/admin");
 
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.ok()).toBe(true);
@@ -149,7 +161,8 @@ test("robots, noindex headers, sitemap, and property 404s preserve public bounda
   expect(sitemapShardText).toContain(
     `${SITE_ORIGIN}/properties/clark-garden-residence`,
   );
-  expect(sitemapShardText).toContain("location=Angeles+City%2C+Pampanga");
+  expect(sitemapShardText).not.toContain("location=");
+  expect(sitemapShardText).toContain(`${SITE_ORIGIN}/disclaimer`);
   expect(sitemapShardText).toContain(`${SITE_ORIGIN}/locations/angeles-city`);
   expect(sitemapShardText).not.toContain("mabalacat-skyline-condominium");
   expect(sitemapShardText).not.toContain("/admin");

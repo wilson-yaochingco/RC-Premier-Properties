@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { RollLabel } from "./RollLabel";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "text";
+type ButtonVariant = "primary" | "secondary" | "gold" | "outline" | "text";
 
 interface ButtonProps {
   children: ReactNode;
@@ -11,6 +12,8 @@ interface ButtonProps {
   className?: string;
   ariaLabel?: string;
   disabled?: boolean;
+  /** Omits the trailing arrow; the label keeps its rolling hover behavior. */
+  iconless?: boolean;
 }
 
 function ArrowIcon() {
@@ -29,12 +32,14 @@ export function Button({
   className = "",
   ariaLabel,
   disabled = false,
+  iconless = false,
 }: ButtonProps) {
-  const classes = `button button--${variant} ${className}`.trim();
+  const rolls = variant !== "text";
+  const classes = `button button--${variant}${rolls ? " cta" : ""} ${className}`.trim();
   const content = (
     <>
-      <span>{children}</span>
-      <ArrowIcon />
+      {rolls ? <RollLabel>{children}</RollLabel> : <span>{children}</span>}
+      {iconless ? null : <ArrowIcon />}
     </>
   );
 

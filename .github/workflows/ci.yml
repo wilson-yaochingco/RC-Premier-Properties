@@ -40,15 +40,6 @@ jobs:
       - name: Unit and integration tests
         run: npm test
 
-      - name: Build
-        run: npm run build
-        env:
-          # This verifies optimized artifacts without claiming a live deployment.
-          # Staging/production use their real HTTPS origins and provider configuration.
-          NEXT_PUBLIC_DEPLOYMENT_ENV: test
-          NEXT_PUBLIC_API_URL: https://api.ci.example.test
-          NEXT_PUBLIC_SITE_URL: https://site.ci.example.test
-
       - name: Strict staging-shaped deployment build
         run: npm run build:deployment
         env:
@@ -60,5 +51,8 @@ jobs:
           NEXT_PUBLIC_MAP_ATTRIBUTION_TEXT: CI map fixture
           NEXT_PUBLIC_MAP_ATTRIBUTION_URL: https://tiles.ci.example.test/attribution
 
-      - name: Browser acceptance tests
-        run: npm run test:e2e
+      # pretest:e2e runs the full `npm run build` (shared, backend, Next production) against
+      # the fixture API, so it doubles as the environment-neutral build check. The complete
+      # browser regression suite runs on demand in e2e-full.yml.
+      - name: Production build and browser smoke tests
+        run: npm run test:e2e:smoke

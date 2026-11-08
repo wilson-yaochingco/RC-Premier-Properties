@@ -31,6 +31,10 @@ Production mode does not use this adapter. It returns 503 until an approved obje
 storage/CDN adapter is configured. Do not work around the gate by copying production
 listing images into `public/` or adding broad remote-image host patterns.
 
+With the Cloudinary variables set, uploads go to Cloudinary in every non-test mode, including
+local development, and are stored under `rc-premier-properties/listings/<slug>/`. To prepare
+the six supplied listings see [Listing import and replacement](listing-import-and-replacement.md).
+
 ## Acceptance
 
 - Confirm the logo and favicon remain legible at browser/header/footer sizes.

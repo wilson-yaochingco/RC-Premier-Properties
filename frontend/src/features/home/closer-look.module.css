@@ -1,0 +1,391 @@
+.section {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel: #202630;
+  --gutter: clamp(1.25rem, 3vw, 3rem);
+  /* Top spacing comes from the preceding section, as in RouteCards. */
+  padding-block: 0 clamp(4.5rem, 6vw, 7rem);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-general-sans), sans-serif;
+}
+
+/* Same container as the neighbouring sections: shared gutters, no outer cap (matches About). */
+.container {
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-deep);
+}
+
+/* Headline left, Book a viewing right; no paragraph between them. */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem 3rem;
+  margin-top: 1.5rem;
+}
+
+.heading {
+  overflow-wrap: anywhere;
+  font-size: clamp(3rem, 4.2vw, 4rem);
+  font-weight: 450;
+  line-height: 1;
+  letter-spacing: -0.026em;
+}
+
+.heading span {
+  display: block;
+}
+
+.book {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-cta);
+  background: var(--panel);
+  color: #f8f6f1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.book svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform var(--cta-duration) var(--cta-ease);
+}
+
+.book:focus-visible svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .book:hover svg {
+    transform: rotate(0deg);
+  }
+}
+
+.book:focus-visible,
+.control:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* ---- One cinematic panel: copy on the left, photography cut in at an angle ---- */
+.panel {
+  position: relative;
+  height: clamp(32rem, 38vw, 35rem);
+  margin-top: clamp(2.5rem, 4vw, 3.5rem);
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+  background: var(--panel);
+  color: #fff;
+  isolation: isolate;
+}
+
+/*
+ * One fixed mask for every slide: the photograph itself is clipped into a filled chevron.
+ * Straight diagonals run from the top and bottom insets to a point at the left-middle that
+ * pushes into the charcoal; the panel keeps its own surface behind it. It never animates.
+ */
+.media {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 58%;
+  background: #181d25;
+  clip-path: polygon(24% 0, 100% 0, 100% 100%, 24% 100%, 0 50%);
+}
+
+.mediaSlide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 750ms var(--ease);
+}
+
+.mediaSlide[data-active="true"] {
+  opacity: 1;
+}
+
+/* `cover` with a per-slide focal point: portrait and landscape both fill the shape. */
+.mediaSlide img {
+  object-fit: cover;
+  object-position: var(--op);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: 46%;
+  height: 100%;
+  padding: clamp(1.75rem, 3vw, 3rem) clamp(2.5rem, 5.5vw, 5.5rem)
+    clamp(1.75rem, 3vw, 3rem) clamp(2rem, 4vw, 3.5rem);
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.step {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.step span {
+  color: rgb(255 255 255 / 50%);
+}
+
+.bars {
+  display: flex;
+  flex: 1;
+  max-width: 11rem;
+  gap: 0.375rem;
+}
+
+/*
+ * The line is the auto-advance timer. Each segment is a muted track with a fill whose state
+ * comes from the active index: `done` is full, `active` is the timer, `todo` is empty. The
+ * active fill defaults to 0 because the component animates it 0 -> 1 (Web Animations API,
+ * linear) from a layout effect, so it never paints full first. Only without that animation
+ * (reduced motion, or before the client takes over) is it shown full and static.
+ */
+.bars span {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 28%);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: #f8f6f1;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.bars span[data-state="done"] .fill,
+.progress[data-static="true"] .bars span[data-state="active"] .fill {
+  transform: scaleX(1);
+}
+
+/* Every slide's text shares one grid cell so nothing resizes while switching. */
+.stage {
+  display: grid;
+  align-items: center;
+}
+
+.slide {
+  grid-area: 1 / 1;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition:
+    opacity 300ms var(--ease),
+    transform 300ms var(--ease),
+    visibility 0s linear 300ms;
+}
+
+.slide[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: visibility 0s;
+  animation: closerLookIn 550ms var(--ease) 140ms backwards;
+}
+
+@keyframes closerLookIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 62%);
+}
+
+.title {
+  margin-top: 0.875rem;
+  font-size: clamp(2.25rem, 3.3vw, 3.125rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.026em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 29rem;
+  margin-top: 1.25rem;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: rgb(255 255 255 / 74%);
+}
+
+.controls {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid rgb(255 255 255 / 32%);
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background-color 250ms var(--ease),
+    border-color 250ms var(--ease);
+}
+
+.control svg {
+  width: 15px;
+  height: 15px;
+}
+
+.control:hover {
+  border-color: #fff;
+  background: rgb(255 255 255 / 8%);
+}
+
+/* ---- Up to 1024px: one panel, a straight-edged photo above the copy ---- */
+@media (max-width: 64rem) {
+  .panel {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .media {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    aspect-ratio: 16 / 7.5;
+    clip-path: none;
+  }
+
+  .mediaSlide img {
+    object-position: var(--op-mobile);
+  }
+
+  .content {
+    width: 100%;
+    height: auto;
+    padding: 1.5rem clamp(1.5rem, 4vw, 2.5rem) 1.75rem;
+    gap: 1.5rem;
+  }
+
+  .description {
+    max-width: 34rem;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .section {
+    padding-block: 0 4rem;
+  }
+
+  .header {
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+  }
+
+  .heading {
+    font-size: 2.25rem;
+    line-height: 1.02;
+  }
+
+  .panel {
+    margin-top: 2.125rem;
+  }
+
+  /* Phones: a taller 4:3 rectangle. */
+  .media {
+    aspect-ratio: 4 / 3;
+  }
+
+  .content {
+    padding: 1.5rem 1.5rem 1.625rem;
+    gap: 1.5rem;
+  }
+
+  .title {
+    margin-top: 0.75rem;
+    font-size: 2rem;
+    line-height: 1.06;
+  }
+
+  .description {
+    margin-top: 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .control {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+/* Centred header on mobile; the slide card below stays left-aligned. */
+@media (max-width: 48rem) {
+  .eyebrow {
+    justify-content: center;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mediaSlide,
+  .slide,
+  .book svg,
+  .control {
+    transition: none;
+  }
+
+  .slide,
+  .slide[data-active="true"] {
+    transform: none;
+    animation: none;
+  }
+}

@@ -1,4 +1,12 @@
 import type { CreateInquiryRequest } from "@rc/shared";
+
+/**
+ * What a staff notification can describe. Phone stays optional here only because inquiries
+ * stored before phone became required may still be retried; new submissions always carry it.
+ */
+export type NotifiableInquiry = Omit<CreateInquiryRequest, "website" | "phone"> & {
+  phone?: string;
+};
 import { env } from "../../config/env.js";
 
 export interface InquiryNotificationMessage {
@@ -70,7 +78,7 @@ export function inquiryNotificationErrorCode(error: unknown): string {
 
 export function buildInquiryNotification(
   inquiryId: string,
-  request: Omit<CreateInquiryRequest, "website">,
+  request: NotifiableInquiry,
   receivedAt: Date,
 ): InquiryNotificationMessage {
   const reference = request.propertyId
@@ -83,6 +91,13 @@ export function buildInquiryNotification(
     `Name: ${request.name}`,
     `Email: ${request.email}`,
     ...(request.phone ? [`Phone: ${request.phone}`] : []),
+    ...(request.subject ? [`Subject: ${request.subject}`] : []),
+    ...(request.requestedDate
+      ? [`Requested date: ${request.requestedDate} (Philippine time)`]
+      : []),
+    ...(request.requestedTime
+      ? [`Requested time: ${request.requestedTime} (Philippine time)`]
+      : []),
     ...(request.message ? [`Message: ${request.message}`] : []),
     `Received: ${receivedAt.toISOString()}`,
     `Admin: ${env.CORS_ORIGIN}/admin/inquiries/${inquiryId}`,

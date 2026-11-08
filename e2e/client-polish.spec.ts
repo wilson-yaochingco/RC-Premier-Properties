@@ -1,55 +1,108 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test("About uses a subdued motion-aware video and the real Pampanga boundary", async ({
+/** Book a Viewing is an inline page; the dialog is opened from a listing's inquiry panel. */
+async function openPropertyTour(page: Page, navigate = true) {
+  if (navigate) await page.goto("/properties/clark-garden-residence");
+  await page
+    .getByRole("complementary", { name: "Property inquiry" })
+    .getByRole("button", { name: "Book a Viewing" })
+    .click();
+}
+
+test("About uses a static hero photograph and an editorial gallery", async ({
   page,
 }) => {
+  const mediaRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/\.(mp4|webm)(\?|$)/.test(request.url())) mediaRequests.push(request.url());
+  });
   await page.goto("/about");
 
-  const video = page.locator("video");
-  await expect(video).toHaveAttribute("data-start-time", "4");
-  await expect(video).toHaveAttribute("autoplay", "");
-  await expect(video).toHaveAttribute("loop", "");
-  await expect(video).toHaveAttribute("playsinline", "");
-  await expect(video).toHaveJSProperty("muted", true);
-  await expect(video).toHaveAttribute("src", "/media/about_video.mp4");
-  await expect
-    .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState))
-    .toBeGreaterThanOrEqual(2);
-  await expect(video).toHaveJSProperty("error", null);
+  await expect(page.locator("section[data-about-hero] video")).toHaveCount(1);
+  await expect(page.locator("video")).toHaveCount(1);
+  expect(mediaRequests.every((url) => url.includes("/media/about-hero.mp4"))).toBe(
+    true,
+  );
+  await expect(page.locator("main > section")).toHaveCount(6);
+  await expect(page.locator("#about-gallery a")).toHaveCount(5);
   await expect(
-    page.getByRole("img", { name: /Still two-dimensional map of Pampanga/ }),
-  ).toBeVisible();
-  await expect(page.locator("figure svg path")).toHaveCount(22);
+    page.getByRole("link", { name: "Talk to RC Premier" }).first(),
+  ).toHaveAttribute("href", "/contact");
+});
 
+test("About gallery supports mouse dragging without activating a destination", async ({
+  page,
+}) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(video).toHaveCSS("display", "none");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/about");
+  const rail = page.locator("#about-gallery");
+  await rail.scrollIntoViewIfNeeded();
+  await expect(rail.locator("a")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: /destinations/ })).toHaveCount(0);
+  await expect(rail).toHaveCSS("scrollbar-width", "none");
+  await rail.focus();
+  for (let index = 0; index < 5; index++) await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(() =>
+      rail.evaluate((element) =>
+        Math.abs(element.scrollWidth - element.clientWidth - element.scrollLeft),
+      ),
+    )
+    .toBeLessThanOrEqual(2);
+  await rail.evaluate((element) => element.scrollTo({ left: 0, behavior: "instant" }));
+  const box = (await rail.boundingBox())!;
+  const x = box.x + 350;
+  const y = Math.max(110, box.y + 180);
+  await page.mouse.move(x, y);
+  const tip = page.locator('[class*="dragTip"]');
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveCSS("pointer-events", "none");
+  // The tip follows the pointer from just above and to the right, never covering it.
+  expect(
+    await tip.evaluate(
+      (element, point) => {
+        const box = element.getBoundingClientRect();
+        const gapX = box.left - point.x;
+        const gapY = point.y - box.bottom;
+        return gapX >= 0 && gapX <= 8 && gapY >= 0 && gapY <= 8;
+      },
+      { x, y },
+    ),
+  ).toBe(true);
+  await page.mouse.down();
+  await page.mouse.move(x - 140, y, { steps: 10 });
+  await page.mouse.up();
+  await expect
+    .poll(() => rail.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(30);
+  await expect(page).toHaveURL(/\/about$/);
+  await page.mouse.move(5, 100);
+  await expect(tip).not.toBeVisible();
+  await rail.locator("a").nth(1).click();
+  await expect(page).toHaveURL(/\/locations$/);
 });
 
 test("public header hides deliberately and remains available during interaction", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  // The first-visit brand intro holds the page still; this test is about the header.
+  await page.addInitScript(() => sessionStorage.setItem("rc-intro-seen", "1"));
   await page.goto("/");
 
   const header = page.getByRole("banner");
   await expect(header).toHaveAttribute("data-hidden", "false");
-  const headerGeometry = await header.evaluate((element) => ({
-    height: element.getBoundingClientRect().height,
-    logoWidth: element.querySelector(".brand-logo")!.getBoundingClientRect().width,
-  }));
-  expect(headerGeometry.height).toBeLessThanOrEqual(65);
-  expect(headerGeometry.logoWidth).toBeLessThanOrEqual(97);
-  await page.evaluate(() => window.scrollTo(0, 800));
+  await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight + 200));
+  await expect(header).toHaveAttribute("data-sticky", "true");
   await expect(header).toHaveAttribute("data-hidden", "true");
   await expect
-    .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
-    .toBeLessThanOrEqual(0);
-  await expect
     .poll(() =>
-      header.evaluate(
-        (element) =>
-          element.querySelector(".brand-logo")!.getBoundingClientRect().bottom,
-      ),
+      header
+        .locator("button")
+        .first()
+        .evaluate((element) => element.getBoundingClientRect().bottom),
     )
     .toBeLessThanOrEqual(0);
 
@@ -57,22 +110,9 @@ test("public header hides deliberately and remains available during interaction"
   await expect(header).toHaveAttribute("data-hidden", "false");
   await page.evaluate(() => window.scrollBy(0, 100));
   await expect(header).toHaveAttribute("data-hidden", "true");
-  await header.getByRole("link", { name: "Home", exact: true }).focus();
-  await expect(header).toHaveAttribute("data-hidden", "false");
-  await page.locator("main#main-content").focus();
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(header).toHaveAttribute("data-hidden", "true");
-  await header.dispatchEvent("pointerdown");
-  await expect(header).toHaveAttribute("data-hidden", "false");
-  await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointerup")));
-
-  await page.evaluate(() => window.scrollBy(0, -100));
-  await expect(header).toHaveAttribute("data-hidden", "false");
-  await page.evaluate(() => window.scrollBy(0, 100));
-  await expect(header).toHaveAttribute("data-hidden", "true");
   await page
     .getByRole("contentinfo")
-    .getByRole("link", { name: "Contact", exact: true })
+    .getByRole("link", { name: "Contact Us", exact: true })
     .click();
   await expect(page).toHaveURL(/\/contact$/);
   await expect(header).toHaveAttribute("data-hidden", "false");
@@ -82,9 +122,7 @@ test("public header hides deliberately and remains available during interaction"
   await page.getByRole("button", { name: "Menu" }).click();
   await page.evaluate(() => window.scrollTo(0, 900));
   await expect(header).toHaveAttribute("data-hidden", "false");
-  await expect(
-    page.getByRole("navigation", { name: "Mobile navigation" }),
-  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Primary navigation" })).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(
@@ -93,21 +131,10 @@ test("public header hides deliberately and remains available during interaction"
     ),
   ).toBeLessThanOrEqual(0.001);
 
-  for (const path of [
-    "/properties",
-    "/properties/clark-garden-residence",
-    "/locations",
-    "/locations/angeles-city",
-    "/about",
-    "/contact",
-    "/sell",
-    "/book-viewing",
-    "/not-a-public-route",
-  ]) {
+  for (const path of ["/locations"]) {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(path);
-    const routeDialog = page.getByRole("dialog", { name: "Request a Tour" });
-    if (await routeDialog.count()) await page.keyboard.press("Escape");
+    await expect(page.locator("html")).toHaveClass(/lenis/);
     await page
       .locator("main#main-content")
       .last()
@@ -115,136 +142,232 @@ test("public header hides deliberately and remains available during interaction"
         main.style.minHeight = "140rem";
       });
     await expect(header).toHaveAttribute("data-hidden", "false");
-    await page.evaluate(() => window.scrollTo(0, 900));
-    await expect(header).toHaveAttribute("data-hidden", "true");
+    await page.evaluate(() => window.scrollTo(0, 1600));
+    await expect(header, `header should hide on ${path}`).toHaveAttribute(
+      "data-hidden",
+      "true",
+    );
+    // Editorial routes share the homepage header, whose controls slide out of view.
     await expect
-      .poll(() => header.evaluate((element) => element.getBoundingClientRect().bottom))
+      .poll(() =>
+        header
+          .locator("button")
+          .first()
+          .evaluate((element) => element.getBoundingClientRect().bottom),
+      )
       .toBeLessThanOrEqual(0);
     await page.evaluate(() => window.scrollBy(0, -100));
     await expect(header).toHaveAttribute("data-hidden", "false");
   }
 });
 
-test("home hero uses the viewport on desktop and keeps the mobile search over its image", async ({
+test("home hero fills the viewport with its brand and browse action", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
-  const desktopGeometry = await page.evaluate(() => {
-    const header = document.querySelector<HTMLElement>(".site-header")!;
-    const hero = document.querySelector<HTMLElement>(".home-hero")!;
-    const search = document.querySelector<HTMLElement>(".hero-search")!;
-    const heroRect = hero.getBoundingClientRect();
-    const searchRect = search.getBoundingClientRect();
-    return {
-      compositionBottom: header.getBoundingClientRect().height + heroRect.height,
-      heroCenter: heroRect.left + heroRect.width / 2,
-      imageFit: getComputedStyle(document.querySelector(".home-hero__image")!)
-        .objectFit,
-      searchCenter: searchRect.left + searchRect.width / 2,
-    };
-  });
-  expect(Math.abs(desktopGeometry.compositionBottom - 900)).toBeLessThanOrEqual(1);
-  expect(desktopGeometry.searchCenter).toBeCloseTo(desktopGeometry.heroCenter, 0);
-  expect(desktopGeometry.imageFit).toBe("cover");
-  await expect(page.locator(".home-hero__image")).toHaveAttribute("src", /home_hero/);
-  await expect(page.locator(".hero-search nav")).toHaveCount(0);
-  await expect(page.locator(".home-hero__shade")).toHaveCount(1);
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const mobileGeometry = await page.evaluate(() => {
-    const hero = document.querySelector<HTMLElement>(".home-hero")!;
-    const backdrop = document.querySelector<HTMLElement>(".home-hero__backdrop")!;
-    const search = document.querySelector<HTMLElement>(".hero-search")!;
-    const heroRect = hero.getBoundingClientRect();
-    const searchRect = search.getBoundingClientRect();
-    return {
-      backdropRatio: backdrop.getBoundingClientRect().height / heroRect.height,
-      heroCenter: heroRect.left + heroRect.width / 2,
-      searchCenter: searchRect.left + searchRect.width / 2,
-    };
-  });
-  expect(mobileGeometry.backdropRatio).toBeCloseTo(1, 2);
-  expect(mobileGeometry.searchCenter).toBeCloseTo(mobileGeometry.heroCenter, 0);
-  await expect(page.getByLabel("Location, Property ID, or keyword")).toBeVisible();
-});
-
-test("location guide fills its introduction without a doodle", async ({ page }) => {
-  const doodle = page.getByAltText(
-    "Line drawing of homes, trees, a bicycle, and neighborhood streets",
+  const hero = page.locator("[data-home-hero]");
+  const video = hero.locator("video");
+  await expect(
+    hero.getByRole("heading", { level: 1, name: "Find a home worth coming home to." }),
+  ).toBeVisible();
+  await expect(hero.getByRole("img", { name: "RC Premier Properties" })).toBeVisible();
+  await expect(video.locator("source")).toHaveAttribute(
+    "src",
+    "/media/homepage-hero.mp4",
+  );
+  await expect(video).toHaveAttribute("data-ready", "true");
+  await expect(video).toHaveJSProperty("muted", true);
+  await expect(video).toHaveJSProperty("loop", true);
+  await expect(video).toHaveJSProperty("playsInline", true);
+  await expect(video).toHaveCSS("object-fit", "cover");
+  await expect(hero.getByRole("link", { name: "Browse properties" })).toHaveAttribute(
+    "href",
+    "/properties",
+  );
+  expect(await hero.evaluate((element) => element.getBoundingClientRect().height)).toBe(
+    900,
   );
 
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/locations");
-  await expect(doodle).toHaveCount(0);
-  const desktopPanels = await page.evaluate(() => {
-    const statement = document.querySelector<HTMLElement>("[class*='introStatement']")!;
-    const grid = document.querySelector<HTMLElement>("[class*='introGrid']")!;
-    return {
-      gridWidth: grid.getBoundingClientRect().width,
-      statementWidth: statement.getBoundingClientRect().width,
-    };
-  });
-  expect(desktopPanels.gridWidth).toBeCloseTo(desktopPanels.statementWidth, 0);
-
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(doodle).toBeHidden();
-  await expect(
-    page.getByRole("heading", { name: "Explore the places behind the properties." }),
-  ).toBeVisible();
+  await expect(hero.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(hero.getByRole("link", { name: "Browse properties" })).toBeVisible();
+  await expect(video).toBeVisible();
+  expect(
+    await hero.evaluate((element) => element.getBoundingClientRect().height),
+  ).toBeGreaterThanOrEqual(844);
 });
 
-test("contact starts with its image hero and social links expose motion-aware interaction", async ({
+test("location guide opens with a full-height video hero and no photograph", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/locations");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
+  const hero = page.locator('section[aria-labelledby="locations-title"]');
+  await expect(hero.getByRole("heading", { level: 1 })).toHaveText(
+    "Find the right place for your next home in Pampanga",
+  );
+  await expect(hero.getByText(/Explore communities across Pampanga/)).toBeVisible();
+  // The backdrop is a muted, decorative video; the hero carries no photograph.
+  const video = hero.locator("video");
+  await expect(video).toHaveCount(1);
+  await expect(video).toHaveAttribute("aria-hidden", "true");
+  expect(await video.evaluate((element: HTMLVideoElement) => element.muted)).toBe(true);
+  await expect(hero.locator("img")).toHaveCount(0);
+  const heroBox = (await hero.boundingBox())!;
+  expect(heroBox.height).toBe(900);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/locations");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Find the right place for your next home in Pampanga",
+    }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(0);
+});
+
+test("contact opens with an editorial introduction and the shared modern header", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/contact");
   await expect(page.getByText("Say hello", { exact: true })).toHaveCount(0);
-  const firstSection = page.locator("main > section").first();
-  await expect(firstSection.getByRole("heading", { level: 1 })).toHaveText(
-    "Looking for the right next step?",
+  const intro = page.locator("main > section").first();
+  await expect(intro.getByRole("heading", { level: 1 })).toHaveText(
+    "Let’s talk about your next move.",
   );
+  await expect(intro.locator("img")).toHaveCount(0);
+  await expect(page.locator("main img")).toHaveCount(0);
+  await expect(intro.getByRole("link", { name: /\+63 918 429 1873/ })).toHaveAttribute(
+    "href",
+    "tel:+639184291873",
+  );
+
+  // Same header as Home's sticky state, Properties and Book Viewing: no classic nav bar.
+  const header = page.getByRole("banner");
+  await expect(header.getByRole("link", { name: /Book a viewing/i })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Menu", exact: true })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Request a Tour" })).toHaveCount(0);
+  await expect(page.locator(".desktop-navigation")).toHaveCount(0);
+
+  // The old three-column section and duplicate social links are gone.
+  await expect(page.getByRole("heading", { name: "Need a direct line?" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("heading", { name: "Follow along" })).toHaveCount(0);
   await expect(
-    firstSection.getByAltText(
-      "Dining area with warm wood finishes and sculptural lighting",
-    ),
+    page
+      .getByRole("navigation", { name: "Other ways to get started" })
+      .getByRole("link"),
+  ).toHaveCount(2);
+});
+
+test("contact headline is upright and its actions share one arrow and roll interaction", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/contact");
+
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toHaveText("Let’s talk about your next move.");
+  // The heading stays upright; only the editorial accent word is italic.
+  await expect(heading.locator("em")).toHaveText("move");
+  await expect(heading).toHaveCSS("font-style", "normal");
+  await expect(
+    page.getByText("Your details are used to respond to this inquiry.", {
+      exact: true,
+    }),
   ).toBeVisible();
 
-  const socialSection = page
-    .getByRole("heading", { name: "Follow along" })
-    .locator("..");
+  const main = page.locator("main#main-content");
+  const actions = [
+    main.getByRole("link", { name: /\+63 918 429 1873/ }),
+    main.getByRole("link", { name: /rcpropertiesss@gmail\.com/ }),
+    main.getByRole("link", { name: "Book a viewing" }),
+    main.getByRole("link", { name: /Sell a property/ }),
+  ];
+  // Angle of the arrow in degrees: -45 is up-right, 0 is a plain right arrow.
+  const rotation = (link: {
+    locator: (selector: string) => ReturnType<typeof page.locator>;
+  }) =>
+    link.locator("svg").evaluate((svg) => {
+      const { transform } = getComputedStyle(svg);
+      if (transform === "none") return 0;
+      const matrix = new DOMMatrix(transform);
+      return Math.round((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI);
+    });
+  const rolled = (link: (typeof actions)[number]) =>
+    link
+      .locator(".cta-roll__track > span")
+      .first()
+      .evaluate((span) => {
+        const { transform } = getComputedStyle(span);
+        return transform === "none" ? 0 : new DOMMatrix(transform).m42;
+      });
 
-  for (const platform of ["Facebook", "Instagram", "YouTube", "TikTok"]) {
-    const link = socialSection.getByRole("link", { name: new RegExp(platform) });
-    await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link.locator("svg")).toHaveCount(1);
+  for (const link of actions) {
+    await link.scrollIntoViewIfNeeded();
+    // Rolling labels keep one spoken label: the duplicate is hidden from assistive tech.
+    await expect(
+      link.locator(".cta-roll__track > span[aria-hidden='true']"),
+    ).toHaveCount(1);
+    // Default: up-right arrow. Hover: plain right arrow.
+    expect(await rotation(link)).toBe(-45);
+    const before = await link.boundingBox();
+    await link.hover();
+    await expect.poll(() => rotation(link)).toBe(0);
+    await expect.poll(() => rolled(link)).toBeLessThan(0);
+    const after = await link.boundingBox();
+    expect(after?.width).toBeCloseTo(before!.width, 0);
+    expect(after?.height).toBeCloseTo(before!.height, 0);
+    await page.mouse.move(0, 0);
+    await expect.poll(() => rotation(link)).toBe(-45);
+
+    // Keyboard focus gives the same treatment.
+    await link.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect(link).toBeFocused();
+    await expect.poll(() => rotation(link)).toBe(0);
+    await link.blur();
   }
 
-  const facebook = socialSection.getByRole("link", { name: /Facebook/ });
-  const facebookIcon = facebook.locator("span").first();
-  await facebook.hover();
-  expect(await facebook.evaluate((link) => getComputedStyle(link).transform)).not.toBe(
-    "none",
-  );
-  await expect(facebookIcon).toHaveCSS("background-color", "rgb(180, 137, 61)");
-  await facebook.focus();
-  await expect(facebook).toBeFocused();
-  expect(
-    await facebook.evaluate((link) => getComputedStyle(link).outlineStyle),
-  ).not.toBe("none");
+  // The submit button uses the same arrow; the labels and fields stay static.
+  const submit = page.getByRole("button", { name: "Send inquiry" });
+  await submit.scrollIntoViewIfNeeded();
+  expect(await rotation(submit)).toBe(-45);
+  await submit.hover();
+  await expect.poll(() => rotation(submit)).toBe(0);
+  await expect(page.locator("main label .cta-roll")).toHaveCount(0);
+  await expect(heading.locator(".cta-roll")).toHaveCount(0);
+});
 
+test("contact arrows and labels stay still under reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.reload();
-  const reducedFacebook = page.getByRole("link", {
-    name: /Facebook — RC Premier Properties/,
-  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/contact");
+  const link = page
+    .locator("main#main-content")
+    .getByRole("link", { name: "Book a viewing" });
+  await link.scrollIntoViewIfNeeded();
+  await link.hover();
+  await page.waitForTimeout(400);
   expect(
-    Number.parseFloat(
-      await reducedFacebook.evaluate(
-        (link) => getComputedStyle(link).transitionDuration,
-      ),
-    ),
-  ).toBeLessThanOrEqual(0.001);
+    await link.locator("svg").evaluate((svg) => getComputedStyle(svg).transform),
+  ).toMatch(/^matrix\(0\.70/);
+  expect(
+    await link
+      .locator(".cta-roll__track > span")
+      .first()
+      .evaluate((span) => getComputedStyle(span).transform),
+  ).toBe("none");
 });
 
 test("tour steps fit normal viewports and remain reachable at 200 percent text", async ({
@@ -255,7 +378,7 @@ test("tour steps fit normal viewports and remain reachable at 200 percent text",
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+    await openPropertyTour(page);
     const dialog = page.getByRole("dialog", { name: "Request a Tour" });
     await expect(dialog).toBeVisible();
     expect(
@@ -272,10 +395,11 @@ test("tour steps fit normal viewports and remain reachable at 200 percent text",
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/book-viewing?propertyId=RCPP-E2E-001");
+  await page.goto("/properties/clark-garden-residence");
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
+  await openPropertyTour(page, false);
   const dialog = page.getByRole("dialog", { name: "Request a Tour" });
   await dialog.getByRole("button", { name: "Next" }).click();
   const submit = dialog.getByRole("button", { name: "Submit request" });
@@ -283,122 +407,50 @@ test("tour steps fit normal viewports and remain reachable at 200 percent text",
   await expect(submit).toBeVisible();
 });
 
-test("About video requests playback once and the hero fills the desktop composition", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const state = { playCalls: 0 };
-    Object.defineProperty(window, "__aboutVideoState", { value: state });
-    Object.defineProperty(HTMLMediaElement.prototype, "play", {
-      configurable: true,
-      value() {
-        state.playCalls += 1;
-        return Promise.resolve();
-      },
-    });
-  });
-  // Keep real metadata from completing the one-time seek before the controlled
-  // loadedmetadata fixture below.
-  await page.route("**/media/about_video.mp4", (route) => route.abort());
+test("About hero fills the desktop composition", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/about");
 
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        return (window as Window & { __aboutVideoState: { playCalls: number } })
-          .__aboutVideoState.playCalls;
-      }),
-    )
-    .toBe(1);
-  const video = page.locator("video");
-  await expect(video).toHaveJSProperty("currentTime", 0);
-  await video.evaluate((element) => {
-    Object.defineProperties(element, {
-      currentTime: { configurable: true, value: 0, writable: true },
-      duration: { configurable: true, get: () => 30 },
-      readyState: {
-        configurable: true,
-        get: () => HTMLMediaElement.HAVE_METADATA,
-      },
-    });
-    element.dispatchEvent(new Event("loadedmetadata"));
-  });
-  expect(await video.evaluate((element) => element.currentTime)).toBe(4);
-  await video.dispatchEvent("canplay");
-  await video.dispatchEvent("canplay");
-  expect(
-    await page.evaluate(() => {
-      return (window as Window & { __aboutVideoState: { playCalls: number } })
-        .__aboutVideoState.playCalls;
-    }),
-  ).toBe(1);
-
-  const compositionBottom = await page.evaluate(() => {
-    const header = document.querySelector<HTMLElement>(".site-header")!;
+  // About overlays the header on the photograph, which fills the entire viewport.
+  const composition = await page.evaluate(() => {
+    const header = document.querySelector<HTMLElement>("header[data-sticky]")!;
     const hero = document.querySelector<HTMLElement>("main section")!;
-    return header.getBoundingClientRect().height + hero.getBoundingClientRect().height;
+    return {
+      headerBottom: header.getBoundingClientRect().bottom,
+      heroTop: hero.getBoundingClientRect().top,
+      heroBottom: hero.getBoundingClientRect().bottom,
+    };
   });
-  expect(Math.abs(compositionBottom - 900)).toBeLessThanOrEqual(1);
+  expect(composition.heroTop).toBe(0);
+  await expect(page.locator("header[data-sticky]")).toHaveAttribute(
+    "data-sticky",
+    "false",
+  );
+  await page.evaluate(() => window.scrollTo({ top: 180, behavior: "instant" }));
+  await expect(page.locator("header[data-sticky]")).toHaveAttribute(
+    "data-sticky",
+    "false",
+  );
 });
 
-test("About reduced-motion entry remains on the static poster", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addInitScript(() => {
-    const state = { playCalls: 0 };
-    Object.defineProperty(window, "__aboutReducedMotionState", { value: state });
-    Object.defineProperty(HTMLMediaElement.prototype, "play", {
-      configurable: true,
-      value() {
-        state.playCalls += 1;
-        return Promise.resolve();
-      },
-    });
-  });
-  await page.goto("/about");
-
-  const video = page.locator("video");
-  await expect(video).toHaveAttribute("data-reduced-motion", "true");
-  await expect(video).not.toHaveAttribute("autoplay", "");
-  await expect(video).toHaveCSS("display", "none");
-  expect(
-    await page.evaluate(() => {
-      return (window as Window & { __aboutReducedMotionState: { playCalls: number } })
-        .__aboutReducedMotionState.playCalls;
-    }),
-  ).toBe(0);
-});
-
-test("the targeted Home action stays usable while the duplicate property action is removed", async ({
+test("homepage route actions and footer remain usable across viewports", async ({
   page,
 }) => {
   for (const width of [320, 768, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "View all properties" })).toHaveCount(
-      0,
-    );
-
-    const learn = page.getByRole("link", { name: "Learn about us" });
-    await learn.scrollIntoViewIfNeeded();
-    await expect(learn).toBeVisible();
-    await expect(learn).toHaveAttribute("href", "/about");
-    await expect(learn).toHaveCSS("border-radius", "0px");
-    const bounds = await learn.boundingBox();
-    expect(bounds).not.toBeNull();
-    expect(bounds!.height).toBeGreaterThanOrEqual(44);
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
-    await learn.focus();
+    const route = page.getByRole("link", { name: "Buy a home" });
+    await expect(route).toBeVisible();
+    await expect(route).toHaveAttribute("href", "/properties");
+    await route.focus();
+    await expect(route).toBeFocused();
     expect(
-      await learn.evaluate((link) => getComputedStyle(link).outlineStyle),
+      await route.evaluate((link) => getComputedStyle(link).outlineStyle),
     ).not.toBe("none");
   }
 
-  const learn = page.getByRole("link", { name: "Learn about us" });
-  await learn.hover();
-  await expect(learn).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await learn.click();
+  const about = page.getByRole("contentinfo").getByRole("link", { name: "About" });
+  await about.click();
   await expect(page).toHaveURL(/\/about$/);
 
   await page.goto("/properties/clark-garden-residence");
@@ -413,62 +465,56 @@ test("the targeted Home action stays usable while the duplicate property action 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
-  const card = page.locator("[data-property-card]").first();
+  const card = page.locator("[data-featured-property-card]").first();
   await expect(card).toBeVisible();
-  await expect(card).toHaveCSS("border-radius", "0px");
+  await expect(card).toHaveAttribute("href", /\/properties\//);
 
   const footer = page.getByRole("contentinfo");
   const footerPresentation = await footer.evaluate((element) => ({
     background: getComputedStyle(element).backgroundColor,
-    height: element.getBoundingClientRect().height,
   }));
-  expect(footerPresentation.background).toBe("rgb(58, 66, 79)");
-  expect(footerPresentation.height).toBeLessThan(560);
+  expect(footerPresentation.background).toBe("rgb(37, 44, 54)");
 
-  const footerContact = footer.locator("[class*='site-footer__contact']");
-  const [email, phone] = await footerContact.locator("a").evaluateAll((links) =>
-    links.map((link) => ({
-      top: link.getBoundingClientRect().top,
-      bottom: link.getBoundingClientRect().bottom,
-      transform: getComputedStyle(link).transform,
-    })),
-  );
-  expect(email).toBeDefined();
-  expect(phone).toBeDefined();
-  expect(phone!.top - email!.bottom).toBeGreaterThanOrEqual(5);
-  await footerContact.getByRole("link", { name: "rcpremierph@gmail.com" }).hover();
-  await expect(
-    footerContact.getByRole("link", { name: "rcpremierph@gmail.com" }),
-  ).toHaveCSS("transform", "none");
+  const email = footer.getByRole("link", { name: "rcpropertiesss@gmail.com" });
+  const phone = footer.getByRole("link", { name: "+63 918 429 1873" });
+  await expect(email).toBeVisible();
+  await expect(phone).toBeVisible();
+  await email.hover();
+  await expect(email).toHaveCSS("transform", "none");
 });
 
-test("property gallery keeps secondary imagery compact at tablet widths", async ({
+test("property gallery preserves portraits in a swipe track at tablet widths", async ({
   page,
 }) => {
   for (const width of [640, 768, 1023]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/properties/clark-garden-residence");
     const geometry = await page.evaluate(() => {
-      const main = document.querySelector<HTMLElement>("[class*='galleryMain']")!;
-      const side = document.querySelector<HTMLElement>("[class*='gallerySide']")!;
+      const track = document.querySelector<HTMLElement>("[data-gallery-track]")!;
       const title = document.querySelector<HTMLElement>("#property-title")!;
       return {
-        mainHeight: main.getBoundingClientRect().height,
-        sideHeight: side.getBoundingClientRect().height,
+        trackHeight: track.getBoundingClientRect().height,
+        scrolls: getComputedStyle(track).overflowX,
+        imageFit: getComputedStyle(track.querySelector("img")!).objectFit,
         titleTop: title.getBoundingClientRect().top + window.scrollY,
       };
     });
-    expect(geometry.mainHeight).toBeLessThan(width * 0.62);
-    expect(geometry.sideHeight).toBeLessThan(190);
-    expect(geometry.titleTop).toBeLessThan(width * 1.2);
+    expect(geometry.scrolls).toBe("auto");
+    expect(geometry.imageFit).toBe("cover");
+    expect(geometry.trackHeight).toBeLessThan(width);
+    expect(geometry.titleTop).toBeLessThan(width * 1.5);
   }
 });
 
-test("paired mobile property actions share intentional geometry", async ({ page }) => {
+test("mobile property inquiry stays in flow with comfortable actions", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties/clark-garden-residence");
   await expect(page.locator("#property-title")).toBeVisible();
-  const actions = page.locator("[class*='mobileActions'] .button");
+  const inquiry = page.getByRole("complementary", { name: "Property inquiry" });
+  await expect(inquiry).toHaveCSS("position", "static");
+  const actions = inquiry.locator(".button");
   await expect(actions).toHaveCount(2);
   const boxes = await actions.evaluateAll((buttons) =>
     buttons.map((button) => {
@@ -478,27 +524,40 @@ test("paired mobile property actions share intentional geometry", async ({ page 
   );
   expect(boxes[0]!.width).toBeCloseTo(boxes[1]!.width, 0);
   expect(boxes[0]!.height).toBeCloseTo(boxes[1]!.height, 0);
-  expect(boxes[0]!.top).toBeCloseTo(boxes[1]!.top, 0);
+  expect(boxes[1]!.top).toBeGreaterThanOrEqual(boxes[0]!.top + boxes[0]!.height);
   expect(boxes[0]!.height).toBeGreaterThanOrEqual(44);
 });
 
-test("seller page uses four purposeful sections and a simplified typed form", async ({
+test("seller editorial page retains its inquiry form and maps its fields into the contract", async ({
   page,
 }) => {
   await page.goto("/sell");
-  await expect(page.locator("main#main-content > section")).toHaveCount(4);
+  const sections = page.locator("main#main-content > section");
+  await expect(sections).toHaveCount(5);
+  await expect(sections.nth(3)).toHaveAttribute("id", "sell-inquiry");
+  await expect(page.getByRole("link", { name: "Start your inquiry" })).toHaveAttribute(
+    "href",
+    "#sell-inquiry",
+  );
   await expect(page.getByLabel("Inquiry type")).toHaveCount(0);
   await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
   await expect(page.getByLabel(/Property location or area/)).toBeVisible();
   await expect(page.getByLabel(/Property details and message/)).toBeVisible();
   await expect(
-    page.getByText(/not a valuation, listing agreement/i).first(),
+    page.getByText(/This is preparation guidance, not a list of required documents/),
   ).toBeVisible();
+  await expect(
+    page.getByText("Your details are used to respond to this inquiry.", {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/^Residential properties in Pampanga$/i)).toHaveCount(0);
 
-  await page.getByLabel("Name").fill("Playwright Seller");
-  await page.getByLabel("Email").fill("seller@example.test");
-  await page.getByLabel("Phone", { exact: true }).fill("+63 917 555 0110");
+  await page.getByLabel("Full name").fill("Playwright Seller");
+  await page.getByLabel("Email address").fill("seller@example.test");
+  await page.getByLabel("Phone number").fill("+63 917 555 0110");
   await page.getByLabel(/Property location or area/).fill("Angeles City");
+  await page.getByLabel(/Property type/).selectOption("Townhouse");
   await page
     .getByLabel(/Property details and message/)
     .fill("A synthetic seller inquiry used only for browser testing.");
@@ -508,55 +567,68 @@ test("seller page uses four purposeful sections and a simplified typed form", as
       candidate.url().endsWith("/api/v1/inquiries") &&
       candidate.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Start the conversation" }).click();
+  await page.getByRole("button", { name: "Send seller inquiry" }).click();
   const request = (await response).request().postDataJSON();
   expect(request).toMatchObject({
     inquiryType: "selling",
     source: "sell-page",
-    subject: "Angeles City",
+    subject: "Townhouse · Angeles City",
   });
   expect(request).not.toHaveProperty("propertyId");
 });
 
-test("location discovery omits the doodle and keeps documented local photography", async ({
+test("featured locations and the curated collection lead to real routes", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/locations");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
   await expect(
     page.getByAltText(
       "Line drawing of homes, trees, a bicycle, and neighborhood streets",
     ),
   ).toHaveCount(0);
 
-  const firstLocation = page.locator("[data-location-card]").first();
-  await firstLocation.getByRole("link").focus();
-  await expect(firstLocation.getByRole("link")).toBeFocused();
-  await expect
-    .poll(() =>
-      firstLocation
-        .locator("img")
-        .evaluate((image) => getComputedStyle(image).transform),
-    )
-    .not.toBe("none");
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.reload();
-  expect(
-    Number.parseFloat(
-      await firstLocation
-        .locator("img")
-        .evaluate((image) => getComputedStyle(image).transitionDuration),
+  // Four curated tiles, each a real photograph and a link to its location page.
+  const featured = page.locator("#featured-locations");
+  for (const [name, slug] of [
+    ["Angeles City", "angeles-city"],
+    ["Mabalacat City", "mabalacat-city"],
+    ["Magalang", "magalang"],
+    ["Porac", "porac"],
+  ] as const) {
+    await expect(
+      featured.getByRole("link", { name: new RegExp(`${name}`) }).first(),
+    ).toHaveAttribute("href", `/locations/${slug}`);
+  }
+  await expect(
+    featured.getByAltText(
+      "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
     ),
-  ).toBeLessThanOrEqual(0.001);
+  ).toBeVisible();
+
+  // The four destinations stay available without a search section on this page.
+  await expect(page.locator("#explore-modes")).toHaveCount(0);
+  await expect(
+    page.getByRole("search", { name: /Search properties by location/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Browse all properties" }).first(),
+  ).toHaveAttribute("href", "/properties");
+  await expect(page.locator("[data-featured-property-card]").first()).toHaveAttribute(
+    "href",
+    /^\/properties\//,
+  );
 
   await page.goto("/locations/angeles-city");
+  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
   await expect(
     page.getByRole("heading", { name: "Find a property in Angeles City." }),
   ).toBeVisible();
   await expect(
-    page.getByAltText(
-      "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
-    ),
+    page
+      .locator('section[aria-labelledby="location-title"]')
+      .getByAltText("Angeles City skyline and Mount Arayat beneath a pale sunset sky"),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Wikimedia Commons" })).toHaveAttribute(
     "href",

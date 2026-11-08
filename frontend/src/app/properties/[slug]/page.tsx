@@ -1,24 +1,42 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache, Suspense } from "react";
+import { cache, Suspense, type ReactElement } from "react";
 import propertiesImage from "@/assets/site/properties.png";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import {
   PropertyTourContext,
   RequestTourButton,
 } from "@/features/inquiries/RequestTourProvider";
-import { PropertyActions } from "@/features/properties/PropertyActions";
-import { PropertyCard } from "@/features/properties/PropertyCard";
 import { PropertyGallery } from "@/features/properties/PropertyGallery";
+import {
+  balanceColumns,
+  groupFeatures,
+} from "@/features/properties/property-feature-groups";
+import { ShareButton } from "@/features/properties/ShareButton";
+import {
+  ArrowLeftIcon,
+  BathIcon,
+  BedIcon,
+  CarIcon,
+  CheckIcon,
+  BuildingIcon,
+  FloorAreaIcon,
+  LotAreaIcon,
+  MailIcon,
+  PhoneIcon,
+  PinIcon,
+} from "@/features/properties/PropertyIcons";
 import { PropertyLocationMap } from "@/features/properties/PropertyLocationMap";
+import { RelatedPropertyCard } from "@/features/properties/RelatedPropertyCard";
 import {
   formatLocation,
   formatPrice,
+  keyFacts as buildKeyFacts,
   propertyTypeLabel,
   visibleSpecifications,
+  type KeyFactKind,
 } from "@/features/properties/property-format";
 import {
   getPropertyBySlug,
@@ -30,12 +48,24 @@ import {
   nonpublicPropertyMetadata,
 } from "@/features/properties/property-seo";
 import styles from "@/features/properties/property-detail.module.css";
-import { formatBusinessDate } from "@/lib/date-time";
+import { accent } from "@/lib/accent";
 import { OFFICIAL_EMAIL, OFFICIAL_PHONE } from "@/lib/public-contact";
+import { PUBLIC_AGENT } from "@/lib/public-agent";
 import { absoluteSiteUrl, serializeJsonLd } from "@/lib/seo";
 import { ApiClientError } from "@/services/api-client";
+import { PageMotion } from "@/components/layout/PageMotion";
 
 const getPublishedProperty = cache(getPropertyBySlug);
+
+const FURNISHED = /furnish|furniture/i;
+
+const FACT_ICONS: Record<KeyFactKind, () => ReactElement> = {
+  bedrooms: BedIcon,
+  bathrooms: BathIcon,
+  parking: CarIcon,
+  floorArea: FloorAreaIcon,
+  lotArea: LotAreaIcon,
+};
 const LOCATION_RESULTS_HREF =
   /^\/locations\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[A-Za-z0-9%+_.~=&-]*)?$/;
 
@@ -45,25 +75,35 @@ function safeResultsHref(value: string | undefined): string {
   return LOCATION_RESULTS_HREF.test(value) ? value : "/properties";
 }
 
+/** Each list keeps only items not already shown by an earlier one (case-insensitive). */
+function distinctLists(...lists: string[][]): string[][] {
+  const seen = new Set<string>();
+  return lists.map((list) =>
+    list.filter((item) => {
+      const key = item.trim().toLocaleLowerCase("en-US");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+  );
+}
+
 async function RelatedProperties({ slug }: { slug: string }) {
   const related = await getRelatedProperties(slug).catch(() => ({ items: [] }));
   if (related.items.length === 0) return null;
 
   return (
     <section className={styles.relatedSection} aria-labelledby="related-title">
-      <Container>
+      <Container className={styles.shell}>
         <div className={styles.relatedHeading}>
-          <div>
-            <p className={styles.sectionLabel}>More published inventory</p>
-            <h2 id="related-title">Similar properties</h2>
-          </div>
-          <Button href="/properties" variant="outline">
+          <h2 id="related-title">{accent("Similar *properties*")}</h2>
+          <Button href="/properties" variant="primary" className={styles.relatedCta}>
             Browse all properties
           </Button>
         </div>
         <div className={styles.relatedGrid}>
           {related.items.map((item) => (
-            <PropertyCard key={item.id} property={item} />
+            <RelatedPropertyCard key={item.id} property={item} />
           ))}
         </div>
       </Container>
@@ -114,12 +154,45 @@ export default async function PropertyDetailPage({
 
   const location = formatLocation(property.location);
   const specifications = visibleSpecifications(property.specifications);
+  const facts = buildKeyFacts(property.specifications);
+  const [highlights = [], amenities = [], features = []] = distinctLists(
+    property.highlights,
+    property.amenities,
+    property.features,
+  );
+  const details: Array<{ label: string; value: string; capitalize?: boolean }> = [
+    { label: "Property type", value: propertyTypeLabel(property.propertyType) },
+    { label: "Availability", value: property.availability, capitalize: true },
+    ...(property.specifications.powderRooms !== undefined
+      ? [{ label: "Powder room", value: String(property.specifications.powderRooms) }]
+      : []),
+    ...(property.specifications.storeys !== undefined
+      ? [{ label: "Floors", value: String(property.specifications.storeys) }]
+      : []),
+  ];
+  // Furnishing is a feature, not a structural detail. It is added only when the listing's own
+  // feature lists do not already say so.
+  const furnishing = property.specifications.furnishing;
+  const furnishingFeature =
+    furnishing && ![...amenities, ...features].some((item) => FURNISHED.test(item))
+      ? [furnishing]
+      : [];
+  const featureColumns = balanceColumns(
+    groupFeatures([...amenities, ...features, ...furnishingFeature]),
+  );
+  const tourProperty = {
+    propertyId: property.propertyId,
+    title: property.title,
+    availability: property.availability,
+    ...(property.coverMedia ? { media: property.coverMedia } : {}),
+  };
   const structuredData = buildPropertyStructuredData(property);
   const publicUrl =
     absoluteSiteUrl(`/properties/${property.slug}`) ?? `/properties/${property.slug}`;
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
+      <PageMotion />
       <PropertyTourContext
         property={{
           propertyId: property.propertyId,
@@ -136,8 +209,8 @@ export default async function PropertyDetailPage({
       ) : null}
 
       <section className={styles.printSummary} aria-label="Printable property summary">
-        <h1>RC Premier Properties</h1>
-        <p>Premier Property #{property.propertyId}</p>
+        <p className={styles.printBrand}>RC Premier Properties</p>
+        <p>Property {property.propertyId.replace("PREMIER_PROPERTY_", "#")}</p>
         <p>{property.title}</p>
         <p>Price: {formatPrice(property.price.amount, property.price.currency)}</p>
         <p>{location}</p>
@@ -158,44 +231,54 @@ export default async function PropertyDetailPage({
       </section>
 
       <section className={styles.identity} aria-labelledby="property-title">
-        <Container>
-          <div className={styles.detailNavigation}>
-            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-              <Link href="/">Home</Link>
-              <span aria-hidden="true">/</span>
-              <Link href="/properties">Properties</Link>
-              <span aria-hidden="true">/</span>
-              <span aria-current="page">Premier Property #{property.propertyId}</span>
-            </nav>
+        <Container className={styles.shell}>
+          <div className={styles.detailNavigation} data-enter>
             <Link href={resultsHref} className={styles.backToResults}>
-              ← Back to Results
+              <ArrowLeftIcon />
+              <span className="link-underline">Back to Results</span>
             </Link>
+            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+              <ol>
+                <li>
+                  <Link href="/">
+                    <span className="link-underline">Home</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/properties">
+                    <span className="link-underline">Properties</span>
+                  </Link>
+                </li>
+                <li aria-current="page" title={property.title}>
+                  {property.title}
+                </li>
+              </ol>
+            </nav>
           </div>
 
-          <PropertyGallery
-            coverMedia={property.coverMedia}
-            gallery={property.gallery}
-            propertyIdentifier={property.id}
-          />
+          <div data-enter="image" data-enter-delay="1">
+            <PropertyGallery
+              coverMedia={property.coverMedia}
+              gallery={property.gallery}
+              propertyIdentifier={property.id}
+              title={property.title}
+              share={{ title: property.title, url: publicUrl }}
+              tour={tourProperty}
+            />
+          </div>
 
-          <div className={styles.identityGrid}>
-            <div>
-              <div className={styles.metaRow}>
-                <p className={styles.meta}>
-                  {propertyTypeLabel(property.propertyType)} · For {property.purpose} ·
-                  Premier Property #{property.propertyId}
-                </p>
-                <span className={styles.availabilityBadge}>
-                  {property.availability}
-                </span>
-              </div>
+          <div className={styles.summary}>
+            <div className={styles.titleBlock} data-enter data-enter-delay="2">
               <h1 id="property-title" className={styles.title}>
                 {property.title}
               </h1>
-              <p className={styles.location}>{location}</p>
+              <p className={styles.location}>
+                <PinIcon />
+                {location}
+              </p>
             </div>
-            <div className={styles.priceBlock}>
-              <p className={styles.priceLabel}>Asking price</p>
+            <div className={styles.priceBlock} data-enter data-enter-delay="3">
+              <p className={styles.priceLabel}>Selling price</p>
               <p className={styles.price}>
                 {formatPrice(property.price.amount, property.price.currency)}
               </p>
@@ -203,159 +286,152 @@ export default async function PropertyDetailPage({
                 <p className={styles.negotiable}>Negotiable</p>
               ) : null}
             </div>
-          </div>
-
-          <div className={styles.summaryBar}>
-            <dl className={styles.quickFacts}>
-              {specifications.slice(0, 4).map((item) => (
-                <div key={item.label}>
-                  <dt>{item.label}</dt>
-                  <dd>{item.value}</dd>
-                </div>
-              ))}
-              <div>
-                <dt>Availability</dt>
-                <dd>{property.availability}</dd>
-              </div>
-            </dl>
-            <PropertyActions
-              propertyNumber={`PREMIER PROPERTY #${property.propertyId}`}
-              shareTitle={property.title}
-              shareUrl={publicUrl}
-            />
+            {facts.length > 0 ? (
+              <ul className={styles.facts} aria-label="Key specifications">
+                {facts.map((fact) => {
+                  const FactIcon = FACT_ICONS[fact.kind];
+                  return (
+                    <li key={fact.kind}>
+                      <FactIcon />
+                      <span className={styles.factValue}>{fact.value}</span>
+                      <span className={styles.factLabel}>{fact.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            <ShareButton shareTitle={property.title} shareUrl={publicUrl} />
           </div>
         </Container>
       </section>
 
       <section className={styles.contentSection}>
-        <Container className={styles.contentGrid}>
+        <Container className={`${styles.shell} ${styles.contentGrid}`}>
           <div className={styles.mainContent}>
-            <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>Overview</p>
-              <h2>A closer look</h2>
-              <p className={styles.description}>{property.description}</p>
+            <section className={styles.sectionBlock} data-motion="fade">
+              <h2>{accent("About this *property*")}</h2>
+              <div className={styles.description}>
+                {property.description
+                  .split(/\n{2,}/)
+                  .map((paragraph) => paragraph.trim())
+                  .filter(Boolean)
+                  .map((paragraph) => (
+                    <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+                  ))}
+              </div>
+              {highlights.length > 0 ? (
+                <ul className={styles.checkList} aria-label="Highlights">
+                  {highlights.map((item) => (
+                    <li key={item}>
+                      <CheckIcon />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </section>
 
-            <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>Property details</p>
-              <h2>Property at a glance</h2>
-              <dl className={styles.specGrid}>
-                {specifications.map((item) => (
+            <section className={styles.sectionBlock} data-motion="fade">
+              <h2>{accent("Property *details*")}</h2>
+              <dl className={styles.details}>
+                {details.map((item) => (
                   <div key={item.label}>
                     <dt>{item.label}</dt>
-                    <dd>{item.value}</dd>
+                    <dd className={item.capitalize ? styles.capitalize : undefined}>
+                      {item.value}
+                    </dd>
                   </div>
                 ))}
-                <div>
-                  <dt>Availability</dt>
-                  <dd>{property.availability}</dd>
-                </div>
-                <div>
-                  <dt>Listing purpose</dt>
-                  <dd>For {property.purpose}</dd>
-                </div>
               </dl>
             </section>
 
-            {property.highlights.length > 0 ||
-            property.amenities.length > 0 ||
-            property.features.length > 0 ? (
-              <section className={styles.sectionBlock}>
-                <p className={styles.sectionLabel}>Highlights and features</p>
-                <h2>What the listing includes</h2>
-                <div className={styles.listColumns}>
-                  {[...property.highlights, ...property.amenities, ...property.features]
-                    .filter((item, index, items) => items.indexOf(item) === index)
-                    .reduce<string[][]>(
-                      (columns, item, index) => {
-                        columns[index % 2]?.push(item);
-                        return columns;
-                      },
-                      [[], []],
-                    )
-                    .map((column, index) => (
-                      <ul key={index} className={styles.featureList}>
-                        {column.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    ))}
+            {featureColumns[0].length > 0 ? (
+              <section className={styles.sectionBlock} data-motion="fade">
+                <h2>{accent("Features and *inclusions*")}</h2>
+                <div className={styles.featureGroups}>
+                  {featureColumns.map((column, index) => (
+                    <div key={index} className={styles.featureColumn}>
+                      {column.map((group) => (
+                        <div key={group.title}>
+                          <h3>{group.title}</h3>
+                          <ul className={styles.checkList}>
+                            {group.items.map((item) => (
+                              <li key={item}>
+                                <CheckIcon />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               </section>
             ) : null}
 
-            <section className={styles.sectionBlock}>
-              <p className={styles.sectionLabel}>Location</p>
-              <h2>{location}</h2>
-              <div className={styles.mapBlock}>
-                {property.location.publicPoint ? (
+            {property.location.publicPoint ? (
+              <section className={styles.sectionBlock} data-motion="fade">
+                <h2>{accent("Map")}</h2>
+                <div className={styles.mapBlock}>
                   <PropertyLocationMap property={property} />
-                ) : (
-                  <MediaPlaceholder label="PROPERTY MAP / GENERAL AREA" ratio="map" />
-                )}
-                <p className={styles.privacyNote}>
-                  {property.location.disclosure === "exact"
-                    ? "This listing is configured to show its exact public location."
-                    : "Approximate location shown for privacy. Exact viewing details will be coordinated after your appointment is confirmed."}
-                </p>
-              </div>
-            </section>
+                  <p className={styles.privacyNote}>
+                    {property.location.disclosure === "exact"
+                      ? "This listing is configured to show its exact public location."
+                      : "Approximate location shown for privacy. Exact viewing details will be coordinated after your appointment is confirmed."}
+                  </p>
+                </div>
+              </section>
+            ) : null}
           </div>
 
           <aside className={styles.aside} aria-label="Property inquiry">
-            <p className={styles.asideLabel}>Property guidance</p>
-            <h2>Ask about this property.</h2>
-            <p className={styles.asideCopy}>
-              Include the Premier Property number so the team can respond with the right
-              listing context.
-            </p>
+            <p className={styles.asideLabel}>Contact agent</p>
+            <div className={styles.agent}>
+              <span className={styles.agentAvatar} aria-hidden="true">
+                {PUBLIC_AGENT.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- supplied agent photo
+                  <img src={PUBLIC_AGENT.photoUrl} alt="" />
+                ) : (
+                  <BuildingIcon />
+                )}
+              </span>
+              <div>
+                <p className={styles.agentName}>{PUBLIC_AGENT.name}</p>
+                <p className={styles.agentRole}>{PUBLIC_AGENT.role}</p>
+              </div>
+            </div>
+            <ul className={styles.asideContact}>
+              <li>
+                <PhoneIcon />
+                <a href={PUBLIC_AGENT.phoneHref}>
+                  <span className="link-underline">{PUBLIC_AGENT.phone}</span>
+                </a>
+              </li>
+              <li>
+                <MailIcon />
+                <a href={`mailto:${PUBLIC_AGENT.email}`}>
+                  <span className="link-underline">{PUBLIC_AGENT.email}</span>
+                </a>
+              </li>
+            </ul>
             <div className={styles.asideActions}>
               {property.availability !== "sold" ? (
-                <RequestTourButton
-                  variant="secondary"
-                  property={{
-                    propertyId: property.propertyId,
-                    title: property.title,
-                    ...(property.coverMedia ? { media: property.coverMedia } : {}),
-                  }}
-                />
+                <RequestTourButton variant="primary" property={tourProperty} iconless>
+                  Book a Viewing
+                </RequestTourButton>
               ) : null}
               <Button
                 href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
                 variant="outline"
+                iconless
               >
-                Send an inquiry
+                Inquire about this property
               </Button>
             </div>
-            <p className={styles.updatedAt}>
-              Last updated{" "}
-              <time dateTime={property.updatedAt}>
-                {formatBusinessDate(property.updatedAt)}
-              </time>{" "}
-              (Philippine time)
-            </p>
           </aside>
         </Container>
       </section>
-
-      <div className={styles.mobileActions} aria-label="Property actions">
-        <Button
-          href={`/contact?propertyId=${encodeURIComponent(property.propertyId)}`}
-          variant="outline"
-        >
-          Inquire
-        </Button>
-        {property.availability !== "sold" ? (
-          <RequestTourButton
-            variant="secondary"
-            property={{
-              propertyId: property.propertyId,
-              title: property.title,
-              ...(property.coverMedia ? { media: property.coverMedia } : {}),
-            }}
-          />
-        ) : null}
-      </div>
 
       <Suspense fallback={null}>
         <RelatedProperties slug={slug} />
