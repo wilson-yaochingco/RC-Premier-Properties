@@ -63,7 +63,7 @@ export function LocationInventoryMap({
 
   const setLocation = useCallback(
     (region: string) => {
-      const query = new URLSearchParams(searchParams.toString());
+      const query = new URLSearchParams(searchParams?.toString());
       query.delete("location");
       query.delete("page");
       const destination = region.trim() ? publicLocationPath(region) : "/properties";

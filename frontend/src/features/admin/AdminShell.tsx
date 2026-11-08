@@ -155,7 +155,7 @@ function AdminIcon({ name }: { name: AdminIconName }) {
 }
 
 export function AdminShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [session, setSession] = useState<CurrentSessionResponse | null>(null);
   const [state, setState] = useState<
     "loading" | "authenticated" | "anonymous" | "error"

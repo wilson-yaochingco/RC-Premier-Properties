@@ -26,7 +26,7 @@ const DOWNWARD_HIDE_DISTANCE_PX = 48;
 const UPWARD_SHOW_DISTANCE_PX = 24;
 
 export function SiteHeader() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const headerRef = useRef<HTMLElement>(null);
   const menuOpenRef = useRef(false);
   const pointerActiveRef = useRef(false);

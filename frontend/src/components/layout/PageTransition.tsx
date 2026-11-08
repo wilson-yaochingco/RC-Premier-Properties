@@ -39,7 +39,7 @@ const isPublicPage = (path: string) =>
 export function PageTransition() {
   const panel = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const lenis = useLenis();
   const lenisRef = useRef(lenis);
   const arrived = useRef<(() => void) | null>(null);

@@ -11,7 +11,7 @@ function subscribeMotion(onChange: () => void) {
 }
 
 export function PublicScroll({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
