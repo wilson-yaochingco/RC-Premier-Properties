@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { RequestTourModal } from "./RequestTourModal";
+import { RollLabel } from "@/components/ui/RollLabel";
 
 export interface TourPropertyContext {
   propertyId?: string;
@@ -118,11 +119,14 @@ export function RequestTourButton({
   property,
   variant = "primary",
   className = "",
+  iconless = false,
 }: {
   children?: ReactNode;
   property?: TourPropertyContext;
   variant?: RequestTourButtonVariant;
   className?: string;
+  /** No arrow, and the label rolls on hover like the site's other text CTAs. */
+  iconless?: boolean;
 }) {
   const { openTour, pageProperty } = useRequestTour();
   const resolvedProperty = property ?? pageProperty;
@@ -131,15 +135,22 @@ export function RequestTourButton({
   return (
     <button
       type="button"
-      className={`button button--${variant} ${className}`.trim()}
+      className={`button button--${variant}${iconless ? " cta" : ""} ${className}`.trim()}
       onClick={(event) => openTour(property, event.currentTarget)}
       disabled={unavailable}
       title={unavailable ? "Tours are unavailable for sold properties." : undefined}
     >
-      <span>{children}</span>
-      <svg aria-hidden="true" className="button__icon" viewBox="0 0 20 20" fill="none">
-        <path d="M3 10h13M11 5l5 5-5 5" stroke="currentColor" />
-      </svg>
+      {iconless ? <RollLabel>{children}</RollLabel> : <span>{children}</span>}
+      {iconless ? null : (
+        <svg
+          aria-hidden="true"
+          className="button__icon"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path d="M3 10h13M11 5l5 5-5 5" stroke="currentColor" />
+        </svg>
+      )}
     </button>
   );
 }

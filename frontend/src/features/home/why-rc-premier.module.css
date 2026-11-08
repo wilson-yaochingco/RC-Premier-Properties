@@ -6,7 +6,7 @@
   padding-block: 0 clamp(4.5rem, 6vw, 7rem);
   background: var(--color-background);
   color: var(--ink);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -159,23 +159,5 @@
 
   .statement[data-index] {
     grid-row: auto;
-  }
-}
-
-/* Gentle entry where scroll-driven animation is supported; static everywhere else. */
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .statement {
-      animation: whyRise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 45%;
-    }
-  }
-}
-
-@keyframes whyRise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
   }
 }

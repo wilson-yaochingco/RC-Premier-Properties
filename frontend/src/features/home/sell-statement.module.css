@@ -4,7 +4,7 @@
   padding-block: clamp(4.5rem, 8vw, 8rem) clamp(3.5rem, 5.5vw, 5.5rem);
   background: var(--color-background);
   color: var(--color-brand-deep);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -18,9 +18,9 @@
   text-align: center;
   margin-bottom: clamp(3rem, 5vw, 5rem);
   font-size: clamp(3rem, 4vw, 4rem);
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.05;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.026em;
   color: var(--color-text);
   text-wrap: balance;
 }
@@ -30,8 +30,6 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border);
 }
 
 /* Compact dark button, matching the other homepage sections. */
@@ -44,7 +42,7 @@
   border-radius: var(--radius-cta);
   background: var(--color-brand-deep);
   color: #f8f6f1;
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;

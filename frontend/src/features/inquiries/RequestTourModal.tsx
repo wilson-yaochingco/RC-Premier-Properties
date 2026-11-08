@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   VIEWING_REQUEST_MAX_DAYS_AHEAD,
@@ -377,7 +378,16 @@ export function RequestTourModal({
               />
               <span>
                 I agree that RC Premier Properties may use these details to respond to
-                this viewing request. No account is created.
+                this viewing request. No account is created. See our{" "}
+                <Link
+                  href="/privacy"
+                  className="privacy-link"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Privacy Policy
+                </Link>
+                .
               </span>
             </label>
             <FieldError

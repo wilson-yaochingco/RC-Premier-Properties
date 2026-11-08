@@ -1042,3 +1042,15 @@ describe("property media validation", () => {
     },
   );
 });
+
+it("opts into exact bedroom matching while preserving legacy minimum counts", () => {
+  const exact = parsePropertySearchQuery({ bedrooms: "2", bedroomsMatch: "exact" });
+  expect(buildPublishedPropertyFilter(exact)["specifications.bedrooms"]).toBe(2);
+  const legacy = parsePropertySearchQuery({ bedrooms: "2" });
+  expect(buildPublishedPropertyFilter(legacy)["specifications.bedrooms"]).toEqual({
+    $gte: 2,
+  });
+  expect(() =>
+    parsePropertySearchQuery({ bedrooms: "2", bedroomsMatch: "invalid" }),
+  ).toThrow();
+});

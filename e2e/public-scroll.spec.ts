@@ -19,7 +19,9 @@ for (const viewport of [
     await page.goto("/");
     await expect(page.locator("html")).toHaveClass(/lenis/);
     const radius = viewport.width <= 768 ? "12px" : "18px";
-    const frame = page.locator('section[aria-labelledby="intro-heading"] figure > div');
+    const frame = page
+      .locator('section[aria-labelledby="intro-heading"] figure > div')
+      .first();
     for (const surface of [frame]) {
       await expect(surface).toHaveCSS("border-top-left-radius", radius);
       await expect(surface).toHaveCSS("border-top-right-radius", "0px");
@@ -161,18 +163,21 @@ test("public property media and dialogs retain clipping and scroll isolation", a
   page,
 }) => {
   await page.goto("/properties?propertyId=RCPP-E2E-001");
+  // Catalog cards are square, open editorial cards; the photograph itself still clips.
   const card = page.locator("[data-property-card]").first();
-  await expect(card).toHaveCSS("border-radius", "18px 0px");
-  await expect(card).toHaveCSS("overflow", "hidden");
+  await expect(card.locator('[class*="cardMedia"]').first()).toHaveCSS(
+    "overflow",
+    "hidden",
+  );
   await page.getByRole("link", { name: "View Clark Garden Residence" }).click();
   await expect(page).toHaveURL(/\/properties\/clark-garden-residence/);
   await expect(page.locator("html")).toHaveClass(/lenis/);
   const gallery = page.getByRole("region", { name: "Property gallery" });
-  await expect(gallery.locator("figure > .property-media").first()).toHaveCSS(
+  await expect(gallery.locator("[data-gallery-track]")).toHaveCSS(
     "border-radius",
     "18px 0px",
   );
-  await page.getByRole("button", { name: "View Fullscreen" }).click();
+  await page.getByRole("button", { name: /^\d+ photos?$/ }).click();
   await expect(page.locator("html")).toHaveClass(/lenis-stopped/);
   const saved = await page.evaluate(() => scrollY);
   await page.mouse.move(500, 400);
@@ -183,7 +188,7 @@ test("public property media and dialogs retain clipping and scroll isolation", a
   await expect(page.locator("html")).not.toHaveClass(/lenis-stopped/);
   await page
     .getByRole("complementary", { name: "Property inquiry" })
-    .getByRole("button", { name: "Request a Tour" })
+    .getByRole("button", { name: "Book a Viewing" })
     .click();
   const dialog = page.getByRole("dialog", { name: "Request a Tour" });
   await expect(dialog).toHaveAttribute("data-lenis-prevent", "true");

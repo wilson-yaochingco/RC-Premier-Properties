@@ -1,7 +1,9 @@
 .hero {
   --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --font-sans: var(--font-manrope), sans-serif;
-  position: relative;
+  --font-sans: var(--font-general-sans), sans-serif;
+  /* Stays put while the next section slides over it (see the layered-hero rule in globals). */
+  position: sticky;
+  top: 0;
   isolation: isolate;
   height: 100vh;
   min-height: 100vh;
@@ -60,8 +62,8 @@
 .title {
   font-family: var(--font-sans);
   font-size: clamp(4rem, 4.8vw, 5.25rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  font-weight: 500;
+  letter-spacing: -0.022em;
   line-height: 0.96;
 }
 
@@ -206,7 +208,7 @@
 
 .header {
   --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --font-sans: var(--font-manrope), sans-serif;
+  --font-sans: var(--font-general-sans), sans-serif;
   position: absolute;
   z-index: 40;
   top: 1.75rem;
@@ -247,7 +249,7 @@
   border: 1px solid rgb(255 255 255 / 35%);
   border-radius: 6px;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: uppercase;
   transition:
@@ -345,6 +347,12 @@
   transition:
     opacity 350ms var(--hero-ease),
     visibility 0s;
+}
+
+.menuLogoLink {
+  display: block;
+  width: fit-content;
+  line-height: 0;
 }
 
 .menuLogo {
@@ -486,6 +494,55 @@
 /* Only the toolbar moves; the shared fixed menu keeps the viewport as its container. */
 .stickyLogo {
   display: none;
+}
+
+/* Properties keeps the shared toolbar over its photograph before it becomes sticky. */
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"] {
+  left: clamp(1.25rem, 4vw, 5rem);
+  right: clamp(1.25rem, 4vw, 5rem);
+  align-items: center;
+  justify-content: space-between;
+  color: #f8f6f1;
+}
+
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"]
+  .stickyLogo {
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"]
+  .stickyLogo
+  :global(.brand-logo svg) {
+  color: #f8f6f1;
+}
+
+.header:is(
+    [data-properties-hero="true"],
+    [data-locations-hero="true"]
+  )[data-sticky="false"]
+  .menuLogo {
+  visibility: hidden;
+}
+
+@media (max-width: 39.99rem) {
+  .header:is(
+      [data-properties-hero="true"],
+      [data-locations-hero="true"]
+    )[data-sticky="false"]:not([data-menu-open="true"])
+    .viewing {
+    display: none;
+  }
 }
 
 .header[data-sticky="true"] {
@@ -1318,25 +1375,120 @@
 }
 
 /* About uses the Home controls with its mark over the film. */
-.header[data-about-hero="true"][data-sticky="false"] {
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"] {
   left: clamp(2rem, 2.5vw, 3rem);
   justify-content: space-between;
 }
-.header[data-about-hero="true"][data-sticky="false"] .stickyLogo {
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"]
+  .stickyLogo {
   display: block;
   position: relative;
   z-index: 2;
 }
-.header[data-about-hero="true"][data-sticky="false"]
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"]
   .stickyLogo
   :global(.brand-logo svg) {
   color: white;
 }
-.header[data-about-hero="true"][data-sticky="false"] .menuLogo {
+.header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"]
+  .menuLogo {
   visibility: hidden;
 }
 @media (max-width: 48rem) {
-  .header[data-about-hero="true"][data-sticky="false"] {
+  .header:is([data-about-hero="true"], [data-sell-hero="true"])[data-sticky="false"] {
     left: 1rem;
   }
+}
+
+/* ---- Intro entrance: the hero is revealed as the intro surface lifts (see HomeIntro) ---- */
+/* Each headline line sits in a mask; the padding keeps descenders from being clipped. */
+.titleLine {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.05em 0.14em;
+  margin-block: -0.05em -0.14em;
+}
+
+:global(html[data-intro="play"]) .titleLine > span {
+  display: block;
+  animation: introLine 950ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+:global(html[data-intro="play"]) .titleLine:nth-child(1) > span {
+  animation-delay: 2100ms;
+}
+:global(html[data-intro="play"]) .titleLine:nth-child(2) > span {
+  animation-delay: 2250ms;
+}
+:global(html[data-intro="play"]) .titleLine:nth-child(3) > span {
+  animation-delay: 2400ms;
+}
+
+:global(html[data-intro="play"]) :is(.content > :not(.title), .card) {
+  animation: introRise 850ms var(--hero-ease) var(--intro-delay, 0ms) backwards;
+}
+:global(html[data-intro="play"]) .content > :nth-child(1) {
+  --intro-delay: 2000ms;
+}
+:global(html[data-intro="play"]) .content > :nth-child(3) {
+  --intro-delay: 2500ms;
+}
+:global(html[data-intro="play"]) .content > :nth-child(4) {
+  --intro-delay: 2650ms;
+}
+:global(html[data-intro="play"]) .card {
+  --intro-delay: 2800ms;
+}
+
+/* Opacity only: the header's fixed menu must keep the viewport as its containing block. */
+:global(html[data-intro="play"]) .header {
+  animation: introFade 900ms var(--hero-ease) 2050ms backwards;
+}
+
+@keyframes introLine {
+  from {
+    opacity: 0;
+    transform: translateY(105%);
+  }
+}
+
+@keyframes introRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes introFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html[data-intro="play"])
+    :is(.titleLine > span, .content > *, .card, .header) {
+    animation: none;
+  }
+}
+
+/* ---- Layered hero: dimming as the next section covers it, and plain scrolling when reduced ---- */
+.cover {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--color-brand-deep);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    position: relative;
+  }
+}
+
+/* Locations uses its editorial page gutter over the solid navy hero. */
+.header[data-locations-hero="true"][data-sticky="false"] {
+  left: clamp(1.25rem, 3vw, 3rem);
+  right: clamp(1.25rem, 3vw, 3rem);
 }

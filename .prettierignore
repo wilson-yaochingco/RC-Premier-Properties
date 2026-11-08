@@ -2,6 +2,8 @@ node_modules
 .next
 dist
 package-lock.json
+.impeccable/
+.playwright-mcp/
 *.ico
 *.svg
 # Generated, web-minified geographic assets; regenerate via scripts/ instead.

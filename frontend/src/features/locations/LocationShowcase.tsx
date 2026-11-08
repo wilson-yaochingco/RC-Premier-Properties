@@ -20,15 +20,10 @@ export function LocationShowcase({ collection }: { collection: CollectionState }
     return (
       <div className={styles.state} role="status" data-state="unavailable">
         <div className={styles.stateCopy}>
-          <p className={styles.stateEyebrow}>Collection unavailable</p>
-          <h3>We couldn’t load properties right now.</h3>
-          <p>Please try again, or browse the property catalog.</p>
+          <h3>Properties are temporarily unavailable</h3>
+          <p>Try again in a moment, or browse all properties.</p>
           <div className={styles.stateActions}>
             <LocationRetry />
-            <Link href="/properties" className={`${styles.quietAction} cta`}>
-              <RollLabel>Browse all properties</RollLabel>
-              <Arrow />
-            </Link>
           </div>
         </div>
       </div>
@@ -40,8 +35,7 @@ export function LocationShowcase({ collection }: { collection: CollectionState }
     return (
       <div className={styles.state} data-state="empty">
         <div className={styles.stateCopy}>
-          <p className={styles.stateEyebrow}>No published homes yet</p>
-          <h3>New listings will appear here.</h3>
+          <h3>New listings will appear here</h3>
           <p>
             No homes are currently published in our four featured locations. Let us help
             you find your next home.
@@ -65,5 +59,24 @@ export function LocationShowcase({ collection }: { collection: CollectionState }
     <>
       <FeaturedPropertiesShowcase properties={properties} embedded />
     </>
+  );
+}
+
+export function LocationShowcaseSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading properties"
+      className={styles.collectionSkeleton}
+    >
+      <span className={styles.srOnly}>Loading published homes</span>
+      {[0, 1, 2].map((index) => (
+        <div key={index} className={styles.skeletonCard} aria-hidden="true">
+          <div />
+          <span />
+          <span />
+        </div>
+      ))}
+    </div>
   );
 }

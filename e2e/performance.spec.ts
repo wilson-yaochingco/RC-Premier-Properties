@@ -126,15 +126,11 @@ test("critical images are singular and gallery media stays progressive", async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
-  const hero = page.getByAltText(
-    "Modern two-storey home at dusk with mature trees and a landscaped frontage",
-  );
-  await expect(hero).toHaveAttribute("sizes", "100vw");
-  await expect(hero).not.toHaveAttribute("loading", "lazy");
-  await expect(
-    page.getByAltText("Warm modern living room with a staircase"),
-  ).toHaveAttribute("loading", "lazy");
-  await expect(page.locator('link[rel="preload"][as="image"]')).toHaveCount(1);
+  const hero = page.locator('section[aria-labelledby="home-heading"] video');
+  await expect(hero).toHaveCount(1);
+  await expect(hero).toHaveAttribute("preload", "none");
+  expect(await hero.evaluate((video: HTMLVideoElement) => video.muted)).toBe(true);
+  await expect(page.locator('link[rel="preload"][as="image"]')).toHaveCount(0);
   await expect(page.locator("iframe")).toHaveCount(0);
 
   await page.route("**/_next/image?url=%2Fmedia%2Fproperties%2F**", (route) =>
@@ -153,8 +149,8 @@ test("critical images are singular and gallery media stays progressive", async (
   await expect(gallery).toBeVisible();
   await expect(gallery.locator('img[loading="lazy"]')).toHaveCount(1);
   await expect(gallery.locator('img:not([loading="lazy"])')).toHaveCount(1);
-  await expect(page.getByRole("dialog", { name: "Property photo viewer" })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole("dialog", { name: "Property photo gallery" }),
+  ).toHaveCount(0);
   await expect(page.locator('link[rel="preload"][as="image"]')).toHaveCount(1);
 });

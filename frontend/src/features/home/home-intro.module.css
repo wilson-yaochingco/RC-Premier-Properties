@@ -1,0 +1,66 @@
+/* Charcoal surface, the logo drawn then filled, then the surface lifts to reveal the hero. */
+.overlay {
+  --intro-ease: cubic-bezier(0.65, 0, 0.35, 1);
+  display: none;
+}
+
+:global(html[data-intro="play"]) .overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: var(--color-brand-deep);
+  color: #f8f6f1;
+  animation: introLift 950ms cubic-bezier(0.76, 0, 0.24, 1) 1550ms forwards;
+}
+
+.mark {
+  width: clamp(9rem, 18vw, 19rem);
+  height: auto;
+  overflow: visible;
+}
+
+/* The mark's own outline is traced (pathLength is normalised to 1), then filled in. */
+.mark path {
+  fill: currentcolor;
+  fill-opacity: 0;
+  stroke: currentcolor;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation:
+    introTrace 1100ms var(--intro-ease) 150ms forwards,
+    introFill 500ms ease 1000ms forwards;
+}
+
+@keyframes introTrace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes introFill {
+  to {
+    fill-opacity: 1;
+    stroke-opacity: 0;
+  }
+}
+
+@keyframes introLift {
+  from {
+    transform: translateY(0);
+    visibility: visible;
+  }
+  to {
+    transform: translateY(-100%);
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html[data-intro="play"]) .overlay {
+    display: none;
+  }
+}

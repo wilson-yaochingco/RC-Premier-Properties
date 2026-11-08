@@ -33,9 +33,9 @@
 .headline {
   color: var(--ink);
   font-size: clamp(2.5rem, 5.6vw, 5rem);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 0.98;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.022em;
   text-wrap: balance;
 }
 
@@ -49,7 +49,7 @@
 
 .stage {
   position: relative;
-  max-width: 68rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding-inline: var(--gutter);
 }

@@ -250,7 +250,7 @@ Six RC Premier YouTube Shorts use a poster-first, horizontal scroll-snap row wit
 lazy thumbnails. A player is mounted only after a visitor selects a tour; the
 selected embed requests autoplay and is removed when the tour is closed.
 
-The shared footer now exposes the current public phone, `rcpremierph@gmail.com`, and
+The shared footer now exposes the current public phone, `rcpropertiesss@gmail.com`, and
 the supplied Facebook, Instagram, YouTube, and TikTok profiles. This scoped shell update
 does not represent the later repository-wide contact-copy migration.
 
@@ -284,7 +284,7 @@ appointment promises.
 
 The shared footer uses color and underline/border feedback without positional movement.
 Email and phone remain compact but are separated as distinct, touch-usable rows. The
-approved public email is `rcpremierph@gmail.com`, centralized in `public-contact.ts`.
+approved public email is `rcpropertiesss@gmail.com`, centralized in `public-contact.ts`.
 No approved privacy policy exists, so the interface and documentation do not
 fabricate one.
 

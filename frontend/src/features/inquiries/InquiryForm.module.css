@@ -636,7 +636,7 @@
   font-size: clamp(1.75rem, 3.2vw, 2.5rem);
   font-weight: 600;
   line-height: 1.05;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
@@ -737,4 +737,30 @@
   .doneLink {
     transition: none;
   }
+}
+
+/* Seller variant: the Sell page's centred, roomier form. */
+.form.seller {
+  gap: 2.75rem;
+}
+
+.seller .group legend {
+  margin-bottom: 1.5rem;
+  font-size: 0.75rem;
+}
+
+.seller .grid {
+  gap: 1.5rem 1.25rem;
+}
+
+.seller .field input,
+.seller .field select,
+.seller .field textarea {
+  min-height: 3.5rem;
+  padding: 0.95rem 1.15rem;
+  font-size: 1.0625rem;
+}
+
+.seller .field textarea {
+  min-height: 11rem;
 }

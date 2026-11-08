@@ -230,7 +230,8 @@ export function buildPublishedPropertyFilter(
     };
   }
   if (request.bedrooms !== undefined) {
-    filter["specifications.bedrooms"] = { $gte: request.bedrooms };
+    filter["specifications.bedrooms"] =
+      request.bedroomsMatch === "exact" ? request.bedrooms : { $gte: request.bedrooms };
   }
   if (request.bathrooms !== undefined) {
     filter["specifications.bathrooms"] = { $gte: request.bathrooms };
@@ -1269,8 +1270,8 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     const record = await this.repository.updateMedia(
       id,
       input.expectedVersion,
-      input.media,
-      coverMedia,
+      this.withPublicIds(input.media),
+      coverMedia && this.withPublicIds([coverMedia])[0],
     );
     if (!record) throw this.concurrencyConflict();
     const retainedUrls = new Set(input.media.map((item) => item.url));
@@ -1322,12 +1323,24 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     return toAdminPropertyDetail(record);
   }
 
+  /**
+   * The server, not the client, records the provider's object identifier, so it survives
+   * reorders and cover changes that rebuild the media array from admin form data.
+   */
+  private withPublicIds(media: AdminPropertyMediaInput[]): AdminPropertyMediaInput[] {
+    return media.map((item) => {
+      const publicId = this.mediaStorage.publicIdFor?.(item.url);
+      return publicId ? { ...item, publicId } : item;
+    });
+  }
+
   async uploadImage(
     id: string,
     input: UploadPropertyImageRequest,
     bytes: Buffer,
     declaredMimeType: string | undefined,
     context: PropertyMutationContext,
+    options?: { fileName?: string },
   ): Promise<AdminPropertyDetail | null> {
     const current = await this.findExpectedRecord(id, input.expectedVersion);
     if (!current) return null;
@@ -1358,7 +1371,11 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
     }
     let stored;
     try {
-      stored = await this.mediaStorage.store(bytes, image);
+      stored = await this.mediaStorage.store(bytes, image, {
+        folder: current.slug,
+        label: options?.fileName ?? input.alt,
+        exactName: Boolean(options?.fileName),
+      });
     } catch (error) {
       operationalLogger.error("property_media_upload_failed", {
         dependency: "media-storage",
@@ -1400,8 +1417,8 @@ export class DefaultAdminPropertyService implements AdminPropertyService {
       record = await this.repository.updateMedia(
         id,
         input.expectedVersion,
-        nextMedia,
-        cover,
+        this.withPublicIds(nextMedia),
+        this.withPublicIds([cover])[0],
       );
       if (!record) throw this.concurrencyConflict();
     } catch (error) {

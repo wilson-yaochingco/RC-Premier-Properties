@@ -7,7 +7,7 @@
   padding-block: 0 clamp(5rem, 12vw, 12rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -67,11 +67,12 @@
 }
 
 .heading {
+  overflow-wrap: anywhere;
   margin-top: 1.5rem;
   font-size: clamp(1.875rem, 3.4vw, 3.25rem);
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.08;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.026em;
   text-wrap: balance;
 }
 
@@ -469,7 +470,7 @@
 
   .heading,
   .lede {
-    max-width: 28rem;
+    max-width: min(28rem, 100%);
     margin-inline: auto;
     text-align: center;
   }
@@ -498,5 +499,35 @@
 
   .skeletonCard {
     animation: none;
+  }
+}
+
+/* The Locations route shares the complete featured-inventory section. */
+.section.locations {
+  padding-block: clamp(5rem, 9vw, 9rem) clamp(5rem, 8vw, 8rem);
+}
+.locations .header {
+  margin-top: 0;
+}
+.locations [data-featured-state] {
+  margin-top: 1.5rem;
+}
+@media (max-width: 47.99rem) {
+  .locations .header {
+    text-align: center;
+  }
+  .locations .heading,
+  .locations .lede {
+    margin-inline: auto;
+  }
+  .locations .viewAllSlot,
+  .locations .stateActions {
+    justify-content: center;
+  }
+  .locations [data-featured-state] {
+    text-align: center;
+  }
+  .locations .stateBody {
+    margin-inline: auto;
   }
 }

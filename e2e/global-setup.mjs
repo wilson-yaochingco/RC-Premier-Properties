@@ -52,6 +52,19 @@ export default async function globalSetup() {
   process.env.MONGODB_URI =
     "mongodb://127.0.0.1:27017/rc-premier-properties-playwright-unused";
   process.env.CORS_ORIGIN = FRONTEND_URL;
+  // A developer's root .env configures Auth0 for localhost:3000, which the backend rightly
+  // rejects against this test origin. The fixture API runs unauthenticated, as in CI: staff
+  // sessions are mocked in the browser. Empty values stop dotenv from loading the real ones.
+  for (const name of [
+    "AUTH0_ISSUER_URL",
+    "AUTH0_CLIENT_ID",
+    "AUTH0_CLIENT_SECRET",
+    "AUTH0_CALLBACK_URL",
+    "AUTH_ALLOWED_RETURN_URLS",
+    "AUTH_SESSION_HASH_SECRET",
+  ]) {
+    process.env[name] = "";
+  }
   process.env.NEXT_PUBLIC_DEPLOYMENT_ENV = "test";
   process.env.NEXT_PUBLIC_API_URL = FIXTURE_API_URL;
   process.env.NEXT_PUBLIC_SITE_URL = FRONTEND_URL;

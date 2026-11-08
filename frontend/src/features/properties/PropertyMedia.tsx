@@ -6,6 +6,7 @@ import type { PublicPropertyMedia } from "@rc/shared";
 import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { isApprovedProductionMediaUrl } from "@/lib/env";
 import { isDevelopmentSampleUrl } from "./property-media-support";
+import { propertyPhotoDeliveryUrl } from "./property-photography";
 
 interface PropertyMediaProps {
   media?: PublicPropertyMedia;
@@ -57,7 +58,7 @@ export function PropertyMedia({
         />
       ) : (
         <Image
-          src={mediaUrl}
+          src={propertyPhotoDeliveryUrl(mediaUrl)}
           alt={media.alt}
           fill
           preload={preload}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RollLabel } from "@/components/ui/RollLabel";
+import { accent } from "@/lib/accent";
 import styles from "./featured-properties.module.css";
 
 function CtaArrow() {
@@ -21,7 +22,7 @@ const COPY = {
     body: "Looking for something specific? Tell us what you have in mind and we’ll help you explore suitable properties across Pampanga.",
   },
   unavailable: {
-    heading: "Looking for a property?",
+    heading: "Looking for a *property*?",
     body: "Our featured selection can’t be shown right now, but RC Premier can still help you explore suitable options across Pampanga.",
   },
 } as const;
@@ -30,15 +31,25 @@ const COPY = {
  * Zero-inventory and API-unavailable states. One compact, left-aligned content block that
  * reads as intentional homepage content, never as an error panel.
  */
-export function FeaturedInventoryState({ kind }: { kind: "empty" | "unavailable" }) {
+export function FeaturedInventoryState({
+  kind,
+  compact = false,
+}: {
+  kind: "empty" | "unavailable";
+  compact?: boolean;
+}) {
   const copy = COPY[kind];
 
   return (
     <div className={styles.container} data-featured-state={kind}>
-      <FeaturedEyebrow />
-      <h2 id="featured-heading" className={styles.heading}>
-        {copy.heading}
-      </h2>
+      {compact ? null : (
+        <>
+          <FeaturedEyebrow />
+          <h2 id="featured-heading" className={styles.heading}>
+            {accent(copy.heading)}
+          </h2>
+        </>
+      )}
       <p className={`${styles.lede} ${styles.stateBody}`}>{copy.body}</p>
       <div className={styles.stateActions}>
         <Link href="/contact" className={`${styles.statePrimary} cta cta--wrap`}>

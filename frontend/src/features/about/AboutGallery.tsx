@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import exterior from "@/assets/site/home-hero-2.png";
 import interior from "@/assets/site/home-hero-3.png";
-import viewing from "@/assets/site/home-hero-level18.jpg";
+import viewing from "@/assets/site/bungalow-street.jpg";
 import selling from "@/assets/site/footer.png";
 import contact from "@/assets/site/contact.png";
 import styles from "@/app/about/about.module.css";
@@ -27,7 +27,7 @@ const DESTINATIONS = [
     title: "Request a viewing",
     href: "/book-viewing",
     image: viewing,
-    alt: "White-brick residence glowing at dusk with warm interior lighting",
+    alt: "Modern single-storey home seen from the street, with its gated frontage",
   },
   {
     title: "Sell your property",
@@ -42,6 +42,8 @@ const DESTINATIONS = [
     alt: "Dining area beside a staircase in a contemporary home",
   },
 ] as const;
+
+const TIP_GAP = 4;
 
 export function AboutGallery() {
   const rail = useRef<HTMLUListElement>(null);
@@ -97,8 +99,10 @@ export function AboutGallery() {
     <section className={styles.gallery} aria-labelledby="gallery-heading">
       <div className={styles.galleryHeading}>
         <div className={styles.galleryIntro}>
-          <h2 id="gallery-heading">Our capabilities</h2>
-          <p>
+          <h2 id="gallery-heading" data-motion="heading">
+            Our <em>capabilities</em>
+          </h2>
+          <p data-motion="fade">
             Explore residential properties, discover locations, arrange viewings, and
             connect directly with RC Premier across Pampanga.
           </p>
@@ -116,6 +120,7 @@ export function AboutGallery() {
         ref={rail}
         id="about-gallery"
         className={styles.galleryRail}
+        data-motion="group"
         data-dragging={dragging}
         aria-label="Explore with RC Premier. Use the left and right arrow keys to scroll."
         tabIndex={0}
@@ -149,20 +154,17 @@ export function AboutGallery() {
           if (event.pointerType !== "mouse") return;
           if (tooltip.current) {
             const tip = tooltip.current;
+            // The label's bottom-left corner sits at the pointer; it flips left near the
+            // right edge and drops below the pointer near the top edge.
+            const right = event.clientX + TIP_GAP;
             const x = Math.max(
               0,
-              Math.min(
-                event.clientX - tip.offsetWidth / 2,
-                window.innerWidth - tip.offsetWidth,
-              ),
+              right + tip.offsetWidth > window.innerWidth
+                ? event.clientX - tip.offsetWidth - TIP_GAP
+                : right,
             );
-            const y = Math.max(
-              0,
-              Math.min(
-                event.clientY - tip.offsetHeight / 2,
-                window.innerHeight - tip.offsetHeight,
-              ),
-            );
+            const above = event.clientY - tip.offsetHeight - TIP_GAP;
+            const y = above >= 0 ? above : event.clientY + TIP_GAP;
             tip.style.transform = `translate3d(${x}px, ${y}px, 0)`;
           }
           const active = drag.current;

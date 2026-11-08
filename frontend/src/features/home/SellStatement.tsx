@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { RollLabel } from "@/components/ui/RollLabel";
+import { plain } from "@/lib/accent";
 import { ScrollFillText } from "./ScrollFillText";
 import styles from "./sell-statement.module.css";
 import { useScrollFill } from "./use-scroll-fill";
 
 const STATEMENT =
-  "Thinking of selling your property? RC\u00a0Premier helps you present it thoughtfully, bring it to the right market, and move forward with clear guidance from start to finish.";
+  "Thinking of *selling* your property? RC\u00a0Premier helps you present it *thoughtfully*, bring it to the right market, and move forward with clear *guidance* from start to finish.";
 
 /** One large editorial sentence, set directly on the page, with a quiet bottom row. */
 export function SellStatement() {
@@ -24,7 +25,7 @@ export function SellStatement() {
           id="sell-statement"
           ref={ref}
           className={styles.statement}
-          aria-label={STATEMENT}
+          aria-label={plain(STATEMENT)}
         >
           <ScrollFillText lines={[STATEMENT]} />
         </h2>

@@ -44,10 +44,10 @@ export function RouteCards() {
     <section className={styles.section} aria-labelledby="routes-heading">
       <div className={styles.container}>
         <div className={styles.header}>
-          <h2 id="routes-heading" className={styles.heading}>
-            Start with what you need.
+          <h2 id="routes-heading" className={styles.heading} data-motion="heading">
+            Start with what you <em>need</em>.
           </h2>
-          <p className={styles.lede}>
+          <p className={styles.lede} data-motion="fade">
             Whether you are searching, comparing, or preparing to sell, begin with the
             path that fits you best.
           </p>

@@ -182,7 +182,14 @@ export function MobileNavigation({
           style={cinematic ? undefined : { display: "contents" }}
         >
           {cinematic && (
-            <RcPremierMark className={heroStyles.menuLogo} aria-hidden="true" />
+            <Link
+              href="/"
+              className={heroStyles.menuLogoLink}
+              aria-label="RC Premier Properties home"
+              tabIndex={isOpen ? 0 : -1}
+            >
+              <RcPremierMark className={heroStyles.menuLogo} aria-hidden="true" />
+            </Link>
           )}
           <div className={cinematic ? heroStyles.menuBody : undefined}>
             <nav aria-label={cinematic ? "Primary navigation" : "Mobile navigation"}>

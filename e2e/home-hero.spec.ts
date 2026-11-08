@@ -10,7 +10,7 @@ for (const viewport of [
     await page.goto("/");
     const hero = page.locator('section[aria-labelledby="home-heading"]');
     await expect(hero.getByRole("heading", { level: 1 })).toHaveText(
-      "Find a homeworth cominghome to.",
+      "Find a home worth coming home to.",
     );
     const bounds = await hero.boundingBox();
     expect(bounds?.y).toBe(0);
@@ -58,11 +58,15 @@ for (const viewport of [
     const dialog = page.getByRole("dialog", { name: "Primary navigation" });
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("link", { name: "Properties", exact: true }),
+      dialog.getByRole("link", { name: "About", exact: true }),
     ).toBeFocused();
     await expect(
       dialog.getByRole("navigation", { name: "Primary navigation" }).getByRole("link"),
-    ).toHaveText(["Properties", "Locations", "Sell", "About", "Contact"]);
+    ).toHaveText(["About", "Properties", "Locations", "Sell", "Contact"]);
+    await page.keyboard.press("Shift+Tab");
+    await expect(
+      dialog.getByRole("link", { name: "RC Premier Properties home" }),
+    ).toBeFocused();
     await page.keyboard.press("Shift+Tab");
     if (viewport.width >= 640) {
       await expect(dialog.getByRole("link", { name: "Book a viewing" })).toBeFocused();
@@ -73,7 +77,7 @@ for (const viewport of [
     ).toBeFocused();
     await page.keyboard.press("Shift+Tab");
     await expect(
-      dialog.getByRole("link", { name: "rcpremierph@gmail.com" }),
+      dialog.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
     ).toBeFocused();
     await expect(page.locator("main")).toHaveAttribute("inert", "");
     await expect(dialog.getByRole("link", { name: "Book a viewing" })).toBeVisible();
@@ -108,6 +112,8 @@ test("hero interactions preserve layout and respect reduced motion", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Skip the first-visit brand intro: its overlay deliberately holds clicks while it plays.
+  await page.addInitScript(() => sessionStorage.setItem("rc-intro-seen", "1"));
   await page.goto("/");
   const hero = page.locator('section[aria-labelledby="home-heading"]');
   const logo = hero.getByRole("img", { name: "RC Premier Properties", exact: true });
@@ -231,6 +237,8 @@ test("editorial menu reveal, interrupted close, and reduced motion", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Skip the first-visit brand intro so the header is measured at rest.
+  await page.addInitScript(() => sessionStorage.setItem("rc-intro-seen", "1"));
   await page.goto("/");
   const menu = page.getByRole("button", { name: "Menu", exact: true });
   const panel = page.locator("#mobile-navigation-panel");
@@ -244,14 +252,17 @@ test("editorial menu reveal, interrupted close, and reduced motion", async ({
   await expect(panel).toHaveCSS("background-color", "rgb(32, 38, 48)");
   await expect(panel).toHaveCSS("transform", "none");
   await expect(panel.locator("svg[aria-hidden='true']").first()).toBeVisible();
-  expect(await viewing.boundingBox()).toEqual(viewingBounds);
+  // The scroll lock may move it by a sub-pixel; it must not visibly jump.
+  const openBounds = await viewing.boundingBox();
+  expect(Math.abs(openBounds!.x - viewingBounds!.x)).toBeLessThan(1);
+  expect(openBounds!.y).toBe(viewingBounds!.y);
   await expect(
     dialog.getByRole("navigation", { name: "Primary navigation" }).getByRole("link"),
-  ).toHaveText(["Properties", "Locations", "Sell", "About", "Contact"]);
+  ).toHaveText(["About", "Properties", "Locations", "Sell", "Contact"]);
   const socials = dialog.getByRole("navigation", { name: "Social media" });
   await expect(socials.getByRole("link")).toHaveCount(4);
   await expect(
-    dialog.getByRole("link", { name: "rcpremierph@gmail.com" }),
+    dialog.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
   ).toBeVisible();
   const close = page.getByRole("button", { name: "Close", exact: true });
   await close.click();
@@ -269,7 +280,8 @@ test("editorial menu reveal, interrupted close, and reduced motion", async ({
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await menu.click();
-  const properties = dialog.getByRole("link", { name: "Properties", exact: true });
+  // About is the first destination, so it receives focus when the menu opens.
+  const properties = dialog.getByRole("link", { name: "About", exact: true });
   await expect(properties).toBeFocused();
   await expect(properties.locator("..")).toHaveCSS("transform", "none");
   await expect(properties.locator("..")).toHaveCSS("transition-delay", "0s");
@@ -288,7 +300,7 @@ test("interior mobile navigation retains its existing controls", async ({ page }
   await menu.click();
   const navigation = page.getByRole("navigation", { name: "Mobile navigation" });
   await expect(
-    navigation.getByRole("link", { name: "Properties", exact: true }),
+    navigation.getByRole("link", { name: "About", exact: true }),
   ).toBeFocused();
   await expect(
     page
