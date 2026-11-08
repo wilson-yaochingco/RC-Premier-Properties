@@ -133,7 +133,8 @@ Phase 5 gates; follow the migration plan before cutover.
 
 The server still accepts and validates up to 12 MiB. The admin client sends files at or below
 4 MiB unchanged; larger photos are decoded with orientation, resized to at most 2560 pixels
-on the longest edge and encoded as WebP with decreasing quality until they fit. Failure
+on the longest edge and encoded as WebP with decreasing quality until they fit, falling
+back to JPEG when the browser cannot encode WebP. Failure
 shows an error and sends nothing. Production storage is Cloudinary only, with no Vercel
 filesystem writes. Direct signed browser-to-Cloudinary uploads remain deferred. The 61
 approved photos, 15 derivatives, crops and gallery order are unchanged.

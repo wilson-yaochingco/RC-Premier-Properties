@@ -37,7 +37,8 @@ describe("property image preparation", () => {
   it("applies orientation, bounds dimensions and steps quality down to fit", async () => {
     const file = largeFile();
     const output = new Blob(["encoded-image"], { type: "image/webp" });
-    const { bitmap, canvas, decode, drawImage } = browser([file, output]);
+    const oversized = new Blob([file], { type: "image/webp" });
+    const { bitmap, canvas, decode, drawImage } = browser([oversized, output]);
     const prepared = await preparePropertyImage(file);
     expect(decode).toHaveBeenCalledWith(file, { imageOrientation: "from-image" });
     expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 2560, 1920);
@@ -52,9 +53,29 @@ describe("property image preparation", () => {
     expect(bitmap.close).toHaveBeenCalledOnce();
   });
 
+  it("falls back to the JPEG quality ladder when canvas cannot encode WebP", async () => {
+    const file = largeFile();
+    const fallback = new Blob(["fallback-png"], { type: "image/png" });
+    const output = new Blob(["encoded-jpeg"], { type: "image/jpeg" });
+    const { bitmap, canvas } = browser([fallback, file, output]);
+    const prepared = await preparePropertyImage(file);
+    expect(canvas.toBlob.mock.calls.map((call) => call.slice(1))).toEqual([
+      ["image/webp", 0.9],
+      ["image/jpeg", 0.9],
+      ["image/jpeg", 0.8],
+    ]);
+    expect(prepared.type).toBe("image/jpeg");
+    expect(prepared.name).toBe("home.jpg");
+    expect(prepared.size).toBe(output.size);
+    expect(prepared.size).toBeLessThanOrEqual(UPLOAD_REQUEST_TARGET_BYTES);
+    expect(prepared.lastModified).toBe(file.lastModified);
+    expect(bitmap.close).toHaveBeenCalledOnce();
+  });
+
   it("rejects an impossible reduction and releases the bitmap", async () => {
     const file = largeFile();
-    const { bitmap, canvas } = browser(Array(5).fill(file));
+    const oversized = new Blob([file], { type: "image/webp" });
+    const { bitmap, canvas } = browser(Array(5).fill(oversized));
     await expect(preparePropertyImage(file)).rejects.toThrow(
       "could not be reduced below 4 MiB",
     );

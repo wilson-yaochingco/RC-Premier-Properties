@@ -24,13 +24,21 @@ export async function preparePropertyImage(file: File): Promise<File> {
       );
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
+    let mimeType = "image/webp";
     for (const quality of [0.9, 0.8, 0.7, 0.6, 0.5]) {
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/webp", quality),
+      let blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, mimeType, quality),
       );
+      if (blob && blob.type !== mimeType && mimeType === "image/webp") {
+        mimeType = "image/jpeg";
+        blob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, mimeType, quality),
+        );
+      }
       if (!blob) break;
-      if (blob.type === "image/webp" && blob.size <= UPLOAD_REQUEST_TARGET_BYTES) {
-        return new File([blob], `${file.name.replace(/\.[^.]*$/, "")}.webp`, {
+      if (blob.type === mimeType && blob.size <= UPLOAD_REQUEST_TARGET_BYTES) {
+        const extension = mimeType === "image/webp" ? "webp" : "jpg";
+        return new File([blob], `${file.name.replace(/\.[^.]*$/, "")}.${extension}`, {
           type: blob.type,
           lastModified: file.lastModified,
         });
