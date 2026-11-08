@@ -152,6 +152,8 @@ Current:
   password/TOTP, disabled passkeys/signup, Beta URLs and manual acceptance
 - [`authentication-operations.md`](development/authentication-operations.md) —
   production configuration gate, staff disable/revocation and recovery procedure
+- [`listing-import-and-replacement.md`](development/listing-import-and-replacement.md) — review-first import of the six RC Premier listings
+- [`launch-readiness.md`](development/launch-readiness.md) — location/spec audit, release sequence and rollback for the six listings
 - [`media-replacement.md`](development/media-replacement.md) — logo, image, video and
   agent-placeholder replacement guide plus map/contact launch dependencies
 - [`deployment-and-release.md`](development/deployment-and-release.md) — Level 11 audit,

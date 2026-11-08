@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RoutePending } from "@/components/ui/RoutePending";
 import type { PublicPropertySummary } from "@rc/shared";
 import { formatLocation, formatPrice } from "./property-format";
 import { resolvePropertyMedia } from "./development-sample-media";
@@ -87,6 +88,7 @@ export function PropertyCard({ property, resultsHref }: PropertyCardProps) {
         className={styles.cardMediaLink}
         aria-label={`View ${property.title}`}
       >
+        <RoutePending />
         <PropertyMedia
           media={media}
           label="PROPERTY IMAGE"
@@ -101,7 +103,10 @@ export function PropertyCard({ property, resultsHref }: PropertyCardProps) {
         </p>
 
         <h3 className={styles.cardTitle}>
-          <Link href={detailHref}>{property.title}</Link>
+          <Link href={detailHref}>
+            {property.title}
+            <RoutePending />
+          </Link>
         </h3>
 
         <p className={styles.cardLocation}>{formatLocation(property.location)}</p>

@@ -32,11 +32,15 @@ mongoose.connection.on("disconnected", () => {
  * HTTP server running in development so the API is workable before Mongo is installed,
  * and exits in every other environment.
  */
-export async function connectDatabase(): Promise<void> {
+export async function connectDatabase(
+  /** Operational scripts only: an explicitly named database instead of the URI's. */
+  options: { database?: string } = {},
+): Promise<void> {
   mongoose.set("maxTimeMS", DATABASE_OPERATION_TIMEOUT_MS);
   await mongoose.connect(env.MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: DATABASE_OPERATION_TIMEOUT_MS,
+    ...(options.database ? { dbName: options.database } : {}),
   });
 }
 

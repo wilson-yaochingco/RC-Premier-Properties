@@ -18,6 +18,7 @@ import {
   buildPropertiesMetadata,
   buildPropertyMetadata,
   buildPropertyStructuredData,
+  propertySearchCopy,
   publicPropertyImageUrl,
   resolveLocationSeoState,
   schemaAvailability,
@@ -106,7 +107,7 @@ describe("page and location metadata", () => {
       indexable: true,
       location: "Angeles City, Pampanga",
       count: 2,
-      canonicalPath: "/properties?location=Angeles+City%2C+Pampanga",
+      canonicalPath: "/locations/angeles-city",
     });
     expect(metadata.title).toBe("Properties for Sale in Angeles City, Pampanga");
     expect(metadata.robots).toBeUndefined();
@@ -145,6 +146,23 @@ describe("page and location metadata", () => {
 });
 
 describe("property SEO", () => {
+  it("uses absolute local derivative URLs in social and structured-data images", () => {
+    const media = {
+      kind: "image" as const,
+      url: "https://res.cloudinary.com/dxevthllf/image/upload/v1794116305/rc-premier-properties/listings/brand-new-modern-family-home/brand-new-modern-family-home-staircase.jpg",
+      alt: "Staircase",
+      source: "production" as const,
+    };
+    const expected =
+      "http://localhost:3000/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-staircase.webp";
+    expect(publicPropertyImageUrl(media)).toBe(expected);
+    const record = { ...property, coverMedia: media, gallery: [media] };
+    expect(JSON.stringify(buildPropertyMetadata(record, "/approved.jpg"))).toContain(
+      expected,
+    );
+    expect(JSON.stringify(buildPropertyStructuredData(record))).toContain(expected);
+  });
+
   it("uses a real production cover for social metadata and rejects sample media", () => {
     expect(publicPropertyImageUrl(property.coverMedia)).toBe(
       "https://media.example.test/properties/25.webp",
@@ -170,17 +188,33 @@ describe("property SEO", () => {
     expect(schemaAvailability("sold")).toBe("https://schema.org/SoldOut");
   });
 
-  it("emits Product and BreadcrumbList data without private location details", () => {
+  it("emits a listing, its residence and breadcrumbs without private location details", () => {
     const structuredData = buildPropertyStructuredData(property);
     const serialized = serializeJsonLd(structuredData);
 
-    expect(serialized).toContain('"@type":"Product"');
+    expect(serialized).toContain('"@type":"RealEstateListing"');
+    expect(serialized).toContain('"@type":"SingleFamilyResidence"');
+    expect(serialized).toContain('"numberOfBedrooms":4');
     expect(serialized).toContain('"@type":"BreadcrumbList"');
     expect(serialized).toContain('"priceCurrency":"PHP"');
-    expect(serialized).toContain("Angeles City, Pampanga");
+    expect(serialized).toContain('"addressLocality":"Angeles City"');
+    expect(serialized).not.toContain('"@type":"Product"');
     expect(serialized).not.toContain("Private test barangay");
     expect(serialized).not.toContain("coordinates");
     expect(serialized).not.toContain("public-record-id");
+  });
+
+  it("derives search title and description from published listing fields", () => {
+    const copy = propertySearchCopy(property);
+
+    expect(copy.title).toBe(
+      "Premier Property 25, House and lot for sale in Angeles City",
+    );
+    expect(copy.description).toContain("4 bedrooms, 3 bathrooms, 280 sqm lot");
+    expect(copy.description.length).toBeLessThanOrEqual(160);
+    expect(propertySearchCopy({ ...property, availability: "sold" }).title).toContain(
+      "sold in Angeles City",
+    );
   });
 });
 
@@ -211,9 +245,8 @@ describe("site structured data and sitemap", () => {
     const urls = sitemap.map((entry) => entry.url);
 
     expect(urls).toContain("https://www.example.test/properties/premier-property-25");
-    expect(urls).toContain(
-      "https://www.example.test/properties?location=Angeles+City%2C+Pampanga",
-    );
+    expect(urls.some((url) => url.includes("/properties?"))).toBe(false);
+    expect(urls).toContain("https://www.example.test/privacy");
     expect(urls).toContain("https://www.example.test/locations");
     expect(urls).toContain("https://www.example.test/locations/angeles-city");
     expect(urls.some((url) => url.includes("rental-fixture"))).toBe(false);

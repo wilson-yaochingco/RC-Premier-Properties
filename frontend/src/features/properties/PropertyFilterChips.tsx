@@ -54,7 +54,14 @@ export function propertyFilterChips(values: PropertyFormValues): FilterChip[] {
     ["minFloorArea", "sqm floor"],
   ] as const) {
     const amount = validNumber(values[key]);
-    if (amount !== undefined) chips.push({ key, label: `${amount}+ ${label}` });
+    if (amount !== undefined)
+      chips.push({
+        key,
+        label:
+          key === "bedrooms" && values.bedroomsMatch === "exact"
+            ? `${amount} ${amount === 1 ? "bedroom" : "bedrooms"}`
+            : `${amount}+ ${label}`,
+      });
   }
   if (values.sort !== "newest") {
     chips.push({

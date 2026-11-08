@@ -37,10 +37,10 @@ export function ExplorePampangaMap({
   const featured = new Map(locations.map((location) => [location.slug, location]));
 
   return (
-    <div className={styles.split}>
+    <div className={styles.split} data-motion="sequence">
       <div className={styles.content}>
         <div>{intro}</div>
-        <ul className={styles.list}>
+        <ul className={styles.list} data-motion-step="group" data-motion-at="0.4">
           {locations.map((location) => (
             <li key={location.slug}>
               <Link
@@ -67,7 +67,7 @@ export function ExplorePampangaMap({
         <div className={styles.outro}>{outro}</div>
       </div>
 
-      <div className={styles.panel}>
+      <div className={styles.panel} data-motion-step="panel" data-motion-at="0.2">
         <svg
           className={styles.map}
           viewBox={`0 0 ${PAMPANGA_MAP_WIDTH} ${PAMPANGA_MAP_HEIGHT}`}

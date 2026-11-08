@@ -12,6 +12,8 @@ interface ButtonProps {
   className?: string;
   ariaLabel?: string;
   disabled?: boolean;
+  /** Omits the trailing arrow; the label keeps its rolling hover behavior. */
+  iconless?: boolean;
 }
 
 function ArrowIcon() {
@@ -30,13 +32,14 @@ export function Button({
   className = "",
   ariaLabel,
   disabled = false,
+  iconless = false,
 }: ButtonProps) {
   const rolls = variant !== "text";
   const classes = `button button--${variant}${rolls ? " cta" : ""} ${className}`.trim();
   const content = (
     <>
       {rolls ? <RollLabel>{children}</RollLabel> : <span>{children}</span>}
-      <ArrowIcon />
+      {iconless ? null : <ArrowIcon />}
     </>
   );
 

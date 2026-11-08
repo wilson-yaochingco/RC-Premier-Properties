@@ -27,7 +27,8 @@
     "test:e2e": "playwright test",
     "smoke:deployment": "node scripts/deployment-smoke.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "preview:api": "npm run build --workspace shared && npm run build --workspace backend && tsx e2e/preview-api.mts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

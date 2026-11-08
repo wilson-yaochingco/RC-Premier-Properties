@@ -59,7 +59,7 @@ mapping as the dialog. Success shows the property, requested date and time, the 
 reference, and that the visit is not yet a confirmed appointment; no calendar event is
 offered.
 
-Approved public contact details are `rcpremierph@gmail.com` and
+Approved public contact details are `rcpropertiesss@gmail.com` and
 `+63 918 429 1873`. The approved Facebook, Instagram, YouTube and TikTok profiles appear
 in the Contact page and shared footer. The repository contains no approved office address
 or business hours, so neither is displayed.

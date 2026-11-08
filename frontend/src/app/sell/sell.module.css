@@ -1,371 +1,355 @@
-/* /sell — a typographic opening, one split inquiry card, a dark process and an open close. */
 .page {
-  --ink: var(--color-brand-deep);
-  --rule: rgb(32 38 48 / 12%);
-  --rule-strong: rgb(32 38 48 / 26%);
-  --rail: clamp(21.5rem, 26vw, 25rem);
-  overflow-x: clip;
-}
-
-/* Every section uses EditorialCta's container: the page gutter, no outer cap. */
-:is(.hero, .inquiry, .process, .reassurance) {
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-}
-
-.eyebrow,
-.railEyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.eyebrow {
+  --ink: #252c36;
+  --rule: rgb(32 38 48 / 22%);
+  background: #f8f6f1;
   color: var(--ink);
 }
-
-.railEyebrow {
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  letter-spacing: 0.12em;
-}
-
-.sectionTitle {
-  color: var(--ink);
-  font-size: clamp(1.875rem, 3.4vw, 3rem);
-  font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-  text-wrap: balance;
-}
-
-/* ---- 1. Hero ---- */
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  align-items: end;
-  padding-top: clamp(2.5rem, 5vw, 4.5rem);
-  padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
-}
-
-.heroCopy {
-  position: relative;
-  z-index: 1;
+  position: sticky;
+  top: 0;
+  isolation: isolate;
+  overflow: clip;
+  min-height: 100svh;
+  background: #202630;
+  color: #fff;
   display: flex;
-  flex-direction: column;
-  align-self: stretch;
+  align-items: end;
 }
-
-.headline {
-  max-width: 7.5em;
-  margin-top: clamp(1.5rem, 3vw, 2.5rem);
-  color: var(--ink);
-  font-size: clamp(2.6rem, 5.6vw, 5.25rem);
-  font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: -0.05em;
-  text-wrap: balance;
+.heroVideo,
+.shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
-
-/* The drawing fades in from its own left edge, so it can tuck in beside the headline. */
-.heroArt {
-  width: 108%;
-  max-width: none;
-  height: auto;
-  margin-left: -8%;
-  pointer-events: none;
+.heroVideo {
+  z-index: -2;
+  object-fit: cover;
+  opacity: 0;
 }
-
-.channels svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  /* Starts pointing up-right and straightens to a plain right arrow on hover or focus. */
-  transform: rotate(-45deg);
-  transition: transform 220ms var(--ease);
+.heroVideo[data-ready="true"] {
+  opacity: 1;
 }
-
-.channels a:focus-visible svg {
-  transform: rotate(0deg);
-}
-
-.channels a:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .channels a:hover svg {
-    transform: rotate(0deg);
-  }
-}
-
-/* ---- 2. Inquiry card ---- */
-.inquiry {
-  padding-bottom: clamp(3rem, 6vw, 5rem);
-  scroll-margin-top: calc(var(--header-offset) * 0.5);
-}
-
-.card {
-  display: grid;
-  grid-template-columns: var(--rail) minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  border-radius: 22px 0 22px 0;
-  /* The stone rail is painted by the card so it spans the full height. */
+.shade {
+  z-index: -1;
   background: linear-gradient(
-    90deg,
-    #fbfaf7 var(--rail),
-    var(--color-surface) var(--rail)
+    180deg,
+    rgb(15 22 29 / 60%) 0%,
+    rgb(15 22 29 / 60%) 12%,
+    rgb(15 22 29 / 8%) 35%,
+    rgb(15 22 29 / 72%) 100%
   );
-  box-shadow:
-    0 1px 0 rgb(32 38 48 / 4%),
-    0 28px 60px -36px rgb(32 38 48 / 28%);
-  color: var(--ink);
 }
-
-.rail {
+.heroContent {
+  width: 100%;
+  padding: max(9rem, var(--header-offset)) var(--gutter) max(3rem, 4vw);
   display: grid;
-  align-content: start;
-  gap: 1.1rem;
-  padding: clamp(1.75rem, 3vw, 2.75rem);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24%);
+  gap: clamp(2rem, 4vw, 5rem);
+  align-items: end;
 }
-
-.railTitle {
-  font-size: clamp(1.75rem, 2.6vw, 2.375rem);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.035em;
-}
-
-.railCopy {
-  color: var(--color-text-muted);
-  line-height: 1.6;
-}
-
-.channels {
-  display: grid;
-  margin-top: 0.75rem;
-  border-block: 1px solid var(--rule);
-}
-
-.channels li + li {
-  border-top: 1px solid var(--rule);
-}
-
-.channels a {
-  display: grid;
-  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 3.5rem;
-  color: var(--ink);
-}
-
-.channelLabel {
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.channelValue {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.formArea {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: center;
-  min-width: 0;
-  padding: clamp(1.75rem, 3.6vw, 3.25rem);
-  border-left: 1px solid var(--rule);
-}
-
-/* ---- 3. Process: one dark panel, the same surface as the closing CTA ---- */
-.process {
-  padding-bottom: clamp(3.5rem, 7vw, 6rem);
-}
-
-.steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-radius: var(--radius-editorial);
-  background: var(--color-brand-deep);
-  color: var(--color-background);
-}
-
-.steps li {
-  display: grid;
-  align-content: start;
-  gap: 0.75rem;
-  padding: clamp(1.75rem, 3.4vw, 3rem);
-}
-
-.steps li + li {
-  border-left: 1px solid rgb(248 246 241 / 14%);
-}
-
-.stepNumber {
-  font-size: clamp(2.25rem, 3.8vw, 3.5rem);
+.hero h1 {
+  font-size: clamp(3rem, 5.65vw, 6rem);
+  line-height: 1.03;
   font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  font-variant-numeric: tabular-nums;
-  color: rgb(248 246 241 / 48%);
+  letter-spacing: -0.022em;
 }
-
-.steps h3 {
-  margin-top: 1.25rem;
-  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+.line {
+  display: block;
+  padding-bottom: 0.16em;
+  margin-bottom: -0.16em;
+  overflow: hidden;
 }
-
-.steps p {
-  max-width: 20rem;
-  color: rgb(248 246 241 / 68%);
-  line-height: 1.6;
+.line > span {
+  display: block;
 }
-
-/* ---- 4. Reassurance: open, on the page ground ---- */
-.reassurance {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(2rem, 6vw, 6rem);
-  align-items: start;
-  padding-bottom: clamp(3.5rem, 7vw, 6rem);
+.heroSupport {
+  max-width: 25rem;
 }
-
-.copy {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.copy p {
-  max-width: 26rem;
-  color: var(--color-text-muted);
+.heroSupport p {
+  font-size: clamp(0.9375rem, 1.1vw, 1.125rem);
   line-height: 1.65;
 }
-
-.points {
-  border-top: 1px solid var(--rule-strong);
+.heroAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 3rem;
+  margin-top: 1.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
-
-.points li {
+.heroAction svg {
+  flex: none;
+  transition: transform 220ms var(--ease);
+}
+.heroAction:hover svg {
+  transform: translate(2px, 2px);
+}
+.heroAction:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 5px;
+}
+.preparation {
+  padding: clamp(6rem, 10vw, 11rem) var(--gutter);
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 1rem;
-  align-items: baseline;
-  padding-block: 1.25rem;
-  border-bottom: 1px solid var(--rule-strong);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  gap: clamp(3rem, 8vw, 10rem);
+  align-items: start;
+}
+.preparation {
+  align-items: stretch;
+}
+.preparationCopy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.preparationFooter {
+  margin-top: auto;
+  padding-top: 2.5rem;
+}
+.preparationFooter .note {
+  margin-top: 0;
+}
+.sectionAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 3rem;
+  margin-top: 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.sectionAction svg {
+  flex: none;
+  transition: transform 220ms var(--ease);
+}
+.sectionAction:hover svg {
+  transform: translate(2px, 2px);
+}
+.sectionAction:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 5px;
+}
+.sectionTitle {
+  font-family: var(--font-general-sans), sans-serif;
+  font-size: clamp(2.5rem, 4.8vw, 4.5rem);
+  line-height: 1.05;
+  font-weight: 450;
+  letter-spacing: -0.026em;
+  text-wrap: balance;
+}
+.intro {
+  margin-top: 1.75rem;
+  max-width: 32rem;
+  font-size: clamp(1rem, 1.2vw, 1.125rem);
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin-top: 2.75rem;
+}
+.checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+  padding: 0.95rem 0;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  line-height: 1.45;
+}
+.checklist svg {
+  flex: none;
+  margin-top: 0.1em;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--ink);
+}
+.note {
+  margin-top: 1.75rem;
+  max-width: 30rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.photograph {
+  min-width: 0;
+}
+.photograph figure {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+}
+.photograph img {
+  object-fit: cover;
+}
+/* Beside the copy, the photograph grows to the checklist column's full height. */
+@media (min-width: 48rem) {
+  .photograph {
+    display: flex;
+  }
+  .photograph figure {
+    flex: 1;
+  }
+}
+.gallery {
+  padding: clamp(5rem, 8vw, 9rem) var(--gutter) clamp(4rem, 6vw, 7rem);
+}
+.galleryTitle {
+  max-width: 17em;
+  font-family: var(--font-general-sans), sans-serif;
+  font-size: clamp(2.25rem, 4.2vw, 4.5rem);
+  font-weight: 450;
+  line-height: 1.04;
+  letter-spacing: -0.026em;
+  text-wrap: balance;
+}
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 1.4vw, 1.25rem);
+  margin-top: clamp(3rem, 4.5vw, 5rem);
+}
+.galleryItem {
+  margin: 0;
+}
+.galleryFrame {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-editorial);
+}
+.galleryFrame img {
+  object-fit: cover;
+}
+.galleryItem figcaption {
+  margin-top: clamp(1.25rem, 1.8vw, 1.75rem);
+}
+.galleryItem h3 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-deep);
+}
+.galleryItem p {
+  max-width: 26rem;
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
   line-height: 1.55;
+  color: var(--color-text-muted);
 }
-
-.points li::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  background: var(--ink);
-  transform: translateY(-1px) rotate(45deg);
-}
-
-/* ---- Recomposition ---- */
-@media (max-width: 63.99rem) {
-  .card {
-    grid-template-columns: minmax(0, 1fr);
-    background: var(--color-surface);
-  }
-
-  .rail {
-    border-bottom: 1px solid var(--rule);
-    background: #fbfaf7;
-  }
-
-  .formArea {
-    border-left: 0;
-  }
-
-  .channels {
-    max-width: 34rem;
-  }
-
-  .reassurance {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.75rem;
+/* Where a caption title can wrap, every title reserves two lines so descriptions align. */
+@media (min-width: 48rem) and (max-width: 79.99rem) {
+  .galleryItem h3 {
+    min-height: 2.6em;
   }
 }
-
+.inquiry {
+  scroll-margin-top: 7rem;
+  padding: clamp(5rem, 8vw, 9rem) var(--gutter) clamp(6rem, 9vw, 10rem);
+}
+.inquiryHeader {
+  max-width: 52rem;
+  margin: 0 auto clamp(3rem, 5vw, 5rem);
+  text-align: center;
+}
+.inquiryHeader .sectionTitle {
+  font-weight: 450;
+  letter-spacing: -0.026em;
+}
+.inquiryHeader .intro {
+  margin-inline: auto;
+}
+.formArea {
+  min-width: 0;
+  max-width: 60rem;
+  margin-inline: auto;
+}
+@media (max-width: 70rem) {
+  .heroContent {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .hero h1 {
+    font-size: clamp(3.5rem, 7.4vw, 5.5rem);
+  }
+  .heroSupport {
+    max-width: 32rem;
+  }
+  .preparation {
+    gap: 3rem;
+  }
+}
 @media (max-width: 47.99rem) {
-  /* Mobile: copy first, the drawing as a quiet lower visual. */
-  .hero {
+  .heroContent {
+    padding-block: 9rem calc(2.5rem + env(safe-area-inset-bottom));
+    gap: 1.5rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 9.7vw, 4.5rem);
+  }
+  .heroSupport p {
+    max-width: 28rem;
+  }
+  .heroAction {
+    margin-top: 1rem;
+  }
+  .preparation {
     grid-template-columns: minmax(0, 1fr);
-    padding-top: 1.75rem;
+    gap: 2.5rem;
+    padding-block: 4.5rem;
   }
-
-  .headline {
-    max-width: 9em;
-    margin-top: 1.25rem;
+  .gallery {
+    padding-block: 4.5rem 3.5rem;
   }
-
-  .heroArt {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 0.5rem;
+  .galleryTitle {
+    margin-inline: auto;
+    max-width: 28rem;
+    font-size: clamp(1.875rem, 8vw, 2.5rem);
+    text-align: center;
   }
-
-  .steps {
+  .galleryGrid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 2.25rem;
+    margin-top: 2.5rem;
   }
-
-  .steps li {
-    padding: 1.75rem 1.5rem;
+  .galleryFrame {
+    aspect-ratio: 4 / 3;
   }
-
-  .steps li + li {
-    border-left: 0;
-    border-top: 1px solid rgb(248 246 241 / 14%);
+  .galleryItem figcaption {
+    margin-top: 1rem;
   }
-}
-
-@media (max-width: 39.99rem) {
-  .card {
-    margin-inline: calc(var(--gutter) * -0.35);
-    border-radius: 18px 0 18px 0;
+  .sectionTitle {
+    font-size: clamp(2.25rem, 9vw, 3.5rem);
   }
-
-  .rail {
-    padding: 1.35rem 1.1rem;
-    gap: 0.75rem;
+  .preparationCopy .sectionTitle {
+    text-align: center;
   }
-
-  .formArea {
-    padding: 1.5rem 1.1rem;
+  .preparationFooter {
+    padding-top: 1.5rem;
+    text-align: center;
   }
-}
-
-/* Very narrow screens: keep the email address on one line. */
-@media (max-width: 24rem) {
-  .channels a {
-    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-    gap: 0.5rem;
+  .inquiry {
+    padding-block: 4.5rem 5.5rem;
   }
-
-  .channelValue {
-    font-size: 0.875rem;
+  .intro,
+  .note {
+    margin-inline: auto;
+  }
+  .photograph figure {
+    aspect-ratio: 4 / 4.5;
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .channels svg {
+  .hero {
+    position: relative;
+  }
+  .heroAction svg,
+  .sectionAction svg {
     transition: none;
   }
 }

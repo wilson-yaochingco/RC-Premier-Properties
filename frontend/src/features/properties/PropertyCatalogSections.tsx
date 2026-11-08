@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { PropertySort } from "@rc/shared";
 import { RollLabel } from "@/components/ui/RollLabel";
+import { accent } from "@/lib/accent";
 import { withCatalogFixture, type CatalogFixtureScenario } from "./catalog-inventory";
 import { LinkPending } from "./LinkPending";
 import { propertyFilterChips } from "./PropertyFilterChips";
 import {
-  removePropertyFilterHref,
   sortHref,
   type PropertyFormValues,
   type RawSearchParams,
@@ -38,36 +38,6 @@ export function CatalogCta({
       <RollLabel>{children}</RollLabel>
       <CtaArrow />
     </Link>
-  );
-}
-
-export function CatalogIntro({
-  location,
-  count,
-}: {
-  location?: string;
-  count?: number;
-}) {
-  return (
-    <section className={styles.intro} aria-labelledby="properties-heading">
-      <div className={styles.container}>
-        <div className={styles.introGrid}>
-          <div>
-            <p className={styles.eyebrow}>Properties</p>
-            <h1 id="properties-heading" className={styles.headline}>
-              {location
-                ? `Properties for sale in ${location}`
-                : "Homes worth a closer look."}
-            </h1>
-          </div>
-          <p className={styles.introCopy}>
-            {location && count !== undefined
-              ? `${count.toLocaleString("en-PH")} published ${count === 1 ? "property is" : "properties are"} currently available to explore in this location.`
-              : "Explore available homes and residential opportunities across Pampanga."}
-          </p>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -115,9 +85,11 @@ export function CatalogSort({
 export function CatalogHeading({ total }: { total?: number }) {
   return (
     <div className={styles.resultsHeading}>
-      <h2 id="property-results-title">Available properties</h2>
+      <h2 id="property-results-title" data-motion="heading">
+        Featured <em>Properties</em>
+      </h2>
       {total !== undefined ? (
-        <p className={styles.count} aria-live="polite">
+        <p className="visually-hidden" aria-live="polite">
           {total.toLocaleString("en-PH")} {total === 1 ? "property" : "properties"}
         </p>
       ) : null}
@@ -150,8 +122,8 @@ function CatalogState({
     <div className={styles.state} data-catalog-state={kind}>
       <p className={`${styles.eyebrow} ${styles.stateEyebrow}`}>{eyebrow}</p>
       <h3>
-        {headline[0]} <br />
-        {headline[1]}
+        {accent(headline[0])} <br />
+        {accent(headline[1])}
       </h3>
       <p>{body}</p>
       <div className={styles.stateActions}>
@@ -170,7 +142,7 @@ export function ZeroResults({ clearHref = "/properties" }: { clearHref?: string 
     <CatalogState
       kind="empty"
       eyebrow="No matches"
-      headline={["No homes match", "those filters yet."]}
+      headline={["No *homes* match", "those filters yet"]}
       body="Try widening your location, price, or property preferences — or tell RC Premier what you’re looking for."
       primary={{ label: "Clear filters", href: clearHref }}
       secondary={{ label: "Contact RC Premier", href: "/contact" }}
@@ -188,7 +160,7 @@ export function CatalogInvalidFilters({
     <CatalogState
       kind="invalid"
       eyebrow="Check your filters"
-      headline={["Some filters", "aren’t valid."]}
+      headline={["Some filters", "aren’t *valid*"]}
       body="A price, room count or area in this link can’t be used. Clear the filters to see every current listing, then refine your search again."
       primary={{ label: "Clear filters", href: clearHref }}
       secondary={{ label: "Contact RC Premier", href: "/contact" }}
@@ -202,7 +174,7 @@ export function CatalogUnavailable({ retryHref }: { retryHref: string }) {
     <CatalogState
       kind="unavailable"
       eyebrow="Listings unavailable"
-      headline={["Properties are", "temporarily unavailable."]}
+      headline={["Properties are", "temporarily *unavailable*"]}
       body="We can’t load the current listings right now, but RC Premier can still help you explore suitable options across Pampanga."
       primary={{ label: "Try again", href: retryHref }}
       secondary={{ label: "Contact RC Premier", href: "/contact" }}
@@ -225,46 +197,25 @@ export function CatalogSkeleton() {
   );
 }
 
-/** Active filters as quiet stone chips; each removes itself, one link clears them all. */
-export function CatalogActiveFilters({
+/** Shown only while a filter is active; one link clears every filter. */
+export function CatalogClearAll({
   values,
-  searchParams,
   fixture,
 }: {
   values: PropertyFormValues;
-  searchParams: RawSearchParams;
   fixture?: CatalogFixtureScenario;
 }) {
-  const chips = propertyFilterChips(values);
-  if (chips.length === 0) return null;
+  if (propertyFilterChips(values).length === 0) return null;
 
   return (
-    <div className={styles.chips} aria-label="Active property filters">
-      <ul>
-        {chips.map((chip) => (
-          <li key={chip.key}>
-            <Link
-              href={withCatalogFixture(
-                removePropertyFilterHref(searchParams, chip.key),
-                fixture,
-              )}
-              aria-label={`Remove filter: ${chip.label}`}
-              scroll={false}
-              replace
-            >
-              {chip.label} <span aria-hidden="true">×</span>
-              <LinkPending />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <Link
-        href={withCatalogFixture("/properties", fixture)}
-        className={styles.clearAll}
-      >
-        Clear all
-        <LinkPending />
-      </Link>
-    </div>
+    <Link
+      href={withCatalogFixture("/properties", fixture)}
+      className={styles.clearAll}
+      scroll={false}
+      replace
+    >
+      <span className="link-underline">Clear all</span>
+      <LinkPending />
+    </Link>
   );
 }

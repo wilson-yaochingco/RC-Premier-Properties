@@ -5,7 +5,7 @@ async function openPropertyTour(page: Page, navigate = true) {
   if (navigate) await page.goto("/properties/clark-garden-residence");
   await page
     .getByRole("complementary", { name: "Property inquiry" })
-    .getByRole("button", { name: "Request a Tour" })
+    .getByRole("button", { name: "Book a Viewing" })
     .click();
 }
 
@@ -18,15 +18,16 @@ test("About uses a static hero photograph and an editorial gallery", async ({
   });
   await page.goto("/about");
 
-  await expect(page.locator("video")).toHaveCount(0);
-  await expect(page.locator("section[data-about-hero] img").first()).toBeVisible();
-  expect(mediaRequests).toEqual([]);
-  await expect(page.locator("main > section")).toHaveCount(5);
-  await expect(page.locator("#about-gallery a")).toHaveCount(5);
-  await expect(page.getByRole("link", { name: "Talk to RC Premier" })).toHaveAttribute(
-    "href",
-    "/contact",
+  await expect(page.locator("section[data-about-hero] video")).toHaveCount(1);
+  await expect(page.locator("video")).toHaveCount(1);
+  expect(mediaRequests.every((url) => url.includes("/media/about-hero.mp4"))).toBe(
+    true,
   );
+  await expect(page.locator("main > section")).toHaveCount(6);
+  await expect(page.locator("#about-gallery a")).toHaveCount(5);
+  await expect(
+    page.getByRole("link", { name: "Talk to RC Premier" }).first(),
+  ).toHaveAttribute("href", "/contact");
 });
 
 test("About gallery supports mouse dragging without activating a destination", async ({
@@ -57,16 +58,14 @@ test("About gallery supports mouse dragging without activating a destination", a
   const tip = page.locator('[class*="dragTip"]');
   await expect(tip).toBeVisible();
   await expect(tip).toHaveCSS("pointer-events", "none");
+  // The tip follows the pointer from just above and to the right, never covering it.
   expect(
     await tip.evaluate(
       (element, point) => {
         const box = element.getBoundingClientRect();
-        return (
-          point.x >= box.left &&
-          point.x <= box.right &&
-          point.y >= box.top &&
-          point.y <= box.bottom
-        );
+        const gapX = box.left - point.x;
+        const gapY = point.y - box.bottom;
+        return gapX >= 0 && gapX <= 8 && gapY >= 0 && gapY <= 8;
       },
       { x, y },
     ),
@@ -88,6 +87,8 @@ test("public header hides deliberately and remains available during interaction"
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  // The first-visit brand intro holds the page still; this test is about the header.
+  await page.addInitScript(() => sessionStorage.setItem("rc-intro-seen", "1"));
   await page.goto("/");
 
   const header = page.getByRole("banner");
@@ -111,7 +112,7 @@ test("public header hides deliberately and remains available during interaction"
   await expect(header).toHaveAttribute("data-hidden", "true");
   await page
     .getByRole("contentinfo")
-    .getByRole("link", { name: "Contact", exact: true })
+    .getByRole("link", { name: "Contact Us", exact: true })
     .click();
   await expect(page).toHaveURL(/\/contact$/);
   await expect(header).toHaveAttribute("data-hidden", "false");
@@ -141,7 +142,7 @@ test("public header hides deliberately and remains available during interaction"
         main.style.minHeight = "140rem";
       });
     await expect(header).toHaveAttribute("data-hidden", "false");
-    await page.evaluate(() => window.scrollTo(0, 900));
+    await page.evaluate(() => window.scrollTo(0, 1600));
     await expect(header, `header should hide on ${path}`).toHaveAttribute(
       "data-hidden",
       "true",
@@ -198,43 +199,25 @@ test("home hero fills the viewport with its brand and browse action", async ({
   ).toBeGreaterThanOrEqual(844);
 });
 
-test("location guide opens with a centred architectural hero and no photograph", async ({
+test("location guide opens with a full-height video hero and no photograph", async ({
   page,
 }) => {
-  const doodle = page.getByAltText(
-    "Line drawing of homes, trees, a bicycle, and neighborhood streets",
-  );
-
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/locations");
   await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
-  await expect(doodle).toHaveCount(0);
   const hero = page.locator('section[aria-labelledby="locations-title"]');
   await expect(hero.getByRole("heading", { level: 1 })).toHaveText(
-    "Find the right place for your next home.",
+    "Find the right place for your next home in Pampanga",
   );
-  await expect(hero.getByText("Location guide · Pampanga")).toBeVisible();
-  // The supplied villa is decorative: hidden from assistive tech, inert and text-free.
-  const art = hero.locator(":scope > div[aria-hidden='true']");
-  await expect(art).toHaveCount(1);
-  await expect(art).toHaveCSS("pointer-events", "none");
-  expect(
-    await art.evaluate((element) => getComputedStyle(element).backgroundImage),
-  ).toContain("/images/locations/hero-elevation.svg");
-  await expect(hero.locator("img, svg:not([aria-hidden='true'])")).toHaveCount(0);
-  const asset = await page.request.get("/images/locations/hero-elevation.svg");
-  expect(asset.status()).toBe(200);
-  expect(asset.headers()["content-type"]).toContain("image/svg+xml");
-  expect(await asset.text()).not.toMatch(/<text|<script|<image/);
+  await expect(hero.getByText(/Explore communities across Pampanga/)).toBeVisible();
+  // The backdrop is a muted, decorative video; the hero carries no photograph.
+  const video = hero.locator("video");
+  await expect(video).toHaveCount(1);
+  await expect(video).toHaveAttribute("aria-hidden", "true");
+  expect(await video.evaluate((element: HTMLVideoElement) => element.muted)).toBe(true);
+  await expect(hero.locator("img")).toHaveCount(0);
   const heroBox = (await hero.boundingBox())!;
-  expect(heroBox.height).toBeLessThanOrEqual(900);
-  expect(heroBox.height).toBeGreaterThan(450);
-
-  // The call to action scrolls to the featured locations.
-  const cta = hero.getByRole("link", { name: "Explore locations" });
-  await expect(cta).toHaveAttribute("href", "#featured-locations");
-  await cta.click();
-  await expect(page.locator("#featured-locations")).toBeInViewport();
+  expect(heroBox.height).toBe(900);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/locations");
@@ -242,7 +225,7 @@ test("location guide opens with a centred architectural hero and no photograph",
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Find the right place for your next home.",
+      name: "Find the right place for your next home in Pampanga",
     }),
   ).toBeVisible();
   expect(
@@ -294,7 +277,8 @@ test("contact headline is upright and its actions share one arrow and roll inter
 
   const heading = page.getByRole("heading", { level: 1 });
   await expect(heading).toHaveText("Let’s talk about your next move.");
-  await expect(heading.locator("em")).toHaveCount(0);
+  // The heading stays upright; only the editorial accent word is italic.
+  await expect(heading.locator("em")).toHaveText("move");
   await expect(heading).toHaveCSS("font-style", "normal");
   await expect(
     page.getByText("Your details are used to respond to this inquiry.", {
@@ -305,7 +289,7 @@ test("contact headline is upright and its actions share one arrow and roll inter
   const main = page.locator("main#main-content");
   const actions = [
     main.getByRole("link", { name: /\+63 918 429 1873/ }),
-    main.getByRole("link", { name: /rcpremierph@gmail\.com/ }),
+    main.getByRole("link", { name: /rcpropertiesss@gmail\.com/ }),
     main.getByRole("link", { name: "Book a viewing" }),
     main.getByRole("link", { name: /Sell a property/ }),
   ];
@@ -489,9 +473,9 @@ test("homepage route actions and footer remain usable across viewports", async (
   const footerPresentation = await footer.evaluate((element) => ({
     background: getComputedStyle(element).backgroundColor,
   }));
-  expect(footerPresentation.background).toBe("rgb(238, 234, 226)");
+  expect(footerPresentation.background).toBe("rgb(37, 44, 54)");
 
-  const email = footer.getByRole("link", { name: "rcpremierph@gmail.com" });
+  const email = footer.getByRole("link", { name: "rcpropertiesss@gmail.com" });
   const phone = footer.getByRole("link", { name: "+63 918 429 1873" });
   await expect(email).toBeVisible();
   await expect(phone).toBeVisible();
@@ -499,33 +483,38 @@ test("homepage route actions and footer remain usable across viewports", async (
   await expect(email).toHaveCSS("transform", "none");
 });
 
-test("property gallery keeps secondary imagery compact at tablet widths", async ({
+test("property gallery preserves portraits in a swipe track at tablet widths", async ({
   page,
 }) => {
   for (const width of [640, 768, 1023]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/properties/clark-garden-residence");
     const geometry = await page.evaluate(() => {
-      const main = document.querySelector<HTMLElement>("[class*='galleryMain']")!;
-      const side = document.querySelector<HTMLElement>("[class*='gallerySide']")!;
+      const track = document.querySelector<HTMLElement>("[data-gallery-track]")!;
       const title = document.querySelector<HTMLElement>("#property-title")!;
       return {
-        mainHeight: main.getBoundingClientRect().height,
-        sideHeight: side.getBoundingClientRect().height,
+        trackHeight: track.getBoundingClientRect().height,
+        scrolls: getComputedStyle(track).overflowX,
+        imageFit: getComputedStyle(track.querySelector("img")!).objectFit,
         titleTop: title.getBoundingClientRect().top + window.scrollY,
       };
     });
-    expect(geometry.mainHeight).toBeLessThan(width * 0.62);
-    expect(geometry.sideHeight).toBeLessThan(190);
-    expect(geometry.titleTop).toBeLessThan(width * 1.2);
+    expect(geometry.scrolls).toBe("auto");
+    expect(geometry.imageFit).toBe("cover");
+    expect(geometry.trackHeight).toBeLessThan(width);
+    expect(geometry.titleTop).toBeLessThan(width * 1.5);
   }
 });
 
-test("paired mobile property actions share intentional geometry", async ({ page }) => {
+test("mobile property inquiry stays in flow with comfortable actions", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties/clark-garden-residence");
   await expect(page.locator("#property-title")).toBeVisible();
-  const actions = page.locator("[class*='mobileActions'] .button");
+  const inquiry = page.getByRole("complementary", { name: "Property inquiry" });
+  await expect(inquiry).toHaveCSS("position", "static");
+  const actions = inquiry.locator(".button");
   await expect(actions).toHaveCount(2);
   const boxes = await actions.evaluateAll((buttons) =>
     buttons.map((button) => {
@@ -535,26 +524,28 @@ test("paired mobile property actions share intentional geometry", async ({ page 
   );
   expect(boxes[0]!.width).toBeCloseTo(boxes[1]!.width, 0);
   expect(boxes[0]!.height).toBeCloseTo(boxes[1]!.height, 0);
-  expect(boxes[0]!.top).toBeCloseTo(boxes[1]!.top, 0);
+  expect(boxes[1]!.top).toBeGreaterThanOrEqual(boxes[0]!.top + boxes[0]!.height);
   expect(boxes[0]!.height).toBeGreaterThanOrEqual(44);
 });
 
-test("seller page opens with the inquiry form and maps its fields into the contract", async ({
+test("seller editorial page retains its inquiry form and maps its fields into the contract", async ({
   page,
 }) => {
   await page.goto("/sell");
   const sections = page.locator("main#main-content > section");
   await expect(sections).toHaveCount(5);
-  await expect(sections.nth(1)).toHaveAttribute("id", "seller-inquiry");
+  await expect(sections.nth(3)).toHaveAttribute("id", "sell-inquiry");
   await expect(page.getByRole("link", { name: "Start your inquiry" })).toHaveAttribute(
     "href",
-    "#seller-inquiry",
+    "#sell-inquiry",
   );
   await expect(page.getByLabel("Inquiry type")).toHaveCount(0);
   await expect(page.getByLabel(/^Property ID/)).toHaveCount(0);
   await expect(page.getByLabel(/Property location or area/)).toBeVisible();
   await expect(page.getByLabel(/Property details and message/)).toBeVisible();
-  await expect(page.getByText("A first conversation, not a commitment.")).toBeVisible();
+  await expect(
+    page.getByText(/This is preparation guidance, not a list of required documents/),
+  ).toBeVisible();
   await expect(
     page.getByText("Your details are used to respond to this inquiry.", {
       exact: true,

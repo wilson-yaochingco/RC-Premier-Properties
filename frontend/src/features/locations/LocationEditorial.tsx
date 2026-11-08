@@ -18,7 +18,9 @@ export function LocationEditorial({
         <div className={styles.editorialHeading}>
           <p>Around {content.locality}</p>
           <div>
-            <h2 id="location-editorial-title">A view of the local setting.</h2>
+            <h2 id="location-editorial-title">
+              A view of the local <em>setting</em>.
+            </h2>
             <p>
               This guide pairs a sourced photograph of everyday {content.locality} with
               current published property inventory. It does not rank neighborhoods or

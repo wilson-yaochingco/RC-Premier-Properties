@@ -2,7 +2,7 @@
 
 Status: curated four-location index, inventory-backed detail routes and the final
 responsive scenery presentation are implemented. Real production property inventory
-remains external. Last reviewed 2026-11-05.
+remains external. Last reviewed 2026-11-07.
 
 ## Routes and source of truth
 
@@ -21,30 +21,44 @@ on the Pampanga map and its documented photograph's caption.
 
 The page uses the shared ivory ground and ends with the unchanged `EditorialCta` and global footer.
 
-1. Existing centered hero over the supplied architectural elevation, with its scroll action.
-2. The asymmetric four-location photographic mosaic. Every tile contains its location,
-   factual description and `Explore location` action. Counts and photo credits are not shown
-   on the index. Attribution for the same photographs remains beneath each detail-page
-   hero image, and provenance stays in the asset documentation.
-3. `Current collection`: `Homes worth exploring.`, concise introduction and `Browse all properties`.
-4. Existing closing `EditorialCta`.
+1. Full-bleed dedicated Locations video hero, with three fixed Manrope headline lines
+   low on the left and supporting copy on the lower right. The existing shared video
+   behavior provides muted inline autoplay, looping, a neutral loading background and
+   a paused first frame for reduced motion. There is no portrait or photographic fallback.
+   The 11.3-second master is preserved outside the repository; `/media/locations-hero.mp4`
+   is a silent 1080p/30fps H.264/yuv420p fast-start copy of about 6.02 MB.
+2. Broad, four-line community statement using the Homepage `ScrollFillText` and
+   `useScrollFill` pattern. All letters fill in one reversible scroll progression with
+   no entrance timeline or masking. Desktop Manrope is 86.4?90px with optical scaling
+   to retain four lines at 1440px; the eyebrow is 16?18px. Mobile wraps naturally.
+   Reduced motion and no-JavaScript rendering show the full text immediately.
+3. The unchanged asymmetric four-location photographic mosaic. Every tile contains its
+   location, factual description and `Explore location` action. Attribution remains on
+   the detail pages and in the asset documentation.
+4. `Homes worth exploring` uses `FeaturedPropertiesSection` with its Locations variant:
+   the same featured-sale API query, inventory loader, cards, skeleton and hydration gate
+   as Home. It caps output at three and adds the Locations heading/action. Home's default
+   markup, copy, appearance and count remain unchanged. Empty/unavailable states reuse
+   Home's contact-focused copy without replacing the Locations heading with an error.
+5. Explicitly bound Manrope three-line 72px/75.6px guidance headline at wide desktop and three numbered 36?42px
+   statements. A 28% number column provides consistent separation from titles. Content
+   reveals leave separators stationary. Mobile editorial headings, guidance rows and section actions center; hero, mosaic
+   overlays and property metadata keep their approved left alignment.
+6. Existing closing `EditorialCta` and global footer.
+
+The cinematic headline and supporting paragraph stack at the bottom of the mobile hero.
+Reduced motion shows all content immediately. Empty and unavailable collection states
+remain compact, with existing catalog/contact navigation and retry behavior.
 
 Search and filtering remain on `/properties`; the index no longer has a search form.
 
 ## Showcase
 
-The existing public API accepts one location per query. The index makes four bounded
-requests (three newest published properties per curated city), merges them newest first,
-verifies their city against the curated set, and shows the newest three in the Homepage's
-Featured Properties rail (`FeaturedPropertiesShowcase` with `embedded`): the same cards,
-hover motion, swipe rails and `01 / 03` indicator at the same breakpoints. Listings are
-never duplicated to fill slots, and more than three are never shown. The wider catalog is
-unchanged.
-
-Missing images follow the Homepage card's placeholder handling. Confirmed zero across
-all four requests shows a compact centered state explaining the featured-area scope, with
-catalog/contact actions. Any failed request shows a distinct unavailable state and working
-`Try again` action; partial failure never becomes confirmed zero.
+The index now consumes the same bounded featured-sale query as the Homepage rather
+than combining four city requests. Both routes share `loadFeaturedInventory`,
+`FeaturedPropertiesSection`, `FeaturedPropertiesShowcase`, `FeaturedGridSkeleton` and
+`FeaturedInventoryState`. There are no synthetic production records or padding to fill
+slots. Locations-specific styling is scoped to the shared section's Locations variant.
 
 ## Development previews
 

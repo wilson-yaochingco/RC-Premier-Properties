@@ -1,7 +1,9 @@
 # Property Media Architecture
 
-Status: device upload and development storage implemented on the provider-neutral Level 4
-metadata model; production object storage/CDN remains blocked. Last reviewed 2026-09-08.
+Status: device upload, development storage and a Cloudinary adapter implemented on the
+provider-neutral Level 4 metadata model; Cloudinary live acceptance is pending a corrected
+cloud name (see [listing import](../development/listing-import-and-replacement.md)). Last
+reviewed 2026-11-08.
 
 ## Boundary
 
@@ -75,7 +77,33 @@ source/derivative removal fails. The metadata-only endpoint rejects attempts to 
 a new adapter-owned reference; validated upload is the sole creation path for such
 references.
 
-Production selects `UnavailablePropertyMediaStorage` and returns 503 with the reviewed
+### Cloudinary adapter
+
+RC Premier's chosen provider is Cloudinary, selected whenever `CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` are all set (a partial set fails startup;
+the whole configuration is ignored under `NODE_ENV=test`). `CloudinaryPropertyMediaStorage`
+implements the same `PropertyMediaStorage` interface, so the admin upload endpoint, validation,
+audit, optimistic concurrency and cleanup-debt behaviour are unchanged. Credentials stay on
+the server; only the delivery URL reaches the browser.
+
+- **Namespace:** listing photos are stored as
+  `rc-premier-properties/listings/<property-slug>/<name>`; website photography belongs under
+  `rc-premier-properties/website/` and is never written by this adapter. The adapter only
+  recognises (`owns`) plain `https://res.cloudinary.com/<cloud>/image/upload/…/rc-premier-properties/listings/…`
+  references and will only ever delete inside that namespace.
+- **Names:** an admin upload is named from its alt text plus a six-character suffix. A scripted
+  import passes an exact file name (`<slug>-<subject>`) with `overwrite: false`, so a re-run
+  reuses the object instead of duplicating it.
+- **Records:** `url` is the stored delivery URL. The server records the provider `publicId` on
+  each media item on every write (upload, reorder, cover change), derived from the URL it owns,
+  so it never depends on the admin form round-tripping it. `MEDIA_PUBLIC_ORIGIN` defaults to
+  `https://res.cloudinary.com`; set `NEXT_PUBLIC_MEDIA_ORIGIN` to the same value for rendering,
+  `next/image` and CSP.
+- **Delivery:** originals are uploaded as-is. `next/image` negotiates AVIF/WebP and responsive
+  widths, positions portrait photographs with the focal point, and the lightbox uses
+  `object-fit: contain`.
+
+Production selects `UnavailablePropertyMediaStorage` when Cloudinary is not configured and returns 503 with the reviewed
 static message “Production property media storage is not configured.” Unexpected storage
 and server failures remain masked in production and retain private operational logs.
 This fail-closed

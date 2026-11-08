@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useLenis } from "lenis/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 let locks = 0;
 let restorePage: (() => number) | undefined;
@@ -55,6 +56,9 @@ export function usePageScrollLock(active: boolean) {
         lenis?.scrollTo(scrollY, { immediate: true, force: true });
       }
       lenis?.start();
+      // A page mounted while the body was pinned (navigating from the open menu) measured its
+      // triggers against the pinned layout; re-measure now that the page is back to normal.
+      ScrollTrigger.refresh();
     };
   }, [active, lenis]);
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLocation,
   formatPrice,
+  keyFacts,
   visibleSpecifications,
 } from "../src/features/properties/property-format";
 import {
@@ -76,5 +77,16 @@ describe("property URL state", () => {
       "location=Angeles+City",
     );
     expect(paginationHref({ location: "Angeles City" }, 2)).toContain("page=2");
+  });
+
+  it("builds key facts only from supplied values, with singular labels", () => {
+    expect(keyFacts({})).toEqual([]);
+    expect(
+      keyFacts({ bedrooms: 1, bathrooms: 3, powderRooms: 1, floorAreaSqm: 1220 }),
+    ).toEqual([
+      { kind: "bedrooms", value: "1", label: "Bedroom" },
+      { kind: "bathrooms", value: "3", label: "Bathrooms" },
+      { kind: "floorArea", value: "1,220 sqm", label: "Floor area" },
+    ]);
   });
 });

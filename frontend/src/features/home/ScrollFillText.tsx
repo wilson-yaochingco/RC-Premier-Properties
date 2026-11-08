@@ -21,11 +21,18 @@ export function ScrollFillText({
           <Fragment key={w}>
             {w > 0 && " "}
             <span className={styles.word} aria-hidden="true">
-              {[...word].map((char, c) => (
-                <span key={c} data-char className={styles.char}>
-                  {char}
-                </span>
-              ))}
+              {word.split("*").map((part, p) => {
+                const chars = [...part].map((char, c) => (
+                  <span key={c} data-char className={styles.char}>
+                    {char}
+                  </span>
+                ));
+                return p % 2 ? (
+                  <em key={p}>{chars}</em>
+                ) : (
+                  <Fragment key={p}>{chars}</Fragment>
+                );
+              })}
             </span>
           </Fragment>
         ))}

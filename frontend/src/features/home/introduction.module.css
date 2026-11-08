@@ -3,7 +3,7 @@
   padding-block: clamp(6.25rem, 8vw, 8.75rem) clamp(5rem, 12vw, 12rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -28,9 +28,9 @@
   margin-top: 1.75rem;
   font-family: inherit;
   font-size: clamp(2.25rem, 3.6vw, 4.25rem);
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.02;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.026em;
 }
 
 @media (min-width: 64.0625rem) {
@@ -82,22 +82,14 @@
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: var(--radius-editorial);
-  clip-path: inset(0);
-  transition: clip-path 850ms var(--intro-ease) 320ms;
 }
 .image {
   object-fit: cover;
-  transition: transform 850ms var(--intro-ease) 320ms;
+  transition: transform 650ms var(--intro-ease);
 }
 
 .section[data-reveal="pending"]:not(:focus-within) :is(.eyebrow, .copy) {
   opacity: 0;
-}
-.section[data-reveal="pending"]:not(:focus-within) .frame {
-  clip-path: inset(0 0 100% 0);
-}
-.section[data-reveal="pending"]:not(:focus-within) .image {
-  transform: scale(1.025);
 }
 
 @media (hover: hover) {
@@ -160,10 +152,6 @@
     opacity: 1;
     transform: none;
   }
-  .section[data-reveal="pending"]:not(:focus-within) .frame {
-    clip-path: none;
-  }
-  .section[data-reveal="pending"]:not(:focus-within) .image,
   .section[data-reveal="visible"] .frame:hover .image {
     transform: none;
   }

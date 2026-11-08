@@ -68,3 +68,41 @@ export function visibleSpecifications(
 
   return items.filter((item): item is SpecificationLabel => item !== undefined);
 }
+
+export type KeyFactKind =
+  "bedrooms" | "bathrooms" | "parking" | "floorArea" | "lotArea";
+
+export interface KeyFact {
+  kind: KeyFactKind;
+  value: string;
+  label: string;
+}
+
+function counted(value: number, singular: string, plural = `${singular}s`) {
+  return { value: String(value), label: value === 1 ? singular : plural };
+}
+
+/** The headline facts shown beside the title; an unsupplied value simply has no entry. */
+export function keyFacts(specifications: PublicPropertySpecifications): KeyFact[] {
+  const { bedrooms, bathrooms, parkingSpaces, floorAreaSqm, lotAreaSqm } =
+    specifications;
+  const area = (value: number) => `${value.toLocaleString("en-PH")} sqm`;
+  const facts: Array<KeyFact | undefined> = [
+    bedrooms === undefined
+      ? undefined
+      : { kind: "bedrooms", ...counted(bedrooms, "Bedroom") },
+    bathrooms === undefined
+      ? undefined
+      : { kind: "bathrooms", ...counted(bathrooms, "Bathroom") },
+    parkingSpaces === undefined
+      ? undefined
+      : { kind: "parking", ...counted(parkingSpaces, "Parking space") },
+    floorAreaSqm === undefined
+      ? undefined
+      : { kind: "floorArea", value: area(floorAreaSqm), label: "Floor area" },
+    lotAreaSqm === undefined
+      ? undefined
+      : { kind: "lotArea", value: area(lotAreaSqm), label: "Lot area" },
+  ];
+  return facts.filter((fact): fact is KeyFact => fact !== undefined);
+}

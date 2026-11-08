@@ -31,7 +31,7 @@ async function expectFixtureInventory(page: Page, path: string) {
     await expect(page.locator("[data-featured-property-card]").first()).toBeVisible();
     await expect(
       page
-        .getByRole("region", { name: "Find the area that feels right." })
+        .getByRole("region", { name: "Explore our communities." })
         .getByRole("link", { name: /Angeles City/i }),
     ).toBeVisible();
   } else if (path === "/properties") {
@@ -50,7 +50,7 @@ async function expectSemanticShell(page: Page) {
   await expect(page.locator("main#main-content")).toHaveCount(1);
   await expect(page.getByRole("contentinfo")).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  for (const name of ["Properties", "Company", "Locations"]) {
+  for (const name of ["Discover", "Company", "Locations"]) {
     await expect(
       page.getByRole("contentinfo").getByRole("navigation", { name }),
     ).toHaveCount(1);
@@ -141,7 +141,7 @@ test("form controls retain a visible keyboard focus indicator", async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/properties");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  const location = page.getByLabel("Search", { exact: true });
+  const location = page.getByRole("button", { name: "Start Search", exact: true });
   await expect(location).toBeVisible();
   await expect(page.locator("main#main-content")).toHaveCount(1);
   await page.locator("main#main-content").focus();
@@ -250,7 +250,7 @@ async function openPropertyTour(page: Page) {
   await page.goto("/properties/clark-garden-residence");
   await page
     .getByRole("complementary", { name: "Property inquiry" })
-    .getByRole("button", { name: "Request a Tour" })
+    .getByRole("button", { name: "Book a Viewing" })
     .click();
 }
 

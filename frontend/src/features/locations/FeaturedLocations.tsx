@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { RoutePending } from "@/components/ui/RoutePending";
 import { RollLabel } from "@/components/ui/RollLabel";
 import { FEATURED_LOCATIONS } from "./featured-locations";
 import styles from "./locations-index.module.css";
@@ -23,16 +24,18 @@ const TILE_SIZES = [
 export function FeaturedLocations() {
   return (
     <>
-      <div className={styles.mosaic}>
+      <div className={styles.mosaic} data-motion="photos" data-motion-stagger="0.16">
         {FEATURED_LOCATIONS.map((location, index) => {
           return (
             <article
               key={location.slug}
               className={styles.tile}
+              data-motion-frame
               data-tile={location.slug}
               data-position={index}
             >
               <Link href={location.href} className={`${styles.tileLink} cta`}>
+                <RoutePending />
                 <Image
                   src={location.scenery.imagePath}
                   alt={location.scenery.alt}

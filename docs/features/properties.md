@@ -74,11 +74,75 @@ Cards expose only fields supplied by the public summary: reference, location, ty
 sale purpose, PHP price, availability and up to three available specifications. Missing
 values are omitted rather than guessed; no popularity or recommendation badge exists.
 
-The Part 2 catalog reskin uses a compact Figma-led search toolbar and split map/list
-composition on wide screens. Every original filter remains present: secondary filters
-sit in a native disclosure panel, sort remains directly reachable, active chips retain
-their one-filter removal behavior, and mobile switches intentionally between full-width
-list and map views.
+### Properties editorial page
+
+The Properties page opens with a full-bleed hero and a compact desktop search bar
+containing Location, Bedrooms, Price Range and Search. Each field is a separate white box;
+the charcoal action is 140-160px wide. Desktop popovers match their trigger width and open
+12px above it. Content-sized chips wrap naturally. Choosing a location or bedroom count
+closes its popover and restores trigger focus; price editing stays open until Escape,
+outside click or the trigger dismisses it. Search applies all draft choices together.
+
+The curated Angeles City, Mabalacat City, Magalang and Porac choices remain available even
+with zero inventory. Bedrooms chips select exact counts from 1 through 5, plus All.
+The Properties form submits `bedroomsMatch=exact` alongside `bedrooms`; pagination,
+sorting and refresh retain that mode. Other API consumers that omit the mode retain
+minimum-count semantics. Studio is omitted. Existing additional URL filters, removable chips,
+sorting, nine-item pagination and detail-page results context remain supported.
+
+On mobile, the content-width Start Search button opens a full-screen native modal using the shared Lenis/body
+scroll lock. It uses the same filter state and controls as desktop, a scrollable body and
+a centered Filters header and fixed Reset filters/Search footer with safe-area padding. It covers the viewport with
+square corners and an off-screen initial transform, enters upward over 650ms with an ease-out curve, closes over 450ms, and tracks the visual viewport during keyboard
+resizing. A translucent backdrop fades in as the white drawer rises, leaving the hero
+visible until covered. Closing restores the page's exact previous scroll position. Escape, Close search and the
+backdrop dismiss it and return focus. Draft selections persist after dismissal. Reset
+clears draft filters; Search applies them. Reduced motion skips the sheet transition.
+
+Prices display and submit whole pesos with comma separators in the controls. Decimal
+input rounds to the nearest peso, and existing decimal/exponent price URLs redirect to
+canonical whole-peso filters before inventory loads. Listing records are never changed.
+The slider spans 0-100,000,000 pesos. The first half of its track represents 0-10M,
+the next quarter 10-30M and the final quarter 30-100M. Dragging snaps to 250,000 pesos
+below 10M, 500,000 below 30M and 1,000,000 above that. Keyboard arrows use the same
+increments; exact whole-peso manual entry remains supported, including API-supported
+amounts above the slider limit with an explicit range hint. Blank minimum and maximum
+values remain unset and display Any price; no slider endpoints are automatically applied.
+
+The API does not expose a complete published price distribution. A sparse charcoal bar
+motif above the slider has thin navy bars with prominent peaks concentrated on the left and is decorative and hidden from assistive technology; it represents
+no listing counts or market statistics. The track uses a fine neutral dashed line without a selected-range fill. Bars outside
+the selected interval are muted. Thumbs use one pointer-captured controller, with no native continuous thumb movement.
+Track clicks, dragging and keyboard controls share
+the fixed stepped price path; manual values remain exact until a handle is adjusted.
+No price-scale labels appear below the track.
+Clear price range sits beside the heading, is disabled for a blank range, and clears both
+values without closing the panel. Location chips are ordered All Locations, Angeles City, Porac,
+Magalang, Mabalacat City, arranged as three / two on desktop when space permits.
+
+The first four results form a large two-column showcase. Remaining results on the same
+page appear once in a smaller three-column grid under "More homes to explore" Both grids
+preserve API order, including explicit price sorting. "Featured Properties" is the fixed
+editorial section title and does not change listing eligibility or imply a new API filter.
+The result count is available to assistive technology without appearing beside the heading.
+Four or fewer results flow directly into Explore Pampanga without an empty secondary grid.
+
+Explore Pampanga reuses the Home section, curated locations, geographic visual and
+keyboard/hover highlighting. The positioning rows, four-step property journey and unchanged
+shared EditorialCta follow. Properties uses Manrope throughout, without decorative trailing
+periods or section-level dividers; internal row/card dividers remain. Viewing requests
+require staff follow-up and do not imply confirmed calendar availability or transactions.
+
+`features/properties/PropertiesHero.tsx` uses HomeHeroVideo and the optimized
+`/media/properties-hero.mp4` (about 6.46 MB), with the Homepage gradient. There is no image
+layer or image poster: the neutral charcoal background remains until the first frame loads.
+The video covers the complete hero and uses Home's paused first frame for reduced motion.
+Home's component and behavior are unchanged. The dedicated Properties source is passed
+to the shared playback component. The hero retains its scoped GSAP masked-line entrance;
+below-fold sections retain PageMotion's existing photo/caption sequences and staggered
+groups. The shared header overlays the hero and retains its sticky scroll behavior.
+Journey cards are single full-card links. The second card opens the first real result
+with its results context; with no results it points to Explore Pampanga instead.
 
 ## Map discovery behavior
 
@@ -138,29 +202,64 @@ not weaken this published-only boundary. See
 
 The stable public route uses the listing slug. The page provides:
 
-- breadcrumbs, title, Property ID, purpose, type, price and general location;
+- a Back to Results link with a secondary breadcrumb, title, purpose, type, availability,
+  price and general location (the property number and last-updated date are internal and
+  not shown to buyers);
 - an ordered, keyboard-operable image gallery with captions/provenance and explicit
   fallbacks;
 - the full description and only the specifications supplied by the record;
-- deduplicated highlights, amenities and features when present;
+- deduplicated highlights, amenities and features when present, sorted by keyword into
+  Smart home and security, Living spaces and amenities, Bedrooms and service areas, and
+  Furniture and inclusions, then balanced over two columns (`property-feature-groups.ts`);
 - an interactive map for a separately approved public point, otherwise a stable
   general-area placeholder, plus the listing's precision/privacy explanation;
 - links to property-aware inquiry and viewing-request forms; and
 - property-specific metadata plus JSON-LD based on the public record;
-- native share with copy/manual fallback and an explicit print action;
+- a Share control (native share with copy/manual fallback) beside the key facts; browser
+  print still works through the print stylesheet, but there is no Print button;
+- an integrated contact-agent panel (see below);
 - a print-only, ink-conscious summary containing business identity, public facts,
   description, approved contact details, and the canonical public URL; and
 - zero to three related cards selected deterministically from at most 12 real published
   approved sale candidates, excluding the current property.
 
-The Part 2 detail composition moves the authorized gallery ahead of the title/price
-summary, presents up to four supporting images beside the primary image on desktop, and
-keeps the existing touch, keyboard, fullscreen, count, caption, and focus behavior. Purely
-decorative section numbering was removed; Premier Property identifiers remain unchanged.
-Between 640 and 1023 CSS pixels, the primary image uses a shorter controlled ratio and
-supporting images become a compact thumbnail rail so the title, price and key facts arrive
-earlier. The Related Properties section remains, while the redundant standalone Pampanga
-exploration CTA immediately before it has been removed.
+The detail page uses the site's responsive editorial gutters without a desktop maximum
+width for photography. A navigation row places Home / Properties / the listing title above
+the gallery. Back to Results preserves a supplied catalog or location-results URL, including
+filters, and falls back to `/properties` for direct visits or unsafe return paths.
+
+At 1024 CSS pixels and above, the gallery is a mosaic of a lead photograph (2fr) and four
+supporting tiles that share one proportion, using `object-fit: cover`. Below that width, the
+same ordered collection becomes a native swipe track with a photo counter. "View all N photos"
+opens a centered modal gallery over a dark backdrop: a sticky header with Close, the property
+title, Share and Book a Viewing, and a vertically scrolling two-column photo grid (one column
+below 48rem). There is no zoom or nested viewer. It is a native modal dialog portalled to
+the document body, so the page behind it is inert; Escape, Close or a click on the backdrop
+closes it, shared scroll locking applies, and focus returns to the opener. Book a Viewing
+closes the gallery and opens the existing viewing request.
+
+The contact-agent panel reads `frontend/src/lib/public-agent.ts`: name, role, the approved
+public phone and email, an optional photograph (a neutral architectural mark is shown until
+one is supplied) and an optional viewing-hours line. No viewing hours are approved, so none
+are shown; the panel states that the visitor picks a preferred date and time and that the
+agent confirms the request. The agent is one site-wide default: there is no agent
+management feature, so editing it is a code change. Per-listing agents would need a backend
+field and an admin control.
+
+Everything on the page is rendered from the published property record, so a listing created in
+admin appears with the same layout. Missing specifications, features or media simply
+disappear. Descriptions keep a comfortable reading width beside a desktop sticky contact
+panel; on mobile that panel follows the key facts. General Sans headings use restrained
+Playfair italic accents. Related Properties remains below the location section.
+
+The six-listing, database-free preview is derived from the import source, not a separate
+static catalog. It does not publish production drafts. Reviewed photo ordering and delivery
+crops are shared by the gallery and its full-resolution viewer; metadata also selects a
+reviewed lead. Original assets and stored identifiers remain unchanged. See the
+[photography review](../development/property-photography-review.md) for the 30 approved
+crops, ten localized repairs, four approved preview exclusions and five views held for clean sources, and the
+[listing replacement guide](../development/listing-import-and-replacement.md) for publication
+and legacy-retirement gates.
 
 Print and related-property data use public DTOs only. They cannot expose private address,
 internal coordinates, notes, customer data, or hidden records. A related-data failure is
@@ -208,3 +307,8 @@ unimplemented even though the data contract reserves those future kinds. See the
   clearly synthetic browser fixtures exercise markers.
 - Device upload and development storage are implemented on the existing property media
   model. Production object storage/CDN remains blocked on provider approval.
+
+The dedicated Properties film is `/media/properties-hero.mp4`: 20 seconds, 1920?1080,
+30fps H.264/yuv420p, approximately 6.46 MB, silent and MP4 fast-start enabled. It is a
+web-optimized copy of the verified Voogle export; the original remains outside the repo.
+Home and About retain their separate video assets and playback behavior.

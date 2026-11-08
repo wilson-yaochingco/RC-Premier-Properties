@@ -27,7 +27,7 @@ export function PublicScroll({ children }: { children: ReactNode }) {
         autoRaf: !reducedMotion,
         smoothWheel: !reducedMotion,
         syncTouch: false,
-        lerp: 0.1,
+        lerp: 0.075,
       }}
     >
       {children}

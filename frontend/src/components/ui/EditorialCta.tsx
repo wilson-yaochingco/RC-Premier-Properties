@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { accent } from "@/lib/accent";
 import { RollLabel } from "./RollLabel";
 import styles from "./editorial-cta.module.css";
 
@@ -45,18 +46,27 @@ export function EditorialCta({
       className={`${styles.section} ${wide ? styles.wide : ""}`}
       aria-labelledby={id}
     >
-      <div className={styles.container}>
-        <div className={styles.card}>
+      <div className={styles.container} data-motion="sequence">
+        <div className={styles.card} data-motion-step="panel">
           <House side="left" />
           <div className={styles.center}>
-            <p className={styles.eyebrow}>{eyebrow}</p>
-            <h2 id={id}>
+            <p className={styles.eyebrow} data-motion-step="fade" data-motion-at="0.4">
+              {eyebrow}
+            </p>
+            <h2 id={id} data-motion-step="heading" data-motion-at="0.45">
               {headline.map((line) => (
-                <span key={line}>{line}</span>
+                <span key={line}>{accent(line)}</span>
               ))}
             </h2>
-            <p className={styles.body}>{body}</p>
-            <Link href={href} className={`${styles.cta} cta`}>
+            <p className={styles.body} data-motion-step="fade" data-motion-at="0.95">
+              {body}
+            </p>
+            <Link
+              href={href}
+              className={`${styles.cta} cta`}
+              data-motion-step="fade"
+              data-motion-at="1.1"
+            >
               <RollLabel>{label}</RollLabel>
               <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />

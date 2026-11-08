@@ -10,6 +10,9 @@ import {
 import { publicLocationPath } from "./public-location";
 
 export const SITE_NAME = "RC Premier Properties";
+/** One factual sentence reused by JSON-LD and llms.txt so the business is described consistently. */
+export const SITE_DESCRIPTION =
+  "RC Premier Properties presents residential properties for sale in Pampanga, Philippines, and handles buyer inquiries, viewing requests and seller inquiries directly.";
 export { OFFICIAL_EMAIL, OFFICIAL_FACEBOOK_URL, OFFICIAL_PHONE };
 
 export interface PageMetadataInput {
@@ -86,10 +89,18 @@ export function buildSiteStructuredData(logoPath: string) {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
         name: SITE_NAME,
+        description: SITE_DESCRIPTION,
         url: siteUrl,
         logo,
         email: OFFICIAL_EMAIL,
         telephone: OFFICIAL_PHONE,
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "sales",
+          email: OFFICIAL_EMAIL,
+          telephone: OFFICIAL_PHONE,
+          areaServed: "PH",
+        },
         areaServed: {
           "@type": "AdministrativeArea",
           name: "Pampanga, Philippines",
@@ -101,6 +112,7 @@ export function buildSiteStructuredData(logoPath: string) {
         "@id": `${siteUrl}/#website`,
         url: siteUrl,
         name: SITE_NAME,
+        description: SITE_DESCRIPTION,
         inLanguage: "en-PH",
         publisher: { "@id": `${siteUrl}/#organization` },
       },
@@ -130,6 +142,9 @@ export function buildPublicSitemap(
     { path: "/contact", changeFrequency: "monthly", priority: 0.7 },
     { path: "/sell", changeFrequency: "monthly", priority: 0.7 },
     { path: "/book-viewing", changeFrequency: "monthly", priority: 0.7 },
+    { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
+    { path: "/terms", changeFrequency: "yearly", priority: 0.2 },
+    { path: "/disclaimer", changeFrequency: "yearly", priority: 0.2 },
   ] as const;
   const entries: MetadataRoute.Sitemap =
     options.includeStaticRoutes === false
@@ -146,12 +161,7 @@ export function buildPublicSitemap(
     const key = location.toLocaleLowerCase("en-US");
     if (!location || item.count < 1 || seenLocations.has(key)) continue;
     seenLocations.add(key);
-    const query = new URLSearchParams({ location });
-    entries.push({
-      url: `${siteUrl}/properties?${query.toString()}`,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    });
+    // The filtered catalog canonicalizes to this guide, so only the guide is listed.
     entries.push({
       url: `${siteUrl}${publicLocationPath(location)}`,
       changeFrequency: "weekly",

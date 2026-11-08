@@ -6,7 +6,7 @@
   padding-block: clamp(2rem, 6vw, 7rem) clamp(3rem, 8vw, 9rem);
   background: var(--color-background);
   color: var(--color-text);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-general-sans), sans-serif;
 }
 
 .container {
@@ -29,9 +29,9 @@
 
 .heading {
   font-size: clamp(2.5rem, 4.4vw, 4.5rem);
-  font-weight: 600;
+  font-weight: 450;
   line-height: 0.98;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.026em;
 }
 
 .heading span {

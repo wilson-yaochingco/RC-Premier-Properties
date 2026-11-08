@@ -24,7 +24,7 @@
   --line: var(--color-border);
   --line-light: rgba(255, 255, 255, 0.22);
   --text-muted: var(--color-text-muted);
-  --font-sans: var(--font-manrope), sans-serif;
+  --font-sans: var(--font-general-sans), sans-serif;
   --font-display: var(--font-instrument-serif), serif;
   --font-editorial: var(--font-display);
   --radius-sm: 0.375rem;
@@ -245,7 +245,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(3rem, 6.1vw, 6.75rem);
   font-weight: 400;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.034em;
   line-height: 0.94;
   text-wrap: balance;
 }
@@ -483,7 +483,7 @@ video {
   font-family: var(--font-editorial);
   font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.026em;
   line-height: 0.88;
 }
 
@@ -528,7 +528,7 @@ video {
   transform: scaleX(0);
   transform-origin: right;
   background: var(--brand-secondary);
-  transition: transform 220ms ease;
+  transition: transform 280ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .site-header__cta {
@@ -557,7 +557,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(4rem, 8.3vw, 9rem);
   font-weight: 400;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.045em;
   line-height: 0.84;
   text-wrap: balance;
   animation: rise-in 440ms 80ms both cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -708,7 +708,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(2.1rem, 4.2vw, 4.5rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 0.98;
 }
 
@@ -799,7 +799,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(2rem, 3vw, 3.2rem);
   font-weight: 400;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.026em;
   line-height: 1;
 }
 
@@ -843,7 +843,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(2.5rem, 4.8vw, 5.1rem);
   font-weight: 400;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.034em;
   line-height: 0.96;
 }
 
@@ -890,7 +890,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(3rem, 6vw, 6.5rem);
   font-weight: 400;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.038em;
   line-height: 0.96;
 }
 
@@ -965,7 +965,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(2.1rem, 3.5vw, 3.75rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 
@@ -987,7 +987,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(3rem, 5.8vw, 6.25rem);
   font-weight: 400;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.038em;
   line-height: 0.94;
 }
 
@@ -1164,7 +1164,7 @@ video {
     padding-block: clamp(0.7rem, 2.5vh, 1.35rem);
     font-family: var(--font-editorial);
     font-size: clamp(2rem, 7vw, 4.5rem);
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
     line-height: 1;
   }
 
@@ -1642,7 +1642,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(3rem, 5vw, 5.8rem);
   font-weight: 400;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.038em;
   line-height: 0.95;
 }
 
@@ -1770,6 +1770,7 @@ video {
 
 .route-state {
   width: min(100% - (2 * var(--container-gutter)), var(--container-max));
+  font-family: var(--font-general-sans), sans-serif;
   min-height: calc(100vh - var(--header-height));
   min-height: calc(100dvh - var(--header-height));
   display: flex;
@@ -1778,18 +1779,25 @@ video {
   justify-content: center;
   gap: 1.25rem;
   margin-inline: auto;
-  padding-block: clamp(8rem, 14vw, 13rem);
+  padding-block: clamp(6rem, 10vw, 9rem);
 }
 
 .route-state h1 {
   min-width: 0;
-  max-width: 15ch;
-  font-family: var(--font-editorial);
-  font-size: clamp(2.7rem, 6vw, 6rem);
-  font-weight: 400;
-  letter-spacing: -0.05em;
-  line-height: 0.98;
+  max-width: 18ch;
+  font-size: clamp(2.25rem, 4.4vw, 3.75rem);
+  font-weight: 500;
+  letter-spacing: -0.026em;
+  line-height: 1.06;
+  text-wrap: balance;
   overflow-wrap: anywhere;
+}
+
+.route-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .route-state > p:not(.eyebrow) {
@@ -2005,7 +2013,7 @@ video {
   font-family: var(--font-editorial);
   font-size: clamp(3.6rem, 5.25vw, 5.25rem);
   font-weight: 400;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.034em;
   line-height: 0.96;
   text-shadow: 0 0.15rem 1.2rem rgb(0 0 0 / 24%);
 }
@@ -2043,7 +2051,7 @@ video {
   font-family: var(--font-sans);
   font-size: clamp(1.65rem, 2.6vw, 2.25rem);
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.026em;
   line-height: 1.08;
 }
 
@@ -2157,7 +2165,7 @@ video {
   font-family: var(--font-sans);
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1.04;
 }
 
@@ -2781,7 +2789,7 @@ video {
   font-family: var(--font-sans);
   font-size: clamp(3rem, 6.2vw, 5.5rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 0.96;
   margin-bottom: 1.5rem;
   text-wrap: balance;
@@ -2971,7 +2979,7 @@ video {
   font-family: var(--font-sans);
   font-size: clamp(2.25rem, 3.8vw, 3.5rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
   line-height: 1.1;
   margin-bottom: 1.5rem;
   text-wrap: balance;
@@ -3050,7 +3058,7 @@ video {
   font-family: var(--font-sans);
   font-size: clamp(2rem, 3.2vw, 2.75rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
   line-height: 1.15;
   color: var(--color-brand-deep);
 }
@@ -3232,7 +3240,7 @@ video {
   font-family: var(--font-sans);
   font-size: clamp(2.25rem, 3.6vw, 3.25rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
   line-height: 1.12;
   margin-bottom: 1.25rem;
   color: var(--color-brand-deep);
@@ -3540,5 +3548,203 @@ video {
 
   .cta--wrap .cta-roll__track > span:last-child {
     transform: translateY(100%) !important;
+  }
+}
+
+/* Masks from the scroll-reveal headings: room for descenders and tight line heights. */
+.motion-mask {
+  padding-block: 0.08em 0.18em;
+  margin-block: -0.08em -0.18em;
+  /* Lines are pinned to one row while hidden; at large text they must not widen the page. */
+  overflow-x: clip !important;
+}
+
+/* Pinned lines must not stretch a flex or grid parent's minimum width. */
+[data-motion="heading"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Homepage layered hero: every section after the sticky hero is an opaque surface above it. */
+main[data-layered-hero] > section:not([data-home-hero]) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Sections without a surface of their own take the page's, so the hero never shows through. */
+:where(main[data-layered-hero] > section) {
+  background-color: inherit;
+}
+
+/* ---- Page entrances for content that is on screen at load (CSS only: no script, no hydration) ---- */
+[data-enter] {
+  animation: enter-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--enter-delay, 0ms)
+    backwards;
+}
+
+[data-enter="heading"] {
+  animation-name: enter-heading;
+  animation-duration: 1100ms;
+}
+
+[data-enter="image"] {
+  animation-name: enter-image;
+  animation-duration: 1300ms;
+}
+
+/* The busy skeleton shows the same shapes; only the arriving page animates. */
+[aria-busy="true"] [data-enter] {
+  animation: none;
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes enter-heading {
+  from {
+    opacity: 0;
+    transform: translateY(0.45em);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(-0.2em -0.2em -0.3em -0.2em);
+  }
+}
+
+@keyframes enter-image {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-enter] {
+    animation: none;
+  }
+}
+
+[data-enter-delay="1"] {
+  --enter-delay: 120ms;
+}
+[data-enter-delay="2"] {
+  --enter-delay: 240ms;
+}
+[data-enter-delay="3"] {
+  --enter-delay: 360ms;
+}
+[data-enter-delay="4"] {
+  --enter-delay: 480ms;
+}
+[data-enter-delay="5"] {
+  --enter-delay: 600ms;
+}
+[data-enter-delay="6"] {
+  --enter-delay: 720ms;
+}
+
+/* ---- Public loading skeletons: neutral blocks that only appear if the wait is noticeable ---- */
+.sk {
+  display: block;
+  border-radius: 6px;
+  background: rgb(32 38 48 / 7%);
+  animation: sk-pulse 1.6s ease-in-out infinite;
+}
+
+.sk-page {
+  animation: sk-delay 1ms linear 200ms backwards;
+}
+
+@keyframes sk-delay {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sk-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+  }
+}
+
+/* Editorial accent: a deliberate <em> inside a public headline takes the real Playfair italic. */
+:is(h1, h2, h3) em {
+  font-family: var(--font-playfair), serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.97em;
+  letter-spacing: -0.015em;
+}
+
+/* In-copy link to the legal pages (form consent lines). */
+.privacy-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+/* Click feedback for links to detail routes, which have no loading.tsx (see RoutePending). */
+a:has([data-route-pending="true"]) {
+  cursor: progress;
+}
+
+:is([data-property-card], [data-featured-property-card], [data-tile]):has(
+  [data-route-pending="true"]
+) {
+  opacity: 0.6;
+  transition: opacity 180ms ease;
+}
+
+/*
+ * Directional text-link underline, the footer's behavior as a shared utility. Wrap the link
+ * text in <span class="link-underline">; the line grows from the left when the link is
+ * hovered or focused and, on leave, keeps travelling right as it shrinks. Use it on plain
+ * text links only, never on buttons, cards or other controls.
+ */
+.link-underline {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -3px;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 280ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+:is(a, button):focus-visible > .link-underline::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(a, button):hover > .link-underline::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-underline::after {
+    transition: none;
   }
 }

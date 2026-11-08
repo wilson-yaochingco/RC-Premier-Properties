@@ -1,7 +1,8 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { v2 as cloudinaryApi } from "cloudinary";
 import sharp from "sharp";
 import { HttpError } from "../../middleware/errorHandler.js";
 import { env } from "../../config/env.js";
@@ -10,10 +11,28 @@ import type { InspectedImage } from "./property-media.validation.js";
 export interface StoredPropertyImage {
   id: string;
   url: string;
+  /** Provider object identifier, when the provider has one. */
+  publicId?: string;
+}
+
+/** Where an upload belongs; adapters that organise objects use it, others ignore it. */
+export interface PropertyMediaTarget {
+  /** Property slug, used as the per-property folder. */
+  folder: string;
+  /** Alt text, used to give the object a descriptive name. */
+  label: string;
+  /** The label is already the intended file name: use it without a uniqueness suffix. */
+  exactName?: boolean;
 }
 
 export interface PropertyMediaStorage {
-  store(bytes: Buffer, image: InspectedImage): Promise<StoredPropertyImage>;
+  store(
+    bytes: Buffer,
+    image: InspectedImage,
+    target?: PropertyMediaTarget,
+  ): Promise<StoredPropertyImage>;
+  /** Provider object identifier for a reference this adapter owns. */
+  publicIdFor?(url: string): string | undefined;
   remove(url: string): Promise<void>;
   /** True only for references inside the adapter's reviewed storage namespace. */
   owns?(url: string): boolean;
@@ -170,6 +189,140 @@ export class UnavailablePropertyMediaStorage implements PropertyMediaStorage {
   }
 }
 
-export const propertyMediaStorage: PropertyMediaStorage = env.IS_PRODUCTION
-  ? new UnavailablePropertyMediaStorage()
-  : new LocalDevelopmentPropertyMediaStorage();
+/** Listing photography only; website imagery lives under `rc-premier-properties/website/`. */
+export const CLOUDINARY_LISTINGS_FOLDER = "rc-premier-properties/listings";
+
+interface UploadResult {
+  public_id: string;
+  secure_url: string;
+}
+
+/** The two SDK calls this adapter needs, so tests can substitute them. */
+export interface CloudinaryClient {
+  upload(bytes: Buffer, options: Record<string, unknown>): Promise<UploadResult>;
+  destroy(publicId: string): Promise<{ result: string }>;
+}
+
+function sdkClient(config: NonNullable<typeof env.CLOUDINARY>): CloudinaryClient {
+  cloudinaryApi.config({
+    cloud_name: config.cloudName,
+    api_key: config.apiKey,
+    api_secret: config.apiSecret,
+    secure: true,
+  });
+  return {
+    upload: (bytes, options) =>
+      new Promise((resolve, reject) => {
+        cloudinaryApi.uploader
+          .upload_stream(options, (error, result) =>
+            error || !result
+              ? reject(error ?? new Error("empty_result"))
+              : resolve(result),
+          )
+          .end(bytes);
+      }),
+    destroy: (publicId) =>
+      cloudinaryApi.uploader.destroy(publicId, {
+        resource_type: "image",
+        invalidate: true,
+      }),
+  };
+}
+
+/** Lowercase kebab-case, bounded, never empty. */
+export function descriptiveName(label: string): string {
+  const name = label
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 90)
+    .replace(/-+$/g, "");
+  return name || "photo";
+}
+
+export class CloudinaryPropertyMediaStorage implements PropertyMediaStorage {
+  private readonly prefix: string;
+
+  constructor(
+    private readonly cloudName: string,
+    private readonly client: CloudinaryClient,
+  ) {
+    this.prefix = `https://res.cloudinary.com/${cloudName}/image/upload/`;
+  }
+
+  /** Public ID for a reference inside the listings namespace; undefined for anything else. */
+  publicIdFor(url: string): string | undefined {
+    if (!url.startsWith(this.prefix) || url.includes("?") || url.includes("#")) {
+      return undefined;
+    }
+    const path = url.slice(this.prefix.length).replace(/^v\d+\//, "");
+    const publicId = path.replace(/\.[a-z0-9]{2,5}$/i, "");
+    return publicId.startsWith(`${CLOUDINARY_LISTINGS_FOLDER}/`) &&
+      !publicId.includes("..") &&
+      /^[a-z0-9/_-]+$/.test(publicId)
+      ? publicId
+      : undefined;
+  }
+
+  owns(url: string): boolean {
+    return this.publicIdFor(url) !== undefined;
+  }
+
+  async store(
+    bytes: Buffer,
+    _image: InspectedImage,
+    target?: PropertyMediaTarget,
+  ): Promise<StoredPropertyImage> {
+    const folder = target?.folder
+      ? `${CLOUDINARY_LISTINGS_FOLDER}/${descriptiveName(target.folder)}`
+      : `${CLOUDINARY_LISTINGS_FOLDER}/unassigned`;
+    const base = descriptiveName(target?.label ?? "photo");
+    const name = target?.exactName ? base : `${base}-${randomBytes(3).toString("hex")}`;
+    try {
+      const result = await this.client.upload(bytes, {
+        resource_type: "image",
+        public_id: `${folder}/${name}`,
+        overwrite: false,
+        unique_filename: false,
+        use_filename: false,
+        timeout: 60_000,
+      });
+      if (!this.owns(result.secure_url)) {
+        throw new Error("unexpected_delivery_url");
+      }
+      return {
+        id: `media-${name}`,
+        url: result.secure_url,
+        publicId: result.public_id,
+      };
+    } catch (error) {
+      throw new PropertyMediaStorageError("storage_write_failed", { cause: error });
+    }
+  }
+
+  async remove(url: string): Promise<void> {
+    const publicId = this.publicIdFor(url);
+    if (!publicId) return;
+    try {
+      const { result } = await this.client.destroy(publicId);
+      if (result !== "ok" && result !== "not found") throw new Error(result);
+    } catch (error) {
+      throw new PropertyMediaStorageError("storage_delete_failed", { cause: error });
+    }
+  }
+}
+
+function configuredCloudinaryStorage(): CloudinaryPropertyMediaStorage | undefined {
+  const config = env.CLOUDINARY;
+  return config
+    ? new CloudinaryPropertyMediaStorage(config.cloudName, sdkClient(config))
+    : undefined;
+}
+
+export const propertyMediaStorage: PropertyMediaStorage =
+  configuredCloudinaryStorage() ??
+  (env.IS_PRODUCTION
+    ? new UnavailablePropertyMediaStorage()
+    : new LocalDevelopmentPropertyMediaStorage());

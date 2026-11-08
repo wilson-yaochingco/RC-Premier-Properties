@@ -29,7 +29,7 @@ export function PropertyTours({ videos }: { videos: TourVideo[] }) {
 
   return (
     <div className={styles.gallery}>
-      <ul className={styles.list} data-expanded={expanded}>
+      <ul className={styles.list} data-expanded={expanded} data-motion="group">
         {videos.map(({ id, title, channel }, index) => {
           const name = title ?? `RC Premier property tour ${index + 1}`;
           return (

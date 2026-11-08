@@ -96,6 +96,7 @@ export function RouteRail({ children }: { children: ReactNode }) {
       <ul
         id="route-rail"
         className={styles.grid}
+        data-motion="group"
         data-dragging={dragging}
         aria-label="Where to start"
         onPointerEnter={(event) => {

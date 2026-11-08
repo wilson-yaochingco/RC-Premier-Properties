@@ -35,6 +35,8 @@ export interface PropertyMediaEntity {
   sourceUrl?: string;
   attribution?: string;
   focalPoint?: { x: number; y: number };
+  /** Storage provider object identifier, recorded by the server for managed media. */
+  publicId?: string;
 }
 
 export interface PropertyLocationEntity {
@@ -205,6 +207,8 @@ export interface AdminPropertyService {
     bytes: Buffer,
     declaredMimeType: string | undefined,
     context: PropertyMutationContext,
+    /** Scripted imports only; the HTTP route never sets it. Names the stored object. */
+    options?: { fileName?: string },
   ): Promise<AdminPropertyDetail | null>;
   publish(
     id: string,

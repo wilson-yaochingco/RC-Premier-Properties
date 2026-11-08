@@ -1,6 +1,18 @@
 "use client";
 
-export default function PropertiesError({ retry }: { retry: () => void }) {
+import { useEffect } from "react";
+
+export default function PropertiesError({
+  error,
+  retry,
+}: {
+  error: Error;
+  retry: () => void;
+}) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <main id="main-content" tabIndex={-1} className="route-state route-state--light">
       <p className="eyebrow">Properties</p>

@@ -161,6 +161,8 @@ async function json(route: Route, body: unknown) {
 }
 
 async function mockOperations(page: Page) {
+  // The fixtures describe September 2026; the calendar opens on the current month.
+  await page.clock.setFixedTime(new Date("2026-09-10T09:00:00+08:00"));
   await page.route(`**${API_PREFIX}/auth/session`, (route) => json(route, SESSION));
   await page.route(`**${API_PREFIX}/admin/operations/**`, (route) => {
     const url = new URL(route.request().url());

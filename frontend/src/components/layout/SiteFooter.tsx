@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { RollLabel } from "@/components/ui/RollLabel";
+import { SocialMediaIcon } from "@/features/contact/SocialMediaIcon";
 import {
   OFFICIAL_EMAIL,
   OFFICIAL_PHONE,
@@ -8,16 +10,22 @@ import {
 import { RcPremierMark } from "./RcPremierMark";
 import styles from "./site-footer.module.css";
 
-const PROPERTY_LINKS = [
+const ACTIONS = [
+  { href: "/properties", label: "Explore Properties" },
+  { href: "/book-viewing", label: "Book a Viewing" },
+] as const;
+
+const DISCOVER_LINKS = [
   { href: "/properties", label: "Browse Properties" },
-  { href: "/locations", label: "By Location" },
   { href: "/properties?propertyType=house-and-lot", label: "House & Lot" },
+  { href: "/locations", label: "Explore Locations" },
+  { href: "/book-viewing", label: "Book a Viewing" },
 ] as const;
 
 const COMPANY_LINKS = [
-  { href: "/about", label: "About" },
+  { href: "/about", label: "About Us" },
   { href: "/sell", label: "Sell Your Property" },
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Contact Us" },
 ] as const;
 
 const LOCATION_LINKS = [
@@ -25,6 +33,12 @@ const LOCATION_LINKS = [
   { href: "/locations/mabalacat-city", label: "Mabalacat" },
   { href: "/locations/city-of-san-fernando", label: "City of San Fernando" },
   { href: "/locations/porac", label: "Porac" },
+] as const;
+
+const LEGAL_LINKS = [
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Use" },
+  { href: "/disclaimer", label: "Property Disclaimer" },
 ] as const;
 
 function LinkGroup({
@@ -54,15 +68,40 @@ function LinkGroup({
   );
 }
 
-/**
- * Soft Stone editorial footer. Privacy Policy and Terms & Conditions links belong in the
- * bottom row once those routes exist; none are rendered until then.
- */
+/** Full-width charcoal footer: an editorial closing line, the sitemap, then the legal row. */
 export function SiteFooter() {
   return (
     <footer className={`site-footer ${styles.footer}`}>
-      <div className={styles.container} data-site-footer-main>
-        <div className={styles.top}>
+      <div className={styles.inner} data-site-footer-main>
+        <div className={styles.opening}>
+          <div>
+            <p className={styles.eyebrow}>RC Premier Properties / Pampanga</p>
+            <h2 className={styles.headline}>
+              <span>Your next move</span> <em>starts here.</em>
+            </h2>
+          </div>
+          <ul className={styles.actions}>
+            {ACTIONS.map(({ href, label }, index) => (
+              <li key={href}>
+                <Link
+                  href={href}
+                  className={`${styles.action} ${index ? styles.secondary : ""} cta cta--wrap`}
+                >
+                  <RollLabel>{label}</RollLabel>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M3 8h10M9 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className={styles.grid}>
           <div className={styles.brand}>
             <Link
               href="/"
@@ -78,14 +117,13 @@ export function SiteFooter() {
             </p>
           </div>
 
+          <LinkGroup id="footer-discover" title="Discover" links={DISCOVER_LINKS} />
+          <LinkGroup id="footer-company" title="Company" links={COMPANY_LINKS} />
+          <LinkGroup id="footer-locations" title="Locations" links={LOCATION_LINKS} />
+
           <address className={styles.contact}>
-            <h2 className={styles.label}>Let&apos;s talk</h2>
-            <p className={styles.statement}>
-              Have a property in mind?
-              <br />
-              Let&apos;s talk.
-            </p>
-            <ul className={styles.contactList}>
+            <h2 className={styles.label}>Get in Touch</h2>
+            <ul className={styles.list}>
               <li>
                 <a href={OFFICIAL_PHONE_HREF} className={styles.link}>
                   {OFFICIAL_PHONE}
@@ -96,40 +134,41 @@ export function SiteFooter() {
                   {OFFICIAL_EMAIL}
                 </a>
               </li>
-              <li className={styles.place}>Pampanga, Philippines</li>
+              <li className={styles.muted}>Pampanga, Philippines</li>
             </ul>
             <ul className={styles.social} aria-label="Social media">
               {OFFICIAL_SOCIAL_LINKS.map(({ href, label }) => (
                 <li key={href}>
                   <a
                     href={href}
-                    className={styles.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`RC Premier Properties on ${label}`}
+                    aria-label={`RC Premier Properties on ${label} (opens in a new tab)`}
+                    data-platform={label}
                   >
-                    {label}
+                    <SocialMediaIcon platform={label} />
                   </a>
                 </li>
               ))}
             </ul>
           </address>
-
-          <div className={styles.sitemap}>
-            <LinkGroup
-              id="footer-properties"
-              title="Properties"
-              links={PROPERTY_LINKS}
-            />
-            <LinkGroup id="footer-company" title="Company" links={COMPANY_LINKS} />
-            <LinkGroup id="footer-locations" title="Locations" links={LOCATION_LINKS} />
-          </div>
         </div>
 
         <div className={styles.bottom}>
           <p>
             © {new Date().getFullYear()} RC Premier Properties. All rights reserved.
           </p>
+          <nav aria-label="Legal">
+            <ul className={styles.legal}>
+              {LEGAL_LINKS.map(({ href, label }) => (
+                <li key={href}>
+                  <Link href={href} className={styles.link}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </div>
     </footer>

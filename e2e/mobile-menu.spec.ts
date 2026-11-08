@@ -22,14 +22,14 @@ for (const viewport of [
     await expect(panel).toHaveCSS("background-color", "rgb(32, 38, 48)");
     await expect(panel).toHaveCSS("opacity", "1");
     await expect(
-      dialog.getByRole("link", { name: "Properties", exact: true }),
+      dialog.getByRole("link", { name: "About", exact: true }),
     ).toBeFocused();
     await expect(dialog.getByRole("link", { name: "Book a viewing" })).toHaveAttribute(
       "href",
       "/book-viewing",
     );
     await expect(
-      dialog.getByRole("link", { name: "rcpremierph@gmail.com" }),
+      dialog.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
     ).toBeVisible();
     await expect(page.locator("body")).toHaveCSS("position", "fixed");
     const bounds = await panel.boundingBox();
@@ -39,6 +39,10 @@ for (const viewport of [
     expect(
       await panel.evaluate((element) => element.scrollWidth <= element.clientWidth),
     ).toBe(true);
+    await page.keyboard.press("Shift+Tab");
+    await expect(
+      dialog.getByRole("link", { name: "RC Premier Properties home" }),
+    ).toBeFocused();
     await page.keyboard.press("Shift+Tab");
     await expect(
       dialog.getByRole("button", { name: "Close", exact: true }),
@@ -69,7 +73,7 @@ test("short mobile menu scrolls while the page stays fixed", async ({ page }) =>
     .poll(() => panel.evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0);
   await expect(
-    panel.getByRole("link", { name: "rcpremierph@gmail.com" }),
+    panel.getByRole("link", { name: "rcpropertiesss@gmail.com" }),
   ).toBeVisible();
   await expect(page.locator("body")).toHaveCSS("position", "fixed");
   await page.keyboard.press("Escape");
