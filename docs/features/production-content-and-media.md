@@ -40,7 +40,7 @@ assignments are:
 | Asset                | Use                                  |
 | -------------------- | ------------------------------------ |
 | `home-hero-1.png`    | Homepage hero exterior               |
-| `home-hero-2.png`    | Homepage hero pool/courtyard         |
+| `home-hero-2.png`    | Homepage introduction pool/courtyard |
 | `home-hero-3.png`    | Homepage hero interior               |
 | `properties.png`     | Featured-properties editorial image  |
 | `location.png`       | Explore-by-location section          |
@@ -147,31 +147,31 @@ below replace secondary mosaics, filmstrips and galleries with owner-approved lo
 galleries retain their existing photographs. Locations' four photos are illustrative homes,
 not evidence of a property's locality.
 
-| Existing image     | Visible sections before                                          | Visible sections after               |
-| ------------------ | ---------------------------------------------------------------- | ------------------------------------ |
-| `home-hero-3.png`  | Home closer look; About places; About capabilities; Sell gallery | Home closer look; About places       |
-| `contact.png`      | Home closer look; About places; About capabilities; Contact      | Home closer look; Contact            |
-| `book-viewing.png` | About places; Sell gallery; Book viewing; tour modal             | Book viewing; tour modal             |
-| `footer.png`       | Home introduction; About mosaic; About capabilities; 404         | Home introduction; 404               |
-| `properties.png`   | Home introduction; About mosaic; Sell introduction               | Home introduction; Sell introduction |
-| `location.png`     | Home closer look; About mosaic; Sell gallery                     | Home closer look; About mosaic       |
-| `home-hero-2.png`  | Home hero; Home introduction; About mosaic; About capabilities   | Home hero; Home introduction         |
+| Existing image     | Visible sections before                                             | Visible sections after               |
+| ------------------ | ------------------------------------------------------------------- | ------------------------------------ |
+| `home-hero-3.png`  | Home closer look; About places; About capabilities; Sell gallery    | Home closer look; About places       |
+| `contact.png`      | Home closer look; About places; About capabilities; Contact         | Home closer look; Contact            |
+| `book-viewing.png` | About places; Sell gallery; Book viewing; tour modal                | Book viewing; tour modal             |
+| `footer.png`       | Home introduction; About mosaic; About capabilities; 404            | Home introduction; 404               |
+| `properties.png`   | Home introduction; About mosaic; Sell introduction                  | Home introduction; Sell introduction |
+| `location.png`     | Home closer look; About mosaic; Sell gallery                        | Home closer look; About mosaic       |
+| `home-hero-2.png`  | Home hero card; Home introduction; About mosaic; About capabilities | Home introduction                    |
 
 Replacement usage (filenames under their listing's `photography-v1` directory):
 
-| Photograph                                                     | Editorial sections                          |
-| -------------------------------------------------------------- | ------------------------------------------- |
-| `furnished-brand-new-modern-home-living-room.webp`             | About capabilities; Sell gallery            |
-| `modern-filipino-smart-home-exterior-front.webp`               | About mosaic                                |
-| `furnished-brand-new-modern-home-stairwell-window.webp`        | About capabilities; Sell gallery            |
-| `brand-new-modern-family-home-staircase.webp`                  | About places                                |
-| `brand-new-modern-family-home-second-floor-common-area.webp`   | About mosaic                                |
-| `modern-filipino-smart-home-room-garden-door.webp`             | About places; Sell gallery                  |
-| `brand-new-modern-family-home-bedroom-wardrobe.webp`           | About mosaic                                |
-| `furnished-brand-new-modern-home-exterior-front.webp`          | Locations, Angeles tile; About capabilities |
-| `modern-filipino-smart-home-living-area.webp`                  | Locations, Mabalacat tile                   |
-| `furnished-brand-new-modern-home-kitchen-dining-mezzanine.png` | Locations, Magalang tile                    |
-| `brand-new-modern-family-home-exterior-carport.png`            | Locations, Porac tile; About capabilities   |
+| Photograph                                                     | Editorial sections                           |
+| -------------------------------------------------------------- | -------------------------------------------- |
+| `furnished-brand-new-modern-home-living-room.webp`             | About capabilities; Sell gallery             |
+| `modern-filipino-smart-home-exterior-front.webp`               | About mosaic; About places                   |
+| `furnished-brand-new-modern-home-stairwell-window.webp`        | About capabilities; Sell gallery             |
+| `brand-new-modern-family-home-staircase.webp`                  | About places                                 |
+| `brand-new-modern-family-home-second-floor-common-area.webp`   | About mosaic                                 |
+| `modern-filipino-smart-home-room-garden-door.webp`             | About places; Sell gallery                   |
+| `brand-new-modern-family-home-bedroom-wardrobe.webp`           | About mosaic                                 |
+| `furnished-brand-new-modern-home-exterior-front.webp`          | Locations, Angeles tile; About capabilities  |
+| `modern-filipino-smart-home-living-area.webp`                  | Locations, Mabalacat tile; Home hero card    |
+| `furnished-brand-new-modern-home-kitchen-dining-mezzanine.png` | Locations, Magalang tile; About capabilities |
+| `brand-new-modern-family-home-exterior-carport.png`            | Locations, Porac tile; About capabilities    |
 
-The About aerial and its source/license record remain; unused locality-detail scenery was
+The About aerial was replaced by listing photography and removed; unused locality-detail scenery was
 removed. Legal pages use `home_hero.jpg` only for metadata, so they add no visible reuse.

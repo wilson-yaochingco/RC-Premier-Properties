@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/brand/rc-premier-logo.png";
 import { RcPremierMark } from "@/components/layout/RcPremierMark";
-import homeHeroTwo from "@/assets/site/home-hero-2.png";
+import homeHeroCard from "../../public/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-living-area.webp";
 import { CloserLook } from "@/features/home/CloserLook";
 import { CLOSER_LOOK_SLIDES } from "@/features/home/closer-look-slides";
 import { ExplorePampangaSection } from "@/features/home/ExplorePampanga";
@@ -92,10 +92,11 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         >
           <div className={heroStyles.cardImage}>
             <Image
-              src={homeHeroTwo}
-              alt="Contemporary RC Premier residential exterior"
+              src={homeHeroCard}
+              alt="Open-plan interior with herringbone flooring, a timber ceiling and tall glazed doors"
               fill
               sizes="320px"
+              style={{ objectPosition: "50% 55%" }}
             />
           </div>
           <p>Explore available homes and properties across Pampanga.</p>
