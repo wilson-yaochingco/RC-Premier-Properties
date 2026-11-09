@@ -159,19 +159,19 @@ not evidence of a property's locality.
 
 Replacement usage (filenames under their listing's `photography-v1` directory):
 
-| Photograph                                                     | Editorial sections                           |
-| -------------------------------------------------------------- | -------------------------------------------- |
-| `furnished-brand-new-modern-home-living-room.webp`             | About capabilities; Sell gallery             |
-| `modern-filipino-smart-home-exterior-front.webp`               | About mosaic; About places                   |
-| `furnished-brand-new-modern-home-stairwell-window.webp`        | About capabilities; Sell gallery             |
-| `brand-new-modern-family-home-staircase.webp`                  | About places                                 |
-| `brand-new-modern-family-home-second-floor-common-area.webp`   | About mosaic                                 |
-| `modern-filipino-smart-home-room-garden-door.webp`             | About places; Sell gallery                   |
-| `brand-new-modern-family-home-bedroom-wardrobe.webp`           | About mosaic                                 |
-| `furnished-brand-new-modern-home-exterior-front.webp`          | Locations, Angeles tile; About capabilities  |
-| `modern-filipino-smart-home-living-area.webp`                  | Locations, Mabalacat tile; Home hero card    |
-| `furnished-brand-new-modern-home-kitchen-dining-mezzanine.png` | Locations, Magalang tile; About capabilities |
-| `brand-new-modern-family-home-exterior-carport.png`            | Locations, Porac tile; About capabilities    |
+| Photograph                                                     | Editorial sections                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------------- |
+| `furnished-brand-new-modern-home-living-room.webp`             | About capabilities; Sell gallery                               |
+| `modern-filipino-smart-home-exterior-front.webp`               | About mosaic; About places                                     |
+| `furnished-brand-new-modern-home-stairwell-window.webp`        | About capabilities; Sell gallery                               |
+| `brand-new-modern-family-home-staircase.webp`                  | About places                                                   |
+| `brand-new-modern-family-home-second-floor-common-area.webp`   | About mosaic; Home Sell statement                              |
+| `modern-filipino-smart-home-room-garden-door.webp`             | About places; Sell gallery                                     |
+| `brand-new-modern-family-home-bedroom-wardrobe.webp`           | About mosaic                                                   |
+| `furnished-brand-new-modern-home-exterior-front.webp`          | Locations, Angeles tile; About capabilities                    |
+| `modern-filipino-smart-home-living-area.webp`                  | Locations, Mabalacat tile; Home hero card                      |
+| `furnished-brand-new-modern-home-kitchen-dining-mezzanine.png` | Locations, Magalang tile; About capabilities                   |
+| `brand-new-modern-family-home-exterior-carport.png`            | Locations, Porac tile; About capabilities; Home Sell statement |
 
 The About aerial was replaced by listing photography and removed; unused locality-detail scenery was
 removed. Legal pages use `home_hero.jpg` only for metadata, so they add no visible reuse.
