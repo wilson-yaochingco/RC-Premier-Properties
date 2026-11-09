@@ -16,7 +16,7 @@ const CORE_ROUTES = [
 
 const LOCATION_ROUTES = [
   { path: "/locations", artifact: "locations" },
-  { path: "/locations/angeles-city", artifact: "location-detail" },
+  { path: "/properties?location=Angeles+City", artifact: "location-catalog" },
 ] as const;
 
 const PART_TWO_VIEWPORT_WIDTHS = [320, 375, 390, 768, 1024, 1280, 1440, 1920] as const;

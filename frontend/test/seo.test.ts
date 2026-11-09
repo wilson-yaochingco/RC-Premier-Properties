@@ -107,7 +107,7 @@ describe("page and location metadata", () => {
       indexable: true,
       location: "Angeles City, Pampanga",
       count: 2,
-      canonicalPath: "/locations/angeles-city",
+      canonicalPath: "/properties?location=Angeles+City",
     });
     expect(metadata.title).toBe("Properties for Sale in Angeles City, Pampanga");
     expect(metadata.robots).toBeUndefined();
@@ -245,10 +245,12 @@ describe("site structured data and sitemap", () => {
     const urls = sitemap.map((entry) => entry.url);
 
     expect(urls).toContain("https://www.example.test/properties/premier-property-25");
-    expect(urls.some((url) => url.includes("/properties?"))).toBe(false);
+    expect(urls.filter((url) => url.includes("/properties?"))).toEqual([
+      "https://www.example.test/properties?location=Angeles+City",
+    ]);
     expect(urls).toContain("https://www.example.test/privacy");
     expect(urls).toContain("https://www.example.test/locations");
-    expect(urls).toContain("https://www.example.test/locations/angeles-city");
+    expect(urls).toContain("https://www.example.test/properties?location=Angeles+City");
     expect(urls.some((url) => url.includes("rental-fixture"))).toBe(false);
     expect(urls.some((url) => url.includes("INVALID_SLUG"))).toBe(false);
     expect(urls.some((url) => url.includes("Empty+City"))).toBe(false);

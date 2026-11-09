@@ -1,9 +1,9 @@
 import Image from "next/image";
 import exterior from "@/assets/site/home-hero-1.png";
-import interior from "@/assets/site/properties.png";
-import leftExterior from "@/assets/site/footer.png";
+import interior from "../../../public/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-bedroom-wardrobe.webp";
+import leftExterior from "../../../public/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-exterior-front.webp";
 import architecturalDetail from "@/assets/site/why-rc-premier.png";
-import poolside from "@/assets/site/home-hero-2.png";
+import poolside from "../../../public/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-second-floor-common-area.webp";
 import portrait from "@/assets/site/location.png";
 import aboutImage from "@/assets/site/about.png";
 import { HomeHeroVideo } from "@/features/home/HomeHeroVideo";
@@ -100,7 +100,7 @@ export default function AboutPage() {
           <figure className={styles.mosaicLeft} data-motion-frame>
             <Image
               src={leftExterior}
-              alt="Contemporary residence with timber cladding and a white boundary wall"
+              alt="Modern home with timber accents and a covered frontage"
               fill
               sizes="(max-width: 767px) 50vw, 33vw"
             />
@@ -124,7 +124,7 @@ export default function AboutPage() {
           <figure className={styles.mosaicRight} data-motion-frame>
             <Image
               src={poolside}
-              alt="Residence with a pool and balcony beneath a bright sky"
+              alt="Bright second-floor common area beside the staircase"
               fill
               sizes="(max-width: 767px) 50vw, (max-width: 1023px) 50vw, 25vw"
             />
@@ -132,7 +132,7 @@ export default function AboutPage() {
           <figure className={styles.mosaicLower} data-motion-frame>
             <Image
               src={interior}
-              alt="Living area with warm timber flooring and a sculptural staircase"
+              alt="Bedroom with built-in wardrobes"
               fill
               sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 42vw"
             />

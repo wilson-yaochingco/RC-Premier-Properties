@@ -1,3 +1,4 @@
+import { publicLocationCatalogPath } from "@/lib/public-location";
 import Link from "next/link";
 import { RollLabel } from "@/components/ui/RollLabel";
 import { SocialMediaIcon } from "@/features/contact/SocialMediaIcon";
@@ -29,10 +30,13 @@ const COMPANY_LINKS = [
 ] as const;
 
 const LOCATION_LINKS = [
-  { href: "/locations/angeles-city", label: "Angeles City" },
-  { href: "/locations/mabalacat-city", label: "Mabalacat" },
-  { href: "/locations/city-of-san-fernando", label: "City of San Fernando" },
-  { href: "/locations/porac", label: "Porac" },
+  { href: publicLocationCatalogPath("Angeles City"), label: "Angeles City" },
+  { href: publicLocationCatalogPath("Mabalacat City"), label: "Mabalacat" },
+  {
+    href: publicLocationCatalogPath("City of San Fernando"),
+    label: "City of San Fernando",
+  },
+  { href: publicLocationCatalogPath("Porac"), label: "Porac" },
 ] as const;
 
 const LEGAL_LINKS = [

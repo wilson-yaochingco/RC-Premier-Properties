@@ -28,57 +28,26 @@ test("the four curated locations stay visible without inventory labels", async (
   await open(page, "/locations");
   const featured = page.locator("#featured-locations");
   await expect(featured.getByRole("article")).toHaveCount(4);
+  await expect(featured.getByRole("link")).toHaveCount(0);
   for (const { name, slug } of FEATURED) {
-    await expect(
-      featured.getByRole("link", { name: new RegExp(name) }).first(),
-    ).toHaveAttribute("href", `/locations/${slug}`);
+    const tile = featured.locator(`[data-tile="${slug}"]`);
+    await expect(tile.getByRole("heading", { name })).toBeVisible();
+    await expect(tile.locator("img")).toHaveAttribute("loading", "lazy");
+    await expect(tile.locator("img")).toHaveAttribute("src", /photography-v1/);
   }
   await expect(featured.getByText(/\d+ properties/)).toHaveCount(0);
   await expect(featured.locator("details")).toHaveCount(0);
   await expect(featured.getByText("CC BY-SA")).toHaveCount(0);
   await expect(featured.getByText("Resized & cropped")).toHaveCount(0);
 });
-test("every curated location route resolves, including areas with no listings", async ({
-  page,
-}) => {
-  for (const { name, slug } of FEATURED) {
+test("removed location detail URLs return 404", async ({ page }) => {
+  for (const slug of [...FEATURED.map(({ slug }) => slug), "atlantis"]) {
     const response = await open(page, `/locations/${slug}`);
-    expect(response?.status(), slug).toBe(200);
-    await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
+    expect(response?.status(), slug).toBe(404);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "right address",
+    );
   }
-
-  // Angeles City has published homes; the others show a truthful, location-specific state.
-  await open(page, "/locations/angeles-city");
-  await expect(page.locator("[data-property-card]").first()).toBeVisible();
-  await expect(page.getByText("No published properties yet")).toHaveCount(0);
-
-  await open(page, "/locations/magalang");
-  await expect(page.getByText("0 properties").first()).toBeVisible();
-  await expect(
-    page.getByRole("heading", {
-      name: "No homes are published in Magalang right now.",
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Browse all properties" }),
-  ).toHaveAttribute("href", "/properties");
-  // A location with nothing published is reachable but not indexed.
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-    "content",
-    /noindex/,
-  );
-
-  // Other slugs are still not locations.
-  await page.goto("/locations/atlantis");
-  await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: "This published location could not be found.",
-    }),
-  ).toBeVisible();
-  expect(
-    await page.locator('meta[name="robots"][content*="noindex"]').count(),
-  ).toBeGreaterThan(0);
 });
 
 test("Section 2 stands on its own without a visible heading or eyebrow", async ({
@@ -185,9 +154,6 @@ test("Locations actions share the up-right to right arrow and rolling label", as
 
   const targets = [
     page
-      .locator("#featured-locations article")
-      .getByRole("link", { name: /Angeles City/ }),
-    page
       .locator('section[aria-labelledby="collection-title"]')
       .getByRole("link", { name: "Browse all properties" }),
   ];
@@ -231,8 +197,8 @@ test("the Locations page keeps its arrows and labels still under reduced motion"
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page, "/locations");
   const tile = page
-    .locator("#featured-locations")
-    .getByRole("link", { name: /Angeles City/ })
+    .locator('section[aria-labelledby="collection-title"]')
+    .getByRole("link", { name: "Browse all properties" })
     .first();
   await tile.scrollIntoViewIfNeeded();
   await tile.hover();
@@ -708,10 +674,7 @@ test("Locations measured typography and mobile centering match the editorial lay
     for (const tile of await page.locator("[data-tile]").all()) {
       await expect(tile.locator("h3")).toHaveCSS("text-align", "left");
       await expect(tile.locator('[class*="tileText"]')).toHaveCSS("text-align", "left");
-      await expect(tile.locator('[class*="tileAction"]')).toHaveCSS(
-        "text-align",
-        "left",
-      );
+      await expect(tile.getByRole("link")).toHaveCount(0);
     }
     await page.locator("#featured-locations").scrollIntoViewIfNeeded();
     await page
@@ -816,12 +779,10 @@ test("Locations uses the Home scroll fill progressively and reversibly without r
   expect(samples[4]).toBeLessThan(samples[3]);
   expect(samples[5]).toBeLessThan(0.01);
   await page.emulateMedia({ reducedMotion: "reduce" });
-  expect(
-    await heading
-      .locator("[data-char]")
-      .first()
-      .evaluate((element) => getComputedStyle(element).color),
-  ).toBe(await heading.evaluate((element) => getComputedStyle(element).color));
+  await expect(heading.locator("[data-char]").first()).toHaveCSS(
+    "color",
+    await heading.evaluate((element) => getComputedStyle(element).color),
+  );
 });
 
 test("Locations statement remains fully readable without JavaScript", async ({

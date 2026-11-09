@@ -248,60 +248,23 @@ test("location discovery and detail use only inventory-backed facets", async ({
       name: "Find the right place for your next home in Pampanga",
     }),
   ).toBeVisible();
-  const angeles = page
-    .locator("#featured-locations article")
-    .getByRole("link", { name: /Angeles City/ });
-  await expect(angeles).toContainText("Explore location");
-  await expect(angeles).toHaveAttribute("href", "/locations/angeles-city");
-  await angeles.click();
-
-  await expect(page).toHaveURL(/\/locations\/angeles-city$/);
-  await expect(page).toHaveTitle(
-    "Properties for Sale in Angeles City | RC Premier Properties",
-  );
+  const featured = page.locator("#featured-locations");
+  await expect(featured.getByRole("article")).toHaveCount(4);
+  await expect(featured.getByRole("link")).toHaveCount(0);
+  const footer = page.getByRole("contentinfo");
+  await expect(
+    footer.getByRole("link", { name: "Angeles City", exact: true }),
+  ).toHaveAttribute("href", "/properties?location=Angeles+City");
+  await footer.getByRole("link", { name: "Angeles City", exact: true }).click();
+  await expect(page).toHaveURL(/location=Angeles\+City/);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "http://127.0.0.1:3100/locations/angeles-city",
+    "http://127.0.0.1:3100/properties?location=Angeles+City",
   );
-  await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
-  const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
-  expect(jsonLd).toContain('"@type":"BreadcrumbList"');
-  expect(jsonLd).not.toContain("coordinates");
-  expect(jsonLd).not.toContain("privateAddress");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Angeles City" }),
-  ).toBeVisible();
-  await expect(page.getByText("9 properties", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Clark Garden Residence" }),
   ).toBeVisible();
 
-  await page.getByLabel("Minimum price").fill("999999999");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page).toHaveURL(/minPrice=999999999/);
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    "href",
-    "http://127.0.0.1:3100/locations/angeles-city",
-  );
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-    "content",
-    /noindex/,
-  );
-  await expect(
-    page.getByRole("heading", {
-      name: "No published properties match these filters.",
-    }),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Clear filters" })).toHaveAttribute(
-    "href",
-    "/locations/angeles-city",
-  );
-
-  await page.goto("/locations/angeles-city?page=999");
-  await expect.poll(() => new URL(page.url()).searchParams.get("page")).toBe("1");
-  await expect(
-    page.getByText("No published properties match these filters."),
-  ).toHaveCount(0);
   expect(browserErrors).toEqual([]);
 });
 
@@ -1080,23 +1043,15 @@ test("Book a Viewing offers current listings instead of a raw property number", 
   ).toHaveCount(0);
 });
 
-test("the global Request a Tour entry requires a property before continuing", async ({
-  page,
-}) => {
+test("location catalog header opens the viewing request page", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/locations/angeles-city");
-  const trigger = page.getByRole("banner").getByRole("button", {
-    name: "Request a Tour",
-  });
-  await trigger.click();
-
-  const dialog = page.getByRole("dialog", { name: "Request a Tour" });
-  const propertyId = dialog.getByLabel("Property ID");
-  await expect(propertyId).toBeFocused();
-  await dialog.getByRole("button", { name: "Next" }).click();
-  expect(await propertyId.evaluate((input) => input.validity.valueMissing)).toBe(true);
-  await dialog.getByRole("button", { name: "Close Request a Tour" }).click();
-  await expect(trigger).toBeFocused();
+  await page.goto("/properties?location=Angeles+City");
+  await page
+    .getByRole("banner")
+    .getByRole("link", { name: "Book a viewing", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/book-viewing$/);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
 test("the property-detail header preserves the Book a viewing entry", async ({

@@ -12,8 +12,8 @@ exposing internal records:
 - `/properties` — searchable, sortable, paginated catalog
 - `/properties/[slug]` — one published listing with specifications, content, gallery
   slots, general-area location and inquiry actions
-- `/locations` — a bounded, inventory-derived location index
-- `/locations/[location]` — one canonical location with its filtered published inventory
+- `/locations` — a curated editorial location index
+- `/properties?location=<short name>` — one canonical location with its filtered published inventory
 - `/` — sales-focused entry, up to three featured published listings in an editorial
   rail, and inventory-derived location links/counts
 

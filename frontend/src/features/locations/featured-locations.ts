@@ -1,78 +1,49 @@
 import type { PublicPropertySummary } from "@rc/shared";
-import {
-  findPublicLocationBySlug,
-  publicLocationPath,
-} from "../../lib/public-location";
-import { getLocationEditorialContent, type LocationScenery } from "./location-content";
+import { publicLocationCatalogPath } from "../../lib/public-location";
 
-/**
- * The four curated destinations on `/locations`. They are permanent navigation targets,
- * so they stay visible and linkable with zero published properties. Descriptions use only
- * what the repository already states about each place (its classification, its position on the Pampanga map and its approved
- * photograph's caption); nothing here is a market claim.
- */
-export interface FeaturedLocation {
-  slug: string;
-  name: string;
-  href: string;
-  description: string;
-  scenery: LocationScenery;
-}
-
-const FEATURED_SOURCE = [
+/** Curated places; photography illustrates homes without asserting a locality. */
+export const FEATURED_LOCATIONS = [
   {
     name: "Angeles City",
-    description: "A city in northern Pampanga, with Mount Arayat on its horizon.",
+    slug: "angeles-city",
+    description: "A city in northern Pampanga.",
+    scenery: {
+      imagePath:
+        "/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-exterior-front.webp",
+      alt: "Two-storey modern home with timber-slat balcony screens",
+    },
   },
   {
     name: "Mabalacat City",
-    description:
-      "A city at Pampanga’s northern edge, with Mount Arayat ahead along its roads.",
+    slug: "mabalacat-city",
+    description: "A city at Pampanga's northern edge.",
+    scenery: {
+      imagePath:
+        "/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-living-area.webp",
+      alt: "Open-plan interior with a timber ceiling, broad windows and a kitchen counter",
+    },
   },
   {
     name: "Magalang",
-    description:
-      "A municipality in northern Pampanga, with everyday routes like San Ildefonso Road.",
+    slug: "magalang",
+    description: "A municipality in northern Pampanga.",
+    scenery: {
+      imagePath:
+        "/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-kitchen-dining-mezzanine.png",
+      alt: "Kitchen and dining area beneath an open mezzanine",
+    },
   },
   {
     name: "Porac",
-    description:
-      "A municipality in western Pampanga, with daily activity along Jose Abad Santos Avenue.",
+    slug: "porac",
+    description: "A municipality in western Pampanga.",
+    scenery: {
+      imagePath:
+        "/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-exterior-carport.png",
+      alt: "Modern two-storey home with a covered carport",
+    },
   },
-] as const;
-
-export const FEATURED_LOCATIONS: readonly FeaturedLocation[] = FEATURED_SOURCE.map(
-  ({ name, description }) => {
-    const content = getLocationEditorialContent(name);
-    if (!content) throw new Error(`Missing editorial content for ${name}`);
-    return {
-      slug: content.slug,
-      name,
-      href: publicLocationPath(name),
-      description,
-      scenery: content.scenery,
-    };
-  },
-);
-
-export function findFeaturedLocation(slug: string): FeaturedLocation | undefined {
-  return FEATURED_LOCATIONS.find((location) => location.slug === slug);
-}
-
-/**
- * Resolves a `/locations/[slug]` request: a location with published inventory, or one of the
- * curated four with none yet (count 0). Any other slug is not a public location. Callers
- * must only use this once the inventory request itself has succeeded.
- */
-export function resolveLocationFacet(
-  slug: string,
-  locationCounts: readonly { location: string; count: number }[],
-): { location: string; count: number } | undefined {
-  const match = findPublicLocationBySlug(slug, locationCounts);
-  if (match) return match;
-  const featured = findFeaturedLocation(slug);
-  return featured ? { location: featured.name, count: 0 } : undefined;
-}
+].map((location) => ({ ...location, href: publicLocationCatalogPath(location.name) }));
 
 /** The collection is independent of the permanent location navigation. */
 export interface LocationsInventory {

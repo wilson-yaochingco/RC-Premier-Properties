@@ -52,10 +52,10 @@ describe("property query URLs", () => {
       paginationHref(
         { location: "Angeles City", sort: "price-asc" },
         2,
-        "/locations/angeles-city",
+        "/properties",
         true,
       ),
-    ).toBe("/locations/angeles-city?purpose=sale&sort=price-asc&page=2");
+    ).toBe("/properties?purpose=sale&sort=price-asc&page=2");
   });
 
   it("sends map filters without exposing sort or result limits", () => {

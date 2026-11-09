@@ -137,3 +137,41 @@ portrait-safe fullscreen controls, copy/share feedback, and the device-file uplo
 Rendered desktop and mobile captures are reviewed for proportion and overflow. Live Auth0
 administration, real MongoDB inventory, a physical phone/device picker, production storage
 and CDN delivery, and transactional email receipt remain external manual checks.
+
+## Editorial photography reuse (2026-11-09)
+
+Visible editorial photographs are limited to two sections each. Property-listing galleries
+and metadata-only uses are excluded. Keep hero/header images where possible; the changes
+below replace secondary mosaics, filmstrips and galleries with owner-approved local
+`photography-v1` images. No stock, generated or downloaded media was added, and listing
+galleries retain their existing photographs. Locations' four photos are illustrative homes,
+not evidence of a property's locality.
+
+| Existing image     | Visible sections before                                          | Visible sections after               |
+| ------------------ | ---------------------------------------------------------------- | ------------------------------------ |
+| `home-hero-3.png`  | Home closer look; About places; About capabilities; Sell gallery | Home closer look; About places       |
+| `contact.png`      | Home closer look; About places; About capabilities; Contact      | Home closer look; Contact            |
+| `book-viewing.png` | About places; Sell gallery; Book viewing; tour modal             | Book viewing; tour modal             |
+| `footer.png`       | Home introduction; About mosaic; About capabilities; 404         | Home introduction; 404               |
+| `properties.png`   | Home introduction; About mosaic; Sell introduction               | Home introduction; Sell introduction |
+| `location.png`     | Home closer look; About mosaic; Sell gallery                     | Home closer look; About mosaic       |
+| `home-hero-2.png`  | Home hero; Home introduction; About mosaic; About capabilities   | Home hero; Home introduction         |
+
+Replacement usage (filenames under their listing's `photography-v1` directory):
+
+| Photograph                                                     | Editorial sections                          |
+| -------------------------------------------------------------- | ------------------------------------------- |
+| `furnished-brand-new-modern-home-living-room.webp`             | About capabilities; Sell gallery            |
+| `modern-filipino-smart-home-exterior-front.webp`               | About mosaic                                |
+| `furnished-brand-new-modern-home-stairwell-window.webp`        | About capabilities; Sell gallery            |
+| `brand-new-modern-family-home-staircase.webp`                  | About places                                |
+| `brand-new-modern-family-home-second-floor-common-area.webp`   | About mosaic                                |
+| `modern-filipino-smart-home-room-garden-door.webp`             | About places; Sell gallery                  |
+| `brand-new-modern-family-home-bedroom-wardrobe.webp`           | About mosaic                                |
+| `furnished-brand-new-modern-home-exterior-front.webp`          | Locations, Angeles tile; About capabilities |
+| `modern-filipino-smart-home-living-area.webp`                  | Locations, Mabalacat tile                   |
+| `furnished-brand-new-modern-home-kitchen-dining-mezzanine.png` | Locations, Magalang tile                    |
+| `brand-new-modern-family-home-exterior-carport.png`            | Locations, Porac tile; About capabilities   |
+
+The About aerial and its source/license record remain; unused locality-detail scenery was
+removed. Legal pages use `home_hero.jpg` only for metadata, so they add no visible reuse.

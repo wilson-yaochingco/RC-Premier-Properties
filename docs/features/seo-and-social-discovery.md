@@ -31,7 +31,7 @@ Production must set an approved HTTPS origin at build time and rebuild the front
 the final domain has not been supplied and is not invented here.
 
 Indexable public routes are `/`, `/properties`, inventory-backed location discovery,
-`/locations`, `/locations/[location]`, `/properties/[slug]`, `/about`, `/contact`, `/sell`,
+`/locations`, `/properties/[slug]`, `/about`, `/contact`, `/sell`,
 and `/book-viewing`. Contact and viewing `propertyId` query values prefill the existing
 forms but canonicalize to their base pages; no submission or customer state enters
 metadata. Invalid and nonpublic property or location routes return 404 and `noindex`
@@ -43,7 +43,7 @@ surface with `noindex` and no stale canonical or property metadata, and answer w
 HTTP 404; the public API lookup itself also returns 404.
 
 A streamed response commits its 200 status as soon as a Suspense fallback is sent, after
-which `notFound()` can only add `noindex`. Property and location detail routes therefore
+which `notFound()` can only add `noindex`. Property detail routes therefore
 have no `loading.tsx`, and nothing above them suspends: `/properties` keeps its catalog
 skeleton inside the `(catalog)` route group so it does not wrap `/properties/[slug]`, and
 `/locations` has no route-level skeleton because only its featured-properties section
@@ -64,18 +64,14 @@ details.
 Location discovery is the only filter exception. A location state is indexable only when
 the public sales-only facets contain exactly one matching city/location with a positive
 published count and the URL has no substantive filter beyond location. Default
-`purpose=sale`, `sort=newest`, and `page=1` values may be normalized away. Because
-`/locations/[location]` lists the same inventory with more context, a valid location state
-canonicalizes to that guide rather than competing with it, and is not listed in the
-sitemap. Its title and description are derived from the facet; unsupported or ambiguous
-locations are `noindex` and canonicalize to `/properties`.
+`purpose=sale`, `sort=newest`, and `page=1` values may be normalized away. A stable location catalog now owns its normalized canonical
+`/properties?location=<short name>` and appears in the bounded sitemap and llms.txt.
+Its title and description are derived from the facet; unsupported or ambiguous locations
+are `noindex` and canonicalize to `/properties`.
 
-The location guide exposes a stable lowercase slug only after resolving it against the
-same bounded, positive-count facets. Its canonical path is `/locations/[location]`;
-substantive filters and non-default pages keep that canonical but receive `noindex,
-follow`. The four curated locations resolve with zero published properties but are `noindex`
-until they have inventory. Location JSON-LD contains a breadcrumb only. It never contains coordinates,
-addresses, editorial claims, or manually maintained popularity data.
+Location detail pages were removed; old URLs return 404 without redirects. The Locations
+index remains canonical at `/locations`, with static editorial cards. Home and footer
+location navigation opens the catalog through the same shared URL helper.
 
 ## Social previews
 
@@ -125,7 +121,7 @@ description, clipped at a word boundary to 160 characters.
 ## AI assistants and llms.txt
 
 `/llms.txt` (llmstxt.org format) summarises the business, the request-only nature of
-viewings, the main pages, inventory-backed location guides and the policy pages. It reuses
+viewings, the main pages, inventory-backed location catalogs and the policy pages. It reuses
 `SITE_DESCRIPTION`, the approved contact details and the public facets, revalidates hourly,
 and returns 404 when there is no public origin or on staging. It is guidance for AI tools,
 not a ranking signal for Google, and robots.txt is unchanged: AI search crawlers fall under
@@ -147,7 +143,7 @@ slugs cannot render indexable property content.
 `sitemap.xml` is a bounded sitemap index. One 48-record discovery read determines stable
 `/sitemaps/{number}.xml` URLs. Each shard reads at most 20 API pages (960 summaries) in
 batches of four; only shard zero includes canonical static routes, positive-count
-canonical location-guide routes, the `/locations` index and the three legal pages. A
+canonical location-filtered catalog URLs, the `/locations` index and the three legal pages. A
 failed later shard returns a retryable 503 for that shard without
 invalidating other shard responses. Property `publishedAt` is the only listing timestamp
 used for `lastModified`; invalid timestamps are omitted. Slugs are validated and

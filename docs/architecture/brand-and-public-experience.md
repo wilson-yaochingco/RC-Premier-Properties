@@ -206,17 +206,17 @@ for a messaging provider that has not been selected.
 
 ## Information architecture
 
-| Route                   | Primary task                                                                |
-| ----------------------- | --------------------------------------------------------------------------- |
-| `/`                     | Understand the brand, browse properties and reach the next useful page      |
-| `/properties`           | Filter, sort and page through published inventory                           |
-| `/properties/[slug]`    | Evaluate one published property and send an inquiry                         |
-| `/locations`            | Explore an inventory-backed atlas of current Pampanga locations             |
-| `/locations/[location]` | Explore one inventory-backed location and its published listings            |
-| `/about`                | Understand the positioning and service-area focus without fabricated claims |
-| `/contact`              | Submit a general or property-related inquiry                                |
-| `/sell`                 | Start a seller conversation; no documents are collected publicly            |
-| `/book-viewing`         | Request a preferred viewing date and time inline; staff must confirm it     |
+| Route                               | Primary task                                                                |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| `/`                                 | Understand the brand, browse properties and reach the next useful page      |
+| `/properties`                       | Filter, sort and page through published inventory                           |
+| `/properties/[slug]`                | Evaluate one published property and send an inquiry                         |
+| `/locations`                        | Explore four curated Pampanga locations                                     |
+| `/properties?location=<short name>` | Browse published listings for one location                                  |
+| `/about`                            | Understand the positioning and service-area focus without fabricated claims |
+| `/contact`                          | Submit a general or property-related inquiry                                |
+| `/sell`                             | Start a seller conversation; no documents are collected publicly            |
+| `/book-viewing`                     | Request a preferred viewing date and time inline; staff must confirm it     |
 
 The last route records a request, not a confirmed appointment. Scheduling and booking
 management remain Phase 2B work.
