@@ -43,41 +43,74 @@ const INLINE_PHOTOS = Object.fromEntries(
   ]),
 );
 
+const LINE_STAGGER = 0.16;
+
 const LABEL = plain(STATEMENT_LINES.join(" ").replace(/\{\w+\} ?/g, ""));
 
 /** One large editorial sentence, set directly on the page, with a quiet bottom row. */
 export function SellStatement() {
   const { ref, active } = useScrollFill<HTMLHeadingElement>();
   const root = useRef<HTMLElement>(null);
+  const container = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
+      const motion = "(prefers-reduced-motion: no-preference)";
       const media = gsap.matchMedia();
-      media.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap
-          .timeline({
-            scrollTrigger: { trigger: ref.current, start: "top 75%", once: true },
+      media.add(
+        {
+          wide: `(min-width: 64rem) and ${motion}`,
+          narrow: `(max-width: 63.99rem) and ${motion}`,
+        },
+        ({ conditions }) => {
+          const line = `.${styles.statementLine}`;
+          const lines = gsap.utils.toArray<HTMLElement>(line);
+          const timeline = gsap.timeline({
+            scrollTrigger: { trigger: container.current, start: "top 80%", once: true },
             defaults: { ease: "power3.out" },
-          })
-          .fromTo(
-            "[data-sell-photo]",
-            { opacity: 0, y: 14, scale: 0.94 },
-            {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              duration: 1,
-              stagger: 0.22,
-              clearProps: "opacity,transform",
-            },
-          )
-          .fromTo(
-            "[data-sell-photo] img",
-            { scale: 1.14 },
-            { scale: 1, duration: 1.4, stagger: 0.22, clearProps: "transform" },
+          });
+          const settle = { clearProps: "opacity,transform" };
+
+          timeline.fromTo(
+            "[data-sell-eyebrow]",
+            { opacity: 0, y: 12 },
+            { opacity: 1, y: 0, duration: 0.9, ...settle },
             0,
           );
-      });
+          // Narrow screens reflow the lines (display: contents), so the heading rises as one.
+          timeline.fromTo(
+            conditions?.wide ? lines : ref.current,
+            { opacity: 0, y: 28 },
+            { opacity: 1, y: 0, duration: 1.1, stagger: LINE_STAGGER, ...settle },
+            0.15,
+          );
+          gsap.utils.toArray<HTMLElement>("[data-sell-photo]").forEach((photo) => {
+            const at =
+              0.15 +
+              lines.indexOf(photo.closest<HTMLElement>(line)!) * LINE_STAGGER +
+              0.3;
+            timeline
+              .fromTo(
+                photo,
+                { opacity: 0, y: 14, scale: 0.94 },
+                { opacity: 1, y: 0, scale: 1, duration: 1, ...settle },
+                at,
+              )
+              .fromTo(
+                photo.querySelector("img"),
+                { scale: 1.14 },
+                { scale: 1, duration: 1.4, clearProps: "transform" },
+                at,
+              );
+          });
+          timeline.fromTo(
+            "[data-sell-cta]",
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.9, ...settle },
+            ">-0.5",
+          );
+        },
+      );
       return () => media.revert();
     },
     { scope: root },
@@ -90,8 +123,10 @@ export function SellStatement() {
       data-scrub={active ? "on" : "off"}
       aria-labelledby="sell-statement"
     >
-      <div className={styles.container}>
-        <p className={styles.eyebrow}>Selling your property</p>
+      <div ref={container} className={styles.container}>
+        <p className={styles.eyebrow} data-sell-eyebrow>
+          Selling your property
+        </p>
         <h2
           id="sell-statement"
           ref={ref}
@@ -105,7 +140,7 @@ export function SellStatement() {
           />
         </h2>
 
-        <div className={styles.footer}>
+        <div className={styles.footer} data-sell-cta>
           <Link href="/sell" className={`${styles.button} cta cta--wrap`}>
             <RollLabel>Sell your property</RollLabel>
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
