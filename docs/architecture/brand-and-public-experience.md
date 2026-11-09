@@ -157,7 +157,7 @@ The spacing rhythm uses a consistent scale: 4, 8, 12, 16, 24, 32, 48, 64, 80, 96
   horizontal rail of Deep Charcoal (`#202630`) information-panel cards
 - Why RC Premier: Warm Ivory (`#F8F6F1`) with the architectural house SVG and three statements
 - Explore Pampanga: Warm Ivory (`#F8F6F1`) with the SVG location map and ledger
-- Sell statement: Warm Ivory (`#F8F6F1`) with a direct seller CTA
+- Sell statement: Warm Ivory (`#F8F6F1`), set at the Locations statement scale with two small listing photographs inline in the sentence (decorative, revealed once with GSAP) and a direct seller CTA
 - Video Tours: Warm Ivory (`#F8F6F1`) with horizontal tour carousel
 - Route cards: Four photographic paths to property, viewing, details, and selling
 - Public Footer: Soft Stone (`#EEEAE2`) with multi-column navigation and contact details
