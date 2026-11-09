@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import exterior from "@/assets/site/home-hero-2.png";
-import interior from "@/assets/site/home-hero-3.png";
+import exterior from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-exterior-front.webp";
+import interior from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-living-room.webp";
 import viewing from "@/assets/site/bungalow-street.jpg";
-import selling from "@/assets/site/footer.png";
-import contact from "@/assets/site/contact.png";
+import selling from "../../../public/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-exterior-carport.png";
+import contact from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-stairwell-window.webp";
 import styles from "@/app/about/about.module.css";
 
 const DESTINATIONS = [
@@ -15,13 +15,13 @@ const DESTINATIONS = [
     title: "Explore properties",
     href: "/properties",
     image: exterior,
-    alt: "Residence with a pool and an upper balcony",
+    alt: "Two-storey modern home with timber-slat balcony screens",
   },
   {
     title: "Discover locations",
     href: "/locations",
     image: interior,
-    alt: "Double-height living and dining space with a mezzanine",
+    alt: "Furnished living room with a sofa and low coffee table",
   },
   {
     title: "Request a viewing",
@@ -33,13 +33,13 @@ const DESTINATIONS = [
     title: "Sell your property",
     href: "/sell",
     image: selling,
-    alt: "Contemporary residence with a timber-clad upper volume",
+    alt: "Modern two-storey home with a covered carport",
   },
   {
     title: "Talk to RC Premier",
     href: "/contact",
     image: contact,
-    alt: "Dining area beside a staircase in a contemporary home",
+    alt: "Stairwell with a tall window bringing in daylight",
   },
 ] as const;
 

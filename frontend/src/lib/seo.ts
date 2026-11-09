@@ -7,7 +7,7 @@ import {
   OFFICIAL_PHONE,
   OFFICIAL_SOCIAL_LINKS,
 } from "./public-contact";
-import { publicLocationPath } from "./public-location";
+import { publicLocationCatalogPath } from "./public-location";
 
 export const SITE_NAME = "RC Premier Properties";
 /** One factual sentence reused by JSON-LD and llms.txt so the business is described consistently. */
@@ -161,9 +161,9 @@ export function buildPublicSitemap(
     const key = location.toLocaleLowerCase("en-US");
     if (!location || item.count < 1 || seenLocations.has(key)) continue;
     seenLocations.add(key);
-    // The filtered catalog canonicalizes to this guide, so only the guide is listed.
+    // Only positive-count location catalogs are indexable.
     entries.push({
-      url: `${siteUrl}${publicLocationPath(location)}`,
+      url: `${siteUrl}${publicLocationCatalogPath(location)}`,
       changeFrequency: "weekly",
       priority: 0.85,
     });

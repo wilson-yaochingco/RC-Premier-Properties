@@ -7,7 +7,7 @@ import type {
 import type { Metadata } from "next";
 import { absoluteSiteUrl, buildPageMetadata, SITE_NAME } from "../../lib/seo";
 import { isApprovedProductionMediaUrl } from "../../lib/env";
-import { publicLocationPath } from "../../lib/public-location";
+import { publicLocationCatalogPath } from "../../lib/public-location";
 import { formatPrice, propertyTypeLabel } from "./property-format";
 import type { RawSearchParams } from "./property-query";
 import { orderPropertyPhotos, propertyPhotoDeliveryUrl } from "./property-photography";
@@ -68,14 +68,12 @@ export function resolveLocationSeoState(
     return { indexable: false, canonicalPath: "/properties" };
   }
 
-  // The location guide lists the same inventory with more context, so the filtered
-  // catalog defers to it instead of competing for the same search.
   const [{ location, count }] = matches;
   return {
     indexable: true,
     location,
     count,
-    canonicalPath: publicLocationPath(location),
+    canonicalPath: publicLocationCatalogPath(location),
   };
 }
 

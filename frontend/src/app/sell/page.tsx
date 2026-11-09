@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import architecture from "@/assets/site/properties.png";
-import exterior from "@/assets/site/location.png";
-import livingRoom from "@/assets/site/home-hero-3.png";
-import garden from "@/assets/site/book-viewing.png";
+import exterior from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-stairwell-window.webp";
+import livingRoom from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-living-room.webp";
+import garden from "../../../public/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-room-garden-door.webp";
 import ogImage from "@/assets/site/home-hero-1.png";
 import frame from "@/components/layout/editorial-page.module.css";
 import { EditorialCta } from "@/components/ui/EditorialCta";
@@ -40,21 +40,21 @@ const PREPARATION: { label: string; icon: PreparationIconName }[] = [
 const GALLERY = [
   {
     src: exterior,
-    alt: "Modern residence with a timber-clad canopy and stone-faced facade",
+    alt: "Stairwell with a tall window bringing in daylight",
     position: "50% 40%",
     title: "Architecture that stands out",
     text: "Thoughtful architecture and distinctive details help a property make a memorable first impression.",
   },
   {
     src: livingRoom,
-    alt: "Bright double-height living area with a timber coffee table and open mezzanine",
+    alt: "Furnished living room with a sofa and low coffee table",
     position: "50% 55%",
     title: "Spaces made for living",
     text: "Present interiors, layouts, and finishes in a way that helps potential buyers understand the home.",
   },
   {
     src: garden,
-    alt: "Landscaped garden with a pebble path beside a white boundary wall",
+    alt: "Room opening onto a garden through glazed doors",
     position: "50% 60%",
     title: "Details that make a difference",
     text: "Highlight the features and outdoor spaces that make each property distinctive.",

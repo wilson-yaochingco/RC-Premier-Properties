@@ -1,7 +1,7 @@
 import { getPropertyFacets } from "@/features/properties/property.service";
 import { DEPLOYMENT_ENV, SITE_URL } from "@/lib/env";
 import { OFFICIAL_EMAIL, OFFICIAL_PHONE } from "@/lib/public-contact";
-import { publicLocationPath, shortPublicLocation } from "@/lib/public-location";
+import { publicLocationCatalogPath, shortPublicLocation } from "@/lib/public-location";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 
 export const revalidate = 3600;
@@ -85,7 +85,7 @@ export async function GET(): Promise<Response> {
           "",
           ...locations.map(
             ({ location, count }) =>
-              `- [${shortPublicLocation(location)}](${SITE_URL}${publicLocationPath(location)}): ${count} published ${count === 1 ? "property" : "properties"}`,
+              `- [${shortPublicLocation(location)}](${SITE_URL}${publicLocationCatalogPath(location)}): ${count} published ${count === 1 ? "property" : "properties"}`,
           ),
         ]
       : []),

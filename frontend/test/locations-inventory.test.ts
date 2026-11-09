@@ -1,9 +1,6 @@
 import { pickCollection } from "../src/features/locations/location-collection";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  FEATURED_LOCATIONS,
-  resolveLocationFacet,
-} from "../src/features/locations/featured-locations";
+import { FEATURED_LOCATIONS } from "../src/features/locations/featured-locations";
 import { fixtureLocationsInventory } from "../src/features/locations/locations.fixtures";
 import {
   LOCATIONS_FIXTURE_SCENARIOS,
@@ -31,29 +28,17 @@ const page = (items: unknown[]) =>
 const load = () => import("../src/features/locations/locations-inventory");
 
 describe("featured locations", () => {
-  it("are the four curated destinations with real routes and attributed photos", () => {
+  it("are the four curated destinations with catalog routes and approved property photos", () => {
     expect(FEATURED_LOCATIONS.map(({ slug, href }) => [slug, href])).toEqual([
-      ["angeles-city", "/locations/angeles-city"],
-      ["mabalacat-city", "/locations/mabalacat-city"],
-      ["magalang", "/locations/magalang"],
-      ["porac", "/locations/porac"],
+      ["angeles-city", "/properties?location=Angeles+City"],
+      ["mabalacat-city", "/properties?location=Mabalacat+City"],
+      ["magalang", "/properties?location=Magalang"],
+      ["porac", "/properties?location=Porac"],
     ]);
     for (const { scenery } of FEATURED_LOCATIONS) {
-      expect(scenery.imagePath).toMatch(/^\/images\/locations\/.+\.jpg$/);
-      expect(scenery.creator).not.toBe("");
-      expect(scenery.sourceUrl).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
+      expect(scenery.imagePath).toMatch(/^\/media\/properties\/photography-v1\//);
+      expect(scenery.alt).not.toMatch(/Angeles|Mabalacat|Magalang|Porac/);
     }
-  });
-
-  it("stay valid destinations with no inventory, but unknown slugs do not", () => {
-    expect(resolveLocationFacet("porac", [])).toEqual({ location: "Porac", count: 0 });
-    expect(
-      resolveLocationFacet("angeles-city", [
-        { location: "Angeles City, Pampanga", count: 4 },
-      ]),
-    ).toEqual({ location: "Angeles City, Pampanga", count: 4 });
-    expect(resolveLocationFacet("atlantis", [])).toBeUndefined();
-    expect(resolveLocationFacet("apalit", [])).toBeUndefined();
   });
 });
 

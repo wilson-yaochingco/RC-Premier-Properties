@@ -589,7 +589,7 @@ test("featured locations and the curated collection lead to real routes", async 
     ),
   ).toHaveCount(0);
 
-  // Four curated tiles, each a real photograph and a link to its location page.
+  // Four static curated tiles, each with approved property photography.
   const featured = page.locator("#featured-locations");
   for (const [name, slug] of [
     ["Angeles City", "angeles-city"],
@@ -597,14 +597,10 @@ test("featured locations and the curated collection lead to real routes", async 
     ["Magalang", "magalang"],
     ["Porac", "porac"],
   ] as const) {
-    await expect(
-      featured.getByRole("link", { name: new RegExp(`${name}`) }).first(),
-    ).toHaveAttribute("href", `/locations/${slug}`);
+    await expect(featured.locator(`[data-tile="${slug}"] h3`)).toHaveText(name);
   }
   await expect(
-    featured.getByAltText(
-      "Angeles City skyline and Mount Arayat beneath a pale sunset sky",
-    ),
+    featured.getByAltText("Two-storey modern home with timber-slat balcony screens"),
   ).toBeVisible();
 
   // The four destinations stay available without a search section on this page.
@@ -620,18 +616,7 @@ test("featured locations and the curated collection lead to real routes", async 
     /^\/properties\//,
   );
 
-  await page.goto("/locations/angeles-city");
-  await page.waitForFunction(() => !document.querySelector('[id^="S:"]'));
-  await expect(
-    page.getByRole("heading", { name: "Find a property in Angeles City." }),
-  ).toBeVisible();
-  await expect(
-    page
-      .locator('section[aria-labelledby="location-title"]')
-      .getByAltText("Angeles City skyline and Mount Arayat beneath a pale sunset sky"),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Wikimedia Commons" })).toHaveAttribute(
-    "href",
-    /commons\.wikimedia\.org/,
-  );
+  await expect(featured.getByRole("link")).toHaveCount(0);
+  const response = await page.goto("/locations/angeles-city");
+  expect(response?.status()).toBe(404);
 });

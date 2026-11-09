@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Container } from "@/components/ui/Container";
 import { RollLabel } from "@/components/ui/RollLabel";
-import { Button } from "@/components/ui/Button";
-import { RequestTourButton } from "@/features/inquiries/RequestTourProvider";
 import { BrandLogo } from "./BrandLogo";
 import { MobileNavigation } from "./MobileNavigation";
 import heroStyles from "@/features/home/hero.module.css";
@@ -20,8 +17,6 @@ const navigation = [
 ] as const;
 
 const NEAR_TOP_PX = 40;
-/** Only location guides keep the classic bar; every other route, including property detail pages and unknown URLs that land on the 404, uses the redesigned header. */
-const CLASSIC_HEADER_PATH = /^\/locations\/[^/]+/;
 const DOWNWARD_HIDE_DISTANCE_PX = 48;
 const UPWARD_SHOW_DISTANCE_PX = 24;
 
@@ -32,7 +27,6 @@ export function SiteHeader() {
   const pointerActiveRef = useRef(false);
   const hiddenRef = useRef(false);
   const [isHidden, setIsHidden] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [heroGone, setHeroGone] = useState(false);
   const [stickyMounted, setStickyMounted] = useState(false);
   // Slide transitions stay off until the bar has actually been shown once, so a
@@ -48,8 +42,7 @@ export function SiteHeader() {
   const isSell = pathname === "/sell";
   // Pages without a hero use the homepage header in its sticky state from the first paint.
   const cinematic = isHome || isAbout || isProperties || isLocations || isSell;
-  const heroless = !cinematic && !CLASSIC_HEADER_PATH.test(pathname);
-  const usesHomeHeader = cinematic || heroless;
+  const heroless = !cinematic;
   const eligible = isAbout || isSell || heroless || heroGone;
   const sticky = heroless || stickyMounted;
 
@@ -147,7 +140,6 @@ export function SiteHeader() {
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       pointerActiveRef.current = false;
-      setIsScrolled(window.scrollY > NEAR_TOP_PX);
       showHeader();
     });
 
@@ -159,7 +151,6 @@ export function SiteHeader() {
     let lastScrollY = Math.max(window.scrollY, 0);
     let direction: -1 | 0 | 1 = 0;
     let travelled = 0;
-    let scrolled = window.scrollY > NEAR_TOP_PX;
 
     const update = () => {
       frame = undefined;
@@ -169,11 +160,6 @@ export function SiteHeader() {
 
       if (document.body.style.position === "fixed") return;
       if (cinematic && !heroGoneRef.current) return;
-
-      if (scrollY > NEAR_TOP_PX !== scrolled) {
-        scrolled = scrollY > NEAR_TOP_PX;
-        setIsScrolled(scrolled);
-      }
 
       if (scrollY <= NEAR_TOP_PX) {
         direction = 0;
@@ -234,109 +220,53 @@ export function SiteHeader() {
     };
   }, [pathname, cinematic, showHeader]);
 
-  function isCurrentPage(href: string) {
-    if (href.includes("#")) return false;
-    return pathname.startsWith(href);
-  }
-
-  const isTransparent = isHome && !isScrolled;
-
-  if (usesHomeHeader) {
-    return (
-      <header
-        ref={headerRef}
-        className={heroStyles.header}
-        data-about-hero={isAbout || undefined}
-        data-sell-hero={isSell || undefined}
-        data-properties-hero={isProperties || undefined}
-        data-locations-hero={isLocations || undefined}
-        data-sticky={sticky}
-        data-eligible={eligible}
-        data-motion={stickyMotion}
-        data-hidden={sticky && (isHidden || !eligible)}
-        data-menu-open={menuOpen}
-        data-menu-expanded={menuExpanded}
-        inert={sticky && (isHidden || !eligible)}
-        onFocusCapture={showHeader}
-        onPointerDownCapture={() => {
-          pointerActiveRef.current = true;
-          showHeader();
-        }}
-      >
-        <div
-          className={heroStyles.stickyLogo}
-          aria-hidden={!(eligible || isProperties || isLocations)}
-          inert={!(eligible || isProperties || isLocations) || menuOpen}
-        >
-          <BrandLogo />
-        </div>
-        <MobileNavigation
-          items={navigation}
-          currentPath={pathname}
-          onOpenChange={handleMenuOpenChange}
-          cinematic
-        >
-          <Link href="/book-viewing" className={`${heroStyles.viewing} cta`}>
-            <RollLabel>Book a viewing</RollLabel>
-            <svg
-              aria-hidden="true"
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-            >
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </Link>
-        </MobileNavigation>
-      </header>
-    );
-  }
-
   return (
     <header
       ref={headerRef}
-      className="site-header"
-      data-hidden={isHidden}
-      data-transparent={isTransparent}
-      data-scrolled={isScrolled}
+      className={heroStyles.header}
+      data-about-hero={isAbout || undefined}
+      data-sell-hero={isSell || undefined}
+      data-properties-hero={isProperties || undefined}
+      data-locations-hero={isLocations || undefined}
+      data-sticky={sticky}
+      data-eligible={eligible}
+      data-motion={stickyMotion}
+      data-hidden={sticky && (isHidden || !eligible)}
+      data-menu-open={menuOpen}
+      data-menu-expanded={menuExpanded}
+      inert={sticky && (isHidden || !eligible)}
       onFocusCapture={showHeader}
       onPointerDownCapture={() => {
         pointerActiveRef.current = true;
         showHeader();
       }}
     >
-      <Container className="site-header__inner">
+      <div
+        className={heroStyles.stickyLogo}
+        aria-hidden={!(eligible || isProperties || isLocations)}
+        inert={!(eligible || isProperties || isLocations) || menuOpen}
+      >
         <BrandLogo />
-
-        <nav className="desktop-navigation" aria-label="Primary navigation">
-          <ul>
-            {navigation.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isCurrentPage(item.href) ? "page" : undefined}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="site-header__actions">
-          <RequestTourButton variant="outline" className="site-header__tour-btn" />
-          <Button href="/properties" variant="gold" className="site-header__browse-btn">
-            Browse Properties
-          </Button>
-        </div>
-
-        <MobileNavigation
-          items={navigation}
-          currentPath={pathname}
-          onOpenChange={handleMenuOpenChange}
-        />
-      </Container>
+      </div>
+      <MobileNavigation
+        items={navigation}
+        currentPath={pathname}
+        onOpenChange={handleMenuOpenChange}
+        cinematic
+      >
+        <Link href="/book-viewing" className={`${heroStyles.viewing} cta`}>
+          <RollLabel>Book a viewing</RollLabel>
+          <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+          >
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </Link>
+      </MobileNavigation>
     </header>
   );
 }

@@ -36,7 +36,7 @@ describe("buildExploreLocations", () => {
     ]);
     expect(result[0]).toMatchObject({
       slug: "angeles-city",
-      href: "/locations/angeles-city",
+      href: "/properties?location=Angeles+City",
       countLabel: "3 properties",
     });
     expect(result[3]?.countLabel).toBe("1 property");

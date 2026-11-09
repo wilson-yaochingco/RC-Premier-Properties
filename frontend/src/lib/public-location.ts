@@ -1,5 +1,4 @@
 const PAMPANGA_SUFFIX = /,\s*pampanga$/i;
-const PUBLIC_LOCATION_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function shortPublicLocation(location: string): string {
   return location.trim().replace(PAMPANGA_SUFFIX, "");
@@ -14,14 +13,6 @@ export function publicLocationSlug(location: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function publicLocationPath(location: string): string {
-  return `/locations/${publicLocationSlug(location)}`;
-}
-
-export function findPublicLocationBySlug<T extends { location: string }>(
-  slug: string,
-  locations: readonly T[],
-): T | undefined {
-  if (!PUBLIC_LOCATION_SLUG.test(slug)) return undefined;
-  return locations.find(({ location }) => publicLocationSlug(location) === slug);
+export function publicLocationCatalogPath(location: string): string {
+  return `/properties?${new URLSearchParams({ location: shortPublicLocation(location) })}`;
 }

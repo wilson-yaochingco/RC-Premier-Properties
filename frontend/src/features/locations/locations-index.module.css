@@ -75,8 +75,7 @@
 
 .primaryAction svg,
 .quietAction svg,
-.heroAction svg,
-.tileAction svg {
+.heroAction svg {
   width: 14px;
   height: 14px;
   flex: none;
@@ -86,16 +85,14 @@
 
 .primaryAction:focus-visible svg,
 .quietAction:focus-visible svg,
-.heroAction:focus-visible svg,
-.tileLink:focus-visible .tileAction svg {
+.heroAction:focus-visible svg {
   transform: rotate(0deg);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .primaryAction:hover svg,
   .quietAction:hover svg,
-  .heroAction:hover svg,
-  .tileLink:hover .tileAction svg {
+  .heroAction:hover svg {
     transform: rotate(0deg);
   }
 }
@@ -412,6 +409,7 @@
   overflow: hidden;
   border-radius: 14px 0 14px 0;
   background: #d9d3c6;
+  color: #fff;
   box-shadow: 0 28px 50px -38px rgb(32 38 48 / 45%);
 }
 
@@ -436,22 +434,8 @@
   grid-row: 2;
 }
 
-.tileLink {
-  position: absolute;
-  inset: 0;
-  display: block;
-  color: #fff;
-}
-
-.tileLink:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -5px;
-  box-shadow: inset 0 0 0 5px #fff;
-}
-
 .tileImage {
   object-fit: cover;
-  transition: transform 700ms var(--ease);
 }
 
 /* Functional scrim only: keeps white copy legible over any photograph. */
@@ -464,6 +448,18 @@
     rgb(18 22 28 / 66%) 48%,
     transparent 86%
   );
+}
+
+.tile[data-tile="angeles-city"] .tileImage {
+  object-position: 50% 40%;
+}
+
+.tile[data-tile="magalang"] .tileImage {
+  object-position: 50% 80%;
+}
+
+.tile[data-tile="porac"] .tileImage {
+  object-position: 50% 65%;
 }
 
 .tileBody {
@@ -497,23 +493,6 @@
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-}
-
-.tileAction {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .tileLink:hover .tileImage {
-    transform: scale(1.035);
-  }
 }
 
 /* ---- 3. Current collection ---- */
@@ -618,11 +597,7 @@
   .tileImage,
   .primaryAction svg,
   .quietAction svg,
-  .heroAction svg,
-  .tileAction svg {
+  .heroAction svg {
     transition: none;
-  }
-  .tileLink:hover .tileImage {
-    transform: none;
   }
 }

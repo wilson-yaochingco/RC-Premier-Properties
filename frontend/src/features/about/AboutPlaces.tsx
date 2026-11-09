@@ -9,10 +9,10 @@ import { RollLabel } from "@/components/ui/RollLabel";
 import Link from "next/link";
 import entrance from "@/assets/site/about.png";
 import dusk from "@/assets/site/bungalow-exterior.jpg";
-import dining from "@/assets/site/contact.png";
+import dining from "../../../public/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-staircase.webp";
 import aerial from "../../../public/images/locations/angeles-city.jpg";
 import living from "@/assets/site/home-hero-3.png";
-import garden from "@/assets/site/book-viewing.png";
+import garden from "../../../public/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-room-garden-door.webp";
 import styles from "./about-places.module.css";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -31,7 +31,7 @@ const PHOTOS = [
   {
     src: dining,
     shape: "portraitB",
-    alt: "Dining area beside a staircase in a contemporary home",
+    alt: "Stairwell with a timber handrail and pendant lights",
   },
   { src: aerial, shape: "wideB", alt: "Angeles City with Mount Arayat on the horizon" },
   {
@@ -42,7 +42,7 @@ const PHOTOS = [
   {
     src: garden,
     shape: "wideC",
-    alt: "Landscaped garden court behind a white boundary wall",
+    alt: "Room opening onto a garden through glazed doors",
   },
 ] as const;
 

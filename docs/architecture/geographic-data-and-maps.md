@@ -33,13 +33,10 @@ adds a progressively enhanced view:
    DTO for cover media, Property ID, title, public location, price, available bed/bath
    values, availability and the stable detail link.
 
-Every `/locations/[location]` inventory view mounts this same `PropertyMap` and
-`PropertyMapCanvas` catalog engine rather than a parallel map implementation. It starts
-focused on the validated route locality, requests the map endpoint with the identical
-normalized route-and-query filters, shares marker/card activation, and uses the area
-selector to navigate to canonical location routes. This keeps filtering, privacy,
-failure isolation, lazy loading, popup content, and marker rendering on one code path and
-does not duplicate a Leaflet bundle or map data request.
+Location navigation opens the existing filtered `/properties` catalog, which currently
+shows listing results without an interactive inventory map. The location detail map
+wrapper was removed with its routes. Property detail retains its separately approved
+public-pin map; this change does not add a catalog map.
 
 On small screens the List view is the default and Map is an explicit choice. Tablet
 layouts stack the map and cards; wide desktop layouts use a split discovery surface. An

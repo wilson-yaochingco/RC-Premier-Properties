@@ -1,5 +1,5 @@
 import {
-  publicLocationPath,
+  publicLocationCatalogPath,
   publicLocationSlug,
   shortPublicLocation,
 } from "../../lib/public-location";
@@ -43,7 +43,7 @@ export function buildExploreLocations(
       slug,
       name: shortPublicLocation(location),
       count,
-      href: publicLocationPath(location),
+      href: publicLocationCatalogPath(location),
       countLabel: propertyCountLabel(count),
     });
   }

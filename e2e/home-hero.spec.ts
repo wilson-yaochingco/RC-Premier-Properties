@@ -293,19 +293,17 @@ test("editorial menu reveal, interrupted close, and reduced motion", async ({
   await expect(menu).toBeFocused();
 });
 
-test("interior mobile navigation retains its existing controls", async ({ page }) => {
+test("location catalog uses the shared mobile navigation", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/locations/angeles-city");
+  await page.goto("/properties?location=Angeles+City");
   const menu = page.getByRole("button", { name: "Menu", exact: true });
   await menu.click();
-  const navigation = page.getByRole("navigation", { name: "Mobile navigation" });
+  const navigation = page.getByRole("dialog", { name: "Primary navigation" });
   await expect(
     navigation.getByRole("link", { name: "About", exact: true }),
   ).toBeFocused();
   await expect(
-    page
-      .locator(".mobile-navigation__footer")
-      .getByRole("button", { name: "Request a Tour" }),
+    navigation.getByRole("link", { name: "Book a viewing", exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toBeFocused();

@@ -72,10 +72,10 @@ test("location discovery is indexable only for inventory-backed stable states", 
     "Properties for Sale in Angeles City, Pampanga | RC Premier Properties",
   );
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  // The filtered catalog defers to the location guide for the same inventory.
+  // The stable location catalog is its own canonical.
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    `${SITE_ORIGIN}/locations/angeles-city`,
+    `${SITE_ORIGIN}/properties?location=Angeles+City`,
   );
   await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 
@@ -148,7 +148,7 @@ test("robots, noindex headers, sitemap, and property 404s preserve public bounda
   expect(llms.ok()).toBe(true);
   const llmsText = await llms.text();
   expect(llmsText.startsWith("# RC Premier Properties")).toBe(true);
-  expect(llmsText).toContain(`${SITE_ORIGIN}/locations/angeles-city`);
+  expect(llmsText).toContain(`${SITE_ORIGIN}/properties?location=Angeles+City`);
   expect(llmsText).not.toContain("/admin");
 
   const sitemap = await request.get("/sitemap.xml");
@@ -161,9 +161,8 @@ test("robots, noindex headers, sitemap, and property 404s preserve public bounda
   expect(sitemapShardText).toContain(
     `${SITE_ORIGIN}/properties/clark-garden-residence`,
   );
-  expect(sitemapShardText).not.toContain("location=");
   expect(sitemapShardText).toContain(`${SITE_ORIGIN}/disclaimer`);
-  expect(sitemapShardText).toContain(`${SITE_ORIGIN}/locations/angeles-city`);
+  expect(sitemapShardText).toContain(`${SITE_ORIGIN}/properties?location=Angeles+City`);
   expect(sitemapShardText).not.toContain("mabalacat-skyline-condominium");
   expect(sitemapShardText).not.toContain("/admin");
   expect(sitemapShardText).not.toContain("/api");
