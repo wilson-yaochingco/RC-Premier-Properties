@@ -10,7 +10,7 @@ import Link from "next/link";
 import entrance from "@/assets/site/about.png";
 import dusk from "@/assets/site/bungalow-exterior.jpg";
 import dining from "../../../public/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-staircase.webp";
-import aerial from "../../../public/images/locations/angeles-city.jpg";
+import exterior from "../../../public/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-exterior-front.webp";
 import living from "@/assets/site/home-hero-3.png";
 import garden from "../../../public/media/properties/photography-v1/modern-filipino-smart-home/modern-filipino-smart-home-room-garden-door.webp";
 import styles from "./about-places.module.css";
@@ -33,7 +33,11 @@ const PHOTOS = [
     shape: "portraitB",
     alt: "Stairwell with a timber handrail and pendant lights",
   },
-  { src: aerial, shape: "wideB", alt: "Angeles City with Mount Arayat on the horizon" },
+  {
+    src: exterior,
+    shape: "wideB",
+    alt: "Modern two-storey home with a concrete canopy, timber soffit and a breeze-block wall",
+  },
   {
     src: living,
     shape: "portraitC",

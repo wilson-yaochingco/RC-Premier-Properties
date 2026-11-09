@@ -1,7 +1,7 @@
 .section {
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --gutter: clamp(1.25rem, 3vw, 3rem);
-  padding-block: clamp(4.5rem, 8vw, 8rem) clamp(3.5rem, 5.5vw, 5.5rem);
+  padding-block: clamp(6rem, 11vw, 11rem) clamp(3.5rem, 5.5vw, 5.5rem);
   background: var(--color-background);
   color: var(--color-brand-deep);
   font-family: var(--font-general-sans), sans-serif;
@@ -10,19 +10,58 @@
 .container {
   margin-inline: auto;
   padding-inline: var(--gutter);
+  text-align: center;
+}
+
+/* Eyebrow and typography mirror LocationsStatement (locations-index.module.css). */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: clamp(0.875rem, 1.2vw, 1.125rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .statement {
-  max-width: 1280px;
-  margin-inline: auto;
-  text-align: center;
-  margin-bottom: clamp(3rem, 5vw, 5rem);
-  font-size: clamp(3rem, 4vw, 4rem);
+  margin: 2.5rem auto clamp(3rem, 5vw, 5rem);
+  font-size: clamp(2.5rem, 5.2vw, 5.625rem);
   font-weight: 450;
-  line-height: 1.05;
+  line-height: 1.08;
   letter-spacing: -0.026em;
-  color: var(--color-text);
-  text-wrap: balance;
+  text-align: center;
+}
+
+.statementLine {
+  display: block;
+  white-space: nowrap;
+}
+
+.statementLine > span {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.statement [data-char] {
+  color: color-mix(in srgb, var(--color-text) calc(var(--fill) * 100%), #8d8d87);
+}
+
+/* A small photograph set in the sentence like a word, sized and aligned by the type. */
+.photo {
+  position: relative;
+  display: inline-block;
+  width: 1.55em;
+  height: 0.8em;
+  margin-inline: 0.04em;
+  overflow: hidden;
+  border-radius: 0.14em 0 0.14em 0;
+  background: #d9d3c6;
+  vertical-align: -0.02em;
+}
+
+.photo img {
+  object-fit: cover;
 }
 
 .footer {
@@ -73,29 +112,29 @@
 }
 
 @media (max-width: 63.99rem) {
+  .statementLine {
+    display: contents;
+    white-space: normal;
+  }
+
   .statement {
-    font-size: clamp(2.5rem, 5.6vw, 3.25rem);
+    font-size: clamp(2rem, 8.7vw, 3.5rem);
+    text-wrap: pretty;
+  }
+
+  .photo {
+    width: 1.7em;
+    height: 0.9em;
   }
 }
 
 @media (max-width: 39.99rem) {
   .section {
-    padding-block: 4rem 3.5rem;
+    padding-block: 5rem 3.5rem;
   }
 
   .statement {
     margin-bottom: 2.5rem;
-    font-size: clamp(2.125rem, 9.5vw, 2.625rem);
-    line-height: 1.08;
-    text-wrap: pretty;
-  }
-}
-
-/* Small phones: about 10% smaller, still large editorial type but fewer one-word lines. */
-@media (max-width: 30rem) {
-  .statement {
-    margin-bottom: 2.125rem;
-    font-size: clamp(1.9rem, 8.6vw, 2.35rem);
   }
 }
 

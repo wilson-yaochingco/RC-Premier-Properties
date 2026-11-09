@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import exterior from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-exterior-front.webp";
 import interior from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-living-room.webp";
-import viewing from "@/assets/site/bungalow-street.jpg";
+import viewing from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-kitchen-dining-mezzanine.png";
 import selling from "../../../public/media/properties/photography-v1/brand-new-modern-family-home/brand-new-modern-family-home-exterior-carport.png";
 import contact from "../../../public/media/properties/photography-v1/furnished-brand-new-modern-home/furnished-brand-new-modern-home-stairwell-window.webp";
 import styles from "@/app/about/about.module.css";
@@ -27,7 +27,7 @@ const DESTINATIONS = [
     title: "Request a viewing",
     href: "/book-viewing",
     image: viewing,
-    alt: "Modern single-storey home seen from the street, with its gated frontage",
+    alt: "Kitchen and dining area beneath an open mezzanine",
   },
   {
     title: "Sell your property",
